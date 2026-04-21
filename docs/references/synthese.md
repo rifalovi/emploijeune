@@ -90,7 +90,7 @@ Le cadre de mesure du rendement V2 définit **18 indicateurs** répartis en **5 
 La nomenclature normative des projets est **hiérarchique à trois niveaux** (source : `00_NOMENCLATURE_PROJETS_OIF.md`) :
 
 1. **Programme Stratégique** : `PS1`, `PS2`, `PS3` — regroupements thématiques.
-2. **Projet** : `PROJ_A01a` à `PROJ_A20` — unité opérationnelle. **22 projets au total.**
+2. **Projet** : `PROJ_A01a` à `PROJ_A20` — unité opérationnelle. **23 projets au total.**
 3. **Résultat attendu** : `A11111`, `A11331`, etc. — granularité réservée à une V2 ultérieure.
 
 Les trois Programmes Stratégiques officiels :
@@ -117,7 +117,7 @@ Ne jamais utiliser de champ commun ou de type alias qui confondrait les deux. Le
 
 ### 4.3. Périmètre des 8 projets emploi jeunes
 
-Sur les 22 projets de la programmation, **8 sont directement concernés** par la plateforme emploi jeunes (tous rattachés à `PS3`) :
+Sur les 23 projets de la programmation, **8 sont directement concernés** par la plateforme emploi jeunes (tous rattachés à `PS3`) :
 
 | Code | Libellé officiel | Rôle emploi jeunes |
 |------|-----------------|-------------------|
@@ -134,7 +134,7 @@ Les 14 autres projets (PROJ_A01a à PROJ_A13) figurent dans la table `projets` m
 
 Règles dérivées :
 
-- Seed SQL : **les 22 projets** avec libellés reproduits **exactement** (apostrophes typographiques `'`, majuscules officielles, accents), colonnes `code`, `libelle`, `programme_strategique` (valeurs `PS1` / `PS2` / `PS3`), `concerne_emploi_jeunes`, `ordre_affichage`, `actif`.
+- Seed SQL : **les 23 projets** avec libellés reproduits **exactement** (apostrophes typographiques `'`, majuscules officielles, accents), colonnes `code`, `libelle`, `programme_strategique` (valeurs `PS1` / `PS2` / `PS3`), `concerne_emploi_jeunes`, `ordre_affichage`, `actif`.
 - UI : toujours afficher « `PROJ_A14` — La Francophonie avec Elles » (code + libellé), jamais le code nu.
 - Filtrage par défaut sur `concerne_emploi_jeunes = TRUE`, toggle admin pour voir les 22.
 
@@ -194,7 +194,7 @@ Toute valeur en nomenclature fermée doit être une clé étrangère vers la tab
 | SCS | Service de Conception et Suivi de projet (maître d'ouvrage de la plateforme) |
 | PAS | Protocole d'Accord de Subvention (document contractuel de financement, alimente la base B1) |
 | PS1 / PS2 / PS3 | Programmes Stratégiques de la programmation OIF |
-| PROJ_A* | Codification hiérarchique officielle des 22 projets OIF |
+| PROJ_A* | Codification hiérarchique officielle des 23 projets OIF |
 | EFH | Égalité Femmes–Hommes (marqueur du projet PROJ_A14) |
 | AGR | Activité Génératrice de Revenus |
 | RGPD | Règlement Général sur la Protection des Données |

@@ -58,7 +58,7 @@ CREATE TABLE public.projets (
   ordre_affichage SMALLINT NOT NULL DEFAULT 0,
   actif BOOLEAN NOT NULL DEFAULT TRUE
 );
-COMMENT ON TABLE public.projets IS 'Nomenclature officielle des 22 projets OIF (PROJ_A01a à PROJ_A20)';
+COMMENT ON TABLE public.projets IS 'Nomenclature officielle des 23 projets OIF (PROJ_A01a à PROJ_A20)';
 COMMENT ON COLUMN public.projets.concerne_emploi_jeunes IS 'TRUE pour les 8 projets directement suivis par la plateforme emploi jeunes';
 
 -- 1.2.bis. Table de correspondance pour rétro-compatibilité des anciens codes --

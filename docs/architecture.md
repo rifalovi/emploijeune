@@ -71,6 +71,6 @@ Règles `next/typescript` strictes : `noUncheckedIndexedAccess`, `noImplicitOver
 
 ## Prochaines étapes
 
-- **Étape 2** : migration `001_initial_schema.sql`, seed nomenclatures officielles (22 projets `PROJ_A*`, 18 indicateurs, 61 pays, 16 domaines, 17 secteurs, 9 types structure, 8 natures d'appui, 14 devises).
+- **Étape 2** : migration `001_initial_schema.sql`, seed nomenclatures officielles (23 projets `PROJ_A*`, 18 indicateurs, 61 pays, 16 domaines, 17 secteurs, 7 types structure, 7 natures d'appui, 15 devises).
 - **Étape 3** : auth magic link + shell (layout sidebar admin_scs / layout simplifié partenaires).
 - **Étape 4** : CRUD bénéficiaires (fonctionnalité pivot).

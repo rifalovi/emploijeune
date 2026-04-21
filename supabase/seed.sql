@@ -17,7 +17,7 @@ ON CONFLICT (code) DO UPDATE SET
   libelle = EXCLUDED.libelle,
   ordre_affichage = EXCLUDED.ordre_affichage;
 
--- 2. Projets officiels (22 projets, 8 concernés par emploi jeunes) -------------
+-- 2. Projets officiels (23 projets, 8 concernés par emploi jeunes) -------------
 INSERT INTO public.projets(code, libelle, programme_strategique, concerne_emploi_jeunes, ordre_affichage) VALUES
   ('PROJ_A01a', 'La langue française, langue internationale', 'PS1', FALSE, 1),
   ('PROJ_A01b', 'Observatoire de la langue française', 'PS1', FALSE, 2),

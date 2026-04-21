@@ -30,7 +30,7 @@ Le fait que les deux utilisent la lettre « A » dans leur codification est une 
 | PROG 2 | La langue française au service de la démocratie et de la gouvernance |
 | PROG 3 | La langue française, vecteur de développement durable |
 
-## Liste officielle des 22 projets
+## Liste officielle des 23 projets
 
 ### Programme 1 — Langue française, cultures et éducation
 
@@ -101,9 +101,9 @@ D'après le cadre de mesure V2, les projets directement concernés par les 18 in
 
 ## Règles d'implémentation pour la plateforme
 
-1. **Table `projets` dans Supabase** : doit contenir les 22 projets listés ci-dessus, avec les colonnes `code` (PRIMARY KEY, valeur `PROJ_A14` etc.), `libelle` (texte complet), `programme` (`PROG 1` / `PROG 2` / `PROG 3`), `concerne_emploi_jeunes` (BOOLEAN), `ordre_affichage` (INT pour l'UI), `actif` (BOOLEAN, DEFAULT TRUE).
+1. **Table `projets` dans Supabase** : doit contenir les 23 projets listés ci-dessus, avec les colonnes `code` (PRIMARY KEY, valeur `PROJ_A14` etc.), `libelle` (texte complet), `programme` (`PROG 1` / `PROG 2` / `PROG 3`), `concerne_emploi_jeunes` (BOOLEAN), `ordre_affichage` (INT pour l'UI), `actif` (BOOLEAN, DEFAULT TRUE).
 
-2. **Seed SQL** : fournir les 22 projets d'un coup, ne pas en oublier. Les libellés doivent être reproduits **exactement** comme ci-dessus (respect des majuscules officielles, des accents, des apostrophes typographiques `'` et non droites `'`).
+2. **Seed SQL** : fournir les 23 projets d'un coup, ne pas en oublier. Les libellés doivent être reproduits **exactement** comme ci-dessus (respect des majuscules officielles, des accents, des apostrophes typographiques `'` et non droites `'`).
 
 3. **Filtrage par défaut dans l'UI** : afficher par défaut uniquement les projets où `concerne_emploi_jeunes = TRUE` dans les listes déroulantes des formulaires bénéficiaires et structures. Un toggle admin permet d'afficher tous les projets.
 
@@ -135,4 +135,4 @@ Exemple : `A11331` = Axe A, Programme 1, Sous-programme 1, Projet 33 (= PROJ_A16
 2. **Émettre une erreur explicite** dans le rapport d'import : `"Code projet '{valeur}' inconnu — voir /docs/references/nomenclature-projets.md pour la liste officielle"`
 3. **Ne pas tenter de deviner** la correspondance
 
-Les 22 projets listés ici sont la référence. Si un partenaire introduit un code inconnu, c'est une erreur de saisie à corriger en amont, pas une tolérance à accorder en aval.
+Les 23 projets listés ici sont la référence. Si un partenaire introduit un code inconnu, c'est une erreur de saisie à corriger en amont, pas une tolérance à accorder en aval.
