@@ -24,6 +24,7 @@
     "build/",
     "coverage/",
     "playwright-report/",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    "lib/supabase/database.types.ts"
   ]
 }
