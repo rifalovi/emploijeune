@@ -35,8 +35,25 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter), 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-mono: var(--font-geist-mono);
+
+  /* ===== Couleurs officielles OIF =====
+   * Source : docs/branding/sources/OIF_mini_charte.pdf page 8.
+   * Ces valeurs sont VERROUILLÉES par la charte — ne pas modifier.
+   */
+  --color-oif-gris: #2e292d;
+  --color-oif-jaune: #fdcd00;
+  --color-oif-vert: #7eb301;
+  --color-oif-violet: #5d0073;
+  --color-oif-rouge: #e40001;
+  --color-oif-bleu-cyan: #0198e9;
+  --color-oif-gris-clair: #dfdcd8;
+
+  /* Couleurs des Programmes Stratégiques (Code couleur programmation OIF.pdf) */
+  --color-ps1: #0198e9; /* bleu cyan */
+  --color-ps2: #5d0073; /* violet */
+  --color-ps3: #7eb301; /* vert */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

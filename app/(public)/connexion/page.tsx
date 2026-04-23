@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import { LogoOIF } from '@/components/branding/logo-oif';
 import { ConnexionForm } from './connexion-form';
 
 export const metadata: Metadata = {
@@ -10,17 +11,17 @@ export default function ConnexionPage() {
   return (
     <main className="bg-background flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div
-            aria-hidden
-            className="bg-primary text-primary-foreground mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg"
-          >
-            <span className="text-xl font-bold">OIF</span>
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Plateforme Emploi Jeunes</h1>
+        <div className="mb-8 flex flex-col items-center text-center">
+          <LogoOIF
+            variant="quadri"
+            size="lg"
+            withProtectedSpace
+            priority
+            ariaLabel="Logo officiel de l'Organisation Internationale de la Francophonie"
+          />
+          <h1 className="mt-4 text-2xl font-semibold tracking-tight">Plateforme Emploi Jeunes</h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Service de Conception et Suivi de projet — Organisation Internationale de la
-            Francophonie
+            Service de Conception et Suivi de projet
           </p>
         </div>
 

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getAuthUser, getCurrentUtilisateur } from '@/lib/supabase/auth';
+import { LogoOIF } from '@/components/branding/logo-oif';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -19,7 +20,16 @@ export default async function EnAttenteValidationPage() {
   if (profile?.statut_validation === 'rejete') redirect('/connexion?message=compte_refuse');
 
   return (
-    <main className="bg-background flex min-h-screen items-center justify-center px-4 py-10">
+    <main className="bg-background flex min-h-screen flex-col items-center justify-center px-4 py-10">
+      <div className="mb-6 flex flex-col items-center">
+        <LogoOIF
+          variant="quadri"
+          size="md"
+          withProtectedSpace
+          priority
+          ariaLabel="Logo officiel de l'Organisation Internationale de la Francophonie"
+        />
+      </div>
       <div className="w-full max-w-xl">
         <Card>
           <CardHeader>

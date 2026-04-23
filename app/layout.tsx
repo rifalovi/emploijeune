@@ -1,13 +1,21 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import localFont from 'next/font/local';
 import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
 import './globals.css';
 
-const geistSans = localFont({
-  src: './fonts/GeistVF.woff',
-  variable: '--font-geist-sans',
-  weight: '100 900',
+/**
+ * Inter — substitut web de Helvetica Neue (police officielle OIF selon la
+ * charte graphique page 9). Licence OFL, optimisée écran. Sur macOS/iOS,
+ * le fallback CSS pointe vers Helvetica Neue si installée système.
+ * Voir `lib/design/oif/typography.ts` pour le rationale complet.
+ */
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700', '900'],
 });
 
 const geistMono = localFont({
@@ -35,7 +43,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={cn(geistSans.variable, geistMono.variable, 'font-sans antialiased')}>
+      <body className={cn(inter.variable, geistMono.variable, 'font-sans antialiased')}>
         {children}
         <Toaster richColors position="top-right" />
       </body>

@@ -6,6 +6,7 @@ import { Menu } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { LogoOIF } from '@/components/branding/logo-oif';
 import { NavLink } from './nav-link';
 import { SignOutButton } from './sign-out-button';
 import { visibleNavItems } from './nav-items';
@@ -33,14 +34,14 @@ export function MobileHeader({ utilisateur, notificationsCount }: MobileHeaderPr
           <SheetContent side="left" className="w-72 p-0">
             <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
             <div className="flex h-full flex-col">
-              <div className="flex items-center gap-2 px-4 py-5">
-                <div
-                  aria-hidden
-                  className="bg-primary text-primary-foreground inline-flex size-9 items-center justify-center rounded-md font-bold"
-                >
-                  OIF
-                </div>
-                <div className="leading-tight">
+              <div className="px-3 py-4">
+                <LogoOIF
+                  variant="quadri"
+                  size="sm"
+                  withProtectedSpace
+                  ariaLabel="OIF — Organisation Internationale de la Francophonie"
+                />
+                <div className="mt-1 px-2 leading-tight">
                   <p className="text-sm font-semibold">Emploi Jeunes</p>
                   <p className="text-muted-foreground text-xs">{utilisateur.nom_complet}</p>
                 </div>

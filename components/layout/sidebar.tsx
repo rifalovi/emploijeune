@@ -10,6 +10,7 @@
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { LogoOIF } from '@/components/branding/logo-oif';
 import { NavLink } from './nav-link';
 import { SignOutButton } from './sign-out-button';
 import { visibleNavItems } from './nav-items';
@@ -34,14 +35,17 @@ export function Sidebar({ utilisateur, organisationLibelle, notificationsCount }
       aria-label="Navigation principale"
       className="bg-sidebar text-sidebar-foreground hidden min-h-screen w-64 flex-col border-r md:flex"
     >
-      <div className="flex items-center gap-2 px-4 py-5">
-        <div
-          aria-hidden
-          className="bg-primary text-primary-foreground inline-flex size-9 items-center justify-center rounded-md font-bold"
-        >
-          OIF
-        </div>
-        <div className="leading-tight">
+      {/* En-tête de sidebar : logotype OIF officiel + sous-marque plateforme.
+          Logo à taille minimum charte (96 px) avec espace protégé respecté. */}
+      <div className="px-3 py-4">
+        <LogoOIF
+          variant="quadri"
+          size="sm"
+          withProtectedSpace
+          priority
+          ariaLabel="OIF — Organisation Internationale de la Francophonie"
+        />
+        <div className="mt-1 px-2 leading-tight">
           <p className="text-sm font-semibold">Emploi Jeunes</p>
           <p className="text-muted-foreground text-xs">Plateforme SCS</p>
         </div>
