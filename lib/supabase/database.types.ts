@@ -1009,6 +1009,13 @@ export type Database = {
       get_kpis_dashboard_lecteur: { Args: never; Returns: Json }
       is_admin_scs: { Args: never; Returns: boolean }
       notifications_admin_non_lues_count: { Args: never; Returns: number }
+      rechercher_beneficiaires: {
+        Args: { search_text: string; seuil_similarite?: number }
+        Returns: {
+          id: string
+          similarite: number
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       unaccent: { Args: { "": string }; Returns: string }
