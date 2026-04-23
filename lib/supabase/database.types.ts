@@ -414,6 +414,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications_admin: {
+        Row: {
+          created_at: string
+          donnees: Json
+          id: string
+          lue: boolean
+          lue_le: string | null
+          lue_par: string | null
+          message: string
+          type: string
+          user_id_concerne: string | null
+        }
+        Insert: {
+          created_at?: string
+          donnees?: Json
+          id?: string
+          lue?: boolean
+          lue_le?: string | null
+          lue_par?: string | null
+          message: string
+          type: string
+          user_id_concerne?: string | null
+        }
+        Update: {
+          created_at?: string
+          donnees?: Json
+          id?: string
+          lue?: boolean
+          lue_le?: string | null
+          lue_par?: string | null
+          message?: string
+          type?: string
+          user_id_concerne?: string | null
+        }
+        Relationships: []
+      }
       organisations: {
         Row: {
           actif: boolean
@@ -890,6 +926,7 @@ export type Database = {
           nom_complet: string
           organisation_id: string | null
           role: Database["public"]["Enums"]["role_utilisateur"]
+          statut_validation: string
           updated_at: string
           user_id: string
         }
@@ -902,6 +939,7 @@ export type Database = {
           nom_complet: string
           organisation_id?: string | null
           role?: Database["public"]["Enums"]["role_utilisateur"]
+          statut_validation?: string
           updated_at?: string
           user_id: string
         }
@@ -914,6 +952,7 @@ export type Database = {
           nom_complet?: string
           organisation_id?: string | null
           role?: Database["public"]["Enums"]["role_utilisateur"]
+          statut_validation?: string
           updated_at?: string
           user_id?: string
         }
@@ -962,7 +1001,14 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["role_utilisateur"]
       }
+      current_statut_validation: { Args: never; Returns: string }
+      get_kpis_dashboard: { Args: never; Returns: Json }
+      get_kpis_dashboard_admin_scs: { Args: never; Returns: Json }
+      get_kpis_dashboard_contributeur_partenaire: { Args: never; Returns: Json }
+      get_kpis_dashboard_editeur_projet: { Args: never; Returns: Json }
+      get_kpis_dashboard_lecteur: { Args: never; Returns: Json }
       is_admin_scs: { Args: never; Returns: boolean }
+      notifications_admin_non_lues_count: { Args: never; Returns: number }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       unaccent: { Args: { "": string }; Returns: string }

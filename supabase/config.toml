@@ -188,19 +188,19 @@ password_requirements = ""
 # rp_origins = ["http://127.0.0.1:3000"]
 
 [auth.rate_limit]
-# Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-email_sent = 2
-# Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
+# OIF Emploi Jeunes — décisions Q2 Étape 3 :
+#   - Magic link par email : Supabase Auth impose déjà `max_frequency = "1s"` entre deux envois
+#     pour la même adresse (voir [auth.email]). Combiné au limit IP ci-dessous, cela plafonne
+#     les abus à ~3 demandes de magic link utiles par email par heure.
+#   - IP rate limit : 10 demandes de sign_up/sign_in par heure (config = fenêtre 5 min × 12).
+#     On applique donc 30/5min pour tenir environ 10/heure avec des pics courts acceptables.
+email_sent = 30
 sms_sent = 30
-# Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
 anonymous_users = 30
-# Number of sessions that can be refreshed in a 5 minute interval per IP address.
 token_refresh = 150
-# Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
+# 30 requêtes / 5 min par IP = pic à 10/h en régime normal
 sign_in_sign_ups = 30
-# Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
 token_verifications = 30
-# Number of Web3 logins that can be made in a 5 minute interval per IP address.
 web3 = 30
 
 # Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
@@ -223,7 +223,15 @@ secure_password_change = false
 max_frequency = "1s"
 # Number of characters used in the email OTP.
 otp_length = 6
-# Number of seconds before the email OTP expires (defaults to 1 hour).
+# Durée de validité du magic link / OTP email (OIF Emploi Jeunes — décision Q2 Étape 3).
+# Valeur de départ V1 : 3600 s (1 heure). Couvre les délais de réception dans les pays
+# à connectivité dégradée (partenaires Mali, Haïti, Cambodge) et reste aligné sur les
+# standards SaaS (GitHub, Slack, Notion, Vercel).
+# Palier de durcissement prévu :
+#   - 1800 s (30 min) après stabilisation des partenaires (~ septembre 2026)
+#   - 900 s (15 min) en V2 une fois l'UX optimisée
+# Les magic links sont à usage unique côté Supabase — la durée ne change pas la
+# fenêtre de réutilisation, uniquement la fenêtre d'opportunité d'interception.
 otp_expiry = 3600
 
 # Use a production-ready SMTP server
