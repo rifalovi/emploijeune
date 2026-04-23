@@ -40,6 +40,22 @@ L'envoi d'emails (magic links d'authentification, relances d'enquêtes A5/B2/C5)
 
 ## Autres chantiers suivis
 
+### Étape 6 — Formulaires d'enquête (questionnaires officiels OIF)
+
+Les 2 questionnaires officiels de collecte ont été reçus et archivés dans [`docs/specifications/questionnaires/`](specifications/questionnaires/). Ce sont les documents de **référence** pour la conception de l'Étape 6.
+
+- **Source** :
+  - Questionnaire A (indicateurs bénéficiaires, 35 questions) — A2, A3, A4, A5, F1 partiel.
+  - Questionnaire B (indicateurs structures, 22 questions) — B2, B3, B4.
+- **Points clés à traiter à l'Étape 6** :
+  - **Design des formulaires React** : fidélité au questionnaire terrain pour garantir la cohérence avec les supports papier / téléphoniques des enquêteurs SCS.
+  - **Mapping questions → colonnes JSONB** dans `public.reponses_enquetes.donnees` — un schéma Zod par indicateur (a2Schema, a3Schema, a4Schema, a5Schema, b2Schema, b3Schema, b4Schema) à poser dans `lib/schemas/enquetes/`.
+  - **Validation Zod des réponses structurées** appliquée côté client ET côté Server Action à l'insertion dans `reponses_enquetes`.
+  - **Logique de filtres « ALLER À »** (sauts conditionnels) : implémenter un moteur de règles déclaratif plutôt que du `if/else` câblé, afin de pouvoir modifier le questionnaire en V1.5 sans toucher au code (paramétrage côté admin).
+  - **Module F1 transversal** : composant `<BlocF1 />` à greffer sur les questionnaires A4, A5 et C5 (Note méthodologique V2 § 5.5). 3-5 questions courtes sur l'usage du français comme facteur d'employabilité.
+- **Volumétrie cible V2 (avril 2026)** : **5 623 bénéficiaires** (base A1) et **347 structures** (base B1) d'après [`docs/specifications/Base de sondage_EmploiJeune_Global_230426_V2.xlsm`](specifications/Base%20de%20sondage_EmploiJeune_Global_230426_V2.xlsm) — volume à valider lors de l'import Excel de l'Étape 7.
+- **Priorité** : critique — dépend de l'Étape 4 et 5 (CRUD A1 et B1).
+
 ### Admin UI — validation des comptes (prévu Étape 5+)
 
 Page `/admin/utilisateurs` permettant à `admin_scs` de :
@@ -91,3 +107,4 @@ Page `/admin/utilisateurs` permettant à `admin_scs` de :
 | Version | Date | Changement |
 |---------|------|-----------|
 | 1.0 | 2026-04-23 | Création du backlog ; jalons 1-3 infrastructure email ; chantiers transverses. |
+| 1.1 | 2026-04-24 | Ajout section Étape 6 — questionnaires officiels OIF (A et B) reçus, mapping JSONB, logique « ALLER À », module F1 transversal ; volumétrie V2 (5 623 bénéficiaires, 347 structures). |
