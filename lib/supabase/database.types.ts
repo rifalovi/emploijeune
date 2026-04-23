@@ -41,6 +41,7 @@ export type Database = {
           pays_code: string
           prenom: string
           projet_code: string
+          qualite_a_verifier: boolean | null
           sexe: Database["public"]["Enums"]["sexe"]
           source_import: Database["public"]["Enums"]["source_import"]
           statut_code: string
@@ -73,6 +74,7 @@ export type Database = {
           pays_code: string
           prenom: string
           projet_code: string
+          qualite_a_verifier?: boolean | null
           sexe: Database["public"]["Enums"]["sexe"]
           source_import?: Database["public"]["Enums"]["source_import"]
           statut_code: string
@@ -105,6 +107,7 @@ export type Database = {
           pays_code?: string
           prenom?: string
           projet_code?: string
+          qualite_a_verifier?: boolean | null
           sexe?: Database["public"]["Enums"]["sexe"]
           source_import?: Database["public"]["Enums"]["source_import"]
           statut_code?: string
@@ -1002,6 +1005,21 @@ export type Database = {
         Returns: Database["public"]["Enums"]["role_utilisateur"]
       }
       current_statut_validation: { Args: never; Returns: string }
+      find_beneficiaire_doublon: {
+        Args: {
+          p_date_naissance: string
+          p_nom: string
+          p_prenom: string
+          p_projet_code: string
+        }
+        Returns: {
+          date_naissance: string
+          id: string
+          nom: string
+          prenom: string
+          projet_code: string
+        }[]
+      }
       get_kpis_dashboard: { Args: never; Returns: Json }
       get_kpis_dashboard_admin_scs: { Args: never; Returns: Json }
       get_kpis_dashboard_contributeur_partenaire: { Args: never; Returns: Json }
