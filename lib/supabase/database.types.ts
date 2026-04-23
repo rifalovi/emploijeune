@@ -27,6 +27,8 @@ export type Database = {
           date_fin_formation: string | null
           date_naissance: string | null
           deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           domaine_formation_code: string
           fonction_actuelle: string | null
           id: string
@@ -60,6 +62,8 @@ export type Database = {
           date_fin_formation?: string | null
           date_naissance?: string | null
           deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           domaine_formation_code: string
           fonction_actuelle?: string | null
           id?: string
@@ -93,6 +97,8 @@ export type Database = {
           date_fin_formation?: string | null
           date_naissance?: string | null
           deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           domaine_formation_code?: string
           fonction_actuelle?: string | null
           id?: string
@@ -1005,21 +1011,38 @@ export type Database = {
         Returns: Database["public"]["Enums"]["role_utilisateur"]
       }
       current_statut_validation: { Args: never; Returns: string }
-      find_beneficiaire_doublon: {
-        Args: {
-          p_date_naissance: string
-          p_nom: string
-          p_prenom: string
-          p_projet_code: string
-        }
-        Returns: {
-          date_naissance: string
-          id: string
-          nom: string
-          prenom: string
-          projet_code: string
-        }[]
-      }
+      find_beneficiaire_doublon:
+        | {
+            Args: {
+              p_date_naissance: string
+              p_nom: string
+              p_prenom: string
+              p_projet_code: string
+            }
+            Returns: {
+              date_naissance: string
+              id: string
+              nom: string
+              prenom: string
+              projet_code: string
+            }[]
+          }
+        | {
+            Args: {
+              p_date_naissance: string
+              p_exclude_id?: string
+              p_nom: string
+              p_prenom: string
+              p_projet_code: string
+            }
+            Returns: {
+              date_naissance: string
+              id: string
+              nom: string
+              prenom: string
+              projet_code: string
+            }[]
+          }
       get_kpis_dashboard: { Args: never; Returns: Json }
       get_kpis_dashboard_admin_scs: { Args: never; Returns: Json }
       get_kpis_dashboard_contributeur_partenaire: { Args: never; Returns: Json }

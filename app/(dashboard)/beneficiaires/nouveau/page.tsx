@@ -80,6 +80,7 @@ export default async function NouveauBeneficiairePage({ searchParams }: PageProp
       </header>
 
       <BeneficiaireForm
+        mode="creation"
         nomenclatures={nomenclatures}
         projetsOptions={projetsOptions}
         paysOptions={paysOptions}

@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 
-import { beneficiaireInsertSchema, type BeneficiaireInsertInput } from '@/lib/schemas/beneficiaire';
+import {
+  beneficiaireInsertSchema,
+  type BeneficiaireInsertInput,
+} from '@/lib/schemas/beneficiaire';
 import {
   SEXE_VALUES,
   SEXE_LIBELLES,
@@ -14,7 +18,7 @@ import {
   STATUTS_BENEFICIAIRE_CODES,
   STATUT_BENEFICIAIRE_LIBELLES,
 } from '@/lib/schemas/nomenclatures';
-import { creerBeneficiaire } from '@/lib/beneficiaires/mutations';
+import { creerBeneficiaire, modifierBeneficiaire } from '@/lib/beneficiaires/mutations';
 import type { Nomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';
 
 import { Button } from '@/components/ui/button';
@@ -78,12 +82,26 @@ type SuccesState = {
   queryCohorte: string;
 };
 
+/**
+ * Valeurs initiales complètes pour le mode édition. Toutes les clés sont
+ * remplies depuis la fiche existante (BeneficiaireDetail côté page serveur).
+ */
+export type BeneficiaireFormInitialValues = Partial<FormValues>;
+
 export type BeneficiaireFormProps = {
   nomenclatures: Nomenclatures;
   projetsOptions: Array<{ code: string; libelle: string }>;
   paysOptions: Array<{ code: string; libelle: string }>;
   domainesOptions: Array<{ code: string; libelle: string }>;
-  cohorte: {
+  /**
+   * - `creation` : formulaire vierge, cohorte éventuelle via URL params,
+   *   écran de succès avec 3 CTA après submit.
+   * - `edition` : formulaire pré-rempli avec `initialValues`, redirection
+   *   vers la fiche détail + toast après submit réussi.
+   */
+  mode: 'creation' | 'edition';
+  /** Valeurs pré-remplies pour le mode saisie à la chaîne (création). */
+  cohorte?: {
     projet?: string;
     pays?: string;
     domaine?: string;
@@ -91,6 +109,10 @@ export type BeneficiaireFormProps = {
     modalite?: string;
     partenaire?: string;
   };
+  /** Valeurs initiales complètes pour l'édition. Obligatoire si mode='edition'. */
+  initialValues?: BeneficiaireFormInitialValues;
+  /** ID de la fiche à éditer. Obligatoire si mode='edition'. */
+  beneficiaireId?: string;
 };
 
 export function BeneficiaireForm({
@@ -98,8 +120,12 @@ export function BeneficiaireForm({
   projetsOptions,
   paysOptions,
   domainesOptions,
-  cohorte,
+  mode,
+  cohorte = {},
+  initialValues,
+  beneficiaireId,
 }: BeneficiaireFormProps) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [doublon, setDoublon] = useState<DoublonState | null>(null);
   const [succes, setSucces] = useState<SuccesState | null>(null);
@@ -113,28 +139,31 @@ export function BeneficiaireForm({
   const form = useForm<FormValues>({
     resolver,
     defaultValues: {
-      prenom: '',
-      nom: '',
-      sexe: undefined,
-      date_naissance: undefined,
-      projet_code: cohorte.projet ?? undefined,
-      pays_code: cohorte.pays ?? undefined,
-      partenaire_accompagnement: cohorte.partenaire ?? '',
-      domaine_formation_code: cohorte.domaine ?? undefined,
-      intitule_formation: '',
-      modalite_formation_code: cohorte.modalite ?? undefined,
-      annee_formation: (cohorte.annee ??
+      prenom: initialValues?.prenom ?? '',
+      nom: initialValues?.nom ?? '',
+      sexe: initialValues?.sexe ?? undefined,
+      date_naissance: initialValues?.date_naissance ?? undefined,
+      projet_code: initialValues?.projet_code ?? cohorte.projet ?? undefined,
+      pays_code: initialValues?.pays_code ?? cohorte.pays ?? undefined,
+      partenaire_accompagnement:
+        initialValues?.partenaire_accompagnement ?? cohorte.partenaire ?? '',
+      domaine_formation_code: initialValues?.domaine_formation_code ?? cohorte.domaine ?? undefined,
+      intitule_formation: initialValues?.intitule_formation ?? '',
+      modalite_formation_code:
+        initialValues?.modalite_formation_code ?? cohorte.modalite ?? undefined,
+      annee_formation: (initialValues?.annee_formation ??
+        cohorte.annee ??
         new Date().getFullYear()) as unknown as FormValues['annee_formation'],
-      date_debut_formation: undefined,
-      date_fin_formation: undefined,
-      statut_code: 'INSCRIT',
-      fonction_actuelle: '',
-      consentement_recueilli: false,
-      consentement_date: undefined,
-      telephone: '',
-      courriel: '',
-      localite_residence: '',
-      commentaire: '',
+      date_debut_formation: initialValues?.date_debut_formation ?? undefined,
+      date_fin_formation: initialValues?.date_fin_formation ?? undefined,
+      statut_code: initialValues?.statut_code ?? 'INSCRIT',
+      fonction_actuelle: initialValues?.fonction_actuelle ?? '',
+      consentement_recueilli: initialValues?.consentement_recueilli ?? false,
+      consentement_date: initialValues?.consentement_date ?? undefined,
+      telephone: initialValues?.telephone ?? '',
+      courriel: initialValues?.courriel ?? '',
+      localite_residence: initialValues?.localite_residence ?? '',
+      commentaire: initialValues?.commentaire ?? '',
     } as unknown as FormValues,
   });
 
@@ -150,10 +179,31 @@ export function BeneficiaireForm({
   const onSubmit = form.handleSubmit(async (values) => {
     setDoublon(null);
     startTransition(async () => {
+      if (mode === 'edition') {
+        if (!beneficiaireId) {
+          toast.error('Impossible d’identifier la fiche à modifier');
+          return;
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await modifierBeneficiaire({ ...(values as any), id: beneficiaireId });
+        if (result.status === 'succes') {
+          toast.success('Modifications enregistrées');
+          router.push(`/beneficiaires/${beneficiaireId}`);
+        } else if (result.status === 'doublon') {
+          setDoublon(result.ficheExistante);
+          toast.error('Un autre bénéficiaire existe déjà avec ces informations');
+        } else if (result.status === 'erreur_validation') {
+          toast.error('Validation serveur : ' + result.issues.map((i) => i.message).join(', '));
+        } else {
+          toast.error(result.message);
+        }
+        return;
+      }
+
+      // Mode création
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await creerBeneficiaire(values as any);
       if (result.status === 'succes') {
-        // Construire la query string de cohorte pour l'action « créer un autre »
         const params = new URLSearchParams();
         if (values.projet_code) params.set('cohorte_projet', String(values.projet_code));
         if (values.pays_code) params.set('cohorte_pays', String(values.pays_code));
@@ -182,8 +232,9 @@ export function BeneficiaireForm({
     });
   });
 
-  // Si succès : on remplace le formulaire par l'écran de succès
-  if (succes) {
+  // Écran de succès uniquement en mode création. Le mode édition fait un
+  // router.push vers la fiche détail avec un toast dès le succès.
+  if (mode === 'creation' && succes) {
     return (
       <div className="space-y-6">
         <RepriseApresEnregistrement
@@ -209,13 +260,15 @@ export function BeneficiaireForm({
 
   return (
     <div className="space-y-6">
-      <RepriseApresEnregistrement
-        cohorteProjet={cohorte.projet}
-        cohortePays={cohorte.pays}
-        cohorteDomaine={cohorte.domaine}
-        cohorteAnnee={cohorte.annee}
-        nomenclatures={nomenclatures}
-      />
+      {mode === 'creation' && (
+        <RepriseApresEnregistrement
+          cohorteProjet={cohorte.projet}
+          cohortePays={cohorte.pays}
+          cohorteDomaine={cohorte.domaine}
+          cohorteAnnee={cohorte.annee}
+          nomenclatures={nomenclatures}
+        />
+      )}
 
       {doublon && <DialogueDoublon ficheExistante={doublon} onClose={() => setDoublon(null)} />}
 
@@ -715,7 +768,11 @@ export function BeneficiaireForm({
               <a href="/beneficiaires">Annuler</a>
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? 'Enregistrement…' : 'Enregistrer le bénéficiaire'}
+              {pending
+                ? 'Enregistrement…'
+                : mode === 'edition'
+                  ? 'Enregistrer les modifications'
+                  : 'Enregistrer le bénéficiaire'}
             </Button>
           </div>
         </form>

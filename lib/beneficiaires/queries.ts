@@ -3,6 +3,135 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { BeneficiaireFilters } from '@/lib/schemas/beneficiaire';
 
 /**
+ * Détail complet d'un bénéficiaire pour l'affichage fiche et l'édition.
+ * Inclut toutes les colonnes métier + métadonnées techniques + libellés
+ * résolus via JOIN pour projet (libellé + programme stratégique) et
+ * organisation (nom) — évite des lookups client-side redondants.
+ */
+export type BeneficiaireDetail = {
+  id: string;
+  prenom: string;
+  nom: string;
+  sexe: 'F' | 'M' | 'Autre';
+  date_naissance: string | null;
+
+  projet_code: string;
+  projet_libelle: string | null;
+  programme_strategique: string | null;
+
+  pays_code: string;
+  organisation_id: string | null;
+  organisation_nom: string | null;
+  partenaire_accompagnement: string | null;
+
+  domaine_formation_code: string;
+  intitule_formation: string | null;
+  modalite_formation_code: string | null;
+  annee_formation: number;
+  date_debut_formation: string | null;
+  date_fin_formation: string | null;
+  statut_code: string;
+  fonction_actuelle: string | null;
+
+  consentement_recueilli: boolean;
+  consentement_date: string | null;
+  telephone: string | null;
+  courriel: string | null;
+  localite_residence: string | null;
+  commentaire: string | null;
+
+  qualite_a_verifier: boolean;
+  source_import: string;
+  created_at: string;
+  created_by: string | null;
+  updated_at: string;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  deleted_reason: string | null;
+};
+
+/**
+ * Récupère une fiche bénéficiaire par son ID. Retourne `null` si introuvable
+ * (soit inexistant, soit hors périmètre RLS). La distinction 404/403 n'est
+ * volontairement pas exposée pour ne pas fuiter l'existence de fiches hors
+ * périmètre.
+ */
+export async function getBeneficiaireById(id: string): Promise<BeneficiaireDetail | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('beneficiaires')
+    .select(
+      `
+      id,
+      prenom, nom, sexe, date_naissance,
+      projet_code, pays_code,
+      organisation_id, partenaire_accompagnement,
+      domaine_formation_code, intitule_formation, modalite_formation_code,
+      annee_formation, date_debut_formation, date_fin_formation,
+      statut_code, fonction_actuelle,
+      consentement_recueilli, consentement_date,
+      telephone, courriel, localite_residence, commentaire,
+      qualite_a_verifier, source_import,
+      created_at, created_by, updated_at,
+      deleted_at, deleted_by, deleted_reason,
+      projet:projets!projet_code ( libelle, programme_strategique ),
+      organisation:organisations!organisation_id ( nom )
+      `,
+    )
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  // Le typage de PostgREST pour les relations embed est complexe ; on
+  // décompose manuellement pour rester strict côté TS.
+  const projet = Array.isArray(data.projet) ? data.projet[0] : data.projet;
+  const organisation = Array.isArray(data.organisation) ? data.organisation[0] : data.organisation;
+
+  return {
+    id: data.id,
+    prenom: data.prenom,
+    nom: data.nom,
+    sexe: data.sexe as 'F' | 'M' | 'Autre',
+    date_naissance: data.date_naissance,
+
+    projet_code: data.projet_code,
+    projet_libelle: projet?.libelle ?? null,
+    programme_strategique: projet?.programme_strategique ?? null,
+
+    pays_code: data.pays_code,
+    organisation_id: data.organisation_id,
+    organisation_nom: organisation?.nom ?? null,
+    partenaire_accompagnement: data.partenaire_accompagnement,
+
+    domaine_formation_code: data.domaine_formation_code,
+    intitule_formation: data.intitule_formation,
+    modalite_formation_code: data.modalite_formation_code,
+    annee_formation: data.annee_formation,
+    date_debut_formation: data.date_debut_formation,
+    date_fin_formation: data.date_fin_formation,
+    statut_code: data.statut_code,
+    fonction_actuelle: data.fonction_actuelle,
+
+    consentement_recueilli: data.consentement_recueilli,
+    consentement_date: data.consentement_date,
+    telephone: data.telephone,
+    courriel: data.courriel,
+    localite_residence: data.localite_residence,
+    commentaire: data.commentaire,
+
+    qualite_a_verifier: data.qualite_a_verifier ?? false,
+    source_import: data.source_import,
+    created_at: data.created_at,
+    created_by: data.created_by,
+    updated_at: data.updated_at,
+    deleted_at: data.deleted_at,
+    deleted_by: data.deleted_by,
+    deleted_reason: data.deleted_reason,
+  };
+}
+
+/**
  * Lignes listées dans la table. On retient uniquement les colonnes affichées
  * (server-side projection) pour limiter la charge réseau.
  */
