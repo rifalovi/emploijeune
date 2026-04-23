@@ -93,6 +93,33 @@ Choix validé Étape 3 Q2 : équilibre sécurité / accessibilité pour les part
 
 **Durée de session active** : par défaut Supabase Auth rafraîchit le JWT toutes les heures et la refresh token vit ~1 semaine. Ces valeurs sont acceptables pour V1 et non re-configurées ici.
 
+### Bootstrap du premier admin SCS
+
+Lors du tout premier déploiement, aucun administrateur n'existe en base. Le premier admin doit être promu manuellement via SQL :
+
+1. Cette personne se connecte normalement via magic link sur `/connexion`.
+2. Son compte est créé automatiquement avec `role = 'lecteur'` et `statut_validation = 'en_attente'`. Elle est redirigée vers `/en-attente-de-validation`.
+3. Depuis le SQL Editor Supabase (ou `npx supabase db query --linked`), exécuter :
+   ```sql
+   UPDATE public.utilisateurs
+   SET role = 'admin_scs',
+       statut_validation = 'valide',
+       nom_complet = 'Prénom NOM',
+       updated_at = NOW()
+   WHERE user_id = (SELECT id FROM auth.users WHERE email = '<email>');
+   ```
+4. Vérifier que la mise à jour a bien pris :
+   ```sql
+   SELECT u.nom_complet, u.role, u.statut_validation, a.email
+   FROM public.utilisateurs u
+   JOIN auth.users a ON a.id = u.user_id
+   WHERE a.email = '<email>';
+   ```
+5. L'admin se déconnecte puis se reconnecte via un nouveau magic link pour rafraîchir sa session.
+6. Accès au dashboard `admin_scs` validé.
+
+À partir de ce moment, tous les comptes suivants peuvent être validés via l'UI d'administration `/admin/utilisateurs` (Étape 5+), sans passer par le SQL.
+
 ### Bootstrap utilisateur au premier login
 
 Décision Étape 3 Q1 : **Option A (création auto) + renforcements**. Voir migration 004.
@@ -116,6 +143,77 @@ Quatre fonctions PostgreSQL SECURITY DEFINER retournant du JSONB (migration 005)
 - `get_kpis_dashboard_lecteur()`
 
 Plus un router `get_kpis_dashboard()` qui appelle la bonne fonction selon le rôle courant. SLA < 500 ms sur 10 000 bénéficiaires, index existants uniquement.
+
+## Configuration SMTP
+
+### Provider actuel : Resend (free tier)
+
+- **Région** : eu-west-1 (Ireland) — proximité des utilisateurs européens, conformité RGPD.
+- **Domaine d'envoi** : `carloshounsinou.com` (temporaire, phase dev + pilote).
+  - Enregistrements DNS requis : `SPF`, `DKIM`, `MX return-path`.
+  - Propriétaire : Carlos Hounsinou (chargé de projet OIF).
+  - Justification : déblocage immédiat sans dépendance DSI OIF, domaine déjà possédé.
+- **Adresse expéditeur** : `oif-plateforme@carloshounsinou.com`
+  - Nom affiché : « Plateforme Emploi Jeunes OIF »
+  - Adresse non-boîte-mail (envoi uniquement, pas de réception)
+
+### Configuration Supabase Auth → Email → SMTP Settings
+
+```
+Enable Custom SMTP : ✓
+Host      : smtp.resend.com
+Port      : 465 (SSL)
+User      : resend
+Password  : <API Key Resend — stocker en gestionnaire de mots de passe, NE PAS committer>
+Sender email : oif-plateforme@carloshounsinou.com
+Sender name  : Plateforme Emploi Jeunes OIF
+```
+
+### Limites et volume attendu
+
+| Indicateur | Valeur |
+|------------|-------:|
+| Plafond quotidien free tier | 100 emails / jour |
+| Plafond mensuel free tier | 3 000 emails / mois |
+| Volume attendu V1 | ~180 emails / mois (60 partenaires × 3 connexions) |
+| Marge | × 16 (plusieurs années à ce volume) |
+
+### Migration prévue
+
+- **Phase pilote (avril 2026)** : `carloshounsinou.com` — OK jusqu'à fin avril.
+- **Phase production (mai 2026)** : domaine OIF officiel (à valider avec DSI).
+- **Procédure de bascule** : documentation séparée à produire avant mai 2026 (change DNS + update SMTP Supabase + test emails avant activation 60 partenaires).
+
+### Sécurité SMTP
+
+- API Key Resend : scope **`Sending access`** uniquement, pas `Full access`.
+- Rotation : tous les 6 mois ou à la demande en cas de suspicion.
+- Monitoring : Resend dashboard (taux d'envoi, bounces, abus) + logs Supabase Auth.
+- Clé jamais présente dans le repo (stockage : dashboard Supabase uniquement).
+
+## Sécurité
+
+### Headers HTTP (configurés dans `next.config.mjs`)
+
+| Header | Valeur | Rôle |
+|--------|--------|------|
+| `X-Frame-Options` | `DENY` | Empêche l'embarquement en iframe (click-jacking). |
+| `X-Content-Type-Options` | `nosniff` | Empêche le navigateur de deviner le type MIME. |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Ne transmet que l'origine vers les domaines tiers. |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=(), usb=()` | Désactive les APIs navigateur non utilisées. |
+| `Content-Security-Policy` | `default-src 'self'` + Supabase (images, connexions, WebSocket) | Restreint les origines des ressources chargeables. Autorise `unsafe-inline` et `unsafe-eval` (nécessaires pour Next RSC hydratation et HMR dev). |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` (prod uniquement) | Force HTTPS pour 1 an. |
+
+La CSP reste conservatrice en V1 :
+- Inclut `unsafe-inline` sur `style-src` (Next inline styles) et `script-src` (RSC hydratation). Compromis acceptable ; à durcir en V2 via `nonce` ou `hash`.
+- Autorise explicitement l'URL Supabase du projet (`connect-src`, `img-src`).
+- `frame-ancestors 'none'` double `X-Frame-Options` pour les navigateurs modernes.
+
+### Protection contre l'indexation
+
+- `public/robots.txt` : `User-agent: * / Disallow: /` — empêche crawl Google/Bing pendant la phase dev/pilote.
+- `app/layout.tsx` `metadata.robots = { index: false, follow: false }` — émet `<meta name="robots" content="noindex, nofollow">` sur toutes les pages.
+- Double protection jusqu'à la mise en production officielle.
 
 ## Prochaines étapes
 

@@ -20,6 +20,12 @@ export const metadata: Metadata = {
   title: 'OIF — Suivi Emploi Jeunes',
   description:
     "Plateforme de gestion et de suivi des données du Service de Conception et Suivi de projet de l'OIF — thématique emploi des jeunes.",
+  // Non-indexation en phase dev/pilote. À lever en production officielle une fois
+  // le domaine et le contenu public validés.
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({

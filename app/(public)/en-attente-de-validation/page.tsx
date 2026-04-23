@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getAuthUser, getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { Button } from '@/components/ui/button';
@@ -45,19 +44,16 @@ export default async function EnAttenteValidationPage() {
                 Contactez votre unité chef de file ou écrivez à{' '}
                 <a
                   className="text-foreground underline underline-offset-2"
-                  href="mailto:scs@francophonie.org"
+                  href="mailto:projets@francophonie.org"
                 >
-                  scs@francophonie.org
+                  projets@francophonie.org
                 </a>
               </p>
             </div>
-            <div className="flex flex-col gap-2 pt-2 sm:flex-row">
-              <Button asChild variant="outline" className="flex-1">
-                <Link href="/connexion">Se déconnecter</Link>
-              </Button>
-              <form action="/api/auth/sign-out" method="post" className="flex-1">
-                <Button type="submit" className="w-full" variant="secondary">
-                  Quitter la session
+            <div className="flex justify-center pt-2">
+              <form action="/api/auth/sign-out" method="post">
+                <Button type="submit" variant="outline">
+                  Se déconnecter
                 </Button>
               </form>
             </div>
