@@ -56,6 +56,29 @@ Page `/admin/utilisateurs` permettant à `admin_scs` de :
 - Logs Supabase Auth surveillés (taux d'échec magic link).
 - Alertes seuils : > 5% d'erreurs d'envoi email → alerte Slack/email.
 
+### V1.5 — Amélioration logos OIF (EPS → SVG)
+
+- **Contexte** : en V1, les logos OIF sont livrés en PNG (881×438 pour le quadri, 2362×1007 pour les mono) — qualité suffisante pour `size="xl"` (400 px) mais sous-optimale sur écrans retina et pour impression depuis le web.
+- **Action** : confier les 4 EPS (`docs/branding/sources/Logo_OIF_*.eps`) à un designer professionnel pour conversion vectorielle propre (Illustrator → SVG optimisé via `svgo`), vérification des 6 couleurs exactes (Pantone 116/376/2603/485/Process Cyan/Cool Gray 11) et nettoyage des IDs superflus.
+- **Production attendue** : 4 SVG dans `public/assets/branding/oif/` + mise à jour `components/branding/logo-oif.tsx` pour basculer sur `.svg` (avec `<Image>` Next.js qui supporte nativement SVG).
+- **Estimation** : 30 min d'intervention designer + 15 min d'intégration + 15 min de test de rendu multi-résolutions.
+- **Priorité** : faible (les PNG sont acceptables en V1), à planifier avant V2.
+
+### V1.5 — Onglet « Historique » sur fiche bénéficiaire et structure
+
+- **Contexte** : le journal d'audit (`public.journaux_audit`) est rempli dès l'Étape 2 par trigger. En V1, il n'est consultable que via `/admin/audit` (admin_scs seul, cf. Étape 5). Les partenaires de terrain demanderont rapidement à voir l'historique **de leur propre fiche** pour suivi qualité et résolution de conflits.
+- **Action** : ajouter un onglet « Historique » sur les pages détail `/beneficiaires/[id]` et `/structures/[id]`. Affiche les **20 dernières modifications** avec colonnes : Qui (nom utilisateur), Quand (timestamp), Quoi (champ modifié, valeur avant / valeur après). RLS : l'utilisateur voit l'historique s'il a le droit de voir la fiche (même logique que `can_read_beneficiaire`).
+- **Requête** : `SELECT * FROM journaux_audit WHERE table_affectee = 'beneficiaires' AND ligne_id = $1 ORDER BY horodatage DESC LIMIT 20` — RLS applicable via nouvelle policy.
+- **Estimation** : 1-2 heures (policy RLS + composant + tests e2e).
+- **Priorité** : moyenne — à sortir avec la V1.5 (juillet 2026 ?).
+
+### V1.5 — Duplication de fiche bénéficiaire
+
+- **Contexte** : Q2 de l'Étape 4 arbitrée V1.5. La saisie à la chaîne (Q1=B) couvre 90 % du besoin en V1. Si les retours pilotes remontent un besoin de duplication hors cohorte (ex. frère/sœur participant au même programme), ajouter le bouton.
+- **Action** : bouton « Dupliquer » dans le menu ⋯ de la liste et sur la fiche détail → ouvre `/beneficiaires/nouveau?duplique_de=<id>` avec pré-remplissage de tous les champs **sauf** `prenom`, `nom`, `date_naissance`, `telephone`, `courriel`, `consentement_recueilli`, `consentement_date` (forcés vides pour éviter le faux doublon et re-demander le consentement RGPD).
+- **Estimation** : 1 heure.
+- **Priorité** : basse — activer uniquement si demande utilisateur.
+
 ### Audit sécurité avant lancement officiel
 
 - Scan OWASP ZAP sur l'environnement de staging.

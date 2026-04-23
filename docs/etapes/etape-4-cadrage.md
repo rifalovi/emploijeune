@@ -1,8 +1,22 @@
 # Étape 4 — CRUD Bénéficiaires A1 — Document de cadrage
 
-> Document de travail produit **avant** tout code. Validation requise avant passage à l'implémentation.
+> Document de travail. Décisions produit arbitrées (voir tableau ci-dessous).
 
-Statut : 🔵 En attente de validation produit (questions section 5).
+Statut : 🟢 **Arbitrages Q1-Q8 validés** — en attente GO final pour démarrage 4a.
+
+## Décisions produit validées (synthèse)
+
+| # | Décision | Impact découpage |
+|---|----------|------------------|
+| Q1 | **B** — Saisie à la chaîne avec pré-remplissage visible + bouton « Réinitialiser » | 4c : +1 composant `RepriseApresEnregistrement` |
+| Q2 | **V1.5** — Pas de duplication en V1 | 4d : -1 action menu ⋯ |
+| Q3 | **A** — Écran dédié `/modifier` avec bouton « Modifier » en haut à droite du détail | 4d : pattern dédié conservé |
+| Q4 | **A** — Recherche textuelle `prenom + nom` uniquement ; filtres projet/pays/domaine/année/statut/sexe = dropdowns séparés | 4b : barre filtres structurée explicitement |
+| Q5 | **V1** — Export Excel **strictement aligné sur `Template_OIF_Emploi_Jeunes_V1.xlsx`** (mêmes 22 colonnes, même ordre, mêmes en-têtes, mêmes listes déroulantes) pour cycle export ↔ ré-import | 4e : export au format template imposé (~400 lignes ExcelJS) |
+| Q6 | **B V1** — Audit `/admin/audit` admin_scs seul ; historique par fiche → V1.5 | 4d : pas d'onglet historique sur fiche |
+| Q7 | **A** — Doublon bloquant avec lien « Voir la fiche existante » | 4c : remontée de contrainte unique + fetch de la fiche conflictuelle |
+| Q8 | **Menu ⋯ = 2 actions uniquement** (Modifier si droits écriture + Supprimer admin_scs). Clic ligne = ouverture détail | 4b : row click handler + menu allégé |
+| Bonus | **Couleurs PS** sur fiches : bordure gauche colorée selon PS du projet, badge coloré projet sur fiche détail, filtre dropdown « Programme Stratégique » | 4b et 4d : composant `BadgeProjet` partagé |
 
 ---
 
@@ -227,9 +241,9 @@ Le select « Projet » est filtré **côté serveur** :
 
 ---
 
-## 5. Questions produit — à arbitrer avant code
+## 5. Questions produit — ARBITRÉES
 
-> Ces 7 questions conditionnent le découpage. J'attends une réponse par question avant d'écrire quoi que ce soit.
+> Les 8 questions originales ont été arbitrées. Les décisions sont récapitulées dans le tableau « Décisions produit validées » en haut du document. Le détail des options proposées est conservé ci-dessous pour traçabilité.
 
 ### Q1 — Saisie unitaire vs saisie en batch en V1
 
@@ -307,6 +321,16 @@ Le journal d'audit (table `journaux_audit`) est rempli par le trigger depuis la 
 
 ---
 
+## 5 bis. Visualisation par Programme Stratégique (bonus validé)
+
+Les couleurs des PS (`lib/design/oif/programmes.ts` — déjà créées en commit `0ac9b04`) sont utilisées pour améliorer la lisibilité de la liste bénéficiaires.
+
+- **Bordure gauche colorée** sur chaque ligne de la table selon le PS du projet du bénéficiaire (PS1 bleu cyan, PS2 violet, PS3 vert).
+- **Badge projet coloré** sur la fiche détail : affiche `PROJ_A16a — D-CLIC : Formez-vous au numérique` avec fond de la couleur PS3.
+- **Filtre dropdown « Programme Stratégique »** dans la barre de filtres, en complément du filtre projet. Sélection d'un PS filtre tous les projets du PS concerné.
+
+Helper `programmeStrategiqueDuProjet(projet_code)` existe déjà et renvoie `PS1|PS2|PS3|null`. Utilisation directe sans requête SQL supplémentaire (règle métier figée côté client). Alternativement on peut lire la colonne `projets.programme_strategique` via JOIN — à privilégier pour respect du single source of truth.
+
 ## 6. Composants UI prévus
 
 ### 6.1. shadcn/ui — réutilisés (déjà installés)
@@ -324,11 +348,13 @@ Button, Input, Label, Select, Textarea, Form, Card, Badge, Table, Tabs, Dropdown
 | Fichier | Type | Rôle |
 |---------|------|------|
 | `beneficiaire-form.tsx` | Client | Formulaire création + édition (sections 1-5) |
-| `beneficiaire-table.tsx` | Server | Tableau de la liste |
-| `beneficiaire-row-actions.tsx` | Client | Menu contextuel ⋯ par ligne |
-| `beneficiaire-filters.tsx` | Client | Barre de filtres + recherche |
+| `beneficiaire-table.tsx` | Server | Tableau de la liste ; bordure gauche colorée PS ; row click → détail |
+| `beneficiaire-row-actions.tsx` | Client | Menu ⋯ : **Modifier + Supprimer** uniquement (Q8) |
+| `beneficiaire-filters.tsx` | Client | Recherche texte `prenom+nom` + 7 dropdowns (projet, **PS**, pays, domaine, année, statut, sexe) |
 | `beneficiaire-pagination.tsx` | Client | Contrôles pagination |
-| `beneficiaire-detail-cards.tsx` | Server | 5 cards de la vue détail |
+| `beneficiaire-detail-cards.tsx` | Server | 5 cards de la vue détail + bouton « Modifier » en haut à droite (Q3) |
+| `reprise-apres-enregistrement.tsx` | Client | Encart visible + bouton « Réinitialiser » pour la saisie à la chaîne (Q1=B) |
+| `badge-projet.tsx` | Pur | Badge coloré code + libellé projet avec fond de la couleur PS (bonus) |
 | `consentement-badge.tsx` | Pur | Badge visuel « Consentement Oui/Non/Non précisé » |
 | `statut-badge.tsx` | Pur | Badge coloré selon statut (INSCRIT/PRESENT/ACHEVEE/ABANDON) |
 | `tranche-age.ts` | util | Calcul de la tranche depuis `date_naissance` |
@@ -345,9 +371,9 @@ Un fichier contenant :
 
 | Fichier | Rôle |
 |---------|------|
-| `queries.ts` | Toutes les fonctions `async` qui parlent à Supabase : `listBeneficiaires(filters, page)`, `getBeneficiaireById(id)`, `createBeneficiaire(data)`, `updateBeneficiaire(id, data)`, `softDeleteBeneficiaire(id)`, `checkDoublon(prenom, nom, dateNaissance, projet)` |
+| `queries.ts` | `listBeneficiaires(filters, page)`, `getBeneficiaireById(id)`, `createBeneficiaire(data)`, `updateBeneficiaire(id, data)`, `softDeleteBeneficiaire(id)`, `findDoublon(prenom, nom, dateNaissance, projet)` (Q7 : lookup explicite avant INSERT pour récupérer l'ID de la fiche conflictuelle) |
 | `actions.ts` | Server Actions Next.js qui wrappent les queries, avec vérif auth et revalidation |
-| `export-excel.ts` | Génération du fichier Excel au format template V1 (si Q5=V1) |
+| `export-excel.ts` | **Génération Excel strictement conforme `Template_OIF_Emploi_Jeunes_V1.xlsx`** (Q5) : 22 colonnes feuille A1 dans le même ordre que le template, en-têtes exacts (accents et majuscules préservés), mêmes listes déroulantes (data validation ExcelJS) tirées des nomenclatures Supabase, mêmes formats de date. Test d'acceptance : un export, ouvert dans Excel, doit pouvoir être re-déposé dans l'import Étape 7 sans modification. |
 
 ---
 
@@ -443,45 +469,61 @@ Chaque sous-étape = un commit atomique avec build + typecheck verts.
 ### 4b — Liste + filtres + pagination
 
 - `app/(dashboard)/beneficiaires/page.tsx` (server)
-- `components/beneficiaires/beneficiaire-table.tsx`
-- `components/beneficiaires/beneficiaire-filters.tsx` + `pagination.tsx`
-- `components/beneficiaires/beneficiaire-row-actions.tsx` (menu ⋯)
-- Query `listBeneficiaires(filters, page)` avec `count: 'exact'`
-- Test e2e : liste vide, filtre non-match, pagination
+- `components/beneficiaires/beneficiaire-table.tsx` — clic ligne ouvre `/beneficiaires/[id]` (Q8) ; bordure gauche colorée PS (bonus)
+- `components/beneficiaires/beneficiaire-filters.tsx` — recherche `prenom+nom` (Q4) + dropdowns : projet, **PS**, pays, domaine, année, statut, sexe ; bouton Réinitialiser ; conservation URL query
+- `components/beneficiaires/beneficiaire-pagination.tsx`
+- `components/beneficiaires/beneficiaire-row-actions.tsx` — **menu ⋯ à 2 actions** : Modifier (si droits) + Supprimer (admin_scs) (Q8)
+- `components/beneficiaires/badge-projet.tsx` — badge code+libellé projet coloré selon PS
+- Query `listBeneficiaires(filters, page)` avec `count: 'exact'` ; JOIN sur `projets` pour récupérer `programme_strategique`
+- Test e2e : liste vide, filtre non-match, pagination, clic ligne → détail
 - **Stop 4b** : validation UX liste
 
-### 4c — Création
+### 4c — Création + saisie à la chaîne
 
 - `app/(dashboard)/beneficiaires/nouveau/page.tsx`
 - `components/beneficiaires/beneficiaire-form.tsx` (5 sections)
 - Server Action `createBeneficiaireAction` avec revalidation
 - Gestion RGPD dynamique (contacts désactivés sans consentement)
-- Détection doublon selon Q7
-- Mode « à la chaîne » selon Q1
-- Test e2e : création simple + création avec erreurs + doublon
-- **Stop 4c** : validation parcours création
+- **Détection doublon bloquant (Q7)** : call `findDoublon()` avant INSERT — si existe, réponse 409 avec `id_fiche_existante` → UI affiche le message « Un bénéficiaire … existe déjà » + lien vers la fiche
+- **Mode « à la chaîne » (Q1=B)** :
+  - après enregistrement réussi, afficher une modale de succès avec 2 options :
+    a) « Créer un autre bénéficiaire de la même cohorte » → nouveau formulaire avec pré-remplissage `projet_code`, `pays_code`, `domaine_formation_code`, `annee_formation`, `organisation_id`, `partenaire_accompagnement` et `modalite_formation_code`
+    b) « Revenir à la liste »
+  - composant `<RepriseApresEnregistrement>` monté en tête du formulaire pré-rempli — bandeau visible avec résumé des valeurs héritées + bouton « Réinitialiser le pré-remplissage » qui vide le form sans quitter la page
+  - la reprise est transmise via URL params (`?cohorte_projet=…&cohorte_pays=…`) pour persister au rechargement
+- Test e2e : création simple + erreurs validation + doublon bloquant + chaîne 3 saisies + bouton Réinitialiser
+- **Stop 4c** : validation parcours création + à-la-chaîne
 
 ### 4d — Détail + édition + soft-delete
 
 - `app/(dashboard)/beneficiaires/[id]/page.tsx` (détail server)
-- `app/(dashboard)/beneficiaires/[id]/modifier/page.tsx`
+  - En-tête : nom + prénom + **badge projet coloré PS** (bonus) + bouton « Modifier » en haut à droite (Q3)
+  - 5 cards de lecture (cf. wireframe section 2.2)
+  - **Pas d'onglet Historique en V1** (Q6 : reporté V1.5) — l'audit reste accessible via `/admin/audit`
+- `app/(dashboard)/beneficiaires/[id]/modifier/page.tsx` — formulaire identique à la création, pré-rempli avec les valeurs actuelles, mêmes règles Zod
 - `components/beneficiaires/beneficiaire-detail-cards.tsx`
-- Server Action `updateBeneficiaireAction`
-- Route API `POST /api/beneficiaires/[id]/supprimer`
-- Menu ⋯ fonctionnel (dupliquer conditionnel Q2)
-- Test e2e : édition + soft-delete + accès refusé
+- Server Action `updateBeneficiaireAction` avec revalidation + détection doublon si identité + projet modifiés (réutilise `findDoublon`)
+- Route API `POST /api/beneficiaires/[id]/supprimer` avec `<AlertDialog>` de confirmation sur la page détail (admin_scs uniquement)
+- **Menu ⋯ à 2 actions** : Modifier + Supprimer (Q8, pas de Dupliquer)
+- Test e2e : édition + soft-delete + accès refusé + RLS hors périmètre → 404
 - **Stop 4d** : validation parcours complet CRUD
 
-### 4e — Export Excel (si Q5=V1) + polish
+### 4e — Export Excel Template V1 + polish
 
-- `lib/beneficiaires/export-excel.ts`
-- Route API `GET /api/beneficiaires/export` avec query string filtres
-- Bouton Export sur la liste
-- Polish : skeletons, toasts, messages vides
-- Test e2e : export contient les bonnes colonnes
+- `lib/beneficiaires/export-excel.ts` : **strict alignement `Template_OIF_Emploi_Jeunes_V1.xlsx`**
+  - Feuille nommée `A1` (ou celle du template, à vérifier dans la source)
+  - 22 colonnes dans l'ordre exact du template (Nom, Prénom, Sexe, Date naissance, Projet, …)
+  - En-têtes strings identiques à la source (accents, majuscules, espaces)
+  - Data validation ExcelJS : listes déroulantes sur les colonnes à nomenclature fermée (projet, pays, domaine, modalité, statut, sexe) tirées des tables `public.projets`, `public.pays`, etc.
+  - Formats de dates : `JJ/MM/AAAA` en lisibilité, sérialisation ISO en arrière-plan
+  - Métadonnées du classeur : auteur = utilisateur courant, création = NOW, app = `OIF Plateforme Emploi Jeunes`
+- Route API `GET /api/beneficiaires/export?…` avec query string filtres identiques à la liste (respect RLS — on exporte ce qu'on peut voir)
+- Bouton Export sur la liste (à droite de la barre de filtres)
+- Polish : skeletons, toasts, messages vides (« Aucun bénéficiaire correspondant aux filtres »)
+- Test e2e : export contient les bonnes colonnes dans le bon ordre + test d'intégration « export puis ré-import » pour validation du cycle Étape 6
 - **Stop 4e** : validation finale avant merge
 
-Si Q5=V1.5, l'étape 4e se limite au polish (~1 h).
+Estimation actualisée 4e : ~500 lignes (montée de 400 → 500 avec data validation).
 
 ---
 
@@ -490,3 +532,4 @@ Si Q5=V1.5, l'étape 4e se limite au polish (~1 h).
 | Version | Date | Changement |
 |---------|------|-----------|
 | 0.1 | 2026-04-23 | Version initiale — en attente de réponses Q1-Q8 |
+| 1.0 | 2026-04-23 | Arbitrages produit validés (Q1=B, Q2=V1.5, Q3=A, Q4=A, Q5=V1, Q6=B, Q7=A, Q8 simplifié) + bonus couleurs PS intégré. Découpage 4a-4e conservé avec précisions par sous-étape. |
