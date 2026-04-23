@@ -33,8 +33,14 @@ describe('calculerAge', () => {
   });
 });
 
+/**
+ * Tranches officielles OIF (Questionnaire A V2 Q105) : 18-34, 35-60, +60.
+ * Plateforme V1 ajoute : « Mineur (<18) » et « Non renseigné ».
+ */
 describe('calculerTrancheAge', () => {
   const ref = new Date('2026-04-23');
+
+  // ===== Cas de bord : entrée invalide =====
 
   it('retourne « Non renseigné » si dateNaissance est null', () => {
     expect(calculerTrancheAge(null, ref)).toBe('Non renseigné');
@@ -49,47 +55,67 @@ describe('calculerTrancheAge', () => {
   });
 
   it('accepte une chaîne ISO', () => {
-    expect(calculerTrancheAge('2000-01-01', ref)).toBe('18-29 ans (cœur de cible)');
+    // 2000-01-01 sur 2026-04-23 → 26 ans
+    expect(calculerTrancheAge('2000-01-01', ref)).toBe('18-34 ans');
   });
 
-  it('classe 15 ans → tranche mineur', () => {
-    const n = new Date('2011-04-01');
-    expect(calculerTrancheAge(n, ref)).toBe('15-17 ans (mineur)');
+  // ===== Tranche Mineur (<18) =====
+
+  it('classe 0 an → Mineur', () => {
+    const n = new Date('2026-01-01');
+    expect(calculerTrancheAge(n, ref)).toBe('Mineur (<18)');
   });
 
-  it('classe 17 ans → tranche mineur', () => {
-    // 2009-04-01 sur 2026-04-23 : 17 ans et 22 jours
+  it('classe 17 ans → Mineur (borne sup)', () => {
+    // 2009-04-01 sur 2026-04-23 → 17 ans et 22 jours
     const n = new Date('2009-04-01');
-    expect(calculerTrancheAge(n, ref)).toBe('15-17 ans (mineur)');
+    expect(calculerTrancheAge(n, ref)).toBe('Mineur (<18)');
   });
 
-  it('classe 18 ans → cœur de cible', () => {
+  // ===== Tranche 18-34 ans =====
+
+  it('classe 18 ans pile → 18-34 ans (borne inf)', () => {
+    // 2008-04-23 sur 2026-04-23 → exactement 18 ans
     const n = new Date('2008-04-23');
-    expect(calculerTrancheAge(n, ref)).toBe('18-29 ans (cœur de cible)');
+    expect(calculerTrancheAge(n, ref)).toBe('18-34 ans');
   });
 
-  it('classe 29 ans → cœur de cible', () => {
-    const n = new Date('1996-05-01');
-    expect(calculerTrancheAge(n, ref)).toBe('18-29 ans (cœur de cible)');
-  });
-
-  it('classe 30 ans → institutionnel élargi', () => {
+  it('classe 30 ans → 18-34 ans', () => {
     const n = new Date('1996-04-23');
-    expect(calculerTrancheAge(n, ref)).toBe('30-35 ans (institutionnel élargi)');
+    expect(calculerTrancheAge(n, ref)).toBe('18-34 ans');
   });
 
-  it('classe 35 ans → institutionnel élargi', () => {
+  it('classe 34 ans → 18-34 ans (borne sup)', () => {
+    const n = new Date('1991-05-01');
+    expect(calculerTrancheAge(n, ref)).toBe('18-34 ans');
+  });
+
+  // ===== Tranche 35-60 ans =====
+
+  it('classe 35 ans pile → 35-60 ans (borne inf)', () => {
     const n = new Date('1991-04-23');
-    expect(calculerTrancheAge(n, ref)).toBe('30-35 ans (institutionnel élargi)');
+    expect(calculerTrancheAge(n, ref)).toBe('35-60 ans');
   });
 
-  it('classe 14 ans → hors cible', () => {
-    const n = new Date('2012-04-01');
-    expect(calculerTrancheAge(n, ref)).toBe('Hors cible');
+  it('classe 50 ans → 35-60 ans', () => {
+    const n = new Date('1976-04-23');
+    expect(calculerTrancheAge(n, ref)).toBe('35-60 ans');
   });
 
-  it('classe 36 ans → hors cible', () => {
-    const n = new Date('1990-04-23');
-    expect(calculerTrancheAge(n, ref)).toBe('Hors cible');
+  it('classe 60 ans → 35-60 ans (borne sup)', () => {
+    const n = new Date('1966-04-23');
+    expect(calculerTrancheAge(n, ref)).toBe('35-60 ans');
+  });
+
+  // ===== Tranche +60 ans =====
+
+  it('classe 61 ans → +60 ans', () => {
+    const n = new Date('1965-04-01');
+    expect(calculerTrancheAge(n, ref)).toBe('+60 ans');
+  });
+
+  it('classe 80 ans → +60 ans', () => {
+    const n = new Date('1946-04-23');
+    expect(calculerTrancheAge(n, ref)).toBe('+60 ans');
   });
 });
