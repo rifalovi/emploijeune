@@ -1,3 +1,13 @@
+// Client Component — la Sidebar passe des références de composants d'icônes
+// (lucide-react) à NavLink, qui est lui-même un Client Component.
+// Next.js 14 App Router n'autorise pas qu'un Server Component passe une
+// fonction / un component-type à travers une frontière Server→Client. En
+// marquant la Sidebar comme Client Component, la frontière est remontée au
+// niveau du layout (qui ne passe plus que des données sérialisables :
+// UtilisateurProfile, strings, numbers). Toute la logique serveur (fetch
+// Supabase, notifications count) reste dans app/(dashboard)/layout.tsx.
+'use client';
+
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { NavLink } from './nav-link';
