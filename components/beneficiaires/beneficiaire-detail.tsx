@@ -4,7 +4,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatutBadge } from './statut-badge';
 import { ConsentementBadge } from './consentement-badge';
-import { BadgeProjet } from './badge-projet';
+import { BadgeProjet } from '@/components/shared/badge-projet';
 import { calculerTrancheAge } from './tranche-age';
 import type { BeneficiaireDetail as BeneficiaireDetailType } from '@/lib/beneficiaires/queries';
 import type { Nomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';

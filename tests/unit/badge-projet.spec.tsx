@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { BadgeProjet } from '@/components/beneficiaires/badge-projet';
+import { BadgeProjet } from '@/components/shared/badge-projet';
 import { PROGRAMMES_STRATEGIQUES } from '@/lib/design/oif/programmes';
 
 /**

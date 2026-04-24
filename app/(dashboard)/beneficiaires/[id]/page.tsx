@@ -8,7 +8,7 @@ import { getBeneficiaireById } from '@/lib/beneficiaires/queries';
 import { getNomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';
 import { BeneficiaireDetail } from '@/components/beneficiaires/beneficiaire-detail';
 import { BeneficiaireDetailActions } from '@/components/beneficiaires/beneficiaire-detail-actions';
-import { BadgeProjet } from '@/components/beneficiaires/badge-projet';
+import { BadgeProjet } from '@/components/shared/badge-projet';
 import { StatutBadge } from '@/components/beneficiaires/statut-badge';
 import type { ProgrammeStrategiqueCode, StatutBeneficiaireCode } from '@/lib/schemas/nomenclatures';
 

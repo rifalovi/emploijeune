@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { ConsentementBadge } from './consentement-badge';
 import { StatutBadge } from './statut-badge';
-import { BadgeProjet } from './badge-projet';
+import { BadgeProjet } from '@/components/shared/badge-projet';
 import { BeneficiaireRowActions } from './beneficiaire-row-actions';
 import { calculerTrancheAge } from './tranche-age';
 import type { BeneficiaireListItem } from '@/lib/beneficiaires/queries';

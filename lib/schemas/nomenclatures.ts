@@ -292,3 +292,75 @@ export const MODALITE_FORMATION_LIBELLES: Record<ModaliteFormationCode, string> 
   EN_LIGNE: 'En ligne (à distance)',
   HYBRIDE: 'Hybride (mixte)',
 };
+
+// =============================================================================
+// Libellés B1 — structures (Étape 5)
+// =============================================================================
+
+export const TYPE_STRUCTURE_LIBELLES: Record<TypeStructureCode, string> = {
+  AGR: 'Agriculture / Élevage / Pêche',
+  MICRO_ENTR: 'Micro-entreprise',
+  PETITE_ENTR: 'Petite entreprise',
+  COOP: 'Coopérative',
+  ASSOC: 'Association',
+  GIE: 'Groupement d’intérêt économique (GIE)',
+  AUTRE: 'Autre',
+};
+
+export const SECTEUR_ACTIVITE_LIBELLES: Record<SecteurActiviteCode, string> = {
+  AGR_SYL_PCH: 'Agriculture, sylviculture, pêche',
+  AGROALIM: 'Agroalimentaire',
+  ARTISANAT: 'Artisanat',
+  COMMERCE: 'Commerce',
+  BTP: 'BTP, construction',
+  CULTURE: 'Culture, arts',
+  EDUC: 'Éducation, formation',
+  ENERGIE_ENV: 'Énergie, environnement',
+  TOURISME: 'Tourisme, hôtellerie, restauration',
+  INDUSTRIE: 'Industrie, transformation',
+  SANTE_SOCIAL: 'Santé, action sociale',
+  SERV_ENTR: 'Services aux entreprises',
+  SERV_FIN: 'Services financiers',
+  SPORT_LOISIRS: 'Sport, loisirs',
+  TIC: 'TIC, numérique',
+  TRANSPORT: 'Transport, logistique',
+  AUTRE: 'Autre',
+};
+
+export const NATURE_APPUI_LIBELLES: Record<NatureAppuiCode, string> = {
+  SUBVENTION: 'Subvention',
+  MATERIEL: 'Appui matériel / équipement',
+  FORMATION: 'Formation',
+  MENTORAT: 'Mentorat / accompagnement',
+  MISE_RELATION: 'Mise en relation / réseautage',
+  APPUI_MIXTE: 'Appui mixte',
+  AUTRE: 'Autre',
+};
+
+export const STATUT_STRUCTURE_LIBELLES: Record<StatutStructure, string> = {
+  creation: 'Création',
+  renforcement: 'Renforcement',
+  relance: 'Relance',
+};
+
+/**
+ * Libellés des devises affichés dans les Selects. Le code ISO 4217 reste la
+ * valeur stockée ; le libellé est l'écriture longue + symbole courant.
+ */
+export const DEVISE_LIBELLES: Record<(typeof DEVISES_CODES)[number], string> = {
+  EUR: 'Euro (€)',
+  USD: 'Dollar US ($)',
+  XOF: 'Franc CFA BCEAO (FCFA)',
+  XAF: 'Franc CFA BEAC (FCFA)',
+  MAD: 'Dirham marocain (DH)',
+  DZD: 'Dinar algérien (DA)',
+  TND: 'Dinar tunisien (DT)',
+  MGA: 'Ariary malgache (Ar)',
+  MRU: 'Ouguiya (UM)',
+  CDF: 'Franc congolais (FC)',
+  RWF: 'Franc rwandais (FRw)',
+  DJF: 'Franc djiboutien (Fdj)',
+  LBP: 'Livre libanaise (LL)',
+  HTG: 'Gourde haïtienne (G)',
+  Autre: 'Autre devise',
+};
