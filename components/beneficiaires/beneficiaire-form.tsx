@@ -47,6 +47,33 @@ import { EcranSuccesCreation } from './ecran-succes-creation';
 import { calculerTrancheAge } from './tranche-age';
 
 /**
+ * Mapping booléen→libellé pour le Select « Consentement RGPD ».
+ * Valeur du form : `boolean`. Valeur passée au Select : stringifiée via
+ * ternaire côté parent. Ce Record doit donc indexer par `'true'`/`'false'`.
+ */
+const CONSENTEMENT_LIBELLES: Record<'true' | 'false', string> = {
+  true: 'Oui — consentement recueilli',
+  false: 'Non — pas de consentement',
+};
+
+/**
+ * Helper : renvoie une fonction de rendu pour `<SelectValue>` qui résout la
+ * valeur brute Base-UI (Base-UI 1.3+ affiche la valeur brute par défaut) en
+ * libellé utilisateur via le map fourni. Si aucune valeur n'est sélectionnée,
+ * affiche le placeholder en grisé.
+ */
+function afficherLibelle(map: Record<string, string>, placeholder: string) {
+  function LibelleRender(value: string | null | undefined) {
+    if (value === null || value === undefined || value === '') {
+      return <span className="text-muted-foreground">{placeholder}</span>;
+    }
+    return map[value] ?? value;
+  }
+  LibelleRender.displayName = 'LibelleRender';
+  return LibelleRender;
+}
+
+/**
  * Formulaire de création d'un bénéficiaire (5 sections).
  *
  * Comportements clés :
@@ -170,6 +197,13 @@ export function BeneficiaireForm({
   const statut = form.watch('statut_code');
   const dateFinFormation = form.watch('date_fin_formation');
   const telephone = form.watch('telephone') ?? '';
+
+  // Maps code→libellé dérivés des options serveur, pour afficher le libellé
+  // dans le trigger Select après sélection (Base-UI 1.3+ affiche la valeur
+  // brute par défaut).
+  const projetsLibelles = Object.fromEntries(projetsOptions.map((o) => [o.code, o.libelle]));
+  const paysLibelles = Object.fromEntries(paysOptions.map((o) => [o.code, o.libelle]));
+  const domainesLibelles = Object.fromEntries(domainesOptions.map((o) => [o.code, o.libelle]));
 
   const warningQualite = messageWarningQualiteStatut(statut, dateFinFormation);
 
@@ -318,7 +352,9 @@ export function BeneficiaireForm({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner" />
+                          <SelectValue>
+                            {afficherLibelle(SEXE_LIBELLES, 'Sélectionner')}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -379,7 +415,9 @@ export function BeneficiaireForm({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un projet" />
+                          <SelectValue>
+                            {afficherLibelle(projetsLibelles, 'Sélectionner un projet')}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -406,7 +444,9 @@ export function BeneficiaireForm({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un pays" />
+                          <SelectValue>
+                            {afficherLibelle(paysLibelles, 'Sélectionner un pays')}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -455,7 +495,9 @@ export function BeneficiaireForm({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un domaine" />
+                          <SelectValue>
+                            {afficherLibelle(domainesLibelles, 'Sélectionner un domaine')}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -495,7 +537,9 @@ export function BeneficiaireForm({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner" />
+                          <SelectValue>
+                            {afficherLibelle(MODALITE_FORMATION_LIBELLES, 'Sélectionner')}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -584,7 +628,9 @@ export function BeneficiaireForm({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue>
+                            {afficherLibelle(STATUT_BENEFICIAIRE_LIBELLES, 'Sélectionner')}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -638,7 +684,9 @@ export function BeneficiaireForm({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue>
+                            {afficherLibelle(CONSENTEMENT_LIBELLES, 'Sélectionner')}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -121,5 +122,39 @@ describe('Select — hotfix 4f : pointer-events sur les items', () => {
 
     const popup = await screen.findByTestId('popup');
     expect(popup.className).toContain('pointer-events-auto');
+  });
+
+  it('SelectValue avec children function : affiche le libellé résolu, pas la valeur brute', async () => {
+    const user = userEvent.setup();
+    const LIBELLES: Record<string, string> = { F: 'Femme', M: 'Homme' };
+
+    function Harness() {
+      const [v, setV] = React.useState('');
+      return (
+        <Select value={v} onValueChange={(val) => setV(val ?? '')}>
+          <SelectTrigger>
+            <SelectValue>
+              {(current: string | null) =>
+                current ? (LIBELLES[current] ?? current) : 'Sélectionner'
+              }
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="F">Femme</SelectItem>
+            <SelectItem value="M">Homme</SelectItem>
+          </SelectContent>
+        </Select>
+      );
+    }
+    render(<Harness />);
+    const trigger = screen.getByRole('combobox');
+    expect(trigger.textContent).toContain('Sélectionner');
+
+    await user.click(trigger);
+    await user.click(await screen.findByRole('option', { name: 'Homme' }));
+
+    // Le trigger doit afficher « Homme » (libellé) — PAS « M » (valeur brute).
+    expect(trigger.textContent).toContain('Homme');
+    expect(trigger.textContent).not.toContain('M\u200B');
   });
 });

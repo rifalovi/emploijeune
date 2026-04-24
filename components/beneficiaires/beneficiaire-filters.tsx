@@ -177,6 +177,11 @@ function FilterSelect({
   options: FilterOptionListe;
   onChange: (value: string) => void;
 }) {
+  // Map code→libellé pour que le trigger affiche le libellé après sélection
+  // (Base-UI 1.3+ affiche la valeur brute par défaut).
+  const libelles: Record<string, string> = { [TOUS]: 'Tous' };
+  for (const opt of options) libelles[opt.code] = opt.libelle;
+
   return (
     <div className="space-y-1">
       <Label htmlFor={id} className="text-muted-foreground text-xs">
@@ -184,7 +189,7 @@ function FilterSelect({
       </Label>
       <Select value={value} onValueChange={(v) => onChange(v ?? '')}>
         <SelectTrigger id={id} aria-label={`Filtrer par ${label.toLowerCase()}`}>
-          <SelectValue />
+          <SelectValue>{(v: string | null) => (v ? (libelles[v] ?? v) : 'Tous')}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={TOUS}>Tous</SelectItem>

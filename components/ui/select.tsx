@@ -6,7 +6,26 @@ import { Select as SelectPrimitive } from '@base-ui/react/select';
 import { cn } from '@/lib/utils';
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from 'lucide-react';
 
-const Select = SelectPrimitive.Root;
+/**
+ * `modal={false}` CRITIQUE (hotfix 4f-ter) :
+ *
+ * En mode `modal={true}` (défaut Base-UI), un backdrop invisible plein écran
+ * est rendu AVEC `pointer-events: auto` et un `clip-path` qui n'évide que la
+ * zone du trigger — pas celle du popup. Les événements `mousemove` qui
+ * survolent le popup sont absorbés par ce backdrop au lieu d'atteindre les
+ * items. Sans hover, l'item n'est jamais marqué `highlighted`, et Base-UI
+ * ignore silencieusement le clic (`SelectItem.onClick` guard
+ * `pointerTypeRef !== 'touch' && !highlighted`).
+ *
+ * Avec `modal={false}` : pas de backdrop, les mousemove atteignent les items,
+ * le highlight se propage, le clic commit la sélection. La fermeture du
+ * popup sur clic extérieur reste gérée par `useDismiss` (floating-ui).
+ */
+function Select<Value, Multiple extends boolean | undefined = false>(
+  props: SelectPrimitive.Root.Props<Value, Multiple>,
+) {
+  return <SelectPrimitive.Root modal={false} {...props} />;
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
