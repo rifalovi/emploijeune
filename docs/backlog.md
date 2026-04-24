@@ -72,6 +72,41 @@ Page `/admin/utilisateurs` permettant à `admin_scs` de :
 - Logs Supabase Auth surveillés (taux d'échec magic link).
 - Alertes seuils : > 5% d'erreurs d'envoi email → alerte Slack/email.
 
+## Étape 9 — Dashboards analytics (spécifications André)
+
+### Contexte
+
+Retour N+1 du 24 avril 2026. Voir : [docs/retours-hierarchie/andre-24-avril-2026.md](retours-hierarchie/andre-24-avril-2026.md)
+
+### Exigences
+
+1. **Dashboard public épuré** (utilisateurs non-admin)
+   - Indicateurs agrégés uniquement
+   - Pas d'accès aux données brutes
+
+2. **Dashboard admin complet** (admin_scs)
+   - Vision transversale tous projets
+   - Drill-down sur données détaillées
+   - Exports facilités
+
+3. **Structure visuelle : 4 piliers + 1 marqueur transversal**
+   - Formation et Compétences (A)
+   - Activités Économiques (B)
+   - Intermédiation (F)
+   - Écosystèmes d'Emploi (C)
+   - Transversal : Langue française (F1)
+
+4. **Exigences visuelles**
+   - Design aligné charte graphique OIF
+   - Typographie Inter
+   - Couleurs PS1/PS2/PS3
+   - Esthétique moderne et épurée
+
+5. **Maquette blanche pour démo N+1**
+   - Extraire du produit réel après livraison Étape 9
+   - Mode « données fictives » activable
+   - Délai production : 2-3 h après Étape 9 livrée
+
 ### V1.5 — Amélioration logos OIF (EPS → SVG)
 
 - **Contexte** : en V1, les logos OIF sont livrés en PNG (881×438 pour le quadri, 2362×1007 pour les mono) — qualité suffisante pour `size="xl"` (400 px) mais sous-optimale sur écrans retina et pour impression depuis le web.
@@ -87,6 +122,13 @@ Page `/admin/utilisateurs` permettant à `admin_scs` de :
 - **Requête** : `SELECT * FROM journaux_audit WHERE table_affectee = 'beneficiaires' AND ligne_id = $1 ORDER BY horodatage DESC LIMIT 20` — RLS applicable via nouvelle policy.
 - **Estimation** : 1-2 heures (policy RLS + composant + tests e2e).
 - **Priorité** : moyenne — à sortir avec la V1.5 (juillet 2026 ?).
+
+### V1.5 — Champ « partenaire d'accompagnement » sur structures
+
+- **Contexte** : Q4 de l'Étape 5 arbitrée SKIP en V1. Pour une structure, le rôle de « partenaire d'accompagnement » est déjà couvert par `projet_code` + `organisation_id` (le projet OIF ou son opérateur accompagne directement la structure).
+- **Action** : si les retours pilotes remontent un besoin de distinguer un tiers accompagnateur (ex. ONG locale distincte du projet OIF), ajouter une colonne `partenaire_accompagnement TEXT` sur `public.structures` + champ libre dans le formulaire (section « Rattachement »).
+- **Estimation** : 30 min (migration + form + filtre liste).
+- **Priorité** : basse — activer uniquement si demande explicite.
 
 ### V1.5 — Duplication de fiche bénéficiaire
 
@@ -108,3 +150,4 @@ Page `/admin/utilisateurs` permettant à `admin_scs` de :
 |---------|------|-----------|
 | 1.0 | 2026-04-23 | Création du backlog ; jalons 1-3 infrastructure email ; chantiers transverses. |
 | 1.1 | 2026-04-24 | Ajout section Étape 6 — questionnaires officiels OIF (A et B) reçus, mapping JSONB, logique « ALLER À », module F1 transversal ; volumétrie V2 (5 623 bénéficiaires, 347 structures). |
+| 1.2 | 2026-04-25 | Ajout section Étape 9 — exigences dashboards (retour André 24/04) : 4 piliers Cadre Commun + transversal F1, dashboard public épuré, maquette blanche extraite du produit. Ticket V1.5 partenaire structures. |

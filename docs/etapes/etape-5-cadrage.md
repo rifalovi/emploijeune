@@ -24,27 +24,48 @@ la personne physique est secondaire.
 - **RLS** : `20260422000002_rls_policies.sql` — déjà écrite sur
   `structures` (4 rôles, même logique qu'A1).
 
-### Colonnes exposées dans la V1
+### Colonnes exposées dans la V1 — Organisation progressive (Option B)
 
 On expose **les 26 colonnes métier de la table** (un CRUD est
-exhaustif par définition). Le brief initial mentionnait 13
-colonnes ; l'écart s'explique par les champs dérivés (porteur
-détaillé, géolocalisation, devise) ajoutés en modélisation.
+exhaustif par définition). Pour éviter un formulaire monolithique
+intimidant, les champs sont organisés en **deux niveaux** (Option
+B arbitrée 25/04/2026) :
 
-Groupées en 5 sections pour le formulaire (analogue au pattern
-5 cards d'A1) :
+#### Sections essentielles (visibles par défaut, ≈ 13 colonnes)
 
-1. **Identité structure** : `nom_structure`, `type_structure_code`,
-   `secteur_activite_code`, `secteur_precis`, `intitule_initiative`,
-   `date_creation`, `statut_creation` (création / renforcement / relance)
-2. **Rattachement** : `projet_code`, `pays_code`, `organisation_id`
-3. **Porteur** : `porteur_prenom`, `porteur_nom`, `porteur_sexe`,
-   `porteur_date_naissance`
-4. **Appui** : `annee_appui`, `nature_appui_code`, `montant_appui`,
-   `devise_code`
-5. **RGPD & contacts** : `consentement_recueilli`,
-   `consentement_date`, `telephone_porteur`, `courriel_porteur`,
-   `localite`, `latitude`, `longitude`, `commentaire`
+1. **Identité structure** : `nom_structure` *, `type_structure_code` *,
+   `secteur_activite_code` *, `pays_code` *
+2. **Rattachement projet** : `projet_code` *, `organisation_id`,
+   `annee_appui` *
+3. **Initiative & appui** : `intitule_initiative`, `nature_appui_code` *,
+   `montant_appui`, `devise_code` (obligatoire si `montant_appui`)
+4. **Contacts principaux** : `telephone_porteur`, `courriel_porteur`
+   (dépendants du consentement RGPD — voir section 7)
+
+#### Sections détails supplémentaires (repliées par défaut, ≈ 13 colonnes)
+
+5. **Détails porteur** : `porteur_prenom`, `porteur_nom`,
+   `porteur_sexe`, `porteur_date_naissance`
+6. **Géolocalisation** : `localite`, `latitude`, `longitude`
+   (champs texte décimaux en V1, picker carte en V1.5)
+7. **Informations complémentaires** : `secteur_precis`, `date_creation`,
+   `statut_creation` (création / renforcement / relance), `commentaire`,
+   `consentement_recueilli`, `consentement_date`
+
+#### Comportement UI
+
+- Par défaut, sections 5-7 sont repliées derrière un bouton
+  « ▾ Afficher les détails supplémentaires ».
+- Les champs essentiels (sections 1-4) sont marqués `*`, les
+  autres restent optionnels.
+- La validation Zod n'impose que les champs marqués `*` ; les
+  règles cross-field (RGPD, montant↔devise) s'appliquent aussi
+  aux détails s'ils sont saisis.
+
+**Rationale** : partenaire pressé = saisie rapide des 4
+sections essentielles ; partenaire méticuleux = déploie les
+détails pour une fiche riche. Respecte la philosophie
+« qualité des données via champs optionnels non bloquants ».
 
 ## 2. Différences avec l'Étape 4 bénéficiaires
 
@@ -160,15 +181,16 @@ remonte dans le rapport de sous-étape :
 
 ## 6. Sous-étapes proposées
 
-| Sous-étape | Portée                                                            | Est. lignes |
-| ---------- | ----------------------------------------------------------------- | ----------- |
-| **5a**     | Schémas Zod `structure.ts` + déplacement composants partagés + tests | ~200     |
-| **5b**     | Liste + filtres (nom, projet, pays, type, secteur, année) + pagination + recherche trigram | ~450 |
-| **5c**     | Formulaire création 5 sections + saisie à la chaîne + détection doublon + fonction SQL `find_structure_doublon` | ~350 |
-| **5d**     | Détail (5 cards) + édition + soft-delete admin_scs                | ~350        |
-| **5e**     | Export Excel Template V1 (feuille B1, 22 colonnes) + tests d'acceptance cycliques | ~400 |
+| Sous-étape | Portée                                                                                                  | Est. lignes |
+| ---------- | ------------------------------------------------------------------------------------------------------- | ----------- |
+| **5a**     | Schémas Zod `structure.ts` + déplacement `badge-projet` vers `components/shared/` + helper `formater-montant` + tests | ~250        |
+| **5b**     | Liste + filtres (nom, projet, pays, type, secteur, année) + pagination + recherche trigram              | ~450        |
+| **5c**     | Formulaire création **4 essentiels + 3 détails pliables** + saisie à la chaîne + détection doublon + fonction SQL `find_structure_doublon` | ~400        |
+| **5d**     | Détail (cards analogues) + édition + soft-delete admin_scs                                              | ~350        |
+| **5e**     | Export Excel Template V1 (feuille B1, 22 colonnes) + tests d'acceptance cycliques                       | ~400        |
 
-**Total estimé** : ~1750 lignes (cohérent avec le brief ~1700).
+**Total estimé** : ~1850 lignes (vs 1750 initial, +100 pour les
+sections dépliables du formulaire).
 Volume ~4× plus petit qu'A1 car :
 
 - Pas de tranche d'âge calculée
@@ -191,6 +213,17 @@ Conformément à `docs/collaboration-ia.md` :
 
 ## Changelog
 
-| Version | Date       | Changement                                       |
-| ------- | ---------- | ------------------------------------------------ |
-| 0.1     | 2026-04-25 | Cadrage léger initial (patterns Étape 4 réutilisés) |
+| Version | Date       | Changement                                                                          |
+| ------- | ---------- | ----------------------------------------------------------------------------------- |
+| 0.1     | 2026-04-25 | Cadrage léger initial (patterns Étape 4 réutilisés)                                |
+| 0.2     | 2026-04-25 | Arbitrages Q1–Q5 validés + organisation progressive (4 essentiels + 3 détails) Option B |
+
+## Note contexte stratégique
+
+Le retour N+1 André du 24 avril 2026 ([doc](../retours-hierarchie/andre-24-avril-2026.md))
+n'a pas d'impact direct sur l'Étape 5. Les structures B1
+alimentent le pilier **« Activités Économiques »** du Cadre
+Commun (Étape 9). Les champs pertinents pour les agrégations
+futures (montant appui, secteur activité, statut création) sont
+exposés dans le formulaire et la fiche détail — pas besoin
+d'action spécifique en 5.
