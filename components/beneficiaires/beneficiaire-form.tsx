@@ -351,7 +351,13 @@ export function BeneficiaireForm({
                       value={field.value ?? ''}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger
+                          title={
+                            field.value
+                              ? SEXE_LIBELLES[field.value as keyof typeof SEXE_LIBELLES]
+                              : undefined
+                          }
+                        >
                           <SelectValue>
                             {afficherLibelle(SEXE_LIBELLES, 'Sélectionner')}
                           </SelectValue>
@@ -414,7 +420,9 @@ export function BeneficiaireForm({
                       value={field.value ?? ''}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger
+                          title={field.value ? projetsLibelles[field.value] : undefined}
+                        >
                           <SelectValue>
                             {afficherLibelle(projetsLibelles, 'Sélectionner un projet')}
                           </SelectValue>
@@ -443,7 +451,7 @@ export function BeneficiaireForm({
                       value={field.value ?? ''}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger title={field.value ? paysLibelles[field.value] : undefined}>
                           <SelectValue>
                             {afficherLibelle(paysLibelles, 'Sélectionner un pays')}
                           </SelectValue>
@@ -494,7 +502,9 @@ export function BeneficiaireForm({
                       value={field.value ?? ''}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger
+                          title={field.value ? domainesLibelles[field.value] : undefined}
+                        >
                           <SelectValue>
                             {afficherLibelle(domainesLibelles, 'Sélectionner un domaine')}
                           </SelectValue>
@@ -536,7 +546,15 @@ export function BeneficiaireForm({
                       value={(field.value as string | undefined) ?? ''}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger
+                          title={
+                            field.value
+                              ? MODALITE_FORMATION_LIBELLES[
+                                  field.value as keyof typeof MODALITE_FORMATION_LIBELLES
+                                ]
+                              : undefined
+                          }
+                        >
                           <SelectValue>
                             {afficherLibelle(MODALITE_FORMATION_LIBELLES, 'Sélectionner')}
                           </SelectValue>
@@ -627,7 +645,15 @@ export function BeneficiaireForm({
                       value={field.value ?? 'INSCRIT'}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger
+                          title={
+                            field.value
+                              ? STATUT_BENEFICIAIRE_LIBELLES[
+                                  field.value as keyof typeof STATUT_BENEFICIAIRE_LIBELLES
+                                ]
+                              : undefined
+                          }
+                        >
                           <SelectValue>
                             {afficherLibelle(STATUT_BENEFICIAIRE_LIBELLES, 'Sélectionner')}
                           </SelectValue>
@@ -683,7 +709,9 @@ export function BeneficiaireForm({
                       value={field.value ? 'true' : 'false'}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger
+                          title={CONSENTEMENT_LIBELLES[field.value ? 'true' : 'false']}
+                        >
                           <SelectValue>
                             {afficherLibelle(CONSENTEMENT_LIBELLES, 'Sélectionner')}
                           </SelectValue>

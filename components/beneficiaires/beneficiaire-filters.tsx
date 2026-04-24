@@ -188,7 +188,11 @@ function FilterSelect({
         {label}
       </Label>
       <Select value={value} onValueChange={(v) => onChange(v ?? '')}>
-        <SelectTrigger id={id} aria-label={`Filtrer par ${label.toLowerCase()}`}>
+        <SelectTrigger
+          id={id}
+          aria-label={`Filtrer par ${label.toLowerCase()}`}
+          title={libelles[value]}
+        >
           <SelectValue>{(v: string | null) => (v ? (libelles[v] ?? v) : 'Tous')}</SelectValue>
         </SelectTrigger>
         <SelectContent>

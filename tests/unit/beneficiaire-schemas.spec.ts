@@ -308,3 +308,50 @@ describe('repriseCohorteSchema', () => {
     expect(res.success).toBe(false);
   });
 });
+
+// =============================================================================
+// Règle RGPD D : date_consentement ≤ date_debut_formation
+// =============================================================================
+
+describe('beneficiaireInsertSchema — RGPD : consentement avant début formation', () => {
+  /** Gabarit avec consentement + contacts + dates, modifiable dans chaque test. */
+  const avecConsentement = {
+    ...baseValide,
+    consentement_recueilli: true,
+    telephone: '+22676123456',
+  };
+
+  it('date_consentement < date_debut_formation → valide', () => {
+    const res = beneficiaireInsertSchema.safeParse({
+      ...avecConsentement,
+      consentement_date: '2024-05-15',
+      date_debut_formation: '2024-06-01',
+      date_fin_formation: '2024-08-30',
+    });
+    expect(res.success).toBe(true);
+  });
+
+  it('date_consentement = date_debut_formation → valide (cas inscription le jour même)', () => {
+    const res = beneficiaireInsertSchema.safeParse({
+      ...avecConsentement,
+      consentement_date: '2024-06-01',
+      date_debut_formation: '2024-06-01',
+      date_fin_formation: '2024-08-30',
+    });
+    expect(res.success).toBe(true);
+  });
+
+  it('date_consentement > date_debut_formation → erreur bloquante avec message RGPD', () => {
+    const res = beneficiaireInsertSchema.safeParse({
+      ...avecConsentement,
+      consentement_date: '2026-12-09',
+      date_debut_formation: '2024-05-31',
+      date_fin_formation: '2025-10-04',
+    });
+    expect(res.success).toBe(false);
+    if (res.success) return;
+    const issue = res.error.issues.find((i) => i.path[0] === 'consentement_date');
+    expect(issue).toBeDefined();
+    expect(issue?.message).toContain('antérieure ou égale');
+  });
+});

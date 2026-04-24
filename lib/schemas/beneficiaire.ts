@@ -201,6 +201,23 @@ function appliquerReglesMetier(data: BaseBeneficiaireShape, ctx: z.RefinementCtx
       message: 'La date de fin doit être postérieure à la date de début',
     });
   }
+  // Règle RGPD D : le consentement doit être recueilli AVANT le début du
+  // traitement des données (article 7 RGPD — consentement préalable). On
+  // autorise le même jour que le début de formation (cas "consentement au
+  // moment de l'inscription").
+  if (
+    data.consentement_recueilli &&
+    data.consentement_date &&
+    data.date_debut_formation &&
+    data.consentement_date > data.date_debut_formation
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['consentement_date'],
+      message:
+        'La date de consentement doit être antérieure ou égale à la date de début de formation (exigence RGPD : le consentement précède le traitement).',
+    });
+  }
 }
 
 export const beneficiaireInsertSchema = baseBeneficiaireSchema.superRefine(appliquerReglesMetier);
