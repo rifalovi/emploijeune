@@ -6,10 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 
-import {
-  beneficiaireInsertSchema,
-  type BeneficiaireInsertInput,
-} from '@/lib/schemas/beneficiaire';
+import { beneficiaireInsertSchema, type BeneficiaireInsertInput } from '@/lib/schemas/beneficiaire';
 import {
   SEXE_VALUES,
   SEXE_LIBELLES,

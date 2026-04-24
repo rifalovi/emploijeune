@@ -533,3 +533,51 @@ Estimation actualisée 4e : ~500 lignes (montée de 400 → 500 avec data valida
 |---------|------|-----------|
 | 0.1 | 2026-04-23 | Version initiale — en attente de réponses Q1-Q8 |
 | 1.0 | 2026-04-23 | Arbitrages produit validés (Q1=B, Q2=V1.5, Q3=A, Q4=A, Q5=V1, Q6=B, Q7=A, Q8 simplifié) + bonus couleurs PS intégré. Découpage 4a-4e conservé avec précisions par sous-étape. |
+| 2.0 | 2026-04-24 | Étape 4 livrée — bilan de clôture ajouté ci-dessous. |
+
+---
+
+## Bilan de livraison (clôture Étape 4 — 2026-04-24)
+
+### Sous-étapes validées
+
+| Sous-étape | Portée | Statut |
+|---|---|---|
+| **4a** Plomberie | Middleware, layout dashboard, navigation, sidebar, garde-fous auth | ✅ Validé |
+| **4b** Liste + filtres + recherche | Table paginée, 9 filtres URL, recherche pg_trgm, warning qualité | ✅ Validé |
+| **4c** Création + saisie à la chaîne | Formulaire 5 cards, détection doublon SQL, écran de succès 3 CTA, reprise cohorte | ✅ Validé |
+| **4d** Détail + édition + soft-delete | Fiche 5 cards, form édition, AlertDialog suppression + raison, admin_scs lock | ✅ Validé |
+| **4e** Export Excel Template V1 | Classeur 3 feuilles (Bénéficiaires + Metadata + Nomenclatures), data validations, roundtrip | ✅ Validé |
+
+### Volumétrie livrée
+
+- **~7 600 lignes** de code applicatif + migrations + tests sur l'ensemble du périmètre bénéficiaires
+- **3 migrations SQL** supplémentaires : `20260424000001_fonction_rechercher_beneficiaires.sql`, `20260424000002_qualite_a_verifier_et_doublon.sql`, `20260424000003_soft_delete_metadata.sql`
+- **114 tests unitaires** Vitest (7 fichiers) — tous passants
+- **2 tests e2e** Playwright (auth magic-link + sign-out) hérités Étape 3
+
+### Décisions d'ingénierie structurantes
+
+1. **Mise en cache React `cache()` des nomenclatures** : `getNomenclatures()` (projets, pays, domaines, statuts, modalités) mémoïsé par rendu, évitant 5× Supabase round-trips par page.
+2. **Colonne générée SQL `qualite_a_verifier`** (`GENERATED ALWAYS AS STORED`) : flag calculé côté BDD depuis `consentement_recueilli`, `date_naissance`, `telephone`, `courriel`. Garantit la cohérence sans trigger.
+3. **Fonction SQL `find_beneficiaire_doublon(..., p_exclude_id UUID)`** : SECURITY INVOKER respectant la RLS. Le paramètre optionnel `p_exclude_id` permet à une fiche en édition de ne pas se détecter elle-même comme doublon.
+4. **4 couches de défense pour suppression** : masquage UI (dropdown caché si rôle ≠ admin_scs) + vérif rôle dans Server Action + RLS policy `beneficiaires_delete` + `.is('deleted_at', null)` dans les queries.
+5. **Export Excel via feuille cachée `Nomenclatures`** : la liste de 61 pays dépasse la limite 255 chars d'une formule inline ; on stocke les listes en A:G et on pose les data validations via named ranges.
+6. **Format téléphone via liste indicatifs triée par longueur descendante** : `+1246` (Barbade) matché avant `+1` (USA) grâce au tri — évite une regex gourmande.
+7. **Server Action discriminée par `status`** (succes / doublon / erreur_rls / erreur_validation / erreur_inconnue) : le client dispatche sans parser de messages, meilleure UX pour les erreurs métier.
+8. **Pagination serveur paginée (1000/batch)** pour l'export avec plafond 50 000 lignes : sécurise sans contraindre les ~5 600 lignes V1.
+
+### Points de vigilance pour Étape 5 (structures B1)
+
+1. **Nomenclatures additionnelles** : ajouter `structures_categories` et `structures_statuts` dans `lib/schemas/nomenclatures.ts` ; respecter le pattern `Map<code, libellé>` de `getNomenclatures()`.
+2. **Réutilisation du pattern d'export** : `COLONNES_A1` est spécifique ; dupliquer en `COLONNES_B1` plutôt que de généraliser prématurément (YAGNI — les deux indicateurs divergent sur les champs RGPD et contacts).
+3. **Détection de doublon B1** : critères différents (nom structure + pays + type d'activité) — écrire une nouvelle fonction SQL dédiée, pas d'abstraction partagée avec `find_beneficiaire_doublon`.
+4. **Tests mutations** : le pattern `makeChainable` de `tests/unit/beneficiaire-mutations.spec.ts` est réutilisable ; extraire en helper `tests/unit/helpers/supabase-mock.ts` uniquement à la 3ᵉ occurrence.
+5. **RLS pour B1** : la relation `contributeur_partenaire ↔ organisation` est déjà en place pour les bénéficiaires via `created_by` ou `organisation_id` ; pour les structures, préférer `organisation_id` exclusivement (pas de `created_by` pour éviter que les changements d'équipe cassent le périmètre).
+6. **Export Template V1 B1** : une inspection du fichier source est obligatoire avant écriture de `COLONNES_B1` — le template SCS évolue (décembre 2025 versus avril 2026).
+
+### Dette technique assumée
+
+- **Cast `zodResolver(schema) as any`** dans `beneficiaire-form.tsx` : conflit de types entre Zod v4 et `@hookform/resolvers` v5. À revoir après sortie de `@hookform/resolvers` v6.
+- **Pas de tests e2e mutations en vrai Supabase** : les mocks Vitest couvrent les branches de décision ; la RLS effective est validée par `execute_sql` sur la branche staging (non automatisé en CI). À migrer vers Playwright + seed base de test en V1.5.
+- **Filtre `mien` dépendant de `created_by`** : si un contributeur change d'organisation, il « perd » ses fiches antérieures du filtre. Comportement volontaire (audit) mais à documenter dans le wiki utilisateur.

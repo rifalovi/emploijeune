@@ -10,6 +10,7 @@ import { BeneficiaireFilters } from '@/components/beneficiaires/beneficiaire-fil
 import { BeneficiaireTable } from '@/components/beneficiaires/beneficiaire-table';
 import { BeneficiairePagination } from '@/components/beneficiaires/beneficiaire-pagination';
 import { BeneficiaireEmptyState } from '@/components/beneficiaires/beneficiaire-empty-state';
+import { BoutonExporter } from '@/components/beneficiaires/bouton-exporter';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -99,15 +100,18 @@ export default async function BeneficiairesPage({ searchParams }: PageProps) {
             {result.total > 1 ? 's' : ''} dans votre périmètre
           </p>
         </div>
-        {peutCreer && (
-          <Link
-            href="/beneficiaires/nouveau"
-            className={cn(buttonVariants({ variant: 'default' }))}
-          >
-            <Plus aria-hidden className="size-4" />
-            Nouveau bénéficiaire
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <BoutonExporter totalDisponible={result.total} />
+          {peutCreer && (
+            <Link
+              href="/beneficiaires/nouveau"
+              className={cn(buttonVariants({ variant: 'default' }))}
+            >
+              <Plus aria-hidden className="size-4" />
+              Nouveau bénéficiaire
+            </Link>
+          )}
+        </div>
       </header>
 
       <BeneficiaireFilters
