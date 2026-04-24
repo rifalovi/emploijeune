@@ -65,3 +65,6 @@ Thumbs.db
 /INSTRUCTION_CLAUDE_CODE.md
 /files/
 /files.zip
+
+# Configuration locale Claude Code (sessions dev preview)
+/.claude/
