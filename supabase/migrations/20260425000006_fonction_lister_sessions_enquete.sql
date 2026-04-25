@@ -18,6 +18,12 @@
 -- Performance : pour 60 partenaires × ~50 sessions × ~6 indicateurs
 -- (~18 000 lignes), réponse < 100 ms grâce aux index existants
 -- (idx_reponses_session, idx_reponses_beneficiaire, idx_reponses_structure).
+--
+-- Note hotfix 6h (26/04/2026) : PostgreSQL ne fournit PAS d'agrégats MIN/MAX
+-- sur le type UUID natif. Pour agréger UUID dans une session (où toutes les
+-- lignes partagent la même valeur par construction de soumettreEnquete), on
+-- caste en TEXT puis on re-caste en UUID. Pour les booléens d'inférence du
+-- questionnaire, on utilise BOOL_OR (qui supporte tous les types).
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.lister_sessions_enquete(
@@ -58,17 +64,19 @@ AS $$
 WITH sessions AS (
   SELECT
     re.session_enquete_id AS id,
-    MIN(re.beneficiaire_id) AS beneficiaire_id,
-    MIN(re.structure_id) AS structure_id,
+    -- UUID : pas d'agrégat natif PG ; toutes les lignes d'une session
+    -- partagent la même valeur (construction soumettreEnquete) → cast text
+    MIN(re.beneficiaire_id::text)::uuid AS beneficiaire_id,
+    MIN(re.structure_id::text)::uuid AS structure_id,
     -- Libellé cible : « Prénom NOM » (bénéficiaire) ou nom structure
     COALESCE(
       MAX(b.prenom || ' ' || b.nom),
       MAX(s.nom_structure)
     ) AS cible_libelle,
-    -- Inférence du questionnaire à partir du type de cible
+    -- Inférence du questionnaire : BOOL_OR (compatible tous types)
     CASE
-      WHEN MIN(re.beneficiaire_id) IS NOT NULL THEN 'A'
-      WHEN MIN(re.structure_id) IS NOT NULL THEN 'B'
+      WHEN BOOL_OR(re.beneficiaire_id IS NOT NULL) THEN 'A'
+      WHEN BOOL_OR(re.structure_id IS NOT NULL) THEN 'B'
       ELSE NULL
     END AS questionnaire,
     -- Le projet_code est sur reponses_enquetes (D1-D3) OU dérivé de la cible
@@ -81,7 +89,7 @@ WITH sessions AS (
     ARRAY_AGG(re.indicateur_code ORDER BY re.indicateur_code) AS indicateurs,
     MIN(re.created_at) AS created_at,
     MAX(re.updated_at) AS updated_at,
-    MIN(re.created_by) AS created_by
+    MIN(re.created_by::text)::uuid AS created_by
   FROM public.reponses_enquetes re
   LEFT JOIN public.beneficiaires b ON re.beneficiaire_id = b.id
   LEFT JOIN public.structures s ON re.structure_id = s.id

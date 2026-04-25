@@ -244,6 +244,45 @@ Si un bug est découvert en test visuel :
 **Règle absolue** : pas de fix aveugle. Un diagnostic précis
 avant chaque modification.
 
+## 🐘 Pièges PostgreSQL connus (à vérifier dans toute fonction SQL)
+
+Liste des patterns qui ont déjà cassé une migration et doivent
+être bannis ou explicitement castés. Mise à jour à chaque
+hotfix lié à une fonction SQL.
+
+### MIN/MAX sur UUID — interdit
+
+PostgreSQL ne fournit PAS d'agrégats `min(uuid)` / `max(uuid)`
+nativement (`ERROR: function min(uuid) does not exist`). Trois
+parades selon l'intention :
+
+- **Récupérer une valeur représentative** quand toutes les
+  lignes du groupe partagent le même UUID (cas typique :
+  agrégation par session) → `MIN(col::text)::uuid`.
+- **Tester la présence d'au moins une ligne non-NULL** →
+  `BOOL_OR(col IS NOT NULL)`.
+- **Sélectionner une ligne entière représentative** →
+  `DISTINCT ON (group_key) ... ORDER BY group_key, col`.
+
+Le test [`tests/unit/migrations-smoke.spec.ts`](../tests/unit/migrations-smoke.spec.ts)
+scanne toutes les migrations pour détecter ce pattern et fait
+échouer le build s'il en trouve. Cf. hotfix 6h (26/04/2026).
+
+### Smoke tests obligatoires sur fonctions SQL
+
+À partir de l'Étape 7, toute nouvelle fonction Postgres doit
+être accompagnée d'au moins un test (unitaire ou regex sur le
+fichier migration) qui valide :
+
+- Pas de MIN/MAX sur des types non-supportés (UUID, JSON,
+  POINT, etc.).
+- Présence des arguments attendus dans la signature.
+- Présence des CAST explicites pour les enums et UUID.
+
+Ces tests ne remplacent pas une vraie exécution Postgres mais
+attrapent les bugs « qui auraient pu être évités par grep »
+avant que Carlos ne tombe dessus en `supabase db push`.
+
 ## 📊 Historique des jalons
 
 | Jalon | Date       | Description                                 |
