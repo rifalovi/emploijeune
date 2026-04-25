@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Pencil, MoreVertical, Trash2 } from 'lucide-react';
+import { Pencil, MoreVertical, Trash2, ClipboardList } from 'lucide-react';
 
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -62,10 +62,15 @@ export function BeneficiaireDetailActions({
     }
   };
 
-  if (!peutEditer && !peutSupprimer) return null;
-
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <Link
+        href={`/enquetes/nouvelle?cible_type=beneficiaire&cible_id=${beneficiaireId}`}
+        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-2')}
+      >
+        <ClipboardList aria-hidden className="size-4" />
+        Lancer une enquête
+      </Link>
       {peutEditer && (
         <Link
           href={`/beneficiaires/${beneficiaireId}/modifier`}

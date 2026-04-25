@@ -172,6 +172,15 @@ export function EnqueteSaisie({ questionnaire, cibleId, cibleLibelle }: EnqueteS
           `Enquête soumise : ${result.indicateurs.length} indicateur${result.indicateurs.length > 1 ? 's' : ''} enregistré${result.indicateurs.length > 1 ? 's' : ''}`,
         );
         router.push(`/enquetes/${result.session_id}`);
+      } else if (result.status === 'erreur_validation') {
+        const map: Record<string, string> = {};
+        for (const issue of result.issues) {
+          if (!(issue.path in map)) map[issue.path] = issue.message;
+        }
+        setErreurs(map);
+        toast.error(
+          `${result.issues.length} erreur${result.issues.length > 1 ? 's' : ''} de validation côté serveur`,
+        );
       } else {
         toast.error(result.message);
       }

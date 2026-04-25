@@ -3,6 +3,101 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { EnqueteFilters } from '@/lib/schemas/enquetes/schemas';
 
 /**
+ * Détail complet d'une session d'enquête : N lignes reponses_enquetes
+ * agrégées en un seul objet pour affichage de la fiche /enquetes/[id].
+ */
+export type SessionEnqueteDetail = {
+  session_id: string;
+  questionnaire: 'A' | 'B' | null;
+  beneficiaire_id: string | null;
+  structure_id: string | null;
+  cible_libelle: string | null;
+  projet_code: string | null;
+  programme_strategique: string | null;
+  vague_enquete: string;
+  canal_collecte: string;
+  date_collecte: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  deleted_at: string | null;
+  /** Map indicateur_code → donnees JSONB de la ligne associée. */
+  reponses: Record<string, Record<string, unknown>>;
+  /** IDs individuels des lignes (pour modifications fines en V1.5). */
+  ligne_ids: Record<string, string>;
+};
+
+/**
+ * Charge le détail complet d'une session d'enquête (N lignes agrégées).
+ * Retourne `null` si la session n'existe pas ou est hors RLS.
+ */
+export async function getSessionEnqueteById(
+  sessionId: string,
+): Promise<SessionEnqueteDetail | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('reponses_enquetes')
+    .select(
+      `
+      id, indicateur_code, donnees,
+      beneficiaire_id, structure_id, projet_code,
+      vague_enquete, canal_collecte, date_collecte,
+      created_at, updated_at, created_by, deleted_at,
+      beneficiaire:beneficiaires!beneficiaire_id ( prenom, nom, projet_code ),
+      structure:structures!structure_id ( nom_structure, projet_code ),
+      projet:projets!projet_code ( programme_strategique )
+      `,
+    )
+    .eq('session_enquete_id', sessionId);
+
+  if (error || !data || data.length === 0) return null;
+
+  const reponses: Record<string, Record<string, unknown>> = {};
+  const ligne_ids: Record<string, string> = {};
+  for (const r of data) {
+    reponses[r.indicateur_code] = (r.donnees ?? {}) as Record<string, unknown>;
+    ligne_ids[r.indicateur_code] = r.id;
+  }
+
+  const premiereLigne = data[0]!;
+  const ben = Array.isArray(premiereLigne.beneficiaire)
+    ? premiereLigne.beneficiaire[0]
+    : premiereLigne.beneficiaire;
+  const str = Array.isArray(premiereLigne.structure)
+    ? premiereLigne.structure[0]
+    : premiereLigne.structure;
+  const projet = Array.isArray(premiereLigne.projet)
+    ? premiereLigne.projet[0]
+    : premiereLigne.projet;
+
+  const cible_libelle = ben ? `${ben.prenom} ${ben.nom}` : (str?.nom_structure ?? null);
+  const questionnaire: 'A' | 'B' | null = premiereLigne.beneficiaire_id
+    ? 'A'
+    : premiereLigne.structure_id
+      ? 'B'
+      : null;
+
+  return {
+    session_id: sessionId,
+    questionnaire,
+    beneficiaire_id: premiereLigne.beneficiaire_id,
+    structure_id: premiereLigne.structure_id,
+    cible_libelle,
+    projet_code: premiereLigne.projet_code ?? ben?.projet_code ?? str?.projet_code ?? null,
+    programme_strategique: projet?.programme_strategique ?? null,
+    vague_enquete: premiereLigne.vague_enquete,
+    canal_collecte: premiereLigne.canal_collecte,
+    date_collecte: premiereLigne.date_collecte,
+    created_at: premiereLigne.created_at,
+    updated_at: premiereLigne.updated_at,
+    created_by: premiereLigne.created_by,
+    deleted_at: premiereLigne.deleted_at,
+    reponses,
+    ligne_ids,
+  };
+}
+
+/**
  * Une session d'enquête (1 ligne = 1 soumission de questionnaire) telle que
  * renvoyée par la fonction SQL `lister_sessions_enquete`.
  */
