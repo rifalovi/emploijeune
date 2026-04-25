@@ -632,6 +632,7 @@ export type Database = {
           indicateur_code: string
           lien_public_token: string | null
           projet_code: string | null
+          session_enquete_id: string | null
           structure_id: string | null
           updated_at: string
           vague_enquete: Database["public"]["Enums"]["vague_enquete"]
@@ -649,6 +650,7 @@ export type Database = {
           indicateur_code: string
           lien_public_token?: string | null
           projet_code?: string | null
+          session_enquete_id?: string | null
           structure_id?: string | null
           updated_at?: string
           vague_enquete?: Database["public"]["Enums"]["vague_enquete"]
@@ -666,6 +668,7 @@ export type Database = {
           indicateur_code?: string
           lien_public_token?: string | null
           projet_code?: string | null
+          session_enquete_id?: string | null
           structure_id?: string | null
           updated_at?: string
           vague_enquete?: Database["public"]["Enums"]["vague_enquete"]
@@ -1105,6 +1108,39 @@ export type Database = {
           pays_code: string
           projet_code: string
           similarity_score: number
+        }[]
+      }
+      lister_sessions_enquete: {
+        Args: {
+          p_questionnaire?: string | null
+          p_projet_code?: string | null
+          p_cible_id?: string | null
+          p_vague_enquete?: string | null
+          p_canal_collecte?: string | null
+          p_date_debut?: string | null
+          p_date_fin?: string | null
+          p_recherche?: string | null
+          p_mien_uid?: string | null
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          id: string
+          beneficiaire_id: string | null
+          structure_id: string | null
+          cible_libelle: string | null
+          questionnaire: string | null
+          projet_code: string | null
+          programme_strategique: string | null
+          vague_enquete: string
+          canal_collecte: string
+          date_collecte: string
+          nb_indicateurs: number
+          indicateurs: string[]
+          created_at: string
+          updated_at: string
+          created_by: string | null
+          total_count: number
         }[]
       }
       show_limit: { Args: never; Returns: number }
