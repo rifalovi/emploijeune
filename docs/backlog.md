@@ -131,6 +131,27 @@ Retour N+1 du 24 avril 2026. Voir : [docs/retours-hierarchie/andre-24-avril-2026
 - **Estimation correction** : 5 minutes (rebascule du flag + tests visuels).
 - **Priorité** : moyenne — à activer dès qu'une version corrigée de Base-UI sort.
 
+### V1.5 — Questionnaire C dédié (intermédiation, effets systémiques)
+
+- **Contexte** : indicateurs C1-C5 seedés en BDD mais aucun questionnaire C n'a été fourni en V1 (cf. cadrage Étape 6 § 2 Q1, arbitrage Carlos 25/04/2026 : Option 1). En V1, seul C5 (satisfaction / utilité) est dérivé automatiquement à partir de Q A209 (« Êtes-vous satisfait de la formation suivie ? ») et Q B304 (« Êtes-vous satisfait de l'appui de l'OIF ? »). C1-C4 (mises en relation, conversion, emplois obtenus, délai d'accès) sont reportés.
+- **Action** : produire un questionnaire C officiel (côté SCS) ciblant les **plateformes d'intermédiation** (opérateurs tiers), puis créer le formulaire React miroir + schéma Zod `c1Schema..c4Schema` dans `lib/schemas/enquetes/`. Réutiliser le pattern moteur de règles « ALLER À » mis en place en 6d.
+- **Estimation** : 1-2 jours après réception du questionnaire.
+- **Priorité** : moyenne — dépend du calendrier OIF de finalisation du questionnaire C.
+
+### V1.5 — Module F1 transversal autonome (Note méthodologique V2 § 5.5)
+
+- **Contexte** : indicateur F1 « Apport du français à l'employabilité » couvert en V1 par Q A407 uniquement (« Pensez-vous que votre usage du français a facilité l'accès ou l'amélioration de l'emploi ? »). Cf. cadrage Étape 6 § 2 Q2, arbitrage Carlos 25/04/2026 : Q407 suffit en V1.
+- **Action** : extraire les 3-5 questions F1 décrites dans la Note méthodologique V2 § 5.5 (à fournir par le SCS) puis créer un composant `<BlocF1 />` greffé sur les questionnaires A4, A5 et le futur questionnaire C5 (cf. ticket V1.5 ci-dessus). Schéma Zod `f1Schema` enrichi avec les nouveaux champs.
+- **Estimation** : 1 demi-journée après réception de la Note méthodologique V2 § 5.5.
+- **Priorité** : moyenne — corrélée au volume de bénéficiaires francophones non-natifs dans le pilote.
+
+### V1.5 ou Étape 8 — Saisie manuelle / import indicateurs D1-D3
+
+- **Contexte** : indicateurs D1 (cadres / dispositifs politiques emploi-jeunes appuyés), D2 (capacités institutionnelles), D3 (effets observables sur l'environnement) seedés en BDD mais hors scope Étape 6 (cf. cadrage Étape 6 § 2 Q3, arbitrage Carlos 25/04/2026). Méthode de collecte = revue documentaire par les chefs de projet OIF, pas enquête de terrain → pas de formulaire React adapté.
+- **Action** : à arbitrer — soit page admin dédiée `/admin/indicateurs-d` avec saisie manuelle ligne à ligne, soit feuille Excel d'import dédiée intégrée à l'Étape 8 (« Imports Excel admin »). Pré-requis dans tous les cas : un canevas de saisie type « tableau de bord » + champs de preuves jointes (URL, document de référence).
+- **Estimation** : 1-2 jours selon la voie retenue.
+- **Priorité** : basse — D1-D3 ont un rythme de collecte annuel, peu volumétrique.
+
 ### V1.5 — Champ « partenaire d'accompagnement » sur structures
 
 - **Contexte** : Q4 de l'Étape 5 arbitrée SKIP en V1. Pour une structure, le rôle de « partenaire d'accompagnement » est déjà couvert par `projet_code` + `organisation_id` (le projet OIF ou son opérateur accompagne directement la structure).
@@ -159,3 +180,4 @@ Retour N+1 du 24 avril 2026. Voir : [docs/retours-hierarchie/andre-24-avril-2026
 | 1.0 | 2026-04-23 | Création du backlog ; jalons 1-3 infrastructure email ; chantiers transverses. |
 | 1.1 | 2026-04-24 | Ajout section Étape 6 — questionnaires officiels OIF (A et B) reçus, mapping JSONB, logique « ALLER À », module F1 transversal ; volumétrie V2 (5 623 bénéficiaires, 347 structures). |
 | 1.2 | 2026-04-25 | Ajout section Étape 9 — exigences dashboards (retour André 24/04) : 4 piliers Cadre Commun + transversal F1, dashboard public épuré, maquette blanche extraite du produit. Ticket V1.5 partenaire structures. |
+| 1.3 | 2026-04-25 | Ajout 3 tickets V1.5 post-cadrage Étape 6 : questionnaire C dédié, module F1 transversal autonome, saisie indicateurs D1-D3 (revue documentaire). |
