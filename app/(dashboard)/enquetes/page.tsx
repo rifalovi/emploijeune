@@ -10,6 +10,7 @@ import { EnqueteFilters } from '@/components/enquetes/enquete-filters';
 import { EnqueteTable } from '@/components/enquetes/enquete-table';
 import { EnquetePagination } from '@/components/enquetes/enquete-pagination';
 import { EnqueteEmptyState } from '@/components/enquetes/enquete-empty-state';
+import { BoutonExporterEnquetes } from '@/components/enquetes/bouton-exporter';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -50,6 +51,9 @@ export default async function EnquetesPage({ searchParams }: PageProps) {
     utilisateur.role === 'admin_scs' ||
     utilisateur.role === 'editeur_projet' ||
     utilisateur.role === 'contributeur_partenaire';
+  // Décision Étape 6f : export Excel des enquêtes réservé admin_scs
+  // (pilotage transverse, alimente l'analyse des indicateurs publics).
+  const peutExporter = utilisateur.role === 'admin_scs';
 
   const hasActiveFilters = Boolean(
     filters.q ||
@@ -73,12 +77,15 @@ export default async function EnquetesPage({ searchParams }: PageProps) {
             session{result.total > 1 ? 's' : ''} d’enquête dans votre périmètre
           </p>
         </div>
-        {peutCreer && (
-          <Link href="/enquetes/nouvelle" className={cn(buttonVariants({ variant: 'default' }))}>
-            <Plus aria-hidden className="size-4" />
-            Nouvelle enquête
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {peutExporter && <BoutonExporterEnquetes totalDisponible={result.total} />}
+          {peutCreer && (
+            <Link href="/enquetes/nouvelle" className={cn(buttonVariants({ variant: 'default' }))}>
+              <Plus aria-hidden className="size-4" />
+              Nouvelle enquête
+            </Link>
+          )}
+        </div>
       </header>
 
       <EnqueteFilters projets={projetsOptions} />
