@@ -87,13 +87,7 @@ describe('Échelles partagées', () => {
   });
 
   it('Échelle compétence — 5 paliers (Q A301 / A302 → A4)', () => {
-    expect(ECHELLE_COMPETENCE_VALUES).toEqual([
-      'AUCUNE',
-      'FAIBLE',
-      'MOYEN',
-      'BON',
-      'TRES_BON',
-    ]);
+    expect(ECHELLE_COMPETENCE_VALUES).toEqual(['AUCUNE', 'FAIBLE', 'MOYEN', 'BON', 'TRES_BON']);
   });
 });
 
