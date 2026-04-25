@@ -128,23 +128,56 @@ describe('structureInsertSchema — règles RGPD', () => {
     expect(res.success).toBe(false);
   });
 
-  it('rejette date consentement > date création structure', () => {
+  // Règle RGPD D corrigée en 5d-bis : la référence est l'année d'appui OIF
+  // (`annee_appui`), PAS la date de création de la structure (qui peut
+  // dater de plusieurs années avant l'entrée dans le dispositif OIF).
+
+  it('rejette date consentement > 31 décembre de l’année d’appui (consentement après fin appui)', () => {
     const res = structureInsertSchema.safeParse({
       ...avecConsentement,
-      date_creation: '2024-01-01',
-      consentement_date: '2025-06-15',
+      annee_appui: 2024,
+      consentement_date: '2025-01-15', // Après le 31 déc 2024
     });
     expect(res.success).toBe(false);
     if (res.success) return;
     const issue = res.error.issues.find((i) => i.path[0] === 'consentement_date');
     expect(issue?.message).toContain('antérieure ou égale');
+    expect(issue?.message).toContain('appui OIF');
   });
 
-  it('accepte date consentement = date création (inscription le jour même)', () => {
+  it('accepte date consentement < année d’appui (consentement préalable, scénario normal)', () => {
     const res = structureInsertSchema.safeParse({
       ...avecConsentement,
-      date_creation: '2024-05-01',
-      consentement_date: '2024-05-01',
+      annee_appui: 2026,
+      consentement_date: '2025-12-01', // Avant le démarrage de l'appui
+    });
+    expect(res.success).toBe(true);
+  });
+
+  it('accepte date consentement = même année que l’appui (cas standard)', () => {
+    const res = structureInsertSchema.safeParse({
+      ...avecConsentement,
+      annee_appui: 2026,
+      consentement_date: '2026-07-25', // Même année, conforme au cas Carlos
+    });
+    expect(res.success).toBe(true);
+  });
+
+  it('accepte date consentement = 31 décembre de l’année d’appui (limite supérieure)', () => {
+    const res = structureInsertSchema.safeParse({
+      ...avecConsentement,
+      annee_appui: 2026,
+      consentement_date: '2026-12-31',
+    });
+    expect(res.success).toBe(true);
+  });
+
+  it('accepte structure créée des années avant l’appui (date_creation ancienne ≠ blocage RGPD)', () => {
+    const res = structureInsertSchema.safeParse({
+      ...avecConsentement,
+      date_creation: '2018-03-22', // Structure fondée en 2018
+      annee_appui: 2026, // Appui OIF en 2026
+      consentement_date: '2026-07-25', // Consentement donné en 2026
     });
     expect(res.success).toBe(true);
   });

@@ -252,19 +252,27 @@ function appliquerReglesMetierStructure(data: BaseStructureShape, ctx: z.Refinem
       message: 'Impossible de conserver des contacts sans consentement RGPD recueilli',
     });
   }
-  // Règle RGPD D : date consentement ≤ date création (si les deux sont saisis)
-  if (
-    data.consentement_recueilli &&
-    data.consentement_date &&
-    data.date_creation &&
-    data.consentement_date > data.date_creation
-  ) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['consentement_date'],
-      message:
-        'La date de consentement doit être antérieure ou égale à la date de création de la structure (exigence RGPD : le consentement précède le traitement).',
-    });
+  // Règle RGPD D : date consentement ≤ fin de l'année d'appui OIF.
+  //
+  // Correction métier (5d-bis, 25/04/2026) : on compare au début de la
+  // relation OIF↔structure (`annee_appui`), PAS à la date de création de la
+  // structure (qui peut dater de plusieurs années avant l'entrée dans le
+  // dispositif OIF). Le RGPD s'applique au traitement de données par l'OIF,
+  // pas à l'existence de la structure.
+  //
+  // Comme `annee_appui` est un SMALLINT (pas de jour/mois), on accepte un
+  // consentement jusqu'au 31 décembre de l'année d'appui — règle souple
+  // adaptée à la granularité disponible.
+  if (data.consentement_recueilli && data.consentement_date && data.annee_appui) {
+    const finAnneeAppui = new Date(data.annee_appui, 11, 31, 23, 59, 59, 999);
+    if (data.consentement_date > finAnneeAppui) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['consentement_date'],
+        message:
+          'La date de consentement doit être antérieure ou égale à la date de début de l’appui OIF (exigence RGPD : le consentement précède le traitement des données).',
+      });
+    }
   }
   // Règle Montant ↔ Devise : aligné sur `chk_structures_montant_devise`
   if (data.montant_appui !== undefined && !data.devise_code) {
