@@ -328,6 +328,9 @@ export type StructureFilters = z.output<typeof structureFiltersSchema>;
 export const repriseCohorteStructureSchema = z.object({
   cohorte_projet: z.enum([...PROJETS_CODES] as [string, ...string[]]).optional(),
   cohorte_pays: z.enum([...PAYS_CODES] as [string, ...string[]]).optional(),
+  cohorte_secteur_activite: z
+    .enum([...SECTEURS_ACTIVITE_CODES] as [string, ...string[]])
+    .optional(),
   cohorte_nature_appui: z.enum([...NATURES_APPUI_CODES] as [string, ...string[]]).optional(),
   cohorte_devise: z.enum([...DEVISES_CODES] as [string, ...string[]]).optional(),
   cohorte_annee: z.coerce

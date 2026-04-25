@@ -1057,6 +1057,13 @@ export type Database = {
           similarite: number
         }[]
       }
+      rechercher_structures: {
+        Args: { search_text: string; seuil_similarite?: number }
+        Returns: {
+          id: string
+          similarite: number
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       unaccent: { Args: { "": string }; Returns: string }

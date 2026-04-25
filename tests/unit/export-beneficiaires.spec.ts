@@ -39,9 +39,12 @@ const nomenclaturesStub: Nomenclatures = {
     ['INSCRIT', 'Inscrit'],
     ['FORMATION_ACHEVEE', 'Formation achevée'],
   ]),
-  modalites: new Map([
-    ['PRESENTIEL', 'Présentiel'],
-  ]),
+  modalites: new Map([['PRESENTIEL', 'Présentiel']]),
+  // B1 (ajoutés en 5b — non utilisés ici mais requis par le type)
+  typesStructure: new Map(),
+  secteursActivite: new Map(),
+  naturesAppui: new Map(),
+  devises: new Map(),
 };
 
 const fixtureRows: BeneficiaireListItem[] = [
