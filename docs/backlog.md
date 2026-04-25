@@ -2,6 +2,59 @@
 
 > Chantiers hors des « 7 Étapes » du cahier des charges qui doivent être suivis pour le succès opérationnel du projet. Rafraîchi à chaque changement majeur.
 
+## V1.5 — Roadmap post-pilote (juillet-août 2026)
+
+> Décision stratégique du 25/04/2026 (cf. [docs/decisions-strategiques/v1-vs-v1-5.md](decisions-strategiques/v1-vs-v1-5.md)) : la V1 livrée juin 2026 reste minimale et stable pour le pilote 60 partenaires. Les 5 tickets ci-dessous enrichissent le module enquêtes après retours terrain.
+>
+> Priorisation finale faite après dépouillement des retours pilote (semaine du 1er juillet 2026).
+
+### V1.5-A — Module rappel / relance complet
+
+- **Vue « non-répondants »** pour `admin_scs` et `chef_projet` : liste filtrée par projet/structure/vague avec date d'envoi initial et nb de relances déjà envoyées.
+- **Bouton « Relancer par email »** par cible ou en masse, avec template personnalisable (sujet + corps + signature).
+- **Historique des relances** envoyées par enquêté (timestamp + canal + statut Resend).
+- **Statistiques** : taux de réponse par projet/coordonnateur/vague, courbe d'évolution sur 30 jours.
+- **Estimation** : 4-5 h dev (table `relances_enquete` + UI + Server Action `relancerEnquete` + intégration Resend).
+- **Priorité V1.5** : haute — sans relance, taux de réponse pilote risque de plafonner à 30 %.
+
+### V1.5-B — Espace Coordonnateur enrichi
+
+- **Dashboard** taux de réponse par projet sous responsabilité du coordonnateur (KPI temps réel).
+- **Liste structures actives** avec dernière activité, nb de bénéficiaires, taux de complétion.
+- **Liste bénéficiaires non-enquêtés** filtrable par cohorte / date d'inscription.
+- **Outils de contact rapide** : envoi groupé d'email, export CSV des contacts pour relance manuelle hors plateforme.
+- **Estimation** : 4-5 h dev (page `/coordonnateur` + composants KPI dédiés + queries agrégées).
+- **Priorité V1.5** : haute — c'est le rôle le plus actif au quotidien.
+
+### V1.5-C — Espace Structure enrichi
+
+- **Dashboard enquêtes assignées** : liste des bénéficiaires/sessions à compléter avec deadlines.
+- **Saisie en lot** pour les bénéficiaires de la structure (un même formulaire, plusieurs cibles successives).
+- **Suivi des soumissions** propres à la structure (vue agrégée).
+- **Notifications dans la plateforme** : badge sur l'icône cloche quand nouvelle enquête assignée.
+- **Estimation** : 3-4 h dev (page `/partenaire` + composant `SaisieEnLot` + table `notifications`).
+- **Priorité V1.5** : moyenne — utile mais le contributeur peut se débrouiller avec la liste générale en V1.
+
+### V1.5-D — Templates email multi-langues
+
+- **Templates riches** avec branding OIF (header logo + footer mentions légales).
+- **Versions FR / EN** (autres langues si besoin pilote — espagnol, portugais, arabe).
+- **Personnalisation par projet/contexte** : variables `{{prenom}}`, `{{projet}}`, `{{deadline}}`, etc.
+- **Système de prévisualisation** côté admin avant envoi.
+- **Estimation** : 2-3 h dev (système de templates Resend + UI éditeur basique).
+- **Priorité V1.5** : moyenne — V1 envoie en français uniquement, suffisant pour 60 % des partenaires francophones.
+
+### V1.5-E — Suivi historique des relances envoyées
+
+- **Trace complète** des emails envoyés (qui, quand, à qui, statut Resend, ouvertures si webhook configuré).
+- **Audit RGPD compliant** : conservation 1 an minimum, droit d'accès du destinataire.
+- **Possibilité d'export historique** CSV/Excel pour les rapports d'activité OIF.
+- **Webhook Resend** branché pour récupérer les statuts (delivered/bounced/opened).
+- **Estimation** : 2-3 h dev (table `journal_emails` + endpoint webhook + page `/admin/journaux/emails`).
+- **Priorité V1.5** : moyenne — exigence RGPD différable mais pas indéfiniment.
+
+> Note : ces 5 tickets seront finalement priorisés selon retours pilote (rétro mensuelle SCS début juillet 2026).
+
 ## Infrastructure email — critique pour le lancement
 
 L'envoi d'emails (magic links d'authentification, relances d'enquêtes A5/B2/C5) est **une dépendance bloquante**. Supabase Auth par défaut envoie ~2 emails par heure — incompatible avec 60 partenaires à onboarder en mai 2026. Trois jalons.
@@ -181,3 +234,4 @@ Retour N+1 du 24 avril 2026. Voir : [docs/retours-hierarchie/andre-24-avril-2026
 | 1.1 | 2026-04-24 | Ajout section Étape 6 — questionnaires officiels OIF (A et B) reçus, mapping JSONB, logique « ALLER À », module F1 transversal ; volumétrie V2 (5 623 bénéficiaires, 347 structures). |
 | 1.2 | 2026-04-25 | Ajout section Étape 9 — exigences dashboards (retour André 24/04) : 4 piliers Cadre Commun + transversal F1, dashboard public épuré, maquette blanche extraite du produit. Ticket V1.5 partenaire structures. |
 | 1.3 | 2026-04-25 | Ajout 3 tickets V1.5 post-cadrage Étape 6 : questionnaire C dédié, module F1 transversal autonome, saisie indicateurs D1-D3 (revue documentaire). |
+| 1.4 | 2026-04-26 | Section principale « V1.5 — Roadmap post-pilote » avec 5 tickets V1.5-A à V1.5-E (rappel/relance, espaces enrichis Coordo + Structure, templates multi-langues, journal emails). Décision stratégique V1/V1.5 actée — cf. `docs/decisions-strategiques/v1-vs-v1-5.md`. |
