@@ -10,6 +10,7 @@ import { StructureFilters } from '@/components/structures/structure-filters';
 import { StructureTable } from '@/components/structures/structure-table';
 import { StructurePagination } from '@/components/structures/structure-pagination';
 import { StructureEmptyState } from '@/components/structures/structure-empty-state';
+import { BoutonExporterStructures } from '@/components/structures/bouton-exporter';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -68,6 +69,10 @@ export default async function StructuresPage({ searchParams }: PageProps) {
     utilisateur.role === 'contributeur_partenaire';
   const peutEditerTout = utilisateur.role === 'admin_scs' || utilisateur.role === 'editeur_projet';
   const peutSupprimer = utilisateur.role === 'admin_scs';
+  // Décision Étape 5e : export Excel B1 réservé aux admin_scs (les autres
+  // rôles utilisent l'export bénéficiaires A1 ou les tableaux de bord agrégés
+  // — l'export structurel est un outil de pilotage transverse).
+  const peutExporter = utilisateur.role === 'admin_scs';
 
   const hasActiveFilters = Boolean(
     filters.q ||
@@ -93,12 +98,15 @@ export default async function StructuresPage({ searchParams }: PageProps) {
             {result.total > 1 ? 's' : ''} dans votre périmètre
           </p>
         </div>
-        {peutCreer && (
-          <Link href="/structures/nouveau" className={cn(buttonVariants({ variant: 'default' }))}>
-            <Plus aria-hidden className="size-4" />
-            Nouvelle structure
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {peutExporter && <BoutonExporterStructures totalDisponible={result.total} />}
+          {peutCreer && (
+            <Link href="/structures/nouveau" className={cn(buttonVariants({ variant: 'default' }))}>
+              <Plus aria-hidden className="size-4" />
+              Nouvelle structure
+            </Link>
+          )}
+        </div>
       </header>
 
       <StructureFilters projets={projetsOptions} pays={paysOptions} annees={annees} />
