@@ -123,6 +123,14 @@ Retour N+1 du 24 avril 2026. Voir : [docs/retours-hierarchie/andre-24-avril-2026
 - **Estimation** : 1-2 heures (policy RLS + composant + tests e2e).
 - **Priorité** : moyenne — à sortir avec la V1.5 (juillet 2026 ?).
 
+### V1.5 — Réactiver React Strict Mode (suivi régression Base-UI)
+
+- **Contexte** : hotfix 5h (25/04/2026) a désactivé `reactStrictMode` dans `next.config.mjs` pour contourner un bug du composant `Select` de Base-UI 1.4.1. En Strict Mode, React double-execute les init de `useState` et `useCompositeListItem` consume `nextIndexRef.current` deux fois par item, ce qui empêche les ref callbacks de s'attacher au DOM. Conséquence : les Selects du formulaire et des filtres ne propagent pas la sélection (clic ignoré, popup ferme via `useDismiss` sans commit).
+- **Action** : surveiller le repo Base-UI ([github.com/mui/base-ui](https://github.com/mui/base-ui)) pour un correctif de `useCompositeListItem`. Une fois corrigé (probablement 1.5.0+), réactiver `reactStrictMode: true` et vérifier visuellement tous les Selects (formulaire bénéficiaires, formulaire structures, filtres liste).
+- **Coût accepté en V1** : perte des détections debug Strict Mode (effects non idempotents, subscribe/unsubscribe asymétriques, pure render warnings). Acceptable pour la phase pilote car on a déjà couvert les patterns risqués via tests unitaires + revue de code.
+- **Estimation correction** : 5 minutes (rebascule du flag + tests visuels).
+- **Priorité** : moyenne — à activer dès qu'une version corrigée de Base-UI sort.
+
 ### V1.5 — Champ « partenaire d'accompagnement » sur structures
 
 - **Contexte** : Q4 de l'Étape 5 arbitrée SKIP en V1. Pour une structure, le rôle de « partenaire d'accompagnement » est déjà couvert par `projet_code` + `organisation_id` (le projet OIF ou son opérateur accompagne directement la structure).

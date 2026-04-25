@@ -47,16 +47,22 @@ function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
   );
 }
 
-function SelectTrigger({
-  className,
-  size = 'default',
-  children,
-  ...props
-}: SelectPrimitive.Trigger.Props & {
-  size?: 'sm' | 'default';
-}) {
+/**
+ * `forwardRef` CRITIQUE (hotfix 5h) — voir explication détaillée sur SelectItem.
+ *
+ * Quand `<SelectTrigger>` est wrappé dans `<FormControl>` (Slot Radix), Slot
+ * essaie de transmettre un ref via `cloneElement`. Sans `forwardRef`, le ref
+ * est silencieusement perdu (warning React `Function components cannot be
+ * given refs`) et Base-UI's useFloating ne peut pas suivre le trigger
+ * correctement — peut casser le hover-tracking des items du popup.
+ */
+const SelectTrigger = React.forwardRef<
+  HTMLButtonElement,
+  SelectPrimitive.Trigger.Props & { size?: 'sm' | 'default' }
+>(function SelectTrigger({ className, size = 'default', children, ...props }, ref) {
   return (
     <SelectPrimitive.Trigger
+      ref={ref}
       data-slot="select-trigger"
       data-size={size}
       className={cn(
@@ -78,7 +84,7 @@ function SelectTrigger({
       />
     </SelectPrimitive.Trigger>
   );
-}
+});
 
 function SelectContent({
   className,
@@ -143,9 +149,28 @@ function SelectLabel({ className, ...props }: SelectPrimitive.GroupLabel.Props) 
   );
 }
 
-function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Props) {
+/**
+ * `forwardRef` CRITIQUE (hotfix 5h) :
+ *
+ * Base-UI utilise un système de `CompositeList` interne pour suivre les items
+ * du Select via leurs refs DOM. Sans `forwardRef`, le ref callback d'enregistrement
+ * de chaque item ne s'attache PAS à l'élément DOM (`elementsRef.current[index]`
+ * reste `null`). Conséquence : `useListNavigation.syncCurrentTarget` cherche
+ * l'item dans `listRef.current` via `indexOf(currentTarget)` et obtient `-1`,
+ * donc ne marque jamais l'item comme `highlighted`. Sans highlight, le guard
+ * `SelectItem.onClick` rejette le clic et le popup se ferme via `useDismiss`
+ * sans commit la sélection.
+ *
+ * Le bug n'apparaît PAS en jsdom/userEvent (qui simule différemment l'event flow)
+ * mais se manifeste en navigateur réel sur tous les Selects de la plateforme.
+ */
+const SelectItem = React.forwardRef<HTMLDivElement, SelectPrimitive.Item.Props>(function SelectItem(
+  { className, children, ...props },
+  ref,
+) {
   return (
     <SelectPrimitive.Item
+      ref={ref}
       data-slot="select-item"
       className={cn(
         'data-highlighted:bg-accent data-highlighted:text-accent-foreground relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1.5 pr-8 pl-2 text-sm outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50',
@@ -163,7 +188,7 @@ function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Prop
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
     </SelectPrimitive.Item>
   );
-}
+});
 
 function SelectSeparator({ className, ...props }: SelectPrimitive.Separator.Props) {
   return (

@@ -13,6 +13,28 @@ const supabaseHost = SUPABASE_URL.replace(/^https?:\/\//, '');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  /**
+   * `reactStrictMode: false` (hotfix 5h, 25/04/2026) — DÉCISION TEMPORAIRE.
+   *
+   * Pourquoi : en Strict Mode, React double-execute les fonctions d'initialisation
+   * de `useState` et les effects. Le composant `Select` de Base-UI 1.4.1 utilise
+   * un `useCompositeListItem` interne qui suit les items via un `nextIndexRef`
+   * incrémenté à l'init de l'état. Le double-run consume `nextIndexRef.current`
+   * deux fois par item, décalant les indices ; les ref callbacks
+   * `elementsRef.current[index] = node` ne s'attachent jamais au DOM. Conséquence :
+   *   - `useListNavigation.syncCurrentTarget` ne trouve pas l'item dans la liste
+   *   - L'item n'est jamais marqué `data-highlighted` au survol
+   *   - `SelectItem.onClick` rejette le clic via le guard `!highlighted`
+   *   - `useDismiss` interprète le clic comme « clic extérieur » → ferme sans commit
+   *
+   * Diagnostic complet : voir commit message de hotfix 5h.
+   *
+   * Coût accepté : on perd les détections debug de Strict Mode (effets non
+   * idempotents, Subscribe/unsubscribe asymétriques, etc.). À ré-évaluer
+   * lorsque Base-UI corrige son `useCompositeListItem` pour être Strict-Mode-safe
+   * (suivi backlog V1.5).
+   */
+  reactStrictMode: false,
 
   async headers() {
     const csp = [
