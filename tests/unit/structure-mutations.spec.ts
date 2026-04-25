@@ -57,7 +57,9 @@ vi.mock('@/lib/supabase/auth', () => ({
   getCurrentUtilisateur: vi.fn(async () => utilisateurCourant),
 }));
 
-const { creerStructure, modifierStructure } = await import('@/lib/structures/mutations');
+const { creerStructure, modifierStructure, setStructureDeleted } = await import(
+  '@/lib/structures/mutations'
+);
 
 const payloadValide = {
   nom_structure: 'COOPAGRO',
@@ -223,5 +225,84 @@ describe('modifierStructure', () => {
     };
     const res = await modifierStructure(payloadEdition);
     expect(res.status).toBe('erreur_rls');
+  });
+});
+
+// =============================================================================
+// Tests setStructureDeleted (5d)
+// =============================================================================
+
+describe('setStructureDeleted', () => {
+  const structureId = '11111111-1111-4111-8111-111111111111';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    rpcResult = { data: [], error: null };
+    tableResult = { data: null, error: null };
+    utilisateurCourant = {
+      user_id: '99999999-9999-4999-8999-999999999999',
+      role: 'admin_scs',
+      organisation_id: null,
+    };
+  });
+
+  it('admin_scs + UPDATE ok → succes + revalidation des 3 caches', async () => {
+    const res = await setStructureDeleted(structureId, 'Doublon confirmé');
+    expect(res.status).toBe('succes');
+    const paths = revalidatePath.mock.calls.map((c) => c[0]);
+    expect(paths).toContain('/structures');
+    expect(paths).toContain(`/structures/${structureId}`);
+    expect(paths).toContain('/dashboard');
+  });
+
+  it('rôle editeur_projet refusé → erreur_rls SANS appel BDD', async () => {
+    utilisateurCourant = {
+      user_id: '99999999-9999-4999-8999-999999999999',
+      role: 'editeur_projet',
+      organisation_id: null,
+    };
+    const res = await setStructureDeleted(structureId);
+    expect(res.status).toBe('erreur_rls');
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('rôle contributeur_partenaire refusé → erreur_rls', async () => {
+    utilisateurCourant = {
+      user_id: '99999999-9999-4999-8999-999999999999',
+      role: 'contributeur_partenaire',
+      organisation_id: '33333333-3333-4333-8333-333333333333',
+    };
+    const res = await setStructureDeleted(structureId);
+    expect(res.status).toBe('erreur_rls');
+  });
+
+  it('rôle lecteur refusé → erreur_rls', async () => {
+    utilisateurCourant = {
+      user_id: '99999999-9999-4999-8999-999999999999',
+      role: 'lecteur',
+      organisation_id: null,
+    };
+    const res = await setStructureDeleted(structureId);
+    expect(res.status).toBe('erreur_rls');
+  });
+
+  it('utilisateur non authentifié → erreur_rls', async () => {
+    utilisateurCourant = null;
+    const res = await setStructureDeleted(structureId);
+    expect(res.status).toBe('erreur_rls');
+  });
+
+  it('erreur BDD (42501) malgré admin_scs (double garde RLS) → erreur_rls', async () => {
+    tableResult = {
+      data: null,
+      error: { code: '42501', message: 'row-level security policy violation' },
+    };
+    const res = await setStructureDeleted(structureId);
+    expect(res.status).toBe('erreur_rls');
+  });
+
+  it('raison vide ou seulement espaces → traitée comme null (pas d’enregistrement inutile)', async () => {
+    const res = await setStructureDeleted(structureId, '   ');
+    expect(res.status).toBe('succes');
   });
 });

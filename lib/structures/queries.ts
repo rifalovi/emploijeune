@@ -3,6 +3,171 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { StructureFilters } from '@/lib/schemas/structure';
 
 /**
+ * Détail complet d'une structure pour l'affichage fiche et l'édition.
+ * Inclut toutes les colonnes métier + métadonnées techniques + libellés
+ * résolus via JOIN pour projet (libellé + programme stratégique) et
+ * organisation (nom). Cohérent avec `BeneficiaireDetail`.
+ */
+export type StructureDetail = {
+  id: string;
+
+  // Identité
+  nom_structure: string;
+  type_structure_code: string;
+  secteur_activite_code: string;
+  secteur_precis: string | null;
+  intitule_initiative: string | null;
+  date_creation: string | null;
+  statut_creation: 'creation' | 'renforcement' | 'relance';
+
+  // Rattachement
+  projet_code: string;
+  projet_libelle: string | null;
+  programme_strategique: string | null;
+  pays_code: string;
+  organisation_id: string | null;
+  organisation_nom: string | null;
+
+  // Porteur
+  porteur_prenom: string | null;
+  porteur_nom: string;
+  porteur_sexe: 'F' | 'M' | 'Autre';
+  porteur_date_naissance: string | null;
+  fonction_porteur: string | null;
+
+  // Appui
+  annee_appui: number;
+  nature_appui_code: string;
+  montant_appui: number | null;
+  devise_code: string | null;
+
+  // RGPD & contacts
+  consentement_recueilli: boolean;
+  consentement_date: string | null;
+  telephone_porteur: string | null;
+  courriel_porteur: string | null;
+  adresse: string | null;
+  ville: string | null;
+  localite: string | null;
+  latitude: number | null;
+  longitude: number | null;
+
+  // Indicateurs B
+  chiffre_affaires: number | null;
+  employes_permanents: number | null;
+  employes_temporaires: number | null;
+  emplois_crees: number | null;
+
+  commentaire: string | null;
+
+  // Traçabilité technique
+  source_import: string;
+  created_at: string;
+  created_by: string | null;
+  updated_at: string;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  deleted_reason: string | null;
+};
+
+/**
+ * Récupère une fiche structure par son ID. Retourne `null` si introuvable
+ * (inexistante, hors périmètre RLS, ou soft-deleted). Pas de distinction
+ * 404/403 — on ne veut pas fuiter l'existence de fiches hors périmètre.
+ *
+ * Note : contrairement à `listStructures`, on N'EXCLUT PAS les fiches
+ * `deleted_at IS NOT NULL` au niveau de la query — la page détail filtre
+ * elle-même (pour pouvoir afficher un bandeau « supprimée » à un admin
+ * qui aurait l'URL en historique navigateur). Côté liste, le filtre
+ * deleted reste actif.
+ */
+export async function getStructureById(id: string): Promise<StructureDetail | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('structures')
+    .select(
+      `
+      id,
+      nom_structure, type_structure_code, secteur_activite_code, secteur_precis,
+      intitule_initiative, date_creation, statut_creation,
+      projet_code, pays_code, organisation_id,
+      porteur_prenom, porteur_nom, porteur_sexe, porteur_date_naissance, fonction_porteur,
+      annee_appui, nature_appui_code, montant_appui, devise_code,
+      consentement_recueilli, consentement_date,
+      telephone_porteur, courriel_porteur,
+      adresse, ville, localite, latitude, longitude,
+      chiffre_affaires, employes_permanents, employes_temporaires, emplois_crees,
+      commentaire,
+      source_import, created_at, created_by, updated_at,
+      deleted_at, deleted_by, deleted_reason,
+      projet:projets!projet_code ( libelle, programme_strategique ),
+      organisation:organisations!organisation_id ( nom )
+      `,
+    )
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const projet = Array.isArray(data.projet) ? data.projet[0] : data.projet;
+  const organisation = Array.isArray(data.organisation) ? data.organisation[0] : data.organisation;
+
+  return {
+    id: data.id,
+    nom_structure: data.nom_structure,
+    type_structure_code: data.type_structure_code,
+    secteur_activite_code: data.secteur_activite_code,
+    secteur_precis: data.secteur_precis,
+    intitule_initiative: data.intitule_initiative,
+    date_creation: data.date_creation,
+    statut_creation: data.statut_creation as 'creation' | 'renforcement' | 'relance',
+
+    projet_code: data.projet_code,
+    projet_libelle: projet?.libelle ?? null,
+    programme_strategique: projet?.programme_strategique ?? null,
+    pays_code: data.pays_code,
+    organisation_id: data.organisation_id,
+    organisation_nom: organisation?.nom ?? null,
+
+    porteur_prenom: data.porteur_prenom,
+    porteur_nom: data.porteur_nom,
+    porteur_sexe: data.porteur_sexe as 'F' | 'M' | 'Autre',
+    porteur_date_naissance: data.porteur_date_naissance,
+    fonction_porteur: data.fonction_porteur,
+
+    annee_appui: data.annee_appui,
+    nature_appui_code: data.nature_appui_code,
+    montant_appui: data.montant_appui,
+    devise_code: data.devise_code,
+
+    consentement_recueilli: data.consentement_recueilli,
+    consentement_date: data.consentement_date,
+    telephone_porteur: data.telephone_porteur,
+    courriel_porteur: data.courriel_porteur,
+    adresse: data.adresse,
+    ville: data.ville,
+    localite: data.localite,
+    latitude: data.latitude,
+    longitude: data.longitude,
+
+    chiffre_affaires: data.chiffre_affaires,
+    employes_permanents: data.employes_permanents,
+    employes_temporaires: data.employes_temporaires,
+    emplois_crees: data.emplois_crees,
+
+    commentaire: data.commentaire,
+
+    source_import: data.source_import,
+    created_at: data.created_at,
+    created_by: data.created_by,
+    updated_at: data.updated_at,
+    deleted_at: data.deleted_at,
+    deleted_by: data.deleted_by,
+    deleted_reason: data.deleted_reason,
+  };
+}
+
+/**
  * Lignes listées dans la table structures. Projection serveur des seules
  * colonnes affichées (limite la charge réseau).
  */

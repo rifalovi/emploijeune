@@ -264,3 +264,64 @@ export async function modifierStructure(raw: unknown): Promise<ModifierStructure
 
   return { status: 'succes', id: data.id };
 }
+
+// =============================================================================
+// setStructureDeleted : soft-delete admin_scs uniquement
+// =============================================================================
+
+export type SetStructureDeletedResult =
+  | { status: 'succes' }
+  | { status: 'erreur_rls'; message: string }
+  | { status: 'erreur_inconnue'; message: string };
+
+/**
+ * Marque une fiche structure comme supprimée (soft-delete). Réservé
+ * `admin_scs`. Aligné sur `setBeneficiaireDeleted` (Étape 4d) :
+ *   - Vérification du rôle côté Server Action (défense en profondeur,
+ *     même si la RLS l'impose aussi).
+ *   - Positionne `deleted_at`, `deleted_by`, `deleted_reason`.
+ *   - Le trigger `trg_structures_audit` insère automatiquement une entrée
+ *     `action='SOFT_DELETE'` dans `journaux_audit` avec le diff complet.
+ *   - Revalidation des caches `/structures`, `/structures/[id]`, `/dashboard`.
+ */
+export async function setStructureDeleted(
+  id: string,
+  raison?: string,
+): Promise<SetStructureDeletedResult> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || utilisateur.role !== 'admin_scs') {
+    return {
+      status: 'erreur_rls',
+      message: 'Seul un administrateur SCS peut supprimer une structure.',
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const raisonTrim = raison?.trim();
+
+  const { error } = await supabase
+    .from('structures')
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: utilisateur.user_id,
+      deleted_reason: raisonTrim && raisonTrim.length > 0 ? raisonTrim : null,
+    })
+    .eq('id', id)
+    .is('deleted_at', null);
+
+  if (error) {
+    if (error.code === '42501' || error.message.includes('row-level security')) {
+      return {
+        status: 'erreur_rls',
+        message: 'Action refusée par la base de données.',
+      };
+    }
+    return { status: 'erreur_inconnue', message: error.message };
+  }
+
+  revalidatePath('/structures');
+  revalidatePath(`/structures/${id}`);
+  revalidatePath('/dashboard');
+
+  return { status: 'succes' };
+}

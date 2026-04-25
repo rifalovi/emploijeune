@@ -756,6 +756,8 @@ export type Database = {
           created_by: string | null
           date_creation: string | null
           deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           devise_code: string | null
           emplois_crees: number | null
           employes_permanents: number | null
@@ -799,6 +801,8 @@ export type Database = {
           created_by?: string | null
           date_creation?: string | null
           deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           devise_code?: string | null
           emplois_crees?: number | null
           employes_permanents?: number | null
@@ -842,6 +846,8 @@ export type Database = {
           created_by?: string | null
           date_creation?: string | null
           deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           devise_code?: string | null
           emplois_crees?: number | null
           employes_permanents?: number | null
