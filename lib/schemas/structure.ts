@@ -191,6 +191,34 @@ const baseStructureSchema = z.object({
   longitude: coordonneeOptionnelle(-180, 180),
 
   commentaire: optionalString(2000),
+
+  // === Section 5 (détails) : Porteur — champ ajouté en migration 011
+  fonction_porteur: optionalString(200),
+
+  // === Section 6 (détails) : Géolocalisation — champs ajoutés en migration 011
+  adresse: optionalString(500),
+  ville: optionalString(200),
+
+  // === Section 7 (détails) : Indicateurs B — champs ajoutés en migration 011
+  chiffre_affaires: z
+    .union([z.coerce.number().nonnegative(), z.literal(''), z.null(), z.undefined()])
+    .transform((v) => (v === '' || v === null || v === undefined ? undefined : (v as number)))
+    .pipe(z.number().nonnegative().max(1_000_000_000_000).optional()),
+
+  employes_permanents: z
+    .union([z.coerce.number().int().nonnegative(), z.literal(''), z.null(), z.undefined()])
+    .transform((v) => (v === '' || v === null || v === undefined ? undefined : (v as number)))
+    .pipe(z.number().int().nonnegative().max(32_767).optional()),
+
+  employes_temporaires: z
+    .union([z.coerce.number().int().nonnegative(), z.literal(''), z.null(), z.undefined()])
+    .transform((v) => (v === '' || v === null || v === undefined ? undefined : (v as number)))
+    .pipe(z.number().int().nonnegative().max(32_767).optional()),
+
+  emplois_crees: z
+    .union([z.coerce.number().int().nonnegative(), z.literal(''), z.null(), z.undefined()])
+    .transform((v) => (v === '' || v === null || v === undefined ? undefined : (v as number)))
+    .pipe(z.number().int().nonnegative().max(32_767).optional()),
 });
 
 /**
@@ -245,6 +273,32 @@ function appliquerReglesMetierStructure(data: BaseStructureShape, ctx: z.Refinem
       path: ['devise_code'],
       message: 'Une devise est obligatoire si un montant d’appui est saisi',
     });
+  }
+  // Règle E (Étape 5c) : si nature_appui = 'SUBVENTION', le montant doit
+  // être renseigné ET strictement positif (une subvention de 0 € n'a pas
+  // de sens).
+  if (
+    data.nature_appui_code === 'SUBVENTION' &&
+    (data.montant_appui === undefined || data.montant_appui <= 0)
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['montant_appui'],
+      message: 'Un montant strictement positif est obligatoire pour une subvention',
+    });
+  }
+  // Règle F (Étape 5c) : porteur majeur — si date de naissance renseignée,
+  // l'âge doit être ≥ 18 ans à la date de référence (aujourd'hui).
+  if (data.porteur_date_naissance) {
+    const ageMs = Date.now() - data.porteur_date_naissance.getTime();
+    const dixHuitAnsMs = 18 * 365.25 * 24 * 60 * 60 * 1000;
+    if (ageMs < dixHuitAnsMs) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['porteur_date_naissance'],
+        message: 'Le porteur doit être majeur (≥ 18 ans)',
+      });
+    }
   }
 }
 

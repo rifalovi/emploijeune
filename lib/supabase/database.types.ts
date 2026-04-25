@@ -745,7 +745,9 @@ export type Database = {
       }
       structures: {
         Row: {
+          adresse: string | null
           annee_appui: number
+          chiffre_affaires: number | null
           commentaire: string | null
           consentement_date: string | null
           consentement_recueilli: boolean
@@ -755,6 +757,10 @@ export type Database = {
           date_creation: string | null
           deleted_at: string | null
           devise_code: string | null
+          emplois_crees: number | null
+          employes_permanents: number | null
+          employes_temporaires: number | null
+          fonction_porteur: string | null
           id: string
           identifiant_externe: string | null
           import_batch_id: string | null
@@ -779,9 +785,12 @@ export type Database = {
           telephone_porteur: string | null
           type_structure_code: string
           updated_at: string
+          ville: string | null
         }
         Insert: {
+          adresse?: string | null
           annee_appui: number
+          chiffre_affaires?: number | null
           commentaire?: string | null
           consentement_date?: string | null
           consentement_recueilli?: boolean
@@ -791,6 +800,10 @@ export type Database = {
           date_creation?: string | null
           deleted_at?: string | null
           devise_code?: string | null
+          emplois_crees?: number | null
+          employes_permanents?: number | null
+          employes_temporaires?: number | null
+          fonction_porteur?: string | null
           id?: string
           identifiant_externe?: string | null
           import_batch_id?: string | null
@@ -815,9 +828,12 @@ export type Database = {
           telephone_porteur?: string | null
           type_structure_code: string
           updated_at?: string
+          ville?: string | null
         }
         Update: {
+          adresse?: string | null
           annee_appui?: number
+          chiffre_affaires?: number | null
           commentaire?: string | null
           consentement_date?: string | null
           consentement_recueilli?: boolean
@@ -827,6 +843,10 @@ export type Database = {
           date_creation?: string | null
           deleted_at?: string | null
           devise_code?: string | null
+          emplois_crees?: number | null
+          employes_permanents?: number | null
+          employes_temporaires?: number | null
+          fonction_porteur?: string | null
           id?: string
           identifiant_externe?: string | null
           import_batch_id?: string | null
@@ -851,6 +871,7 @@ export type Database = {
           telephone_porteur?: string | null
           type_structure_code?: string
           updated_at?: string
+          ville?: string | null
         }
         Relationships: [
           {
@@ -1062,6 +1083,22 @@ export type Database = {
         Returns: {
           id: string
           similarite: number
+        }[]
+      }
+      find_structure_doublon: {
+        Args: {
+          p_nom_structure: string
+          p_pays_code: string
+          p_projet_code: string
+          p_seuil_similarite?: number
+          p_exclude_id?: string
+        }
+        Returns: {
+          id: string
+          nom_structure: string
+          pays_code: string
+          projet_code: string
+          similarity_score: number
         }[]
       }
       show_limit: { Args: never; Returns: number }

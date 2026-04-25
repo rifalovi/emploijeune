@@ -6,7 +6,13 @@ import {
   repriseCohorteStructureSchema,
 } from '@/lib/schemas/structure';
 
-/** Gabarit minimal valide de création (champs obligatoires uniquement). */
+/**
+ * Gabarit minimal valide de création (champs obligatoires uniquement).
+ * Note : `nature_appui_code` est volontairement `MATERIEL` (et NON
+ * `SUBVENTION`) pour éviter de déclencher la règle 5c qui exige
+ * `montant_appui > 0` pour les subventions. Les tests qui veulent vérifier
+ * cette règle utilisent des overrides explicites.
+ */
 const baseValide = {
   nom_structure: 'COOPAGRO',
   type_structure_code: 'COOP' as const,
@@ -17,7 +23,7 @@ const baseValide = {
   porteur_nom: 'Traoré',
   porteur_sexe: 'F' as const,
   annee_appui: 2024,
-  nature_appui_code: 'SUBVENTION' as const,
+  nature_appui_code: 'MATERIEL' as const,
   consentement_recueilli: false,
 };
 
@@ -274,18 +280,108 @@ describe('repriseCohorteStructureSchema', () => {
     const res = repriseCohorteStructureSchema.safeParse({
       cohorte_projet: 'PROJ_A16a',
       cohorte_pays: 'MLI',
+      cohorte_secteur_activite: 'AGR_SYL_PCH',
       cohorte_nature_appui: 'SUBVENTION',
       cohorte_devise: 'XOF',
       cohorte_annee: '2024',
     });
     if (!res.success) throw new Error('should be valid');
     expect(res.data.cohorte_projet).toBe('PROJ_A16a');
+    expect(res.data.cohorte_secteur_activite).toBe('AGR_SYL_PCH');
     expect(res.data.cohorte_annee).toBe(2024);
   });
 
   it('rejette une cohorte_nature_appui inexistante', () => {
     const res = repriseCohorteStructureSchema.safeParse({
       cohorte_nature_appui: 'INCONNU',
+    });
+    expect(res.success).toBe(false);
+  });
+});
+
+// =============================================================================
+// Règles métier ajoutées en 5c : subvention → montant > 0, porteur ≥ 18 ans,
+// nouveaux champs B (chiffre_affaires, employés, emplois_crees)
+// =============================================================================
+
+describe('structureInsertSchema — règles 5c (subvention + âge porteur + indicateurs B)', () => {
+  it('SUBVENTION sans montant → rejet montant_appui', () => {
+    const res = structureInsertSchema.safeParse({
+      ...baseValide,
+      nature_appui_code: 'SUBVENTION',
+    });
+    expect(res.success).toBe(false);
+    if (res.success) return;
+    const issue = res.error.issues.find((i) => i.path[0] === 'montant_appui');
+    expect(issue?.message).toContain('strictement positif');
+  });
+
+  it('SUBVENTION avec montant = 0 → rejet (strictement positif requis)', () => {
+    const res = structureInsertSchema.safeParse({
+      ...baseValide,
+      nature_appui_code: 'SUBVENTION',
+      montant_appui: 0,
+      devise_code: 'EUR',
+    });
+    expect(res.success).toBe(false);
+  });
+
+  it('SUBVENTION avec montant > 0 + devise → valide', () => {
+    const res = structureInsertSchema.safeParse({
+      ...baseValide,
+      nature_appui_code: 'SUBVENTION',
+      montant_appui: 1500,
+      devise_code: 'EUR',
+    });
+    expect(res.success).toBe(true);
+  });
+
+  it('porteur_date_naissance < 18 ans → rejet', () => {
+    const ilYa10Ans = new Date();
+    ilYa10Ans.setFullYear(ilYa10Ans.getFullYear() - 10);
+    const res = structureInsertSchema.safeParse({
+      ...baseValide,
+      porteur_date_naissance: ilYa10Ans.toISOString().slice(0, 10),
+    });
+    expect(res.success).toBe(false);
+    if (res.success) return;
+    const issue = res.error.issues.find((i) => i.path[0] === 'porteur_date_naissance');
+    expect(issue?.message).toContain('majeur');
+  });
+
+  it('porteur_date_naissance ≥ 18 ans → valide', () => {
+    const ilYa20Ans = new Date();
+    ilYa20Ans.setFullYear(ilYa20Ans.getFullYear() - 20);
+    const res = structureInsertSchema.safeParse({
+      ...baseValide,
+      porteur_date_naissance: ilYa20Ans.toISOString().slice(0, 10),
+    });
+    expect(res.success).toBe(true);
+  });
+
+  it('indicateurs B (CA, employés, emplois) entiers ≥ 0 → valide', () => {
+    const res = structureInsertSchema.safeParse({
+      ...baseValide,
+      chiffre_affaires: 500000,
+      employes_permanents: 8,
+      employes_temporaires: 2,
+      emplois_crees: 5,
+    });
+    expect(res.success).toBe(true);
+  });
+
+  it('emplois_crees négatif → rejet', () => {
+    const res = structureInsertSchema.safeParse({
+      ...baseValide,
+      emplois_crees: -1,
+    });
+    expect(res.success).toBe(false);
+  });
+
+  it('chiffre_affaires négatif → rejet', () => {
+    const res = structureInsertSchema.safeParse({
+      ...baseValide,
+      chiffre_affaires: -100,
     });
     expect(res.success).toBe(false);
   });
