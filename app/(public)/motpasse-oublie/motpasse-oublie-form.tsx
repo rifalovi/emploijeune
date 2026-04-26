@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 
-import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -18,6 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { demanderResetSchema, type DemanderResetInput } from '@/lib/schemas/auth';
+import { envoyerResetMotPasse } from '@/lib/auth/envoyer-reset-mot-passe';
 
 /**
  * Demande de reset du mot de passe (Étape 6.5a).
@@ -33,16 +33,19 @@ export function MotPasseOublieForm() {
     defaultValues: { email: '' },
   });
 
+  // Refacto hotfix 6.5h-quinquies : appel Server Action `envoyerResetMotPasse`
+  // qui génère le lien via admin.generateLink (sans envoi auto Supabase) puis
+  // envoie via Resend avec template OIF français + footer RGPD. Politique
+  // « ne pas révéler l'existence du compte » conservée (succès neutre).
   const onSubmit = async (values: DemanderResetInput) => {
-    const supabase = createSupabaseBrowserClient();
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const result = await envoyerResetMotPasse(values);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-      redirectTo: `${origin}/api/auth/callback?redirect=/motpasse/changer%3Freset%3D1`,
-    });
-
-    if (error) {
-      toast.error("Impossible d'envoyer l'email", { description: error.message });
+    if (result.status === 'erreur_validation') {
+      toast.error('Adresse invalide', { description: result.message });
+      return;
+    }
+    if (result.status === 'erreur_inconnue') {
+      toast.error("Impossible d'envoyer l'email", { description: result.message });
       return;
     }
 

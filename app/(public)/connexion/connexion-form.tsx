@@ -26,6 +26,7 @@ import {
   type ConnexionMotPasseInput,
   type ConnexionMagicLinkInput,
 } from '@/lib/schemas/auth';
+import { envoyerMagicLink } from '@/lib/auth/envoyer-magic-link';
 
 /**
  * Formulaire de connexion (Étape 6.5a).
@@ -71,7 +72,7 @@ export function ConnexionForm() {
       )}
 
       {modeMagicLink ? (
-        <FormulaireMagicLink router={router} searchParams={searchParams} />
+        <FormulaireMagicLink router={router} />
       ) : (
         <FormulaireMotPasse router={router} searchParams={searchParams} />
       )}
@@ -201,60 +202,43 @@ function FormulaireMotPasse({
 // Mode 2 — Magic link (alternative SCS, formulaire historique conservé)
 // =============================================================================
 
-function FormulaireMagicLink({
-  router,
-  searchParams,
-}: {
-  router: ReturnType<typeof useRouter>;
-  searchParams: ReturnType<typeof useSearchParams>;
-}) {
+function FormulaireMagicLink({ router }: { router: ReturnType<typeof useRouter> }) {
   const [sent, setSent] = useState(false);
   const form = useForm<ConnexionMagicLinkInput>({
     resolver: zodResolver(connexionMagicLinkSchema),
     defaultValues: { email: '' },
   });
 
+  // Refacto hotfix 6.5h-quinquies : appel Server Action `envoyerMagicLink`
+  // au lieu de `supabase.auth.signInWithOtp` direct. La Server Action
+  // utilise admin.generateLink + Resend avec template OIF français,
+  // et applique la politique « ne pas révéler l'existence du compte ».
   const onSubmit = async (values: ConnexionMagicLinkInput) => {
-    const supabase = createSupabaseBrowserClient();
-    const redirect = searchParams.get('redirect') ?? '/dashboard';
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const result = await envoyerMagicLink(values);
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: values.email,
-      options: {
-        shouldCreateUser: false, // pas d'auto-création en V1 (admin_scs crée les comptes)
-        emailRedirectTo: `${origin}/api/auth/callback?redirect=${encodeURIComponent(redirect)}`,
-      },
-    });
-
-    if (error) {
-      // Traduit les erreurs Supabase en messages métier clairs
-      // (cf. hotfix 6.5h — l'erreur native "Signups not allowed for otp"
-      //  arrive quand l'email n'existe pas dans auth.users avec
-      //  shouldCreateUser=false).
-      const msg = error.message ?? '';
-      const description = /signups? not allowed/i.test(msg)
-        ? "Aucun compte n'est associé à cette adresse. Contactez le SCS pour qu'un administrateur vous crée un accès."
-        : /rate limit|too many/i.test(msg)
-          ? 'Trop de demandes. Patientez quelques minutes avant de réessayer.'
-          : msg;
-      toast.error('Impossible d’envoyer le lien', { description });
+    if (result.status === 'erreur_validation') {
+      toast.error('Adresse invalide', { description: result.message });
       return;
     }
+    if (result.status === 'erreur_inconnue') {
+      toast.error('Impossible d’envoyer le lien', { description: result.message });
+      return;
+    }
+
+    // status === 'succes' : message neutre (compte existant OU non).
     setSent(true);
-    toast.success('Lien envoyé', {
-      description: 'Consultez votre boîte mail (et vos indésirables).',
-    });
+    toast.success('Si l’adresse correspond à un compte admin SCS, un lien vient d’être envoyé.');
   };
 
   if (sent) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Lien envoyé</CardTitle>
+          <CardTitle>Demande envoyée</CardTitle>
           <CardDescription>
-            Un lien de connexion vient d'être envoyé à <strong>{form.getValues('email')}</strong>.
-            Il est valable <strong>1 heure</strong>. Pensez à vérifier vos courriers indésirables.
+            Si l’adresse <strong>{form.getValues('email')}</strong> correspond à un compte
+            administrateur SCS, un lien de connexion vient de vous être envoyé. Il est valable
+            <strong> 1 heure</strong>. Pensez à vérifier vos courriers indésirables.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">

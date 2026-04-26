@@ -3,6 +3,7 @@ import {
   templateInvitationCompte,
   templateResetMotPasse,
   templateInvitationEnquete,
+  templateMagicLink,
 } from '@/lib/email/templates';
 
 describe('templateInvitationCompte', () => {
@@ -141,5 +142,54 @@ describe('Invariants templates', () => {
       expect(t.html.length).toBeGreaterThan(200);
       expect(t.text.length).toBeGreaterThan(50);
     }
+  });
+});
+
+describe('templateMagicLink', () => {
+  it('a un sujet français + branding OIF', () => {
+    const tpl = templateMagicLink({
+      prenom: 'Carlos',
+      lienMagic: 'https://app.example.org/auth/magic/abc',
+    });
+    expect(tpl.subject).toMatch(/Lien de connexion/);
+    expect(tpl.subject).toMatch(/OIF Emploi Jeunes/);
+  });
+
+  it('inclut le prénom et le lien dans HTML + texte', () => {
+    const tpl = templateMagicLink({
+      prenom: 'Awa',
+      lienMagic: 'https://app.example.org/auth/magic/xyz',
+    });
+    expect(tpl.html).toContain('Awa');
+    expect(tpl.html).toContain('https://app.example.org/auth/magic/xyz');
+    expect(tpl.text).toContain('Awa');
+    expect(tpl.text).toContain('https://app.example.org/auth/magic/xyz');
+  });
+
+  it('accepte un prénom vide (fallback générique)', () => {
+    const tpl = templateMagicLink({ lienMagic: 'https://x.example/m' });
+    expect(tpl.html).toContain('utilisateur');
+    expect(tpl.text).toContain('utilisateur');
+  });
+
+  it('mentionne durée 1 heure + à usage unique', () => {
+    const tpl = templateMagicLink({ lienMagic: 'https://x.example/m' });
+    expect(tpl.html).toMatch(/1 heure/);
+    expect(tpl.html).toMatch(/usage unique/);
+  });
+
+  it('échappe les caractères HTML du prénom (anti-XSS)', () => {
+    const tpl = templateMagicLink({
+      prenom: '<script>alert(1)</script>',
+      lienMagic: 'https://x.example/m',
+    });
+    expect(tpl.html).not.toContain('<script>alert');
+    expect(tpl.html).toContain('&lt;script&gt;');
+  });
+
+  it('inclut le footer RGPD', () => {
+    const tpl = templateMagicLink({ lienMagic: 'https://x.example/m' });
+    expect(tpl.html).toMatch(/RGPD/);
+    expect(tpl.text).toMatch(/RGPD/);
   });
 });
