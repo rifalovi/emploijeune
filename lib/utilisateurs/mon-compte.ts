@@ -1,8 +1,7 @@
 'use server';
 
-import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { motDePasseSchema } from '@/lib/schemas/auth';
+import { changerMonMotPasseSchema, type ChangerMonMotPasseInput } from '@/lib/schemas/mon-compte';
 
 /**
  * Server Action pour changer son propre mot de passe (Action 3 — Mon Compte).
@@ -13,33 +12,15 @@ import { motDePasseSchema } from '@/lib/schemas/auth';
  *   2. Si OK → updateUser({ password }) + efface mdp_temporaire metadata.
  *   3. Conserve la session active (l'utilisateur reste connecté).
  *
- * Politique mdp : réutilise motDePasseSchema (8 chars, 1 maj, 1 chiffre).
+ * Note hotfix 6.5h-quater : le schéma Zod et son type sont importés depuis
+ * `lib/schemas/mon-compte.ts` (fichier sans `'use server'`) pour pouvoir
+ * être utilisés à la fois ici (validation serveur) ET côté client par le
+ * resolver react-hook-form. Si le schéma vivait dans ce fichier, l'import
+ * côté client le transformerait en Server Reference proxy → erreur runtime
+ * « Invalid input: not a Zod schema » dans zodResolver.
  */
 
-export const changerMonMotPasseSchema = z
-  .object({
-    motPasseActuel: z.string().min(1, 'Le mot de passe actuel est obligatoire'),
-    nouveauMotPasse: motDePasseSchema,
-    confirmation: z.string(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.nouveauMotPasse !== data.confirmation) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['confirmation'],
-        message: 'La confirmation ne correspond pas au nouveau mot de passe',
-      });
-    }
-    if (data.motPasseActuel === data.nouveauMotPasse) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['nouveauMotPasse'],
-        message: 'Le nouveau mot de passe doit être différent de l’actuel',
-      });
-    }
-  });
-
-export type ChangerMonMotPasseInput = z.input<typeof changerMonMotPasseSchema>;
+export type { ChangerMonMotPasseInput };
 
 export type ChangerMonMotPasseResult =
   | { status: 'succes' }

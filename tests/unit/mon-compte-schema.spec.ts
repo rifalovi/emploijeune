@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { changerMonMotPasseSchema } from '@/lib/utilisateurs/mon-compte';
+import { changerMonMotPasseSchema } from '@/lib/schemas/mon-compte';
 
 describe('changerMonMotPasseSchema', () => {
   const valideBase = {

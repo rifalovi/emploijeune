@@ -18,11 +18,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  changerMonMotPasse,
-  changerMonMotPasseSchema,
-  type ChangerMonMotPasseInput,
-} from '@/lib/utilisateurs/mon-compte';
+import { changerMonMotPasse } from '@/lib/utilisateurs/mon-compte';
+import { changerMonMotPasseSchema, type ChangerMonMotPasseInput } from '@/lib/schemas/mon-compte';
 
 /**
  * Formulaire de changement du mot de passe par l'utilisateur lui-même
