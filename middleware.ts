@@ -2,39 +2,68 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { updateSupabaseSession } from '@/lib/supabase/middleware';
 
 /**
- * Rate-limit en mémoire pour les routes publiques d'enquête (Étape 6.5c).
+ * Rate-limits en mémoire pour les routes publiques sensibles.
  *
- * Limite : 5 requêtes par minute par IP. Implémentation Map en RAM, suffisante
- * pour V1 mono-instance dev/staging. En V1.5/V2 production multi-instance,
- * remplacer par Upstash Ratelimit ou Cloudflare Rate Limiting Rules.
+ * Implémentation Map RAM par bucket — suffisante pour V1 mono-instance.
+ * En V1.5/V2 multi-instance, remplacer par Upstash Ratelimit ou Cloudflare.
  *
- * Pas de protection complète (un attaquant motivé contournera via rotation
- * d'IP), mais bloque les abus naïfs (scraping séquentiel, brute-force token).
+ * Buckets V1 :
+ *   - 'enquete-public' : 5 req/min/IP sur /enquetes/public/* (Étape 6.5c)
+ *   - 'demande-acces'  : 5 POST/heure/IP sur /demande-acces (V1-Enrichie-A)
+ *
+ * Pas de protection complète (rotation d'IP contourne), mais bloque les
+ * abus naïfs (scraping, brute-force token, spam de demandes).
  */
 type RateLimitEntry = { count: number; resetAt: number };
-const rateLimitMap = new Map<string, RateLimitEntry>();
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 5;
+const rateLimitBuckets = new Map<string, Map<string, RateLimitEntry>>();
 
-function checkRateLimit(ip: string): { allowed: boolean; resetAt: number } {
+function checkRateLimit(
+  bucket: string,
+  ip: string,
+  windowMs: number,
+  max: number,
+): { allowed: boolean; resetAt: number } {
+  let mapForBucket = rateLimitBuckets.get(bucket);
+  if (!mapForBucket) {
+    mapForBucket = new Map();
+    rateLimitBuckets.set(bucket, mapForBucket);
+  }
   const now = Date.now();
-  const entry = rateLimitMap.get(ip);
+  const entry = mapForBucket.get(ip);
   if (!entry || entry.resetAt <= now) {
-    const resetAt = now + RATE_LIMIT_WINDOW_MS;
-    rateLimitMap.set(ip, { count: 1, resetAt });
-    // Garbage collection opportuniste : nettoie les entrées expirées
-    if (rateLimitMap.size > 1000) {
-      for (const [k, v] of rateLimitMap.entries()) {
-        if (v.resetAt <= now) rateLimitMap.delete(k);
+    const resetAt = now + windowMs;
+    mapForBucket.set(ip, { count: 1, resetAt });
+    // GC opportuniste si la map grossit
+    if (mapForBucket.size > 1000) {
+      for (const [k, v] of mapForBucket.entries()) {
+        if (v.resetAt <= now) mapForBucket.delete(k);
       }
     }
     return { allowed: true, resetAt };
   }
-  if (entry.count >= RATE_LIMIT_MAX) {
+  if (entry.count >= max) {
     return { allowed: false, resetAt: entry.resetAt };
   }
   entry.count++;
   return { allowed: true, resetAt: entry.resetAt };
+}
+
+function getIp(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('x-real-ip') ??
+    'unknown'
+  );
+}
+
+function tooManyRequestsResponse(resetAt: number): NextResponse {
+  return new NextResponse(JSON.stringify({ erreur: 'Trop de requêtes — réessayez plus tard.' }), {
+    status: 429,
+    headers: {
+      'Content-Type': 'application/json',
+      'Retry-After': String(Math.ceil((resetAt - Date.now()) / 1000)),
+    },
+  });
 }
 
 /**
@@ -51,24 +80,22 @@ export async function middleware(request: NextRequest) {
 
   // Rate-limit appliqué AVANT toute autre logique sur les routes publiques d'enquête
   if (pathname.startsWith('/enquetes/public/')) {
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-      request.headers.get('x-real-ip') ??
-      'unknown';
-    const rl = checkRateLimit(ip);
-    if (!rl.allowed) {
-      return new NextResponse(
-        JSON.stringify({ erreur: 'Trop de requêtes — réessayez dans quelques instants.' }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
-          },
-        },
-      );
-    }
+    const rl = checkRateLimit('enquete-public', getIp(request), 60_000, 5);
+    if (!rl.allowed) return tooManyRequestsResponse(rl.resetAt);
     // Routes publiques : on ne touche pas à la session Supabase, on laisse passer
+    return NextResponse.next();
+  }
+
+  // Rate-limit sur la création de demande d'accès (uniquement sur POST :
+  // les Server Actions Next.js utilisent POST sur la même URL que la page).
+  // Limite : 5 requêtes/heure/IP — suffisamment large pour une saisie
+  // honnête + retry, suffisamment serré pour bloquer le spam.
+  if (pathname === '/demande-acces' && request.method === 'POST') {
+    const rl = checkRateLimit('demande-acces', getIp(request), 60 * 60_000, 5);
+    if (!rl.allowed) return tooManyRequestsResponse(rl.resetAt);
+  }
+  if (pathname === '/demande-acces') {
+    // Page publique : pas de garde auth, pas de session Supabase à rafraîchir
     return NextResponse.next();
   }
 

@@ -9,4 +9,14 @@ export { templateInvitationEnquete } from './invitation-enquete';
 export type { InvitationEnqueteArgs } from './invitation-enquete';
 export { templateMagicLink } from './magic-link';
 export type { MagicLinkArgs } from './magic-link';
+export {
+  templateConfirmationDemande,
+  templateNotificationSCS,
+  templateRejetDemande,
+} from './demande-acces';
+export type {
+  ConfirmationDemandeArgs,
+  NotificationSCSArgs,
+  RejetDemandeArgs,
+} from './demande-acces';
 export type { TemplateEmail } from './_partages';

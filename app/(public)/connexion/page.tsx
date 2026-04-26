@@ -30,7 +30,11 @@ export default function ConnexionPage() {
         </Suspense>
 
         <p className="text-muted-foreground mt-8 text-center text-xs">
-          Besoin d'accès ? Contactez le Service de Conception et Suivi de projet.
+          Besoin d'accès ?{' '}
+          <a href="/demande-acces" className="hover:text-foreground underline">
+            Faire une demande d'accès
+          </a>{' '}
+          ou contactez le SCS.
         </p>
       </div>
     </main>

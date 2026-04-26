@@ -186,6 +186,60 @@ export type Database = {
         }
         Relationships: []
       }
+      demandes_acces: {
+        Row: {
+          id: string
+          email: string
+          prenom: string
+          nom: string
+          role_souhaite: Database["public"]["Enums"]["role_utilisateur"]
+          contexte_souhaite: string | null
+          justification: string
+          statut: 'pending' | 'approved' | 'rejected'
+          raison_rejet: string | null
+          decided_at: string | null
+          decided_by: string | null
+          created_at: string
+          created_at_ip: string | null
+          consentement_rgpd: boolean
+          utilisateur_cree_id: string | null
+        }
+        Insert: {
+          id?: string
+          email: string
+          prenom: string
+          nom: string
+          role_souhaite: Database["public"]["Enums"]["role_utilisateur"]
+          contexte_souhaite?: string | null
+          justification: string
+          statut?: 'pending' | 'approved' | 'rejected'
+          raison_rejet?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          created_at?: string
+          created_at_ip?: string | null
+          consentement_rgpd: boolean
+          utilisateur_cree_id?: string | null
+        }
+        Update: {
+          id?: string
+          email?: string
+          prenom?: string
+          nom?: string
+          role_souhaite?: Database["public"]["Enums"]["role_utilisateur"]
+          contexte_souhaite?: string | null
+          justification?: string
+          statut?: 'pending' | 'approved' | 'rejected'
+          raison_rejet?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          created_at?: string
+          created_at_ip?: string | null
+          consentement_rgpd?: boolean
+          utilisateur_cree_id?: string | null
+        }
+        Relationships: []
+      }
       domaines_formation: {
         Row: {
           actif: boolean
