@@ -8,6 +8,8 @@
 // Supabase, notifications count) reste dans app/(dashboard)/layout.tsx.
 'use client';
 
+import Link from 'next/link';
+import { UserCircle } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { LogoOIF } from '@/components/branding/logo-oif';
@@ -83,6 +85,13 @@ export function Sidebar({ utilisateur, organisationLibelle, notificationsCount }
             </p>
           </div>
         </div>
+        <Link
+          href="/mon-compte"
+          className="text-muted-foreground hover:text-foreground hover:bg-accent inline-flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors"
+        >
+          <UserCircle aria-hidden className="size-4" />
+          Mon compte
+        </Link>
         <SignOutButton variant="sidebar" />
       </div>
     </aside>
