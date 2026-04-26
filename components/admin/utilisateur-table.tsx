@@ -1,9 +1,10 @@
 'use client';
 
 import { useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { MoreVertical, KeyRound, Power } from 'lucide-react';
+import { MoreVertical, KeyRound, Power, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -76,6 +77,7 @@ export function UtilisateurTable({ rows }: UtilisateurTableProps) {
 }
 
 function UtilisateurRow({ row }: { row: UtilisateurListItem }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   const handleReinit = () => {
@@ -133,6 +135,13 @@ function UtilisateurRow({ row }: { row: UtilisateurListItem }) {
             <MoreVertical aria-hidden className="size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onSelect={() => router.push(`/admin/utilisateurs/${row.id}/modifier`)}
+              disabled={pending}
+            >
+              <Pencil aria-hidden className="size-4" />
+              Modifier les détails
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={handleReinit} disabled={pending}>
               <KeyRound aria-hidden className="size-4" />
               Réinitialiser le mot de passe
