@@ -161,7 +161,7 @@ enquête) en remplacement de Supabase SMTP par défaut.
 **Livrables** :
 
 - Compte Resend Free (3000/mois) — configuration manuelle Carlos
-  (DNS SPF/DKIM/DMARC sur `carloshounsinou.com`).
+  (DNS SPF/DKIM/DMARC sur `suivi-projet.org`).
 - API key dans `.env.local` (et Vercel/Supabase env si déploiement) :
   `RESEND_API_KEY`.
 - Module `lib/email/resend.ts` : helper `envoyerEmail({to, subject,
@@ -178,7 +178,7 @@ enquête) en remplacement de Supabase SMTP par défaut.
   (admin_scs uniquement).
 
 **Estimation** : ~2 h. **Risque** : configuration DNS hors plateforme
-(Carlos doit avoir accès au registrar de `carloshounsinou.com`).
+(Carlos doit avoir accès au registrar de `suivi-projet.org`).
 Mitigation : checklist détaillée dans le rapport de sous-étape.
 
 ### Sous-étape 6.5e — Envoi de masse au lancement enquête
@@ -216,7 +216,7 @@ proche du quota (rapport SCS).
 - **Étalement** : faisable sur les heures restantes du 26/04
   + journée du 27/04 si besoin.
 - **Dépendance externe critique** : configuration DNS de
-  `carloshounsinou.com` (Carlos, ~30 min). Sans cela, 6.5d ne peut
+  `suivi-projet.org` (Carlos, ~30 min). Sans cela, 6.5d ne peut
   pas être validée fonctionnellement (les emails ne partiront pas).
 
 ## 5. Risques techniques identifiés
@@ -252,9 +252,11 @@ ou Upstash si trafic le justifie.
 
 ### R4 — Configuration DNS hors notre contrôle
 
-`carloshounsinou.com` est le domaine personnel de Carlos. Si ses DNS
-ne sont pas correctement configurés (SPF/DKIM/DMARC), les emails
-arrivent en spam → pilote planté.
+`suivi-projet.org` est le domaine professionnel personnel
+transitoire utilisé en V1 (commande OVH N°248858607 du
+26/04/2026, anonymisé Whois). Si ses DNS ne sont pas correctement
+configurés (SPF/DKIM/DMARC), les emails arrivent en spam →
+pilote planté.
 
 **Mitigation** : Carlos teste la délivrabilité vers Gmail / Outlook /
 Yahoo / Apple Mail avant onboarding des 60 partenaires. Checklist

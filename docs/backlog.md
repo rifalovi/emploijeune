@@ -59,16 +59,16 @@
 
 L'envoi d'emails (magic links d'authentification, relances d'enquêtes A5/B2/C5) est **une dépendance bloquante**. Supabase Auth par défaut envoie ~2 emails par heure — incompatible avec 60 partenaires à onboarder en mai 2026. Trois jalons.
 
-### Jalon 1 — Cette semaine (avril 2026) : Resend free tier sur `carloshounsinou.com`
+### Jalon 1 — Avril 2026 : Resend free tier sur `suivi-projet.org`
 
 - **Provider** : Resend, région eu-west-1 (Ireland).
-- **Domaine** : `carloshounsinou.com` — domaine personnel temporaire du chargé de projet Carlos Hounsinou.
-- **Sender** : `oif-plateforme@carloshounsinou.com` (nom affiché : « Plateforme Emploi Jeunes OIF »).
+- **Domaine** : `suivi-projet.org` — domaine professionnel personnel transitoire du chargé de projet (commande OVH N°248858607 du 26/04/2026, anonymisé Whois). Choisi pour son positionnement neutre et sa cohérence avec le contexte international/ONG (extension `.org`).
+- **Sender** : `noreply@suivi-projet.org` (nom affiché : « Plateforme OIF Emploi Jeunes »).
 - **Plafond** : 3 000 emails / mois, 100 / jour (free tier).
-- **Périmètre couvert** : tests dev + phase pilote 5-10 partenaires.
-- **Configuration estimée** : 30 minutes (DNS SPF/DKIM + API key + activation Supabase SMTP).
-- **Mention de transparence** : `carloshounsinou.com` hébergera un véritable site professionnel du chargé de projet pour assurer la crédibilité des emails envoyés (éviter réputation d'emails parasites).
-- **Justification** : déblocage immédiat sans attendre la DSI OIF ; domaine déjà possédé ; configuration rapide.
+- **Périmètre couvert** : tests dev + phase pilote 60 partenaires.
+- **Configuration estimée** : 30-45 minutes (DNS SPF/DKIM/DMARC + API key + activation Supabase SMTP). Procédure complète : [`docs/configuration/resend-setup.md`](configuration/resend-setup.md).
+- **Justification** : déblocage immédiat sans attendre la DSI OIF ; domaine neuf mais positionnement professionnel ; configuration rapide.
+- **Note historique** : avant le 26/04/2026, le cadrage 6.5 v1.0 mentionnait `carloshounsinou.com` (domaine personnel direct). Bascule vers `suivi-projet.org` actée le 26/04/2026 pour neutralité et marque pro long terme.
 
 ### Jalon 2 — Avant fin avril 2026 : démarches SMTP OIF institutionnel
 
@@ -87,7 +87,7 @@ L'envoi d'emails (magic links d'authentification, relances d'enquêtes A5/B2/C5)
 - **Tests de délivrabilité** vers les 5 clients-cibles (cf. [email-templates.md](email-templates.md)) :
   - Gmail web, Gmail mobile, Outlook web, Apple Mail iPhone, Yahoo Mail
 - **Validation hiérarchique** OIF : N+1 du chargé de projet + direction communication.
-- **Rollback plan** : retour temporaire à Resend `carloshounsinou.com` si problème critique en production.
+- **Rollback plan** : retour temporaire à Resend `suivi-projet.org` si problème critique en production.
 
 ---
 

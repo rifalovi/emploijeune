@@ -43,7 +43,9 @@ entre :
 - Lien public d'enquête `/enquetes/public/[token]` accessible
   SANS authentification (pour bénéficiaires)
 - Envoi automatique simple par email au lancement enquête
-  (Resend + carloshounsinou.com en V1, domaine OIF en V1.5)
+  (Resend + `suivi-projet.org` — domaine professionnel
+  personnel transitoire — en V1, domaine OIF officiel
+  en V1.5/V2 type `emploi-jeunes.francophonie.org`)
 - Token : unique, 30 jours de validité, 1 seule réponse
   possible
 
@@ -64,15 +66,25 @@ entre :
 
 - Resend (plan Free 3000/mois suffisant pour pilote 60
   partenaires)
-- Domaine d'envoi : `carloshounsinou.com` (transitoire)
+- Domaine d'envoi : `suivi-projet.org` — domaine
+  professionnel personnel du chargé de projet (commande OVH
+  N°248858607 du 26/04/2026), Whois anonymisé. Choisi pour
+  son positionnement neutre et sa cohérence avec le contexte
+  international/ONG (extension .org).
+- Sender configuré : `noreply@suivi-projet.org` (nom affiché
+  « Plateforme OIF Emploi Jeunes »).
 - Templates simples : invitation enquête, rappel, identifiants
-  de connexion
+  de connexion.
 
-**V1.5** :
+**V1.5 / V2** :
 
-- Migration vers domaine OIF officiel (avec DSI)
-- Resend Plan Pro (50 000/mois) si volume justifie
-- Templates richement formatés avec branding OIF
+- Migration vers domaine OIF officiel (avec DSI), cible
+  pressentie `emploi-jeunes.francophonie.org` ou variante
+  validée par la direction communication OIF.
+- Resend Plan Pro (50 000/mois) si volume justifie.
+- Templates richement formatés avec branding OIF.
+- Conservation de `suivi-projet.org` comme domaine de repli
+  pour environnements de staging post-bascule.
 
 ### Justification stratégique
 
