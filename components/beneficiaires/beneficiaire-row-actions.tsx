@@ -54,7 +54,7 @@ export function BeneficiaireRowActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {peutEditer && (
-          <DropdownMenuItem onSelect={() => router.push(`/beneficiaires/${id}/modifier`)}>
+          <DropdownMenuItem onClick={() => router.push(`/beneficiaires/${id}/modifier`)}>
             <Pencil aria-hidden className="size-4" />
             Modifier
           </DropdownMenuItem>
@@ -62,7 +62,7 @@ export function BeneficiaireRowActions({
         {peutSupprimer && (
           <DropdownMenuItem
             variant="destructive"
-            onSelect={() => router.push(`/beneficiaires/${id}?supprimer=1`)}
+            onClick={() => router.push(`/beneficiaires/${id}?supprimer=1`)}
           >
             <Trash2 aria-hidden className="size-4" />
             Supprimer

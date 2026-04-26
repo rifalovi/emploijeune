@@ -87,7 +87,7 @@ export function StructureDetailActions({
               <MoreVertical aria-hidden className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem variant="destructive" onSelect={() => setDialogueOpen(true)}>
+              <DropdownMenuItem variant="destructive" onClick={() => setDialogueOpen(true)}>
                 <Trash2 aria-hidden className="size-4" />
                 Supprimer
               </DropdownMenuItem>

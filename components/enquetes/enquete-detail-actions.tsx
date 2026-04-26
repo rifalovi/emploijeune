@@ -42,7 +42,7 @@ export function EnqueteDetailActions({
           <MoreHorizontal aria-hidden className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem variant="destructive" onSelect={() => setOpenDialog(true)}>
+          <DropdownMenuItem variant="destructive" onClick={() => setOpenDialog(true)}>
             <Trash2 aria-hidden className="size-4" />
             Supprimer la session
           </DropdownMenuItem>

@@ -41,7 +41,7 @@ export function StructureRowActions({ id, peutEditer, peutSupprimer }: Structure
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {peutEditer && (
-          <DropdownMenuItem onSelect={() => router.push(`/structures/${id}/modifier`)}>
+          <DropdownMenuItem onClick={() => router.push(`/structures/${id}/modifier`)}>
             <Pencil aria-hidden className="size-4" />
             Modifier
           </DropdownMenuItem>
@@ -49,7 +49,7 @@ export function StructureRowActions({ id, peutEditer, peutSupprimer }: Structure
         {peutSupprimer && (
           <DropdownMenuItem
             variant="destructive"
-            onSelect={() => router.push(`/structures/${id}?supprimer=1`)}
+            onClick={() => router.push(`/structures/${id}?supprimer=1`)}
           >
             <Trash2 aria-hidden className="size-4" />
             Supprimer

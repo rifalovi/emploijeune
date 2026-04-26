@@ -136,18 +136,18 @@ function UtilisateurRow({ row }: { row: UtilisateurListItem }) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
-              onSelect={() => router.push(`/admin/utilisateurs/${row.id}/modifier`)}
+              onClick={() => router.push(`/admin/utilisateurs/${row.id}/modifier`)}
               disabled={pending}
             >
               <Pencil aria-hidden className="size-4" />
               Modifier les détails
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleReinit} disabled={pending}>
+            <DropdownMenuItem onClick={handleReinit} disabled={pending}>
               <KeyRound aria-hidden className="size-4" />
               Réinitialiser le mot de passe
             </DropdownMenuItem>
             <DropdownMenuItem
-              onSelect={handleToggle}
+              onClick={handleToggle}
               variant={row.actif ? 'destructive' : undefined}
               disabled={pending}
             >
