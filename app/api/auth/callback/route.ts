@@ -61,8 +61,21 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(`${origin}${redirectTo}`);
   } catch (err) {
+    // Logging diagnostique enrichi (hotfix 6.5h-quinquies) :
+    // l'erreur la plus fréquente est « token already used / expired » causée
+    // par les scans anti-phishing des messageries (Yahoo, Outlook ATP) qui
+    // pré-cliquent les liens des emails marqués comme spam. Le log inclut
+    // les paramètres reçus pour faciliter le diagnostic.
     const message = err instanceof Error ? err.message : 'erreur_inconnue';
-    console.error('Auth callback error:', message);
+    // eslint-disable-next-line no-console
+    console.error('[auth/callback] Échec échange code/token', {
+      message,
+      hadCode: Boolean(code),
+      hadTokenHash: Boolean(tokenHash),
+      type,
+      redirectTo,
+      userAgent: request.headers.get('user-agent'),
+    });
     return NextResponse.redirect(`${origin}/connexion?message=lien_expire`);
   }
 }

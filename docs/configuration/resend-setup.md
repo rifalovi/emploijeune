@@ -104,6 +104,39 @@ sortent aussi via Resend (au lieu du SMTP par défaut limité à ~2/h) :
    - Password : la même API key que `RESEND_API_KEY`
 4. Sauvegarder. Tester via **Send test email** (bouton Supabase).
 
+## 3.7 Anti-phishing scanners (Yahoo, Outlook ATP) — point d'attention
+
+Les messageries grand public scannent automatiquement les liens des emails
+classés en spam pour vérifier qu'ils ne mènent pas vers du phishing
+(Yahoo Mail, Outlook ATP, Gmail Safe Browsing dans certains cas). Ce
+scan **suit le lien** côté serveur de la messagerie, ce qui consomme
+les tokens à usage unique avant que l'utilisateur ne clique.
+
+**Symptôme typique** : l'utilisateur reçoit l'email reset password, clique
+dans les minutes qui suivent, et voit `?message=lien_expire` alors que
+l'expiry serveur est à 1 heure.
+
+**Mitigations V1** :
+
+- Le bandeau `lien_expire` sur `/connexion` explique explicitement le
+  problème à l'utilisateur et lui demande de marquer l'email
+  « Pas un spam » + redemander un lien.
+- Les logs serveur du callback `/api/auth/callback` enregistrent le
+  contexte d'échec (paramètres reçus, user-agent) pour faciliter le
+  diagnostic à distance.
+- Documenter dans la communication d'onboarding aux 60 partenaires :
+  « Si vous ne recevez pas l'email d'activation, regardez dans vos
+  spams ; marquez-le « Pas un spam » avant de cliquer sur le lien. »
+
+**Mitigations V1.5/V2** (hors scope hotfix) :
+
+- Système de tokens custom dans une table BDD propre (similaire à
+  `tokens_enquete_publique`) avec validité configurable et indicateur
+  « token vu par scanner » détecté via `User-Agent` (les bots Yahoo
+  utilisent typiquement `Yahoo Mail Proxy` ou `Bingbot/AVG/Symantec` etc.).
+- Si scan détecté : ne PAS consommer le token, juste afficher une page
+  de pré-vérification qui exige un clic utilisateur explicite.
+
 ## 4. Tests de validation
 
 ### 4.1 Tests de délivrabilité (avant onboarding 60 partenaires)

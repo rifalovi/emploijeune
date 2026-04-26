@@ -66,8 +66,15 @@ export function ConnexionForm() {
         </Bandeau>
       )}
       {message === 'lien_invalide' && (
+        <Bandeau ton="erreur">Le lien est invalide. Demandez-en un nouveau ci-dessous.</Bandeau>
+      )}
+      {message === 'lien_expire' && (
         <Bandeau ton="erreur">
-          Le lien de connexion est invalide ou expiré. Réessayez ci-dessous.
+          Ce lien a déjà été utilisé ou a expiré. Cela peut arriver si votre messagerie (Yahoo Mail,
+          Outlook, etc.) a un système anti-phishing qui « pré-clique » les liens dans les emails de
+          spam pour les vérifier — ce pré-clic consomme votre lien à usage unique. Solution :
+          marquez l’email comme « Pas un spam » dans votre messagerie, puis demandez un nouveau lien
+          ci-dessous.
         </Bandeau>
       )}
 

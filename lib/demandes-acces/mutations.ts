@@ -341,6 +341,71 @@ export async function rejeterDemandeAcces(raw: unknown): Promise<RejeterDemandeR
 }
 
 // =============================================================================
+// 4. Server Action admin : supprimerDemandeAcces (rejetées uniquement)
+// =============================================================================
+
+export type SupprimerDemandeResult =
+  | { status: 'succes' }
+  | { status: 'erreur_droits'; message: string }
+  | { status: 'erreur_demande_invalide'; message: string }
+  | { status: 'erreur_inconnue'; message: string };
+
+/**
+ * Supprime DÉFINITIVEMENT une demande d'accès rejetée (hard DELETE).
+ * Réservé admin_scs. Garde-fou : seules les demandes au statut 'rejected'
+ * peuvent être supprimées (pour préserver l'audit des approbations et
+ * empêcher la suppression de demandes pending par erreur).
+ *
+ * Décision V1 : pas de soft-delete pour cette table — la conservation
+ * RGPD 90 jours sera gérée par tâche planifiée V1.5 qui supprimera
+ * automatiquement les rejets > 90j (la suppression manuelle ici est
+ * pour les cas explicites : doublons confirmés, demandes manifestement
+ * frauduleuses purgées immédiatement, nettoyage avant tag).
+ */
+export async function supprimerDemandeAcces(demandeId: string): Promise<SupprimerDemandeResult> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || utilisateur.role !== 'admin_scs') {
+    return { status: 'erreur_droits', message: 'Réservé aux administrateurs SCS.' };
+  }
+  if (
+    !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(demandeId)
+  ) {
+    return { status: 'erreur_demande_invalide', message: 'Identifiant invalide.' };
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  // Garde-fou : on ne supprime QUE si statut='rejected' (audit-friendly).
+  const { data: demande } = await supabase
+    .from('demandes_acces')
+    .select('id, statut')
+    .eq('id', demandeId)
+    .maybeSingle();
+  if (!demande) {
+    return { status: 'erreur_demande_invalide', message: 'Demande introuvable.' };
+  }
+  if (demande.statut !== 'rejected') {
+    return {
+      status: 'erreur_demande_invalide',
+      message:
+        'Seules les demandes rejetées peuvent être supprimées définitivement. Pour annuler une demande approuvée, désactivez le compte associé.',
+    };
+  }
+
+  const { error } = await supabase
+    .from('demandes_acces')
+    .delete()
+    .eq('id', demande.id)
+    .eq('statut', 'rejected'); // double garde anti race condition
+  if (error) {
+    return { status: 'erreur_inconnue', message: error.message };
+  }
+
+  revalidatePath('/admin/demandes-acces');
+  return { status: 'succes' };
+}
+
+// =============================================================================
 // Helpers
 // =============================================================================
 

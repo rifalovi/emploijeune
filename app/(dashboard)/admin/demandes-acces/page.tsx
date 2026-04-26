@@ -7,6 +7,7 @@ import { listDemandesAcces } from '@/lib/demandes-acces/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DemandeAccesActions } from '@/components/demandes-acces/demande-acces-actions';
+import { DemandeAccesSupprimer } from '@/components/demandes-acces/demande-acces-supprimer';
 import { ROLE_DEMANDABLE_LIBELLES } from '@/lib/schemas/demande-acces';
 
 export const metadata: Metadata = {
@@ -108,6 +109,14 @@ export default async function AdminDemandesAccesPage({
                 {d.statut === 'pending' && (
                   <div className="border-t pt-3">
                     <DemandeAccesActions
+                      demandeId={d.id}
+                      demandeurLibelle={`${d.prenom} ${d.nom} (${d.email})`}
+                    />
+                  </div>
+                )}
+                {d.statut === 'rejected' && (
+                  <div className="border-t pt-3">
+                    <DemandeAccesSupprimer
                       demandeId={d.id}
                       demandeurLibelle={`${d.prenom} ${d.nom} (${d.email})`}
                     />
