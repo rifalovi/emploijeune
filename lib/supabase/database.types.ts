@@ -704,6 +704,60 @@ export type Database = {
           },
         ]
       }
+      tokens_enquete_publique: {
+        Row: {
+          id: string
+          token: string
+          cible_type: 'beneficiaire' | 'structure'
+          beneficiaire_id: string | null
+          structure_id: string | null
+          questionnaire: 'A' | 'B'
+          vague_enquete: Database["public"]["Enums"]["vague_enquete"]
+          canal_collecte: Database["public"]["Enums"]["canal_collecte"]
+          projet_code: string | null
+          expire_at: string
+          consomme_at: string | null
+          session_enquete_id: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          token: string
+          cible_type: 'beneficiaire' | 'structure'
+          beneficiaire_id?: string | null
+          structure_id?: string | null
+          questionnaire: 'A' | 'B'
+          vague_enquete?: Database["public"]["Enums"]["vague_enquete"]
+          canal_collecte?: Database["public"]["Enums"]["canal_collecte"]
+          projet_code?: string | null
+          expire_at?: string
+          consomme_at?: string | null
+          session_enquete_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          token?: string
+          cible_type?: 'beneficiaire' | 'structure'
+          beneficiaire_id?: string | null
+          structure_id?: string | null
+          questionnaire?: 'A' | 'B'
+          vague_enquete?: Database["public"]["Enums"]["vague_enquete"]
+          canal_collecte?: Database["public"]["Enums"]["canal_collecte"]
+          projet_code?: string | null
+          expire_at?: string
+          consomme_at?: string | null
+          session_enquete_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+        }
+        Relationships: []
+      }
       secteurs_activite: {
         Row: {
           actif: boolean
