@@ -2,6 +2,48 @@
 
 > Chantiers hors des « 7 Étapes » du cahier des charges qui doivent être suivis pour le succès opérationnel du projet. Rafraîchi à chaque changement majeur.
 
+## V1 Enrichie — À livrer fin avril / début mai 2026
+
+> Décision stratégique 26/04/2026 : Carlos arbitre **« tout en V1 »**
+> (pas de report V1.5). Les modules ci-dessous restent V1 mais sont
+> livrés **après** les Étapes 7, 8, 9 du sprint actuel pour ne pas
+> freiner la cadence. Délai cible : 5-7 jours après V1 stable, **avant**
+> ouverture du pilote 60 partenaires.
+
+### V1-Enrichie-A — Demandes d'accès auto-service
+
+- **Contexte** : V1 actuelle exige que toutes les créations de comptes
+  passent par `admin_scs` via `/admin/utilisateurs`. Soutenable sur 60
+  partenaires bien identifiés mais bloquant si la liste évolue (nouveaux
+  partenaires en cours d'année, rotation interne SCS, etc.). Cf.
+  [`docs/decisions-strategiques/v1-vs-v1-5.md`](decisions-strategiques/v1-vs-v1-5.md).
+- **Action** : ouvrir une page publique `/demande-acces` avec formulaire :
+  - Email professionnel (validation regex + détection doublon Auth)
+  - Prénom, nom (regex unicode)
+  - Organisation (texte libre + suggestion via auto-complete sur
+    `public.organisations` existantes)
+  - Rôle souhaité (`chef_projet` ou `contributeur_partenaire`)
+  - Projet(s) concerné(s) (Select multi-sélection)
+  - Message libre justifiant la demande (max 500 chars)
+- **Anti-spam** : captcha (hCaptcha ou Cloudflare Turnstile, free tier) +
+  rate-limit 3 demandes/IP/jour côté middleware.
+- **Workflow** :
+  1. Soumission → INSERT dans nouvelle table `public.demandes_acces`
+     (statut='en_attente', metadata RGPD).
+  2. Notification SCS (email + badge sidebar) → consultable sur
+     `/admin/demandes-acces`.
+  3. Action SCS : approuver (déclenche `creerCompteUtilisateur` avec
+     les infos pré-remplies) ou rejeter (raison obligatoire).
+  4. Email automatique au demandeur (acceptation avec lien d'activation
+     OU rejet avec raison).
+- **Audit RGPD** : conservation 90 jours des demandes rejetées,
+  anonymisation au-delà (sauf rejet pour fraude → conservation 1 an).
+- **Estimation** : 6-8 h dev (table + RLS + page publique + UI admin
+  + workflow email + captcha + tests).
+- **Priorité** : haute pour V1 enrichie. À planifier juste après tag
+  `v0.9.0-etape-9-complete` (étapes 7/8/9 livrées).
+- **Hors scope V1 enrichie** : SSO, intégration LDAP DSI OIF (V2 avec DSI).
+
 ## V1.5 — Roadmap post-pilote (juillet-août 2026)
 
 > Décision stratégique du 25/04/2026 (cf. [docs/decisions-strategiques/v1-vs-v1-5.md](decisions-strategiques/v1-vs-v1-5.md)) : la V1 livrée juin 2026 reste minimale et stable pour le pilote 60 partenaires. Les 5 tickets ci-dessous enrichissent le module enquêtes après retours terrain.
@@ -235,3 +277,4 @@ Retour N+1 du 24 avril 2026. Voir : [docs/retours-hierarchie/andre-24-avril-2026
 | 1.2 | 2026-04-25 | Ajout section Étape 9 — exigences dashboards (retour André 24/04) : 4 piliers Cadre Commun + transversal F1, dashboard public épuré, maquette blanche extraite du produit. Ticket V1.5 partenaire structures. |
 | 1.3 | 2026-04-25 | Ajout 3 tickets V1.5 post-cadrage Étape 6 : questionnaire C dédié, module F1 transversal autonome, saisie indicateurs D1-D3 (revue documentaire). |
 | 1.4 | 2026-04-26 | Section principale « V1.5 — Roadmap post-pilote » avec 5 tickets V1.5-A à V1.5-E (rappel/relance, espaces enrichis Coordo + Structure, templates multi-langues, journal emails). Décision stratégique V1/V1.5 actée — cf. `docs/decisions-strategiques/v1-vs-v1-5.md`. |
+| 1.5 | 2026-04-26 | Ajout section « V1 Enrichie » avec ticket V1-Enrichie-A (Demandes d'accès auto-service). Arbitrage Carlos « tout en V1 » — module à livrer après les Étapes 7/8/9 mais avant ouverture pilote 60 partenaires. |
