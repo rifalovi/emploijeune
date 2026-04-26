@@ -7,6 +7,8 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { creerCompteUtilisateurSchema } from '@/lib/schemas/utilisateur';
 import { envoyerEmail } from '@/lib/email/envoyer';
+import { templateInvitationCompte, templateResetMotPasse } from '@/lib/email/templates';
+import { ROLE_CREABLE_LIBELLES } from '@/lib/schemas/utilisateur';
 
 export type CreerCompteResult =
   | {
@@ -134,18 +136,19 @@ export async function creerCompteUtilisateur(raw: unknown): Promise<CreerCompteR
 
   const lienActivation = linkData.properties.action_link;
 
-  // Étape 6 : email d'invitation (MOCK V1 → Resend V1.5)
-  const html = construireHtmlInvitation({
+  // Étape 6 : email d'invitation (template centralisé Étape 6.5d)
+  const roleLibelle =
+    ROLE_CREABLE_LIBELLES[data.role as keyof typeof ROLE_CREABLE_LIBELLES] ?? data.role;
+  const tpl = templateInvitationCompte({
     prenom: data.prenom,
+    roleLibelle,
     lienActivation,
-    rolelibelle: data.role,
   });
-
   const envoi = await envoyerEmail({
     to: data.email,
-    subject: 'Activation de votre compte — Plateforme OIF Emploi Jeunes',
-    html,
-    text: `Bonjour ${data.prenom},\n\nVotre compte sur la plateforme OIF Emploi Jeunes a été créé. Activez-le en cliquant sur ce lien (valable 24 h) :\n\n${lienActivation}\n\nCordialement,\nLe SCS — Service de Conception et Suivi de projet`,
+    subject: tpl.subject,
+    html: tpl.html,
+    text: tpl.text,
   });
 
   revalidatePath('/admin/utilisateurs');
@@ -226,11 +229,15 @@ export async function reinitialiserMotPasseUtilisateur(
   }
   const lienActivation = linkData.properties.action_link;
 
+  const tplReset = templateResetMotPasse({
+    prenom: u.nom_complet.split(' ')[0] ?? '',
+    lienReset: lienActivation,
+  });
   const envoi = await envoyerEmail({
     to: email,
-    subject: 'Réinitialisation de votre mot de passe — Plateforme OIF Emploi Jeunes',
-    html: construireHtmlReset({ prenom: u.nom_complet.split(' ')[0] ?? '', lienActivation }),
-    text: `Bonjour,\n\nUn lien de réinitialisation de votre mot de passe a été demandé. Cliquez ici (valable 1 h) :\n\n${lienActivation}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.`,
+    subject: tplReset.subject,
+    html: tplReset.html,
+    text: tplReset.text,
   });
 
   return {
@@ -238,56 +245,4 @@ export async function reinitialiserMotPasseUtilisateur(
     lienActivation,
     emailEnvoi: envoi.status === 'envoye' ? 'envoye' : 'mock',
   };
-}
-
-// =============================================================================
-// Templates HTML simples (à enrichir branding OIF en V1.5-D)
-// =============================================================================
-
-function construireHtmlInvitation(args: {
-  prenom: string;
-  lienActivation: string;
-  rolelibelle: string;
-}): string {
-  return `
-    <div style="font-family: Inter, system-ui, sans-serif; max-width: 560px; margin: 0 auto; color: #1f2937;">
-      <h1 style="font-size: 20px; margin-bottom: 8px;">Bienvenue sur la plateforme OIF Emploi Jeunes</h1>
-      <p>Bonjour <strong>${escapeHtml(args.prenom)}</strong>,</p>
-      <p>Le Service de Conception et Suivi de projet vient de créer un compte à votre nom sur la plateforme OIF Emploi Jeunes. Votre rôle : <strong>${escapeHtml(args.rolelibelle)}</strong>.</p>
-      <p>Pour activer votre compte et choisir votre mot de passe, cliquez sur le lien ci-dessous (valable 24 h) :</p>
-      <p style="margin: 24px 0;">
-        <a href="${args.lienActivation}" style="display: inline-block; background: #1f6feb; color: #fff; padding: 12px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">
-          Activer mon compte
-        </a>
-      </p>
-      <p style="color: #6b7280; font-size: 13px;">Si le bouton ne fonctionne pas, copiez-collez cette URL :<br><code style="word-break: break-all;">${args.lienActivation}</code></p>
-      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-      <p style="color: #6b7280; font-size: 12px;">Si vous pensez avoir reçu cet email par erreur, ignorez-le et contactez le SCS.</p>
-    </div>
-  `.trim();
-}
-
-function construireHtmlReset(args: { prenom: string; lienActivation: string }): string {
-  return `
-    <div style="font-family: Inter, system-ui, sans-serif; max-width: 560px; margin: 0 auto; color: #1f2937;">
-      <h1 style="font-size: 20px; margin-bottom: 8px;">Réinitialisation de votre mot de passe</h1>
-      <p>Bonjour ${args.prenom ? `<strong>${escapeHtml(args.prenom)}</strong>` : ''},</p>
-      <p>Un lien de réinitialisation de votre mot de passe a été demandé. Cliquez ci-dessous (valable 1 h) :</p>
-      <p style="margin: 24px 0;">
-        <a href="${args.lienActivation}" style="display: inline-block; background: #1f6feb; color: #fff; padding: 12px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">
-          Réinitialiser mon mot de passe
-        </a>
-      </p>
-      <p style="color: #6b7280; font-size: 13px;">Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.</p>
-    </div>
-  `.trim();
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }

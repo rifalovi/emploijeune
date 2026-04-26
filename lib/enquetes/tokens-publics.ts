@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { envoyerEmail } from '@/lib/email/envoyer';
+import { templateInvitationEnquete } from '@/lib/email/templates';
 import type { Json } from '@/lib/supabase/database.types';
 import {
   soumissionQuestionnaireASchema,
@@ -216,17 +217,18 @@ export async function genererTokenEnquete(input: GenererTokenInput): Promise<Gen
   const destinataire = input.emailDestinataire ?? emailCible;
 
   if (destinataire) {
-    const html = construireHtmlInvitationEnquete({
+    const tpl = templateInvitationEnquete({
       cibleLibelle,
+      nomProjet: projetCible,
+      questionnaire,
       url,
       expireAt,
-      questionnaire,
     });
     const envoi = await envoyerEmail({
       to: destinataire,
-      subject: `Enquête OIF Emploi Jeunes — ${cibleLibelle}`,
-      html,
-      text: `Bonjour,\n\nVous êtes invité(e) à participer à l'enquête de suivi OIF Emploi Jeunes.\n\nLien d'accès (valable jusqu'au ${expireAt.toLocaleDateString('fr-FR')}, 1 seule réponse possible) :\n${url}\n\nCordialement,\nLe SCS — Service de Conception et Suivi de projet`,
+      subject: tpl.subject,
+      html: tpl.html,
+      text: tpl.text,
     });
     if (envoi.status === 'mock') {
       emailEnvoi = 'mock';
@@ -417,45 +419,4 @@ export async function soumettreEnquetePublique(
   }
 
   return { status: 'succes', session_id: sessionId, indicateurs: [...indicateurs] };
-}
-
-// =============================================================================
-// Template HTML invitation enquête publique
-// =============================================================================
-
-function construireHtmlInvitationEnquete(args: {
-  cibleLibelle: string;
-  url: string;
-  expireAt: Date;
-  questionnaire: 'A' | 'B';
-}): string {
-  const dureeMin = args.questionnaire === 'A' ? '5 à 10' : '5 à 8';
-  return `
-    <div style="font-family: Inter, system-ui, sans-serif; max-width: 560px; margin: 0 auto; color: #1f2937;">
-      <h1 style="font-size: 20px; margin-bottom: 8px;">Enquête OIF Emploi Jeunes</h1>
-      <p>Bonjour <strong>${escapeHtml(args.cibleLibelle)}</strong>,</p>
-      <p>Dans le cadre du suivi des projets de l'Organisation Internationale de la Francophonie (OIF), nous vous invitons à répondre à un court questionnaire (${dureeMin} minutes).</p>
-      <p>Vos réponses sont confidentielles et serviront uniquement au pilotage des actions.</p>
-      <p style="margin: 24px 0;">
-        <a href="${args.url}" style="display: inline-block; background: #1f6feb; color: #fff; padding: 12px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">
-          Démarrer le questionnaire
-        </a>
-      </p>
-      <p style="color: #6b7280; font-size: 13px;">
-        Lien valable jusqu'au <strong>${args.expireAt.toLocaleDateString('fr-FR', { dateStyle: 'long' })}</strong>. Une seule réponse par lien.
-      </p>
-      <p style="color: #6b7280; font-size: 13px;">Si le bouton ne fonctionne pas, copiez-collez :<br><code style="word-break: break-all;">${args.url}</code></p>
-      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-      <p style="color: #6b7280; font-size: 12px;">Si vous pensez avoir reçu cet email par erreur, ignorez-le. Pour plus d'informations, contactez votre coordonnateur de projet OIF.</p>
-    </div>
-  `.trim();
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
