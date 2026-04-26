@@ -109,7 +109,7 @@ export function DialogueCreerUtilisateur({
         <UserPlus aria-hidden className="size-4" />
         Créer un compte
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="flex max-h-[90vh] max-w-lg flex-col overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Créer un compte utilisateur</DialogTitle>
           <DialogDescription>
@@ -252,7 +252,7 @@ export function DialogueCreerUtilisateur({
                       le rattachement organisation-projet, créez d’abord l’organisation depuis
                       Supabase puis sélectionnez le contributeur.)
                     </FormDescription>
-                    <div className="grid grid-cols-2 gap-1.5 rounded-md border p-2">
+                    <div className="grid max-h-[200px] grid-cols-2 gap-1.5 overflow-y-auto rounded-md border p-2">
                       {projets.map((p) => {
                         const checked = (field.value ?? []).includes(p.code);
                         return (
