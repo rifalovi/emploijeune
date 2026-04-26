@@ -11,6 +11,7 @@ import { EnqueteTable } from '@/components/enquetes/enquete-table';
 import { EnquetePagination } from '@/components/enquetes/enquete-pagination';
 import { EnqueteEmptyState } from '@/components/enquetes/enquete-empty-state';
 import { BoutonExporterEnquetes } from '@/components/enquetes/bouton-exporter';
+import { DialogueLancerVague } from '@/components/enquetes/dialogue-lancer-vague';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -79,6 +80,7 @@ export default async function EnquetesPage({ searchParams }: PageProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {peutExporter && <BoutonExporterEnquetes totalDisponible={result.total} />}
+          {peutCreer && <DialogueLancerVague projets={projetsOptions} />}
           {peutCreer && (
             <Link href="/enquetes/nouvelle" className={cn(buttonVariants({ variant: 'default' }))}>
               <Plus aria-hidden className="size-4" />
