@@ -228,7 +228,17 @@ function FormulaireMagicLink({
     });
 
     if (error) {
-      toast.error("Impossible d'envoyer le lien", { description: error.message });
+      // Traduit les erreurs Supabase en messages métier clairs
+      // (cf. hotfix 6.5h — l'erreur native "Signups not allowed for otp"
+      //  arrive quand l'email n'existe pas dans auth.users avec
+      //  shouldCreateUser=false).
+      const msg = error.message ?? '';
+      const description = /signups? not allowed/i.test(msg)
+        ? "Aucun compte n'est associé à cette adresse. Contactez le SCS pour qu'un administrateur vous crée un accès."
+        : /rate limit|too many/i.test(msg)
+          ? 'Trop de demandes. Patientez quelques minutes avant de réessayer.'
+          : msg;
+      toast.error('Impossible d’envoyer le lien', { description });
       return;
     }
     setSent(true);
