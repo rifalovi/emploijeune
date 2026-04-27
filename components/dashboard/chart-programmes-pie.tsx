@@ -58,20 +58,14 @@ export function ChartProgrammesPie({ data }: { data: Donnee[] }) {
                 cx="50%"
                 cy="50%"
                 outerRadius={90}
+                isAnimationActive={false}
+                label={false}
                 labelLine={false}
-                label={(props) => {
-                  // Hotfix v1.5.0 : n'affiche le label QUE si la slice
-                  // dépasse 5% — sinon les slices minuscules (ex. PS1=1%
-                  // PS2=1%) se chevauchent et deviennent illisibles. Les
-                  // valeurs précises restent visibles dans le tooltip et la
-                  // légende.
-                  const p = props as unknown as { code?: string; beneficiaires?: number };
-                  const code = p.code ?? '';
-                  const nb = p.beneficiaires ?? 0;
-                  const pct = Math.round((nb / total) * 100);
-                  if (pct < 5) return '';
-                  return `${code} ${pct}%`;
-                }}
+                // Hotfix v1.5.1.1 — Suppression radicale des labels internes :
+                // la répartition réelle (PS3=98%, PS1=1%, PS2=1%) rendait les
+                // labels mathématiquement chevauchants. Lecture désormais via
+                // tooltip au survol + légende sous le graphique. Aucun texte
+                // par-dessus le pie.
               >
                 {data.map((d) => (
                   <Cell key={d.code} fill={COULEURS_PS[d.code] ?? 'hsl(var(--muted))'} />
