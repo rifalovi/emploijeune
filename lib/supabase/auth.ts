@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import type { User } from '@supabase/supabase-js';
 import { createSupabaseServerClient } from './server';
 import { createSupabaseAdminClient } from './admin';
@@ -31,8 +32,29 @@ export async function getAuthUser(): Promise<User | null> {
  * Récupère le profil métier (ligne dans public.utilisateurs) de l'utilisateur
  * courant. Retourne null si pas authentifié ou si aucune ligne utilisateur
  * n'existe encore (bootstrap pas fait).
+ *
+ * **Garde view-as (V1.1.5)** : si l'admin SCS est en mode view-as, cette
+ * fonction THROW par défaut (sécurité écriture stricte). Les helpers de
+ * lecture (layout, dashboard) doivent passer `{ allowViewAs: true }` pour
+ * autoriser le retour normal pendant le rendu.
+ *
+ * Cette garde centralisée protège automatiquement toutes les Server Actions
+ * qui utilisent `getCurrentUtilisateur()` comme pré-condition (~30 actions
+ * au moment de la livraison V1.1.5) sans modification fichier par fichier.
  */
-export async function getCurrentUtilisateur(): Promise<UtilisateurProfile | null> {
+export async function getCurrentUtilisateur(
+  options: { allowViewAs?: boolean } = {},
+): Promise<UtilisateurProfile | null> {
+  if (!options.allowViewAs) {
+    const cookieStore = await cookies();
+    const viewAsRaw = cookieStore.get('oif_view_as')?.value;
+    if (viewAsRaw) {
+      throw new Error(
+        'Action impossible en mode visualisation (view-as). Cliquez sur « Revenir à mon admin » pour reprendre votre session.',
+      );
+    }
+  }
+
   const supabase = await createSupabaseServerClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return null;
@@ -99,7 +121,11 @@ export async function requireUtilisateurValide(): Promise<UtilisateurProfile> {
   const user = await getAuthUser();
   if (!user) redirect('/connexion');
 
-  const profile = await getCurrentUtilisateur();
+  // allowViewAs: true → ce helper est utilisé par les layouts/pages (rendu),
+  // pas par les Server Actions mutantes. La garde view-as ne s'applique pas
+  // ici (sinon le rendu casserait). Les Server Actions appellent directement
+  // getCurrentUtilisateur() (sans options) qui throw en mode view-as.
+  const profile = await getCurrentUtilisateur({ allowViewAs: true });
   if (!profile) {
     // Pas de ligne métier (cas limite : session active mais bootstrap non fait).
     // On lance le bootstrap ici par sécurité.

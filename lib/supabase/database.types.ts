@@ -1327,6 +1327,10 @@ export type Database = {
             }[]
           }
       get_indicateurs_oif_v1: { Args: { p_periode?: string }; Returns: Json }
+      get_indicateurs_oif_v1_for_user: {
+        Args: { p_target_user_id: string; p_periode?: string }
+        Returns: Json
+      }
       get_kpis_dashboard: { Args: never; Returns: Json }
       get_kpis_dashboard_admin_scs: { Args: never; Returns: Json }
       get_kpis_dashboard_contributeur_partenaire: { Args: never; Returns: Json }

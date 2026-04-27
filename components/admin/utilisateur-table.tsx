@@ -4,7 +4,7 @@ import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { MoreVertical, KeyRound, Power, Pencil } from 'lucide-react';
+import { MoreVertical, KeyRound, Power, Pencil, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { reinitialiserMotPasseUtilisateur, toggleCompteActif } from '@/lib/utilisateurs/mutations';
+import { assumerVueUtilisateur } from '@/lib/auth/view-as-actions';
 import type { UtilisateurListItem } from '@/lib/utilisateurs/queries';
 import { cn } from '@/lib/utils';
 
@@ -108,6 +109,21 @@ function UtilisateurRow({ row }: { row: UtilisateurListItem }) {
     });
   };
 
+  const handleVoirComme = () => {
+    startTransition(async () => {
+      const result = await assumerVueUtilisateur(row.user_id);
+      if (result.status === 'succes') {
+        toast.success(`Vue de ${result.targetNomComplet} activée`, {
+          description: 'Mode visualisation 30 min — toutes les écritures sont bloquées.',
+        });
+        router.push('/dashboard');
+        router.refresh();
+      } else if ('message' in result) {
+        toast.error(result.message);
+      }
+    });
+  };
+
   const roleLib = ROLE_LIBELLES_AFFICHAGE[row.role] ?? row.role;
 
   return (
@@ -141,6 +157,10 @@ function UtilisateurRow({ row }: { row: UtilisateurListItem }) {
             >
               <Pencil aria-hidden className="size-4" />
               Modifier les détails
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleVoirComme} disabled={pending || !row.actif}>
+              <Eye aria-hidden className="size-4" />
+              Voir comme cet utilisateur
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleReinit} disabled={pending}>
               <KeyRound aria-hidden className="size-4" />
