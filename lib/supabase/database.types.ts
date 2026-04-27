@@ -19,6 +19,7 @@ export type Database = {
           annee_formation: number
           commentaire: string | null
           consentement_date: string | null
+          consentement_origine: string | null
           consentement_recueilli: boolean
           courriel: string | null
           created_at: string
@@ -33,7 +34,10 @@ export type Database = {
           fonction_actuelle: string | null
           id: string
           identifiant_externe: string | null
+          import_batch: string | null
           import_batch_id: string | null
+          import_index: number | null
+          import_source: string | null
           intitule_formation: string | null
           localite_residence: string | null
           modalite_formation_code: string | null
@@ -54,6 +58,7 @@ export type Database = {
           annee_formation: number
           commentaire?: string | null
           consentement_date?: string | null
+          consentement_origine?: string | null
           consentement_recueilli?: boolean
           courriel?: string | null
           created_at?: string
@@ -68,7 +73,10 @@ export type Database = {
           fonction_actuelle?: string | null
           id?: string
           identifiant_externe?: string | null
+          import_batch?: string | null
           import_batch_id?: string | null
+          import_index?: number | null
+          import_source?: string | null
           intitule_formation?: string | null
           localite_residence?: string | null
           modalite_formation_code?: string | null

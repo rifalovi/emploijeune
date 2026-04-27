@@ -1,0 +1,83 @@
+{
+  "totaux": {
+    "beneficiaires": 5618,
+    "structures": 341
+  },
+  "beneficiaires": {
+    "projets": {
+      "P14": 4626,
+      "P18": 118,
+      "P19": 427,
+      "P6": 51,
+      "P13": 57,
+      "P16a": 339
+    },
+    "pays_top15": {
+      "Mali": 754,
+      "Bénin": 593,
+      "Burkina Faso": 486,
+      "Cameroun": 439,
+      "Togo": 348,
+      "Rwanda": 305,
+      "Liban": 238,
+      "Côte d'Ivoire": 218,
+      "Sénégal": 206,
+      "Congo": 196,
+      "Madagascar": 181,
+      "Burundi": 154,
+      "Cambodge": 128,
+      "Niger": 125,
+      "Congo RD": 116
+    },
+    "pays_total": 51,
+    "sexes": {
+      "F": 5025,
+      "H": 487
+    },
+    "annees": {
+      "2023": 634,
+      "2024": 2286,
+      "2025": 2509
+    }
+  },
+  "structures": {
+    "projets": {
+      "P14": 157,
+      "P19": 16,
+      "P15": 58,
+      "P20": 34,
+      "P17": 19,
+      "P16a": 57
+    },
+    "pays_top15": {
+      "France": 28,
+      "Bénin": 24,
+      "Haïti": 22,
+      "Togo": 21,
+      "Madagascar": 18,
+      "Liban": 17,
+      "Comores": 14,
+      "Cambodge": 12,
+      "Cameroun": 11,
+      "Sénégal": 11,
+      "Gabon": 10,
+      "Djibouti": 9,
+      "Cameroon": 9,
+      "Côte d'Ivoire": 8,
+      "Congo": 8
+    },
+    "pays_total": 52,
+    "secteurs_top10": {
+      "Agriculture, sylviculture et pêche": 36,
+      "Education et formation": 5,
+      "Services et artisanat": 5,
+      "Commerce": 4,
+      "TIC": 4,
+      "Santé, SSR et services sociaux": 3,
+      "Agriculture, agroalimentaire et pêche / Accès aux financements et entrepreneuriat féminin": 3,
+      "Agriculture, sylviculture et pêche, Services financiers": 2,
+      "Agriculture, sylviculture et pêche, Commerce": 2,
+      "Agriculture, sylviculture et pêche, Energie et environnement": 2
+    }
+  }
+}
