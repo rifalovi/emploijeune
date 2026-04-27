@@ -8,6 +8,7 @@ import { DashboardContributeur } from '@/components/dashboard/dashboard-contribu
 import { DashboardLecteur } from '@/components/dashboard/dashboard-lecteur';
 import { KpiGridOif } from '@/components/dashboard/kpi-grid-oif';
 import { ChartProjetsBar } from '@/components/dashboard/chart-projets-bar';
+import { ChartPaysBar } from '@/components/dashboard/chart-pays-bar';
 import { ChartProgrammesPie } from '@/components/dashboard/chart-programmes-pie';
 import { ActiviteRecenteFeed } from '@/components/dashboard/activite-recente-feed';
 import { SelecteurPeriode } from '@/components/dashboard/selecteur-periode';
@@ -134,6 +135,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
               <ChartProjetsBar data={oif.bar_projets} />
               <ChartProgrammesPie data={oif.pie_programmes} />
             </div>
+            <ChartPaysBar data={oif.bar_pays ?? []} />
             <ActiviteRecenteFeed evenements={activite} periodeLibelle={PERIODE_LIBELLES[periode]} />
           </>
         ) : (

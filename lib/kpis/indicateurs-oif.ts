@@ -53,6 +53,18 @@ export const indicateursOifSchema = z.object({
       beneficiaires: z.number(),
     }),
   ),
+  // Hotfix v1.2.7 — Top 10 pays par bénéficiaires (KPI clé démo).
+  // Optional pour rétrocompat avec les BDD non encore migrées.
+  bar_pays: z
+    .array(
+      z.object({
+        code: z.string(),
+        libelle: z.string().nullable(),
+        beneficiaires: z.number(),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 export type IndicateursOif = z.infer<typeof indicateursOifSchema>;
