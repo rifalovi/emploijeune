@@ -136,6 +136,13 @@ Le format `*.local` est :
 - `type_structure_code`, `secteur_activite_code`, `nature_appui_code` :
   valeur défaut `AUTRE`. Le `secteur` libre du CSV est conservé dans
   `secteur_precis`.
+- **`devise_code` par défaut `EUR`** (hotfix v1.2.6.3) : la base de
+  sondage OIF fournit `montant_appui` sans `devise_code`. Décision
+  Carlos confirmée : les montants sont implicitement en euros
+  (financement OIF, siège Paris). La fonction
+  `upsert_structure_import` applique ce défaut quand un montant est
+  présent sans devise. Si le montant est NULL, la devise reste NULL
+  (cohérence avec `chk_structures_montant_devise`).
 
 Ces compromis V1 permettent de respecter les contraintes NOT NULL de
 la BDD sans perdre les données disponibles. Les coordonnateurs
