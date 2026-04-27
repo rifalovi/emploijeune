@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Send, AlertTriangle, CheckCircle2, Search, Loader2 } from 'lucide-react';
+import { Save, Send, AlertTriangle, CheckCircle2, Loader2, ListChecks } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -28,8 +28,10 @@ import {
   creerCampagneBrouillon,
   lancerCampagne,
   listerStrate,
+  listerStrateIds,
   type ListerStrateLigne,
 } from '@/lib/campagnes/server-actions';
+import { ListeCiblesRevue } from './liste-cibles-revue';
 
 type Mode = 'toutes' | 'filtres' | 'manuelle';
 type Questionnaire = 'A' | 'B';
@@ -46,11 +48,14 @@ type ApercuStrate = {
   sans_consentement: number;
 } | null;
 
+const TAILLE_PAGE = 50;
+
 export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
   const router = useRouter();
   const [pendingAction, startAction] = useTransition();
   const [pendingApercu, startApercu] = useTransition();
   const [pendingListe, startListe] = useTransition();
+  const [pendingInit, startInit] = useTransition();
 
   // ─── Étape 1 : type de campagne ──────────────────────────────────────────
   const [questionnaire, setQuestionnaire] = useState<Questionnaire>('A');
@@ -66,15 +71,20 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
   const [filtreSexe, setFiltreSexe] = useState<string>('');
   const [consentementSeul, setConsentementSeul] = useState<boolean>(true);
 
-  // Mode manuel
+  // Liste paginée des cibles (mode manuel + mode filtres avec révision)
   const [recherche, setRecherche] = useState<string>('');
   const [page, setPage] = useState<number>(0);
   const [lignes, setLignes] = useState<ListerStrateLigne[]>([]);
-  const [totalManuel, setTotalManuel] = useState<number>(0);
-  const [selection, setSelection] = useState<Set<string>>(new Set());
-  const TAILLE_PAGE = 50;
+  const [totalListe, setTotalListe] = useState<number>(0);
 
-  // Aperçu compteurs
+  // Sélection : UUID des cibles cochées (pour les modes manuel + filtres+revue)
+  const [selection, setSelection] = useState<Set<string>>(new Set());
+
+  // Pool « éligibles » : tous les UUID issus du filtre courant (mode filtres)
+  // — sert à savoir si l'utilisateur a tout coché ou décoché certains.
+  const [idsEligibles, setIdsEligibles] = useState<Set<string>>(new Set());
+
+  // Aperçu compteurs (pour mode filtres)
   const [apercu, setApercu] = useState<ApercuStrate>(null);
 
   // ─── Étape 3 : paramètres envoi ──────────────────────────────────────────
@@ -83,11 +93,8 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
 
   // ─── Filtres en JSONB pour la SQL ─────────────────────────────────────────
   const filtresJsonb = useMemo(() => {
-    if (mode === 'toutes') return {};
-    if (mode === 'manuelle') return {};
-    const obj: Record<string, unknown> = {
-      consentement_acquis_seul: consentementSeul,
-    };
+    if (mode === 'toutes' || mode === 'manuelle') return {};
+    const obj: Record<string, unknown> = { consentement_acquis_seul: consentementSeul };
     if (filtreProjets.length > 0) obj.projets = filtreProjets;
     if (filtrePays.length > 0) obj.pays = filtrePays;
     if (filtreAnnees.length > 0) {
@@ -97,15 +104,20 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
     return obj;
   }, [mode, filtreProjets, filtrePays, filtreAnnees, filtreSexe, consentementSeul, questionnaire]);
 
-  // ─── Recharge apercu à chaque changement de strate (debounce 250ms) ──────
+  // ─── Reset à chaque changement de questionnaire ou de mode ────────────────
   useEffect(() => {
-    if (mode === 'manuelle') {
-      setApercu({
-        total: lignes.length === 0 ? 0 : totalManuel,
-        avec_email: selection.size,
-        sans_email: 0,
-        sans_consentement: 0,
-      });
+    setSelection(new Set());
+    setIdsEligibles(new Set());
+    setLignes([]);
+    setTotalListe(0);
+    setRecherche('');
+    setPage(0);
+  }, [questionnaire, mode]);
+
+  // ─── Compteurs aperçu (mode filtres uniquement, debounce 250ms) ──────────
+  useEffect(() => {
+    if (mode !== 'filtres') {
+      setApercu(null);
       return;
     }
     const timer = setTimeout(() => {
@@ -124,25 +136,52 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
       });
     }, 250);
     return () => clearTimeout(timer);
-  }, [questionnaire, mode, filtresJsonb, lignes.length, totalManuel, selection.size]);
+  }, [questionnaire, mode, filtresJsonb]);
 
-  // ─── Mode manuel : charge la page courante ───────────────────────────────
+  // ─── Mode FILTRES : pré-cocher tous les UUID éligibles à chaque changement
+  // de filtre. Utilise lister_strate_ids (RPC légère).
   useEffect(() => {
-    if (mode !== 'manuelle') return;
+    if (mode !== 'filtres') return;
+    const timer = setTimeout(() => {
+      startInit(async () => {
+        const r = await listerStrateIds(questionnaire, filtresJsonb);
+        if (r.status === 'succes') {
+          const ids = new Set(r.ids);
+          setIdsEligibles(ids);
+          // Pré-coche tout (l'utilisateur peut décocher individuellement)
+          setSelection(ids);
+          setPage(0);
+        } else {
+          setIdsEligibles(new Set());
+          setSelection(new Set());
+        }
+      });
+    }, 350); // debounce un peu plus long que l'aperçu
+    return () => clearTimeout(timer);
+  }, [mode, questionnaire, filtresJsonb]);
+
+  // ─── Charge la liste paginée (mode manuel ET mode filtres) ────────────────
+  useEffect(() => {
+    if (mode === 'toutes') return;
     startListe(async () => {
-      const r = await listerStrate(questionnaire, {}, recherche, TAILLE_PAGE, page * TAILLE_PAGE);
+      const r = await listerStrate(
+        questionnaire,
+        mode === 'filtres' ? filtresJsonb : {},
+        recherche,
+        TAILLE_PAGE,
+        page * TAILLE_PAGE,
+      );
       if (r.status === 'succes') {
         setLignes(r.lignes);
-        setTotalManuel(r.total);
+        setTotalListe(r.total);
+      } else {
+        // Surface l'erreur pour faciliter le debug terrain
+        toast.error(`Chargement liste : ${r.message}`, { duration: 8000 });
+        setLignes([]);
+        setTotalListe(0);
       }
     });
-  }, [mode, questionnaire, recherche, page]);
-
-  // Reset sélection si changement de questionnaire ou de mode
-  useEffect(() => {
-    setSelection(new Set());
-    setPage(0);
-  }, [questionnaire, mode]);
+  }, [mode, questionnaire, filtresJsonb, recherche, page]);
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
   const toggleSelection = (id: string) => {
@@ -158,7 +197,7 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
     setSelection((s) => {
       const ns = new Set(s);
       const idsPage = lignes.map((l) => l.id);
-      const tousCoches = idsPage.every((id) => ns.has(id));
+      const tousCoches = idsPage.length > 0 && idsPage.every((id) => ns.has(id));
       for (const id of idsPage) {
         if (tousCoches) ns.delete(id);
         else ns.add(id);
@@ -167,22 +206,59 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
     });
   };
 
-  const construirePayload = (statutCible: 'brouillon' | 'lancer') => ({
-    nom,
-    description,
-    questionnaire,
-    type_vague: typeVague,
-    mode_selection: mode,
-    filtres: mode === 'filtres' ? filtresJsonb : {},
-    cibles_manuelles: mode === 'manuelle' ? Array.from(selection) : undefined,
-    plafond,
-    email_test_override: emailOverride || undefined,
-    _action: statutCible,
-  });
+  const onPageChange = (p: number) => {
+    setPage(p);
+  };
+
+  const onRechercheChange = (q: string) => {
+    setRecherche(q);
+    setPage(0);
+  };
+
+  /**
+   * Construction du payload selon le mode et la sélection effective.
+   * Logique senior : si l'utilisateur a décoché des cibles en mode filtres,
+   * on bascule vers `manuelle` avec `cibles_manuelles` = sélection cochée.
+   * Sinon (toutes cochées), on garde `filtres` qui utilise les filtres SQL.
+   */
+  const construirePayload = () => {
+    let modeEffectif: Mode = mode;
+    let ciblesManuelles: string[] | undefined;
+
+    if (mode === 'manuelle') {
+      modeEffectif = 'manuelle';
+      ciblesManuelles = Array.from(selection);
+    } else if (mode === 'filtres') {
+      // Si la sélection diffère du pool éligible (décoche manuelle),
+      // on bascule vers mode manuelle.
+      const decochesPresents = idsEligibles.size > 0 && selection.size < idsEligibles.size;
+      if (decochesPresents) {
+        modeEffectif = 'manuelle';
+        ciblesManuelles = Array.from(selection);
+      } else {
+        modeEffectif = 'filtres';
+        ciblesManuelles = undefined;
+      }
+    } else {
+      modeEffectif = mode;
+    }
+
+    return {
+      nom,
+      description,
+      questionnaire,
+      type_vague: typeVague,
+      mode_selection: modeEffectif,
+      filtres: modeEffectif === 'filtres' ? filtresJsonb : {},
+      cibles_manuelles: ciblesManuelles,
+      plafond,
+      email_test_override: emailOverride || undefined,
+    };
+  };
 
   const handleSauvegarder = () => {
     startAction(async () => {
-      const r = await creerCampagneBrouillon(construirePayload('brouillon'));
+      const r = await creerCampagneBrouillon(construirePayload());
       if (r.status === 'succes') {
         toast.success('Brouillon enregistré', {
           description: `Campagne « ${nom} » sauvegardée. Vous pourrez la lancer plus tard.`,
@@ -201,7 +277,7 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
 
   const handleLancer = () => {
     startAction(async () => {
-      const creation = await creerCampagneBrouillon(construirePayload('lancer'));
+      const creation = await creerCampagneBrouillon(construirePayload());
       if (creation.status !== 'succes') {
         if (creation.status === 'erreur_validation') {
           toast.error(`${creation.issues.length} erreur(s) de validation`, {
@@ -235,7 +311,11 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
   };
 
   const enabled = nom.trim().length >= 3 && !pendingAction;
-  const totalPages = Math.max(1, Math.ceil(totalManuel / TAILLE_PAGE));
+  const totalPages = Math.max(1, Math.ceil(totalListe / TAILLE_PAGE));
+
+  // Total éligibles affiché en mode filtres = pool initial (avant décoche).
+  // En mode manuel = totalListe (résultats de la recherche/pagination).
+  const totalEligiblesAffiche = mode === 'filtres' ? idsEligibles.size : totalListe;
 
   return (
     <div className="space-y-6">
@@ -259,8 +339,8 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="A">A — Bénéficiaires (jeunes formés)</SelectItem>
-                  <SelectItem value="B">B — Structures (activités économiques)</SelectItem>
+                  <SelectItem value="A">A : Bénéficiaires (jeunes formés)</SelectItem>
+                  <SelectItem value="B">B : Structures (activités économiques)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -357,19 +437,19 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
               </p>
               <FiltreCheckboxes
                 label="Projets"
-                options={projets.map((p) => ({ value: p.code, label: `${p.code} — ${p.libelle}` }))}
+                options={projets.map((p) => ({ value: p.code, label: `${p.code} : ${p.libelle}` }))}
                 selection={filtreProjets}
                 onChange={setFiltreProjets}
               />
               <FiltreCheckboxes
                 label="Pays"
-                options={pays.map((p) => ({ value: p.code, label: `${p.code} — ${p.libelle}` }))}
+                options={pays.map((p) => ({ value: p.code, label: `${p.code} : ${p.libelle}` }))}
                 selection={filtrePays}
                 onChange={setFiltrePays}
                 hauteur="max-h-40"
               />
               <FiltreCheckboxes
-                label={questionnaire === 'A' ? 'Année de formation' : 'Année d\u2019appui'}
+                label={questionnaire === 'A' ? 'Année de formation' : "Année d'appui"}
                 options={[2023, 2024, 2025].map((a) => ({
                   value: String(a),
                   label: String(a),
@@ -408,130 +488,74 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
             </div>
           )}
 
-          {/* Sélection manuelle */}
-          {mode === 'manuelle' && (
-            <div className="space-y-3 rounded-md border p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="relative min-w-[200px] flex-1">
-                  <Search
-                    aria-hidden
-                    className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
-                  />
-                  <Input
-                    value={recherche}
-                    onChange={(e) => {
-                      setRecherche(e.target.value);
-                      setPage(0);
-                    }}
-                    placeholder="Rechercher un nom ou un email…"
-                    className="pl-8"
-                  />
-                </div>
-                <span className="text-sm font-medium">
-                  {selection.size} sélectionné(s) sur {totalManuel} éligibles
-                </span>
-              </div>
+          {/* Aperçu strate (uniquement mode filtres) */}
+          {mode === 'filtres' && (
+            <ApercuStrateCard
+              apercu={apercu}
+              pending={pendingApercu}
+              resume={resumerStrate(questionnaire, filtresJsonb)}
+              mode={mode}
+              selectionSize={selection.size}
+              plafond={plafond}
+            />
+          )}
 
-              <div className="overflow-hidden rounded-md border">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40 text-xs">
-                    <tr>
-                      <th className="w-10 p-2">
-                        <input
-                          type="checkbox"
-                          aria-label="Tout sélectionner cette page"
-                          checked={lignes.length > 0 && lignes.every((l) => selection.has(l.id))}
-                          onChange={toggleTouteLaPage}
-                        />
-                      </th>
-                      <th className="p-2 text-left">Cible</th>
-                      <th className="p-2 text-left">Projet</th>
-                      <th className="p-2 text-left">Pays</th>
-                      <th className="p-2 text-left">Email</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pendingListe ? (
-                      <tr>
-                        <td colSpan={5} className="text-muted-foreground p-4 text-center text-xs">
-                          <Loader2 className="inline size-4 animate-spin" /> Chargement…
-                        </td>
-                      </tr>
-                    ) : lignes.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="text-muted-foreground p-4 text-center text-xs italic"
-                        >
-                          Aucune cible.
-                        </td>
-                      </tr>
-                    ) : (
-                      lignes.map((l) => (
-                        <tr key={l.id} className="hover:bg-muted/30 border-t">
-                          <td className="p-2">
-                            <input
-                              type="checkbox"
-                              checked={selection.has(l.id)}
-                              onChange={() => toggleSelection(l.id)}
-                            />
-                          </td>
-                          <td className="p-2">{l.libelle}</td>
-                          <td className="p-2">
-                            <Badge variant="outline" className="font-mono text-xs">
-                              {l.projet_code}
-                            </Badge>
-                          </td>
-                          <td className="p-2">{l.pays_code}</td>
-                          <td className="text-muted-foreground max-w-[200px] truncate p-2">
-                            {l.email && !l.email.includes('@import-oif-2025.local') ? (
-                              l.email
-                            ) : (
-                              <span className="italic">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+          {/* Liste de révision (mode filtres avec décoche manuelle) */}
+          {mode === 'filtres' && (apercu?.total ?? 0) > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <ListChecks aria-hidden className="size-4 text-amber-600" />
+                Réviser la liste
+                {pendingInit && (
+                  <Loader2 className="text-muted-foreground inline size-3 animate-spin" />
+                )}
               </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                <span className="text-muted-foreground tabular-nums">
-                  Page {page + 1} sur {totalPages}
-                </span>
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.max(0, p - 1))}
-                    disabled={page === 0 || pendingListe}
-                  >
-                    Précédent
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                    disabled={page + 1 >= totalPages || pendingListe}
-                  >
-                    Suivant
-                  </Button>
-                </div>
-              </div>
+              <ListeCiblesRevue
+                lignes={lignes}
+                selection={selection}
+                onToggleCible={toggleSelection}
+                onToggleTouteLaPage={toggleTouteLaPage}
+                recherche={recherche}
+                onRechercheChange={onRechercheChange}
+                page={page}
+                totalPages={totalPages}
+                totalEligibles={totalEligiblesAffiche}
+                onPageChange={onPageChange}
+                pending={pendingListe}
+                mode="filtres"
+              />
             </div>
           )}
 
-          {/* Aperçu strate */}
-          <ApercuStrateCard
-            apercu={apercu}
-            pending={pendingApercu}
-            resume={resumerStrate(questionnaire, filtresJsonb)}
-            mode={mode}
-            selectionSize={selection.size}
-            plafond={plafond}
-          />
+          {/* Sélection manuelle (mode = 'manuelle') */}
+          {mode === 'manuelle' && (
+            <ListeCiblesRevue
+              lignes={lignes}
+              selection={selection}
+              onToggleCible={toggleSelection}
+              onToggleTouteLaPage={toggleTouteLaPage}
+              recherche={recherche}
+              onRechercheChange={onRechercheChange}
+              page={page}
+              totalPages={totalPages}
+              totalEligibles={totalEligiblesAffiche}
+              onPageChange={onPageChange}
+              pending={pendingListe}
+              mode="manuelle"
+            />
+          )}
+
+          {/* Résumé pour mode toutes */}
+          {mode === 'toutes' && (
+            <ApercuStrateCard
+              apercu={apercu}
+              pending={pendingApercu}
+              resume={resumerStrate(questionnaire, {})}
+              mode={mode}
+              selectionSize={0}
+              plafond={plafond}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -710,7 +734,7 @@ function ApercuStrateCard({
             <>
               <CheckCircle2 aria-hidden className="size-4 shrink-0" />
               <span>
-                Strate viable — <strong>{eligibles}</strong> destinataires éligibles dans le
+                Strate viable : <strong>{eligibles}</strong> destinataires éligibles dans le
                 plafond.
               </span>
             </>

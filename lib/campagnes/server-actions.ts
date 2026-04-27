@@ -146,6 +146,34 @@ export async function listerStrate(
 }
 
 // =============================================================================
+// 2.bis listerStrateIds (V1.5.1) — pré-cocher tous les éligibles d'un filtre
+// =============================================================================
+
+export async function listerStrateIds(
+  questionnaire: 'A' | 'B',
+  filtres: Record<string, unknown>,
+): Promise<{ status: 'succes'; ids: string[] } | { status: 'erreur'; message: string }> {
+  const courant = await getCurrentUtilisateur();
+  if (
+    !courant ||
+    !['admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(courant.role)
+  ) {
+    return { status: 'erreur', message: 'Réservé aux rôles autorisés.' };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('lister_strate_ids', {
+    p_questionnaire: questionnaire,
+    p_filtres: filtres as never,
+  });
+
+  if (error) {
+    return { status: 'erreur', message: error.message };
+  }
+  return { status: 'succes', ids: (data ?? []) as string[] };
+}
+
+// =============================================================================
 // 3. creerCampagneBrouillon
 // =============================================================================
 

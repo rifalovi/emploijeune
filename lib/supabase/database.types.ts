@@ -1410,6 +1410,10 @@ export type Database = {
         Args: { p_questionnaire: string; p_filtres?: Json }
         Returns: Json
       }
+      lister_strate_ids: {
+        Args: { p_questionnaire: string; p_filtres?: Json }
+        Returns: string[]
+      }
       lister_strate: {
         Args: {
           p_questionnaire: string
