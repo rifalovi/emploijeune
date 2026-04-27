@@ -14,9 +14,13 @@ import {
   Leaf,
   BookOpen,
   TrendingUp,
+  Target,
+  BarChart3,
+  Mail,
 } from 'lucide-react';
 
 import { LogoOIF } from '@/components/branding/logo-oif';
+import { CarrouselHero } from '@/components/landing/carrousel-hero';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
@@ -25,46 +29,48 @@ import { getKpisPublics } from '@/lib/landing/queries';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Plateforme OIF Emploi Jeunes — Suivi-évaluation des projets de la Francophonie',
+  title: 'Plateforme OIF Emploi Jeunes : Suivi-évaluation des projets de la Francophonie',
   description:
     "Plateforme officielle du Service de Conception et Suivi (SCS) de l'Organisation Internationale de la Francophonie. Suivi-évaluation des projets emploi jeunes dans 50+ pays francophones.",
   openGraph: {
     title: 'Plateforme OIF Emploi Jeunes',
     description:
-      'Suivi-évaluation des projets emploi jeunes de la Francophonie — 5 000+ jeunes accompagnés dans 50+ pays.',
+      'Suivi-évaluation des projets emploi jeunes de la Francophonie : 5 000+ jeunes accompagnés dans 50+ pays.',
     locale: 'fr_FR',
     type: 'website',
   },
 };
 
-/**
- * Vitrine publique institutionnelle (Sprint 3 — V1.4.0).
- *
- * Server Component — accessible sans authentification. Charge les KPI
- * agrégés via la fonction RPC `get_kpis_publics_v1()` (exposée au rôle
- * anon, RGPD compatible).
- *
- * Architecture :
- *   1. Header (logo + CTA connexion)
- *   2. Hero (titre + sous-titre + 2 CTA)
- *   3. KPI compteurs (4 chiffres clés)
- *   4. Programmes stratégiques (PS1/PS2/PS3 couleurs officielles)
- *   5. Cadre Commun (4 piliers)
- *   6. Pourquoi cette plateforme
- *   7. À qui s'adresse-t-elle
- *   8. Pays d'intervention (top 10)
- *   9. CTA final
- *   10. Footer institutionnel
- */
+/** Couleur accent dorée (V1.5.0 polish) — utilisée pour les highlights chaleureux. */
+const COULEUR_ACCENT = '#F5A623';
+
+const SLIDES = [
+  {
+    src: '/assets/carrousel/dclic-1.jpg',
+    alt: 'Formation D-CLIC PRO en présentiel',
+    credit: '© OIF : DCLIC PRO Jour 1',
+  },
+  {
+    src: '/assets/carrousel/dclic-2.jpg',
+    alt: 'Apprenants D-CLIC PRO en activité collaborative',
+    credit: '© OIF : DCLIC PRO Jour 1',
+  },
+  { src: '/assets/carrousel/oif-1.jpg', alt: 'Évènement institutionnel OIF', credit: '© OIF' },
+  { src: '/assets/carrousel/oif-2.jpg', alt: 'Évènement institutionnel OIF', credit: '© OIF' },
+  { src: '/assets/carrousel/oif-3.jpg', alt: 'Évènement institutionnel OIF', credit: '© OIF' },
+  { src: '/assets/carrousel/oif-4.jpg', alt: 'Évènement institutionnel OIF', credit: '© OIF' },
+];
+
 export default async function VitrinePubliquePage() {
   const kpis = await getKpisPublics();
 
   return (
     <div className="bg-background min-h-screen">
       <HeaderPublic />
-      <Hero kpis={kpis} />
+      <HeroAvecCarrousel kpis={kpis} />
       <KpiCompteurs kpis={kpis} />
       <Programmes />
+      <Methodologie />
       <CadreCommun />
       <Pourquoi />
       <Audiences />
@@ -80,21 +86,26 @@ export default async function VitrinePubliquePage() {
 // ─────────────────────────────────────────────────────────────────────────────
 function HeaderPublic() {
   return (
-    <header className="border-b">
+    <header className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-8">
-        <LogoOIF size="sm" withProtectedSpace={false} />
+        <Link href="/accueil" className="inline-flex items-center" aria-label="Accueil">
+          <LogoOIF size="sm" withProtectedSpace={false} />
+        </Link>
         <nav className="flex items-center gap-2">
-          <Link
-            href="/connexion"
-            className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
-          >
-            Espace partenaire
+          <Link href="/contact" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
+            Contact
           </Link>
           <Link
             href="/demande-acces"
-            className={cn(buttonVariants({ variant: 'default', size: 'sm' }))}
+            className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
           >
             Demander un accès
+          </Link>
+          <Link
+            href="/connexion"
+            className={cn(buttonVariants({ variant: 'default', size: 'sm' }))}
+          >
+            Se connecter
           </Link>
         </nav>
       </div>
@@ -103,50 +114,59 @@ function HeaderPublic() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Hero
+// Hero avec carrousel
 // ─────────────────────────────────────────────────────────────────────────────
-function Hero({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPublics>> }) {
+function HeroAvecCarrousel({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPublics>> }) {
   return (
-    <section className="relative overflow-hidden border-b bg-gradient-to-br from-white via-blue-50/40 to-white py-20 md:py-28">
-      <div className="mx-auto max-w-7xl px-4 text-center sm:px-8">
-        <Badge variant="outline" className="mb-6">
-          Plateforme officielle SCS — Organisation Internationale de la Francophonie
+    <CarrouselHero slides={SLIDES} hauteurClass="h-[70vh] min-h-[560px]">
+      <div className="relative z-10 mx-auto max-w-5xl text-center text-white">
+        <Badge
+          variant="outline"
+          className="mb-6 border-white/40 bg-white/10 text-white backdrop-blur-sm"
+        >
+          Plateforme officielle SCS : Organisation Internationale de la Francophonie
         </Badge>
-        <h1 className="text-4xl font-bold tracking-tight text-[#0E4F88] md:text-6xl">
+        <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
           Suivi-évaluation des projets
           <br />
-          <span className="text-[#0198E9]">emploi jeunes</span> de la Francophonie
+          <span style={{ color: COULEUR_ACCENT }}>emploi jeunes</span> de la Francophonie
         </h1>
-        <p className="text-muted-foreground mx-auto mt-6 max-w-3xl text-lg md:text-xl">
+        <p className="mx-auto mt-6 max-w-3xl text-lg text-white/90 md:text-xl">
           Une plateforme institutionnelle dédiée au pilotage opérationnel et stratégique des
           programmes OIF d&apos;insertion économique des jeunes francophones.
         </p>
         {kpis && (
-          <p className="mt-4 text-base text-gray-700">
-            <strong className="text-[#0E4F88]">
+          <p className="mt-4 text-base text-white/80">
+            <strong className="text-white">
               {kpis.beneficiaires_total.toLocaleString('fr-FR')}
             </strong>{' '}
-            jeunes accompagnés dans <strong className="text-[#0E4F88]">{kpis.pays_total}</strong>{' '}
-            pays — données {kpis.annee_couverture_min}–{kpis.annee_couverture_max}
+            jeunes accompagnés dans <strong className="text-white">{kpis.pays_total}</strong> pays :
+            période {kpis.annee_couverture_min} à {kpis.annee_couverture_max}.
           </p>
         )}
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/demande-acces"
-            className={cn(buttonVariants({ variant: 'default', size: 'lg' }), 'gap-2')}
+            className={cn(
+              buttonVariants({ variant: 'default', size: 'lg' }),
+              'gap-2 bg-white text-[#0E4F88] shadow-lg hover:bg-blue-50',
+            )}
           >
             Demander un accès
             <ArrowRight aria-hidden className="size-4" />
           </Link>
           <Link
             href="/connexion"
-            className={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}
+            className={cn(
+              buttonVariants({ variant: 'outline', size: 'lg' }),
+              'border-white text-white backdrop-blur-sm hover:bg-white/15',
+            )}
           >
-            Espace partenaire
+            Se connecter
           </Link>
         </div>
       </div>
-    </section>
+    </CarrouselHero>
   );
 }
 
@@ -156,12 +176,24 @@ function Hero({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPublics>> }) {
 function KpiCompteurs({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPublics>> }) {
   if (!kpis) return null;
   return (
-    <section className="border-b py-16 md:py-20">
+    <section className="border-b bg-white py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
-        <h2 className="mb-10 text-center text-2xl font-bold tracking-tight text-[#0E4F88] md:text-3xl">
-          L&apos;impact de nos interventions en chiffres
-        </h2>
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+        <div className="mx-auto max-w-3xl text-center">
+          <Badge
+            variant="outline"
+            style={{ color: COULEUR_ACCENT, borderColor: `${COULEUR_ACCENT}66` }}
+          >
+            En chiffres
+          </Badge>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
+            L&apos;impact de nos interventions
+          </h2>
+          <p className="text-muted-foreground mt-3 text-base">
+            Données agrégées des projets emploi jeunes OIF : période {kpis.annee_couverture_min} à{' '}
+            {kpis.annee_couverture_max}.
+          </p>
+        </div>
+        <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4">
           <CompteurCarte
             valeur={kpis.beneficiaires_total.toLocaleString('fr-FR')}
             libelle="Bénéficiaires accompagnés"
@@ -184,13 +216,11 @@ function KpiCompteurs({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPublics
             valeur={`${kpis.beneficiaires_femmes_pct}\u00a0%`}
             libelle="de femmes accompagnées"
             icone={Heart}
-            couleur="#0E4F88"
+            couleur={COULEUR_ACCENT}
           />
         </div>
-        <p className="text-muted-foreground mt-8 text-center text-sm">
-          Données agrégées des projets emploi jeunes OIF, période {kpis.annee_couverture_min}–
-          {kpis.annee_couverture_max}. Aucune donnée nominative — chiffres anonymisés conformes
-          RGPD.
+        <p className="text-muted-foreground mt-8 text-center text-xs">
+          Aucune donnée nominative : chiffres anonymisés conformes RGPD.
         </p>
       </div>
     </section>
@@ -209,13 +239,13 @@ function CompteurCarte({
   couleur: string;
 }) {
   return (
-    <Card>
+    <Card className="group transition-all hover:-translate-y-1 hover:shadow-lg">
       <CardContent className="p-6 text-center">
         <div
-          className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full"
+          className="mx-auto mb-3 flex size-14 items-center justify-center rounded-full transition-transform group-hover:scale-110"
           style={{ backgroundColor: `${couleur}1a`, color: couleur }}
         >
-          <Icone aria-hidden className="size-6" />
+          <Icone aria-hidden className="size-7" />
         </div>
         <div className="text-3xl font-bold tabular-nums md:text-4xl" style={{ color: couleur }}>
           {valeur}
@@ -252,27 +282,37 @@ function Programmes() {
   ];
 
   return (
-    <section className="bg-gray-50/60 py-16 md:py-20">
+    <section className="bg-gradient-to-b from-white via-blue-50/30 to-white py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-[#0E4F88] md:text-3xl">
+          <Badge
+            variant="outline"
+            style={{ color: COULEUR_ACCENT, borderColor: `${COULEUR_ACCENT}66` }}
+          >
+            Programmation 2024-2027
+          </Badge>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
             Les trois programmes stratégiques de l&apos;OIF
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
-            La programmation 2024-2027 articule trois axes complémentaires.
+            Trois axes complémentaires qui structurent l&apos;action de la Francophonie.
           </p>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
           {programmes.map((p) => {
             const couleur = PROGRAMMES_STRATEGIQUES[p.code].principale;
             return (
-              <Card key={p.code} className="border-t-4" style={{ borderTopColor: couleur }}>
+              <Card
+                key={p.code}
+                className="group overflow-hidden border-t-4 transition-all hover:-translate-y-1 hover:shadow-xl"
+                style={{ borderTopColor: couleur }}
+              >
                 <CardContent className="p-6">
                   <div
-                    className="mb-4 flex size-12 items-center justify-center rounded-full"
+                    className="mb-4 flex size-14 items-center justify-center rounded-full transition-transform group-hover:scale-110"
                     style={{ backgroundColor: `${couleur}1a`, color: couleur }}
                   >
-                    <p.icone aria-hidden className="size-6" />
+                    <p.icone aria-hidden className="size-7" />
                   </div>
                   <Badge
                     variant="outline"
@@ -296,13 +336,77 @@ function Programmes() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cadre Commun
+// Méthodologie OIF (V1.5.0 — extraits de la note méthodologique V2)
+// ─────────────────────────────────────────────────────────────────────────────
+function Methodologie() {
+  const points = [
+    {
+      titre: 'Cadre Commun de mesure',
+      description:
+        "Tous les projets emploi jeunes OIF s'appuient sur un référentiel d'indicateurs partagé : A1 (jeunes formés), A4 (gain de compétences), B1 (activités économiques appuyées), B4 (emplois indirects), F1 (apport du français à l'employabilité).",
+      icone: Target,
+    },
+    {
+      titre: 'Approche stratifiée',
+      description:
+        'Les collectes ciblent des strates précises (projet, pays, période, profil) plutôt que des envois en masse. Cette méthodologie garantit la délivrabilité, la qualité des réponses et la pertinence des analyses.',
+      icone: BarChart3,
+    },
+    {
+      titre: 'Marqueur F1 transversal',
+      description:
+        "L'apport du français à l'employabilité est suivi sur tous les projets : usage professionnel, accès à l'emploi, valorisation des compétences linguistiques dans les parcours.",
+      icone: GraduationCap,
+    },
+  ];
+  return (
+    <section className="bg-white py-16 md:py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <Badge
+            variant="outline"
+            style={{ color: COULEUR_ACCENT, borderColor: `${COULEUR_ACCENT}66` }}
+          >
+            Note méthodologique V2
+          </Badge>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
+            Notre méthodologie de suivi-évaluation
+          </h2>
+          <p className="text-muted-foreground mt-3 text-base">
+            Une démarche rigoureuse alignée sur les standards des bailleurs internationaux.
+          </p>
+        </div>
+        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+          {points.map((p) => (
+            <Card key={p.titre} className="border-l-4" style={{ borderLeftColor: COULEUR_ACCENT }}>
+              <CardContent className="p-6">
+                <div
+                  className="mb-3 flex size-12 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: `${COULEUR_ACCENT}1a`, color: COULEUR_ACCENT }}
+                >
+                  <p.icone aria-hidden className="size-6" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">{p.titre}</h3>
+                <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+                  {p.description}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cadre Commun (4 piliers)
 // ─────────────────────────────────────────────────────────────────────────────
 function CadreCommun() {
   const piliers = [
     {
       titre: 'Insertion professionnelle',
-      description: 'Formation, employabilité, accès à l\u2019emploi durable.',
+      description: "Formation, employabilité, accès à l'emploi durable.",
     },
     {
       titre: 'Entrepreneuriat',
@@ -314,28 +418,32 @@ function CadreCommun() {
       description: 'Marqueur transversal (89% de femmes accompagnées sur la base de sondage).',
     },
     {
-      titre: 'Apport du français',
+      titre: 'Apport du français (F1)',
       description:
-        'Indicateur F1 — contribution du français à l\u2019employabilité (questionnaire D3).',
+        "Contribution du français à l'accès à l'emploi et à la valorisation professionnelle.",
     },
   ];
   return (
-    <section className="py-16 md:py-20">
+    <section className="bg-gradient-to-b from-white via-amber-50/40 to-white py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-[#0E4F88] md:text-3xl">
-            Le Cadre Commun de mesure
+          <h2 className="text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
+            Les 4 piliers du Cadre Commun
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
-            Quatre piliers communs à tous les projets emploi jeunes OIF, alignés sur le Cadre de
-            mesure du rendement V2.
+            Un référentiel partagé par tous les projets emploi jeunes OIF.
           </p>
         </div>
         <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {piliers.map((p, i) => (
-            <Card key={p.titre}>
+            <Card key={p.titre} className="transition-all hover:shadow-md">
               <CardContent className="p-5">
-                <div className="text-3xl font-bold text-[#0198E9]">{`0${i + 1}`}</div>
+                <div
+                  className="text-3xl font-bold"
+                  style={{ color: i % 2 === 0 ? '#0198E9' : COULEUR_ACCENT }}
+                >
+                  {`0${i + 1}`}
+                </div>
                 <h3 className="mt-2 font-semibold text-gray-900">{p.titre}</h3>
                 <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
                   {p.description}
@@ -364,7 +472,7 @@ function Pourquoi() {
       icone: History,
       titre: 'Traçabilité complète',
       description:
-        'Historique des affectations projet, journal d\u2019audit immuable, transferts contextualisés.',
+        "Historique des affectations projet, journal d'audit immuable, transferts contextualisés.",
     },
     {
       icone: TrendingUp,
@@ -379,10 +487,10 @@ function Pourquoi() {
     },
   ];
   return (
-    <section className="bg-gray-50/60 py-16 md:py-20">
+    <section className="bg-white py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-[#0E4F88] md:text-3xl">
+          <h2 className="text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
             Pourquoi cette plateforme
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
@@ -391,10 +499,13 @@ function Pourquoi() {
         </div>
         <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           {valeurs.map((v) => (
-            <Card key={v.titre}>
+            <Card key={v.titre} className="transition-all hover:-translate-y-1 hover:shadow-md">
               <CardContent className="p-5">
-                <div className="mb-3 text-[#0E4F88]">
-                  <v.icone aria-hidden className="size-6" />
+                <div
+                  className="mb-3 flex size-10 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: '#0E4F881a', color: '#0E4F88' }}
+                >
+                  <v.icone aria-hidden className="size-5" />
                 </div>
                 <h3 className="font-semibold text-gray-900">{v.titre}</h3>
                 <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
@@ -423,8 +534,7 @@ function Audiences() {
     {
       icone: Building2,
       titre: 'Partenaires de mise en œuvre',
-      description:
-        'Saisie terrain, complétion des dossiers, génération d\u2019enquêtes longitudinales.',
+      description: "Saisie terrain, complétion des dossiers, génération d'enquêtes longitudinales.",
     },
     {
       icone: Vote,
@@ -433,16 +543,19 @@ function Audiences() {
     },
   ];
   return (
-    <section className="py-16 md:py-20">
+    <section className="bg-gradient-to-b from-white via-blue-50/30 to-white py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-[#0E4F88] md:text-3xl">
+          <h2 className="text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
             À qui s&apos;adresse cette plateforme
           </h2>
         </div>
         <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
           {audiences.map((a) => (
-            <Card key={a.titre} className="border-t-4 border-t-[#0198E9]">
+            <Card
+              key={a.titre}
+              className="border-t-4 border-t-[#0198E9] transition-all hover:-translate-y-1 hover:shadow-xl"
+            >
               <CardContent className="p-6">
                 <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-[#0198E9]/10 text-[#0198E9]">
                   <a.icone aria-hidden className="size-6" />
@@ -467,17 +580,23 @@ function PaysIntervention({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPub
   if (!kpis || kpis.top_pays.length === 0) return null;
   const max = kpis.top_pays[0]?.beneficiaires ?? 1;
   return (
-    <section className="border-t bg-gray-50/60 py-16 md:py-20">
+    <section className="border-t bg-white py-16 md:py-20">
       <div className="mx-auto max-w-5xl px-4 sm:px-8">
         <div className="text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-[#0E4F88] md:text-3xl">
-            Présence francophone — Top {kpis.top_pays.length} pays
+          <Badge
+            variant="outline"
+            style={{ color: COULEUR_ACCENT, borderColor: `${COULEUR_ACCENT}66` }}
+          >
+            Présence francophone
+          </Badge>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
+            Top {kpis.top_pays.length} pays
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
             Sur {kpis.pays_total} pays d&apos;intervention au total. Données agrégées, anonymes.
           </p>
         </div>
-        <ol className="mt-10 space-y-3">
+        <ol className="mt-12 space-y-3">
           {kpis.top_pays.map((p, i) => {
             const pct = Math.round((p.beneficiaires / max) * 100);
             return (
@@ -488,10 +607,16 @@ function PaysIntervention({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPub
                 <span className="w-40 truncate font-medium text-gray-900">
                   {p.libelle ?? p.code}
                 </span>
-                <div className="flex-1 overflow-hidden rounded-full bg-gray-200">
-                  <div className="h-2 rounded-full bg-[#0198E9]" style={{ width: `${pct}%` }} />
+                <div className="flex-1 overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className="h-3 rounded-full transition-all"
+                    style={{
+                      width: `${pct}%`,
+                      background: `linear-gradient(90deg, #0198E9 0%, #0E4F88 100%)`,
+                    }}
+                  />
                 </div>
-                <span className="w-20 text-right text-gray-900 tabular-nums">
+                <span className="w-20 text-right font-semibold text-gray-900 tabular-nums">
                   {p.beneficiaires.toLocaleString('fr-FR')}
                 </span>
               </li>
@@ -508,21 +633,26 @@ function PaysIntervention({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPub
 // ─────────────────────────────────────────────────────────────────────────────
 function CtaFinal() {
   return (
-    <section className="bg-[#0E4F88] py-16 text-white md:py-20">
-      <div className="mx-auto max-w-4xl px-4 text-center sm:px-8">
-        <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
+    <section
+      className="relative overflow-hidden py-20 text-white md:py-24"
+      style={{
+        background: 'linear-gradient(135deg, #0E4F88 0%, #0198E9 100%)',
+      }}
+    >
+      <div className="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-8">
+        <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
           Vous êtes partenaire ou bailleur OIF&nbsp;?
         </h2>
-        <p className="mt-4 text-lg text-blue-100">
+        <p className="mt-4 text-lg text-blue-50 md:text-xl">
           Demandez un accès partenaire pour piloter vos projets ou consulter les indicateurs
           agrégés.
         </p>
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/demande-acces"
             className={cn(
               buttonVariants({ variant: 'default', size: 'lg' }),
-              'gap-2 bg-white text-[#0E4F88] hover:bg-blue-50',
+              'gap-2 bg-white text-[#0E4F88] shadow-xl hover:bg-blue-50',
             )}
           >
             Demander un accès
@@ -532,10 +662,20 @@ function CtaFinal() {
             href="/connexion"
             className={cn(
               buttonVariants({ variant: 'outline', size: 'lg' }),
-              'border-white text-white hover:bg-white/10',
+              'border-white text-white backdrop-blur-sm hover:bg-white/15',
             )}
           >
             Se connecter
+          </Link>
+          <Link
+            href="/contact"
+            className={cn(
+              buttonVariants({ variant: 'ghost', size: 'lg' }),
+              'gap-2 text-white hover:bg-white/15',
+            )}
+          >
+            <Mail aria-hidden className="size-4" />
+            Nous contacter
           </Link>
         </div>
       </div>
@@ -548,21 +688,22 @@ function CtaFinal() {
 // ─────────────────────────────────────────────────────────────────────────────
 function FooterPublic() {
   return (
-    <footer className="border-t bg-gray-50 py-10 text-sm">
+    <footer className="border-t bg-gray-50 py-12 text-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div>
             <LogoOIF size="sm" withProtectedSpace={false} />
-            <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
-              Service de Conception et Suivi (SCS) — Organisation Internationale de la Francophonie.
+            <p className="text-muted-foreground mt-4 text-xs leading-relaxed">
+              Service de Conception et Suivi (SCS) : Organisation Internationale de la Francophonie.
+              Plateforme officielle de suivi-évaluation des projets emploi jeunes.
             </p>
           </div>
           <div>
             <h3 className="font-semibold text-gray-900">Plateforme</h3>
-            <ul className="text-muted-foreground mt-3 space-y-1 text-xs">
+            <ul className="text-muted-foreground mt-4 space-y-2 text-xs">
               <li>
                 <Link href="/connexion" className="hover:text-foreground">
-                  Espace partenaire
+                  Se connecter
                 </Link>
               </li>
               <li>
@@ -570,28 +711,30 @@ function FooterPublic() {
                   Demander un accès
                 </Link>
               </li>
+              <li>
+                <Link href="/contact" className="hover:text-foreground">
+                  Nous contacter
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Contact &amp; RGPD</h3>
-            <ul className="text-muted-foreground mt-3 space-y-1 text-xs">
-              <li>SCS — Direction Programmation OIF</li>
+            <h3 className="font-semibold text-gray-900">Contact RGPD</h3>
+            <ul className="text-muted-foreground mt-4 space-y-2 text-xs">
+              <li>SCS : Service de Conception et Suivi des projets</li>
               <li>
-                <a
-                  href="mailto:carlos.hounsinou@francophonie.org"
-                  className="hover:text-foreground"
-                >
-                  carlos.hounsinou@francophonie.org
+                <a href="mailto:projets@francophonie.org" className="hover:text-foreground">
+                  projets@francophonie.org
                 </a>
               </li>
               <li>
-                Données traitées conformément au RGPD — accès limité aux personnes habilitées.
+                Données traitées conformément au RGPD : accès limité aux personnes habilitées.
               </li>
             </ul>
           </div>
         </div>
-        <div className="text-muted-foreground mt-8 border-t pt-4 text-center text-xs">
-          © {new Date().getFullYear()} OIF — Plateforme Emploi Jeunes — Tous droits réservés.
+        <div className="text-muted-foreground mt-10 border-t pt-6 text-center text-xs">
+          © {new Date().getFullYear()} OIF : Plateforme Emploi Jeunes : Tous droits réservés.
         </div>
       </div>
     </footer>

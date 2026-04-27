@@ -92,7 +92,7 @@ function headerHtml(): string {
 function footerHtml(): string {
   return `
     <p style="color: ${COULEUR_MUTED}; font-size: 12px; line-height: 1.5; margin: 4px 0;">
-      <strong>Plateforme OIF Emploi Jeunes</strong> — outil de suivi des projets de
+      <strong>Plateforme OIF Emploi Jeunes</strong> : outil de suivi des projets de
       l'Organisation Internationale de la Francophonie.
     </p>
     <p style="color: ${COULEUR_MUTED}; font-size: 11px; line-height: 1.5; margin: 4px 0;">
@@ -111,7 +111,7 @@ function footerHtml(): string {
 export function footerTexte(): string {
   return `
 ---
-Plateforme OIF Emploi Jeunes — outil de suivi des projets de l'Organisation Internationale de la Francophonie.
+Plateforme OIF Emploi Jeunes : outil de suivi des projets de l'Organisation Internationale de la Francophonie.
 
 Cet email vous est envoyé dans le cadre du suivi statistique anonymisé des projets OIF. Si vous pensez l'avoir reçu par erreur, vous pouvez l'ignorer.
 

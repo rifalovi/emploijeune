@@ -13,7 +13,7 @@ export type InvitationCompteArgs = {
 };
 
 export function templateInvitationCompte(args: InvitationCompteArgs): TemplateEmail {
-  const subject = 'Activation de votre compte — Plateforme OIF Emploi Jeunes';
+  const subject = 'Activation de votre compte : Plateforme OIF Emploi Jeunes';
 
   const corpsHtml = `
     <h1 style="font-size: 22px; font-weight: 600; margin: 0 0 16px;">

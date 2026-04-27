@@ -21,7 +21,7 @@ export type ConfirmationDemandeArgs = {
 };
 
 export function templateConfirmationDemande(args: ConfirmationDemandeArgs): TemplateEmail {
-  const subject = 'Demande d’accès reçue — Plateforme OIF Emploi Jeunes';
+  const subject = 'Demande d’accès reçue : Plateforme OIF Emploi Jeunes';
 
   const corpsHtml = `
     <h1 style="font-size: 22px; font-weight: 600; margin: 0 0 16px;">
@@ -70,7 +70,7 @@ export type NotificationSCSArgs = {
 };
 
 export function templateNotificationSCS(args: NotificationSCSArgs): TemplateEmail {
-  const subject = `Nouvelle demande d’accès — ${args.demandeur.prenom} ${args.demandeur.nom}`;
+  const subject = `Nouvelle demande d’accès : ${args.demandeur.prenom} ${args.demandeur.nom}`;
 
   const corpsHtml = `
     <h1 style="font-size: 20px; font-weight: 600; margin: 0 0 16px;">
@@ -130,7 +130,7 @@ export type RejetDemandeArgs = {
 };
 
 export function templateRejetDemande(args: RejetDemandeArgs): TemplateEmail {
-  const subject = 'Demande d’accès non retenue — Plateforme OIF Emploi Jeunes';
+  const subject = 'Demande d’accès non retenue : Plateforme OIF Emploi Jeunes';
 
   const corpsHtml = `
     <h1 style="font-size: 22px; font-weight: 600; margin: 0 0 16px;">

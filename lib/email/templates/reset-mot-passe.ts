@@ -13,7 +13,7 @@ export type ResetMotPasseArgs = {
 };
 
 export function templateResetMotPasse(args: ResetMotPasseArgs): TemplateEmail {
-  const subject = 'Réinitialisation de votre mot de passe — Plateforme OIF Emploi Jeunes';
+  const subject = 'Réinitialisation de votre mot de passe : Plateforme OIF Emploi Jeunes';
   const salutation = args.prenom
     ? `<strong>${escapeHtml(args.prenom)}</strong>`
     : 'utilisateur(rice)';
@@ -33,7 +33,7 @@ export function templateResetMotPasse(args: ResetMotPasseArgs): TemplateEmail {
     </p>
     ${boutonCta({ libelle: 'Réinitialiser mon mot de passe', url: args.lienReset })}
     <p style="margin: 16px 0; color: #6b7280; font-size: 13px;">
-      Si vous n'êtes pas à l'origine de cette demande, ignorez ce message — votre mot de
+      Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : votre mot de
       passe actuel reste valide.
     </p>
   `;
@@ -49,7 +49,7 @@ Cliquez sur ce lien pour définir un nouveau mot de passe (valable 1 heure) :
 
 ${args.lienReset}
 
-Si vous n'êtes pas à l'origine de cette demande, ignorez ce message — votre mot de passe actuel reste valide.
+Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : votre mot de passe actuel reste valide.
 
 ${footerTexte()}`;
 

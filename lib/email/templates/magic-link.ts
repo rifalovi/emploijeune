@@ -16,7 +16,7 @@ export type MagicLinkArgs = {
 };
 
 export function templateMagicLink(args: MagicLinkArgs): TemplateEmail {
-  const subject = 'Lien de connexion — Plateforme OIF Emploi Jeunes';
+  const subject = 'Lien de connexion : Plateforme OIF Emploi Jeunes';
   const salutation = args.prenom
     ? `<strong>${escapeHtml(args.prenom)}</strong>`
     : 'utilisateur(rice)';
@@ -32,7 +32,7 @@ export function templateMagicLink(args: MagicLinkArgs): TemplateEmail {
     </p>
     ${boutonCta({ libelle: 'Me connecter', url: args.lienMagic })}
     <p style="margin: 16px 0; color: #6b7280; font-size: 13px;">
-      Si vous n'êtes pas à l'origine de cette demande, ignorez ce message — votre compte
+      Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : votre compte
       reste sécurisé.
     </p>
   `;
@@ -46,7 +46,7 @@ Vous avez demandé un lien de connexion sécurisé. Cliquez sur ce lien pour vou
 
 ${args.lienMagic}
 
-Si vous n'êtes pas à l'origine de cette demande, ignorez ce message — votre compte reste sécurisé.
+Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : votre compte reste sécurisé.
 
 ${footerTexte()}`;
 

@@ -16,7 +16,7 @@ export type InvitationEnqueteArgs = {
 };
 
 export function templateInvitationEnquete(args: InvitationEnqueteArgs): TemplateEmail {
-  const subject = `Enquête OIF Emploi Jeunes — votre avis compte`;
+  const subject = `Enquête OIF Emploi Jeunes : votre avis compte`;
   const dureeMin = args.questionnaire === 'A' ? '5 à 10' : '5 à 8';
   const dateFr = args.expireAt.toLocaleDateString('fr-FR', { dateStyle: 'long' });
   const projetTxt = args.nomProjet ? ` (projet ${escapeHtml(args.nomProjet)})` : '';

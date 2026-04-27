@@ -58,11 +58,19 @@ export function ChartProgrammesPie({ data }: { data: Donnee[] }) {
                 cx="50%"
                 cy="50%"
                 outerRadius={90}
+                labelLine={false}
                 label={(props) => {
+                  // Hotfix v1.5.0 : n'affiche le label QUE si la slice
+                  // dépasse 5% — sinon les slices minuscules (ex. PS1=1%
+                  // PS2=1%) se chevauchent et deviennent illisibles. Les
+                  // valeurs précises restent visibles dans le tooltip et la
+                  // légende.
                   const p = props as unknown as { code?: string; beneficiaires?: number };
                   const code = p.code ?? '';
                   const nb = p.beneficiaires ?? 0;
-                  return `${code} (${Math.round((nb / total) * 100)}%)`;
+                  const pct = Math.round((nb / total) * 100);
+                  if (pct < 5) return '';
+                  return `${code} ${pct}%`;
                 }}
               >
                 {data.map((d) => (
