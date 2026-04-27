@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getUtilisateurEffectif } from '@/lib/auth/view-as';
 import { DashboardAdminScs } from '@/components/dashboard/dashboard-admin-scs';
 import { DashboardEditeurProjet } from '@/components/dashboard/dashboard-editeur-projet';
 import { DashboardContributeur } from '@/components/dashboard/dashboard-contributeur';
@@ -32,8 +33,15 @@ export const metadata: Metadata = {
 type SearchParams = Promise<{ periode?: string }>;
 
 export default async function DashboardPage({ searchParams }: { searchParams: SearchParams }) {
-  const utilisateur = await requireUtilisateurValide();
+  await requireUtilisateurValide();
   const supabase = await createSupabaseServerClient();
+
+  const effectif = await getUtilisateurEffectif();
+  if (!effectif) {
+    // Garde-fou : requireUtilisateurValide a déjà redirigé sinon.
+    return null;
+  }
+  const utilisateur = effectif.profil;
 
   const { periode: rawPeriode } = await searchParams;
   const periode: Periode =
@@ -41,14 +49,33 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       ? (rawPeriode as Periode)
       : '30j';
 
-  const [{ data, error }, { data: rawOif }, activite] = await Promise.all([
+  // En mode view-as, on appelle la RPC qui simule la vue cible. Sinon, RPC
+  // standard pilotée par auth.uid().
+  const oifPromise = effectif.isViewAs
+    ? supabase.rpc('get_indicateurs_oif_v1_for_user', {
+        p_target_user_id: effectif.profil.user_id,
+        p_periode: periode,
+      })
+    : supabase.rpc('get_indicateurs_oif_v1', { p_periode: periode });
+
+  const [{ data, error }, oifResp, activite] = await Promise.all([
     supabase.rpc('get_kpis_dashboard'),
-    supabase.rpc('get_indicateurs_oif_v1', { p_periode: periode }),
+    oifPromise,
     getActiviteRecente(periode),
   ]);
 
-  const oifParse = indicateursOifSchema.safeParse(rawOif);
+  // Diagnostic dev-only : si la fonction OIF n'est pas encore appliquée sur Supabase
+  // ou si elle retourne une forme inattendue, on logge pour faciliter le debug.
+  const oifParse = indicateursOifSchema.safeParse(oifResp.data);
   const oif = oifParse.success ? oifParse.data : null;
+  const oifErreur: string | null = oifResp.error
+    ? oifResp.error.message
+    : !oifParse.success
+      ? `Format inattendu du payload : ${oifParse.error.issues
+          .slice(0, 2)
+          .map((i) => `${i.path.join('.')} ${i.message}`)
+          .join(' · ')}`
+      : null;
 
   if (error) {
     return (
@@ -80,23 +107,54 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         {renderDashboard(utilisateur.role, data)}
       </section>
 
-      {oif && (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">Indicateurs OIF stratégiques</h2>
-            <div className="flex flex-wrap items-center gap-4">
-              <SelecteurPeriode valeur={periode} />
-              <ToggleDevise />
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Indicateurs OIF stratégiques</h2>
+          <div className="flex flex-wrap items-center gap-4">
+            <SelecteurPeriode valeur={periode} />
+            <ToggleDevise />
+          </div>
+        </div>
+
+        {oif ? (
+          <>
+            <KpiGridOif data={oif} />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <ChartProjetsBar data={oif.bar_projets} />
+              <ChartProgrammesPie data={oif.pie_programmes} />
             </div>
+            <ActiviteRecenteFeed evenements={activite} periodeLibelle={PERIODE_LIBELLES[periode]} />
+          </>
+        ) : (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-6 text-sm">
+            <p className="font-medium text-amber-900 dark:text-amber-100">
+              Indicateurs OIF stratégiques non disponibles
+            </p>
+            <p className="text-muted-foreground mt-2 text-xs">
+              La fonction <code className="font-mono">get_indicateurs_oif_v1</code> n&apos;a pas
+              renvoyé de payload exploitable. Causes possibles :
+            </p>
+            <ul className="text-muted-foreground mt-1 list-disc pl-5 text-xs">
+              <li>
+                La migration{' '}
+                <code className="font-mono">20260427000002_kpis_indicateurs_oif.sql</code>{' '}
+                n&apos;est pas encore appliquée sur Supabase (lancer{' '}
+                <code className="font-mono">supabase db push</code>).
+              </li>
+              <li>
+                Votre profil utilisateur n&apos;est pas valide (vérifier{' '}
+                <code className="font-mono">utilisateurs.actif = true</code>).
+              </li>
+            </ul>
+            {oifErreur && process.env.NODE_ENV !== 'production' && (
+              <p className="text-muted-foreground mt-3 text-xs">
+                <span className="font-medium">Détail technique (dev) :</span>{' '}
+                <code className="font-mono">{oifErreur}</code>
+              </p>
+            )}
           </div>
-          <KpiGridOif data={oif} />
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <ChartProjetsBar data={oif.bar_projets} />
-            <ChartProgrammesPie data={oif.pie_programmes} />
-          </div>
-          <ActiviteRecenteFeed evenements={activite} periodeLibelle={PERIODE_LIBELLES[periode]} />
-        </section>
-      )}
+        )}
+      </section>
     </div>
   );
 }
