@@ -93,7 +93,7 @@ export function Sidebar({ utilisateur, organisationLibelle, notificationsCount }
           Mon compte
         </Link>
         <Link
-          href="/accueil"
+          href="/"
           target="_blank"
           rel="noopener noreferrer"
           title="Voir la vitrine publique de la plateforme"

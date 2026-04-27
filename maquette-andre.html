@@ -1,0 +1,1293 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plateforme OIF Emploi Jeunes — Vision V1 / V2 / V3</title>
+    <meta
+      name="description"
+      content="Maquette de présentation de la Plateforme OIF Emploi Jeunes. Service de Conception et Suivi (SCS), Organisation Internationale de la Francophonie."
+    />
+
+    <!-- Tailwind CDN (production-ready, suffisant pour une maquette standalone) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              oif: {
+                bleu: '#0E4F88',
+                clair: '#0198E9',
+                cyan: '#0198E9',
+                violet: '#5D0073',
+                vert: '#7EB301',
+                dore: '#F5A623',
+              },
+            },
+            fontFamily: {
+              sans: ['Inter', 'Helvetica Neue', 'system-ui', 'sans-serif'],
+            },
+            animation: {
+              'fade-up': 'fadeUp 0.7s ease-out forwards',
+              'fade-in': 'fadeIn 0.6s ease-out forwards',
+            },
+            keyframes: {
+              fadeUp: {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Polices Inter (fallback Helvetica Neue côté macOS pour cohérence avec la charte OIF) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* Smooth scroll global pour la nav d'ancres */
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+      }
+      /* Fade-in au scroll : observé via IntersectionObserver, classe .reveal */
+      .reveal {
+        opacity: 0;
+        transform: translateY(24px);
+        transition:
+          opacity 0.7s ease-out,
+          transform 0.7s ease-out;
+      }
+      .reveal.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .reveal-delay-1 {
+        transition-delay: 0.1s;
+      }
+      .reveal-delay-2 {
+        transition-delay: 0.2s;
+      }
+      .reveal-delay-3 {
+        transition-delay: 0.3s;
+      }
+      .reveal-delay-4 {
+        transition-delay: 0.4s;
+      }
+      /* Pattern subtle radial pour les hero sections */
+      .pattern-radial {
+        background-image:
+          radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.12) 0%, transparent 50%);
+      }
+      /* Scrollbar discrète */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f8fafc;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+    </style>
+  </head>
+
+  <body class="bg-white text-slate-900 antialiased">
+    <!-- ─────────────────────────────────────────────────────────────
+         HEADER
+         ───────────────────────────────────────────────────────────── -->
+    <header
+      class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur"
+    >
+      <div
+        class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3"
+      >
+        <a href="#hero" class="flex items-center gap-3">
+          <img
+            src="./public/assets/branding/oif/logo-oif-quadri.png"
+            alt="Logo OIF"
+            class="h-10 w-auto"
+            onerror="this.style.display='none'"
+          />
+          <div class="hidden sm:block">
+            <p class="text-xs font-semibold tracking-wide text-oif-bleu">
+              SCS · Organisation Internationale de la Francophonie
+            </p>
+            <p class="text-xs text-slate-500">Plateforme Emploi Jeunes</p>
+          </div>
+        </a>
+        <nav class="hidden items-center gap-1 text-sm md:flex">
+          <a
+            href="#dashboard"
+            class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu"
+            >Dashboard</a
+          >
+          <a
+            href="#ia"
+            class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu"
+            >IA Analytique</a
+          >
+          <a
+            href="#campagnes"
+            class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu"
+            >Campagnes</a
+          >
+          <a
+            href="#roles"
+            class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu"
+            >Rôles</a
+          >
+          <a
+            href="#rgpd"
+            class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu"
+            >RGPD</a
+          >
+          <a
+            href="#roadmap"
+            class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu"
+            >Roadmap</a
+          >
+        </nav>
+        <span
+          class="hidden rounded-full bg-oif-dore/10 px-3 py-1 text-xs font-medium text-oif-dore lg:inline-block"
+          >Maquette de présentation · Avril 2026</span
+        >
+      </div>
+    </header>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         SECTION 1 — HERO
+         ───────────────────────────────────────────────────────────── -->
+    <section
+      id="hero"
+      class="pattern-radial relative overflow-hidden text-white"
+      style="
+        background:
+          linear-gradient(135deg, #0e4f88 0%, #1565a8 60%, #0198e9 100%);
+      "
+    >
+      <div
+        class="mx-auto max-w-7xl px-6 py-20 md:py-28 lg:py-32"
+      >
+        <div class="reveal max-w-4xl">
+          <span
+            class="mb-6 inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-medium tracking-wide text-white backdrop-blur-sm"
+          >
+            Plateforme officielle SCS · Organisation Internationale de la Francophonie
+          </span>
+          <h1
+            class="text-4xl font-bold leading-tight tracking-tight md:text-6xl lg:text-7xl"
+          >
+            Suivi-évaluation
+            <span class="text-oif-dore">unifié</span> des projets emploi jeunes
+            de la Francophonie
+          </h1>
+          <p class="mt-8 max-w-3xl text-lg text-white/90 md:text-xl">
+            De la collecte terrain au reporting institutionnel, une chaîne de
+            valeur complète pour piloter les programmes OIF d'insertion
+            économique des jeunes francophones avec rigueur méthodologique et
+            agilité opérationnelle.
+          </p>
+          <div class="mt-10 flex flex-wrap gap-3">
+            <a
+              href="#dashboard"
+              class="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 font-semibold text-oif-bleu shadow-xl transition hover:bg-blue-50"
+            >
+              Découvrir le dashboard
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
+            </a>
+            <a
+              href="#roadmap"
+              class="inline-flex items-center gap-2 rounded-lg border border-white/40 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur-sm transition hover:bg-white/25"
+              >Roadmap V1 → V3</a
+            >
+          </div>
+        </div>
+
+        <!-- Mini KPIs hero -->
+        <div
+          class="reveal reveal-delay-2 mt-16 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"
+        >
+          <div class="rounded-xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
+            <p class="text-3xl font-bold tabular-nums md:text-4xl">5 512</p>
+            <p class="mt-1 text-xs text-white/80 md:text-sm">
+              Bénéficiaires accompagnés
+            </p>
+          </div>
+          <div class="rounded-xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
+            <p class="text-3xl font-bold tabular-nums md:text-4xl">318</p>
+            <p class="mt-1 text-xs text-white/80 md:text-sm">
+              Structures appuyées
+            </p>
+          </div>
+          <div class="rounded-xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
+            <p class="text-3xl font-bold tabular-nums md:text-4xl">53</p>
+            <p class="mt-1 text-xs text-white/80 md:text-sm">
+              Pays d'intervention
+            </p>
+          </div>
+          <div class="rounded-xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
+            <p class="text-3xl font-bold tabular-nums md:text-4xl">91 %</p>
+            <p class="mt-1 text-xs text-white/80 md:text-sm">
+              Femmes accompagnées
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         SECTION 2 — DASHBOARD MOCKUP
+         ───────────────────────────────────────────────────────────── -->
+    <section id="dashboard" class="bg-slate-50 py-20 md:py-28">
+      <div class="mx-auto max-w-7xl px-6">
+        <div class="reveal mx-auto max-w-3xl text-center">
+          <span
+            class="inline-block rounded-full border border-oif-dore/30 bg-oif-dore/10 px-3 py-1 text-xs font-medium text-oif-dore"
+            >Pilotage stratégique</span
+          >
+          <h2
+            class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-5xl"
+          >
+            Un dashboard, cinq indicateurs OIF stratégiques
+          </h2>
+          <p class="mt-4 text-base text-slate-600 md:text-lg">
+            Issus du <em>Cadre commun de mesure du rendement V2</em> :
+            A1 (jeunes formés), A4 (gain de compétences), B1 (activités économiques),
+            B4 (emplois indirects), F1 (apport du français).
+          </p>
+        </div>
+
+        <!-- Mockup KPI grid -->
+        <div
+          class="reveal reveal-delay-1 mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3"
+        >
+          <!-- HERO A1 -->
+          <div
+            class="relative overflow-hidden rounded-xl border border-transparent p-8 text-white shadow-lg sm:col-span-2 xl:col-span-2"
+            style="background: linear-gradient(135deg, #0e4f88 0%, #1565a8 100%);"
+          >
+            <div
+              class="pointer-events-none absolute -right-6 -bottom-8 opacity-[0.07]"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-56 w-56"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5"
+                />
+              </svg>
+            </div>
+            <div class="relative z-10 flex items-start justify-between">
+              <div>
+                <span
+                  class="inline-block rounded border border-white/40 bg-white/15 px-2 py-0.5 font-mono text-xs backdrop-blur-sm"
+                  >A1</span
+                >
+                <p class="mt-2 text-sm font-medium text-white/90 md:text-base">
+                  Jeunes formés au cours de la période
+                </p>
+              </div>
+              <span
+                class="inline-flex items-center gap-1 rounded border-transparent px-2 py-0.5 text-xs font-medium backdrop-blur-sm"
+                style="background-color: #f5a62325; color: #f5a623;"
+              >
+                ↗ Vue globale
+              </span>
+            </div>
+            <div class="relative z-10 mt-6">
+              <p class="text-6xl font-bold tabular-nums md:text-7xl">5 512</p>
+              <p class="mt-3 text-sm text-white/80 md:text-base">
+                <strong class="text-white">5 025</strong> femmes ·
+                <strong class="text-white">488</strong> hommes
+              </p>
+            </div>
+          </div>
+
+          <!-- A4 -->
+          <div
+            class="rounded-xl border-l-4 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+            style="border-left-color: #5d0073;"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <span
+                  class="inline-block rounded border px-2 py-0.5 font-mono text-xs"
+                  style="color: #5d0073; border-color: #5d007366;"
+                  >A4</span
+                >
+                <p class="mt-1.5 text-sm font-medium text-slate-700">
+                  Bénéficiaires en gain de compétences
+                </p>
+              </div>
+              <div
+                class="flex h-11 w-11 items-center justify-center rounded-xl"
+                style="background-color: #5d00731a; color: #5d0073;"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div class="mt-5">
+              <div
+                class="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-3"
+              >
+                <p class="text-sm font-medium italic text-slate-700">À venir</p>
+                <p class="mt-1 text-xs text-slate-500">
+                  Diapo D2 — questionnaire longitudinal V1.5
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- B1 -->
+          <div
+            class="rounded-xl border-l-4 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+            style="border-left-color: #7eb301;"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <span
+                  class="inline-block rounded border px-2 py-0.5 font-mono text-xs"
+                  style="color: #7eb301; border-color: #7eb30166;"
+                  >B1</span
+                >
+                <p class="mt-1.5 text-sm font-medium text-slate-700">
+                  Activités économiques appuyées
+                </p>
+              </div>
+              <div
+                class="flex h-11 w-11 items-center justify-center rounded-xl"
+                style="background-color: #7eb3011a; color: #7eb301;"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div class="mt-5">
+              <p class="text-4xl font-bold tabular-nums text-slate-900">318</p>
+            </div>
+          </div>
+
+          <!-- B4 -->
+          <div
+            class="rounded-xl border-l-4 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+            style="border-left-color: #f5a623;"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <span
+                  class="inline-block rounded border px-2 py-0.5 font-mono text-xs"
+                  style="color: #f5a623; border-color: #f5a62366;"
+                  >B4</span
+                >
+                <p class="mt-1.5 text-sm font-medium text-slate-700">
+                  Emplois indirects créés
+                </p>
+              </div>
+              <div
+                class="flex h-11 w-11 items-center justify-center rounded-xl"
+                style="background-color: #f5a6231a; color: #f5a623;"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M20.25 14.15v4.073a2.25 2.25 0 0 1-1.632 2.163C16.872 20.793 14.49 21 12 21c-2.49 0-4.872-.207-6.618-.614A2.25 2.25 0 0 1 3.75 18.223V14.15m17 0a24.78 24.78 0 0 0 .392-2.85c.052-.71-.346-1.379-1.005-1.65-1.064-.439-2.376-.812-3.852-1.072m4.466 5.572a48.79 48.79 0 0 1-3.853.527m-3.852-1.072c.116-.65.243-1.298.39-1.946M9.75 9.349c-1.626.18-3.131.448-4.466.812-.659.272-1.057.94-1.005 1.65.124 1.7.487 3.337 1.038 4.875M16.5 5.25v3M7.5 5.25v3"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div class="mt-5">
+              <p class="text-4xl font-bold tabular-nums text-slate-900">2 437</p>
+              <p class="mt-1.5 text-xs text-slate-500">
+                Estimation Sondex 2024 · projets PROMOJEUNES
+              </p>
+            </div>
+          </div>
+
+          <!-- F1 -->
+          <div
+            class="rounded-xl border-l-4 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+            style="border-left-color: #0198e9;"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <span
+                  class="inline-block rounded border px-2 py-0.5 font-mono text-xs"
+                  style="color: #0198e9; border-color: #0198e966;"
+                  >F1</span
+                >
+                <p class="mt-1.5 text-sm font-medium text-slate-700">
+                  Apport du français à l'employabilité
+                </p>
+              </div>
+              <div
+                class="flex h-11 w-11 items-center justify-center rounded-xl"
+                style="background-color: #0198e91a; color: #0198e9;"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div class="mt-5">
+              <div
+                class="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-3"
+              >
+                <p class="text-sm font-medium italic text-slate-700">À venir</p>
+                <p class="mt-1 text-xs text-slate-500">
+                  Diapo D3 — questionnaire longitudinal V1.5
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts mockup -->
+        <div class="reveal reveal-delay-2 mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <h3 class="text-base font-semibold text-slate-900">
+              Top 10 pays · bénéficiaires accompagnés
+            </h3>
+            <p class="mt-1 text-xs text-slate-500">
+              Projection cumulée 2018-2025 (extrait base OIF réelle)
+            </p>
+            <div class="mt-6 space-y-3">
+              <!-- Barres podium -->
+              <div class="flex items-center gap-3 text-sm">
+                <span class="w-6 text-slate-400 tabular-nums">01</span>
+                <span class="w-24 truncate font-medium text-slate-900">Sénégal</span>
+                <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <div class="h-3 rounded-full" style="width:100%; background: linear-gradient(90deg, #0e4f88, #0198e9);"></div>
+                </div>
+                <span class="w-16 text-right font-semibold text-slate-900 tabular-nums">1 247</span>
+              </div>
+              <div class="flex items-center gap-3 text-sm">
+                <span class="w-6 text-slate-400 tabular-nums">02</span>
+                <span class="w-24 truncate font-medium text-slate-900">Côte d'Ivoire</span>
+                <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <div class="h-3 rounded-full" style="width:78%; background: #0198e9;"></div>
+                </div>
+                <span class="w-16 text-right font-semibold text-slate-900 tabular-nums">974</span>
+              </div>
+              <div class="flex items-center gap-3 text-sm">
+                <span class="w-6 text-slate-400 tabular-nums">03</span>
+                <span class="w-24 truncate font-medium text-slate-900">Cameroun</span>
+                <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <div class="h-3 rounded-full" style="width:62%; background: #7eb301;"></div>
+                </div>
+                <span class="w-16 text-right font-semibold text-slate-900 tabular-nums">781</span>
+              </div>
+              <div class="flex items-center gap-3 text-sm">
+                <span class="w-6 text-slate-400 tabular-nums">04</span>
+                <span class="w-24 truncate font-medium text-slate-900">Bénin</span>
+                <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <div class="h-3 rounded-full" style="width:48%; background: #5d0073;"></div>
+                </div>
+                <span class="w-16 text-right font-semibold text-slate-900 tabular-nums">605</span>
+              </div>
+              <div class="flex items-center gap-3 text-sm">
+                <span class="w-6 text-slate-400 tabular-nums">05</span>
+                <span class="w-24 truncate font-medium text-slate-900">Mali</span>
+                <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <div class="h-3 rounded-full" style="width:41%; background: #f5a623;"></div>
+                </div>
+                <span class="w-16 text-right font-semibold text-slate-900 tabular-nums">521</span>
+              </div>
+              <div class="flex items-center gap-3 text-sm text-slate-500">
+                <span class="w-6 tabular-nums">…</span>
+                <span class="w-24 italic">+ 48 pays</span>
+                <div class="flex-1"></div>
+                <span class="w-16 text-right tabular-nums">1 384</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <h3 class="text-base font-semibold text-slate-900">
+              Répartition par programme stratégique
+            </h3>
+            <p class="mt-1 text-xs text-slate-500">5 512 bénéficiaires · 3 programmes</p>
+            <div class="mt-6 flex items-center justify-center">
+              <!-- Pie chart SVG simple -->
+              <svg viewBox="0 0 200 200" class="h-48 w-48">
+                <circle cx="100" cy="100" r="80" fill="#7eb301" />
+                <!-- PS1 (1%) -->
+                <path d="M100 20 A80 80 0 0 1 102 20 L100 100 Z" fill="#0198e9" stroke="white" stroke-width="0.5" />
+                <!-- PS2 (1%) -->
+                <path d="M102 20 A80 80 0 0 1 105 20.5 L100 100 Z" fill="#5d0073" stroke="white" stroke-width="0.5" />
+              </svg>
+            </div>
+            <div class="mt-4 space-y-2 text-xs">
+              <div class="flex items-center gap-2">
+                <span class="h-3 w-3 rounded-full" style="background:#7eb301;"></span>
+                <span class="font-mono text-slate-600">PS3</span>
+                <span class="text-slate-700">— Cultures, éducation, économie</span>
+                <span class="ml-auto font-semibold tabular-nums text-slate-900">98 %</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="h-3 w-3 rounded-full" style="background:#0198e9;"></span>
+                <span class="font-mono text-slate-600">PS1</span>
+                <span class="text-slate-700">— La langue française, vecteur de…</span>
+                <span class="ml-auto font-semibold tabular-nums text-slate-900">1 %</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="h-3 w-3 rounded-full" style="background:#5d0073;"></span>
+                <span class="font-mono text-slate-600">PS2</span>
+                <span class="text-slate-700">— Démocratie, droits de l'Homme…</span>
+                <span class="ml-auto font-semibold tabular-nums text-slate-900">1 %</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         SECTION 3 — IA ANALYTIQUE
+         ───────────────────────────────────────────────────────────── -->
+    <section
+      id="ia"
+      class="relative overflow-hidden bg-white py-20 md:py-28"
+    >
+      <div class="mx-auto max-w-7xl px-6">
+        <div class="reveal grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-center">
+          <div>
+            <span
+              class="inline-block rounded-full border border-oif-violet/30 bg-oif-violet/10 px-3 py-1 text-xs font-medium text-oif-violet"
+              >Module V2 — IA Analytique</span
+            >
+            <h2
+              class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-5xl"
+            >
+              De la donnée brute à la
+              <span class="text-oif-violet">note de synthèse</span> en 30 secondes
+            </h2>
+            <p class="mt-4 text-base text-slate-600 md:text-lg">
+              Un assistant analytique génère, à la demande, des notes
+              institutionnelles à partir des données du suivi : impact agrégé,
+              comparatifs cohortes, focus pays, alertes qualité. Toujours validé
+              par un expert humain avant diffusion.
+            </p>
+            <ul class="mt-6 space-y-3 text-sm text-slate-700">
+              <li class="flex items-start gap-3">
+                <span
+                  class="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-oif-violet/15 text-oif-violet"
+                  >✓</span
+                >
+                <span
+                  ><strong>Templates institutionnels</strong> : note pays, fiche
+                  projet, comparatif annuel, focus genre.</span
+                >
+              </li>
+              <li class="flex items-start gap-3">
+                <span
+                  class="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-oif-violet/15 text-oif-violet"
+                  >✓</span
+                >
+                <span
+                  ><strong>Sources tracées</strong> : chaque chiffre cité dans la
+                  note pointe vers la requête et le périmètre exact (RGPD-ready).</span
+                >
+              </li>
+              <li class="flex items-start gap-3">
+                <span
+                  class="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-oif-violet/15 text-oif-violet"
+                  >✓</span
+                >
+                <span
+                  ><strong>Anonymisation native</strong> : aucune donnée
+                  nominative ne quitte la plateforme. Les invites à l'IA sont
+                  automatiquement filtrées.</span
+                >
+              </li>
+            </ul>
+          </div>
+
+          <!-- Mockup note IA -->
+          <div class="reveal reveal-delay-1">
+            <div
+              class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+            >
+              <div class="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
+                <div class="flex gap-1.5">
+                  <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
+                  <span class="h-2.5 w-2.5 rounded-full bg-amber-400"></span>
+                  <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
+                </div>
+                <span class="ml-3 text-xs font-medium text-slate-500"
+                  >Note IA · Focus pays Sénégal · 27 avril 2026</span
+                >
+              </div>
+              <div class="p-6 text-sm leading-relaxed text-slate-800">
+                <h3 class="text-lg font-bold text-oif-bleu">
+                  Insertion économique des jeunes au Sénégal — note de synthèse Q1 2026
+                </h3>
+                <p class="mt-3">
+                  <strong>1 247 bénéficiaires</strong> ont été accompagnés au Sénégal
+                  depuis 2018, dont <strong>1 134 femmes (91 %)</strong> et 113
+                  hommes. La cohorte 2025 (n = 312) marque une accélération de
+                  +28 % par rapport à 2024.
+                </p>
+                <p class="mt-3">
+                  Le projet phare <span class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">PROJ_A14</span>
+                  concentre 84 % de l'effectif : entrepreneuriat féminin
+                  digital, partenariat avec D-CLIC PRO. Le marqueur F1 (apport du
+                  français à l'employabilité) est en cours d'évaluation
+                  longitudinale (Diapo D3).
+                </p>
+                <p class="mt-3 italic text-slate-600">
+                  → Recommandation : prioriser la collecte des questionnaires
+                  longitudinaux pour PROJ_A14 d'ici fin Q2 2026 afin d'alimenter
+                  les indicateurs A4 et F1 dans le rapport annuel SCS.
+                </p>
+                <div class="mt-5 rounded-md bg-slate-50 p-3 text-xs text-slate-500">
+                  <p>
+                    <strong class="text-slate-700">Sources :</strong> indicateurs
+                    OIF v1 (RPC <span class="font-mono">get_indicateurs_oif_v1</span>),
+                    périmètre pays = SN, période = all. Dernier rafraîchissement :
+                    27/04/2026 14:32.
+                  </p>
+                </div>
+                <div class="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
+                  <span class="text-xs text-slate-500">
+                    Note générée en 28 s · validée par
+                    <strong class="text-slate-700">Carlos H.</strong>
+                  </span>
+                  <button
+                    class="rounded-md bg-oif-bleu px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-oif-bleu/90"
+                  >
+                    Exporter PDF
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         SECTION 4 — WIZARD CAMPAGNES
+         ───────────────────────────────────────────────────────────── -->
+    <section id="campagnes" class="bg-slate-50 py-20 md:py-28">
+      <div class="mx-auto max-w-7xl px-6">
+        <div class="reveal mx-auto max-w-3xl text-center">
+          <span
+            class="inline-block rounded-full border border-oif-vert/30 bg-oif-vert/10 px-3 py-1 text-xs font-medium"
+            style="color: #5b8200;"
+            >V1.5 — Disponible</span
+          >
+          <h2
+            class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-5xl"
+          >
+            Campagnes ciblées par <span class="text-oif-vert">strate</span>
+          </h2>
+          <p class="mt-4 text-base text-slate-600 md:text-lg">
+            Cibler une cohorte précise — un projet, un pays, une promotion —
+            plutôt qu'envoyer en masse. Méthodologie OIF appliquée
+            informatiquement.
+          </p>
+        </div>
+
+        <div
+          class="reveal reveal-delay-1 mt-14 grid grid-cols-1 gap-6 md:grid-cols-3"
+        >
+          <div class="relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <div
+              class="absolute -top-3 left-6 rounded-md bg-oif-bleu px-2 py-0.5 text-xs font-bold text-white"
+            >
+              Étape 1
+            </div>
+            <h3 class="mt-3 text-base font-semibold text-slate-900">
+              Sélection de la strate
+            </h3>
+            <p class="mt-2 text-sm text-slate-600">
+              Filtrer par projet, pays, année, sexe, statut, type de structure,
+              secteur d'activité. Aperçu en temps réel : <strong>342 cibles</strong>
+              éligibles.
+            </p>
+          </div>
+          <div class="relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <div
+              class="absolute -top-3 left-6 rounded-md bg-oif-bleu px-2 py-0.5 text-xs font-bold text-white"
+            >
+              Étape 2
+            </div>
+            <h3 class="mt-3 text-base font-semibold text-slate-900">
+              Révision avant envoi
+            </h3>
+            <p class="mt-2 text-sm text-slate-600">
+              Liste paginée des cibles, toutes pré-cochées. Décocher
+              individuellement les contacts à exclure (rompus, doublons, etc.).
+              Cas terrain pris en compte.
+            </p>
+          </div>
+          <div class="relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <div
+              class="absolute -top-3 left-6 rounded-md bg-oif-bleu px-2 py-0.5 text-xs font-bold text-white"
+            >
+              Étape 3
+            </div>
+            <h3 class="mt-3 text-base font-semibold text-slate-900">
+              Lancement & suivi
+            </h3>
+            <p class="mt-2 text-sm text-slate-600">
+              Envoi via Resend, journalisation complète, suivi de la
+              délivrabilité, taux d'ouverture, et taux de complétion en
+              temps réel.
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="reveal reveal-delay-2 mt-10 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <p class="text-xs font-medium uppercase tracking-wide text-oif-dore">
+            Aperçu de la strate · mode révision
+          </p>
+          <div class="mt-3 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div>
+              <p class="text-2xl font-bold text-slate-900 tabular-nums">342</p>
+              <p class="text-xs text-slate-500">Cibles totales</p>
+            </div>
+            <div>
+              <p class="text-2xl font-bold text-oif-vert tabular-nums">298</p>
+              <p class="text-xs text-slate-500">Avec consentement et email</p>
+            </div>
+            <div>
+              <p class="text-2xl font-bold text-amber-500 tabular-nums">38</p>
+              <p class="text-xs text-slate-500">Sans email</p>
+            </div>
+            <div>
+              <p class="text-2xl font-bold text-slate-400 tabular-nums">6</p>
+              <p class="text-xs text-slate-500">Sans consentement</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         SECTION 5 — ARCHITECTURE DES RÔLES
+         ───────────────────────────────────────────────────────────── -->
+    <section id="roles" class="bg-white py-20 md:py-28">
+      <div class="mx-auto max-w-7xl px-6">
+        <div class="reveal mx-auto max-w-3xl text-center">
+          <span
+            class="inline-block rounded-full border border-oif-bleu/30 bg-oif-bleu/10 px-3 py-1 text-xs font-medium text-oif-bleu"
+            >Architecture</span
+          >
+          <h2
+            class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-5xl"
+          >
+            Quatre rôles, une chaîne de valeur
+          </h2>
+          <p class="mt-4 text-base text-slate-600 md:text-lg">
+            Chaque utilisateur voit exactement ce dont il a besoin —
+            ni plus, ni moins. Cloisonnement strict via Row Level Security
+            (PostgreSQL).
+          </p>
+        </div>
+
+        <div
+          class="reveal reveal-delay-1 mt-14 grid grid-cols-1 gap-6 md:grid-cols-2"
+        >
+          <div class="rounded-xl border-t-4 bg-slate-50 p-6" style="border-top-color: #0e4f88;">
+            <div class="flex items-center gap-3">
+              <span
+                class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-oif-bleu/10 text-oif-bleu"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+              </span>
+              <div>
+                <h3 class="text-lg font-semibold text-slate-900">Admin SCS</h3>
+                <p class="text-xs text-slate-500">Carlos, équipe SCS, Chef de service</p>
+              </div>
+            </div>
+            <p class="mt-4 text-sm text-slate-700">
+              Vue globale toutes données, gestion utilisateurs, validation des
+              demandes d'accès, audit, exports complets, configuration de la
+              plateforme.
+            </p>
+          </div>
+
+          <div class="rounded-xl border-t-4 bg-slate-50 p-6" style="border-top-color: #0198e9;">
+            <div class="flex items-center gap-3">
+              <span
+                class="inline-flex h-10 w-10 items-center justify-center rounded-lg"
+                style="background-color: #0198e91a; color: #0198e9;"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0-3-3m3 3 3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/></svg>
+              </span>
+              <div>
+                <h3 class="text-lg font-semibold text-slate-900">Éditeur projet OIF</h3>
+                <p class="text-xs text-slate-500">Coordonnateurs de projets emploi jeunes</p>
+              </div>
+            </div>
+            <p class="mt-4 text-sm text-slate-700">
+              Pilotage des projets gérés (filtre par <span class="font-mono text-xs bg-slate-200 px-1 rounded">projets_geres</span>),
+              lancement de campagnes, indicateurs A1/B1/B4, suivi cohortes,
+              exports périmètre projet.
+            </p>
+          </div>
+
+          <div class="rounded-xl border-t-4 bg-slate-50 p-6" style="border-top-color: #7eb301;">
+            <div class="flex items-center gap-3">
+              <span
+                class="inline-flex h-10 w-10 items-center justify-center rounded-lg"
+                style="background-color: #7eb3011a; color: #7eb301;"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z"/></svg>
+              </span>
+              <div>
+                <h3 class="text-lg font-semibold text-slate-900">Contributeur partenaire</h3>
+                <p class="text-xs text-slate-500">Partenaires de mise en œuvre terrain</p>
+              </div>
+            </div>
+            <p class="mt-4 text-sm text-slate-700">
+              Saisie des bénéficiaires et structures de leur organisation, suivi
+              de la complétude RGPD, génération d'enquêtes longitudinales,
+              consultation des KPI agrégés sur leur périmètre.
+            </p>
+          </div>
+
+          <div class="rounded-xl border-t-4 bg-slate-50 p-6" style="border-top-color: #5d0073;">
+            <div class="flex items-center gap-3">
+              <span
+                class="inline-flex h-10 w-10 items-center justify-center rounded-lg"
+                style="background-color: #5d00731a; color: #5d0073;"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+              </span>
+              <div>
+                <h3 class="text-lg font-semibold text-slate-900">Lecteur (bailleur, État)</h3>
+                <p class="text-xs text-slate-500">Anciennement « Visiteur »</p>
+              </div>
+            </div>
+            <p class="mt-4 text-sm text-slate-700">
+              Lecture seule des indicateurs agrégés et anonymisés. Reporting
+              annuel, vue institutionnelle. Aucune donnée nominative
+              accessible. Idéal pour ambassades et bailleurs internationaux.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         SECTION 6 — SÉCURITÉ RGPD
+         ───────────────────────────────────────────────────────────── -->
+    <section
+      id="rgpd"
+      class="relative overflow-hidden py-20 text-white md:py-28"
+      style="background: linear-gradient(135deg, #5d0073 0%, #0e4f88 100%);"
+    >
+      <div class="pattern-radial absolute inset-0"></div>
+      <div class="relative mx-auto max-w-7xl px-6">
+        <div class="reveal mx-auto max-w-3xl text-center">
+          <span
+            class="inline-block rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur-sm"
+            >Sécurité & conformité</span
+          >
+          <h2
+            class="mt-4 text-3xl font-bold tracking-tight md:text-5xl"
+          >
+            RGPD natif, pas en option
+          </h2>
+          <p class="mt-4 text-base text-white/85 md:text-lg">
+            Chaque ligne de la base de données est filtrée par rôle,
+            consentement, et organisation. Aucune fuite possible par défaut.
+          </p>
+        </div>
+
+        <div class="reveal reveal-delay-1 mt-14 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm">
+            <div class="text-3xl font-bold text-oif-dore">100 %</div>
+            <p class="mt-2 font-semibold">Consentement requis</p>
+            <p class="mt-2 text-sm text-white/80">
+              Pas de courriel ni téléphone enregistrés sans consentement explicite
+              et daté du bénéficiaire.
+            </p>
+          </div>
+          <div class="rounded-xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm">
+            <div class="text-3xl font-bold text-oif-dore">RLS</div>
+            <p class="mt-2 font-semibold">Row Level Security</p>
+            <p class="mt-2 text-sm text-white/80">
+              Politique PostgreSQL appliquée à chaque requête, impossible à
+              contourner même avec la clé API.
+            </p>
+          </div>
+          <div class="rounded-xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm">
+            <div class="text-3xl font-bold text-oif-dore">Soft</div>
+            <p class="mt-2 font-semibold">Soft-delete avec audit</p>
+            <p class="mt-2 text-sm text-white/80">
+              Les suppressions sont tracées (qui, quand, pourquoi) et
+              réversibles pendant 30 jours.
+            </p>
+          </div>
+          <div class="rounded-xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm">
+            <div class="text-3xl font-bold text-oif-dore">EU</div>
+            <p class="mt-2 font-semibold">Hébergement européen</p>
+            <p class="mt-2 text-sm text-white/80">
+              Supabase région Frankfurt, conforme RGPD,
+              SLA 99,9 %, backups quotidiens chiffrés.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         SECTION 7 — CAS D'USAGE
+         ───────────────────────────────────────────────────────────── -->
+    <section class="bg-slate-50 py-20 md:py-28">
+      <div class="mx-auto max-w-7xl px-6">
+        <div class="reveal mx-auto max-w-3xl text-center">
+          <span
+            class="inline-block rounded-full border border-oif-dore/30 bg-oif-dore/10 px-3 py-1 text-xs font-medium text-oif-dore"
+            >Cas d'usage par profil</span
+          >
+          <h2
+            class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-5xl"
+          >
+            Le bon outil pour la bonne personne
+          </h2>
+        </div>
+
+        <div class="reveal reveal-delay-1 mt-14 space-y-4">
+          <details class="group rounded-xl bg-white p-6 ring-1 ring-slate-200 open:shadow-lg">
+            <summary class="flex cursor-pointer list-none items-center justify-between">
+              <div class="flex items-center gap-4">
+                <span class="text-2xl">🎯</span>
+                <div>
+                  <h3 class="font-semibold text-oif-bleu">
+                    Préparer le rapport annuel SCS
+                  </h3>
+                  <p class="text-sm text-slate-500">Rôle : Admin SCS · Carlos</p>
+                </div>
+              </div>
+              <span class="text-slate-400 transition group-open:rotate-180">▾</span>
+            </summary>
+            <p class="mt-4 border-t border-slate-100 pt-4 text-sm leading-relaxed text-slate-700">
+              Carlos sélectionne la période <em>année 2025</em>, exporte les KPI
+              A1/B1/B4 par pays au format Excel, génère une note IA Focus
+              Sénégal, valide les chiffres avec son équipe, et copie les
+              indicateurs dans le rapport annuel pour validation par le Chef de
+              service.
+            </p>
+          </details>
+
+          <details class="group rounded-xl bg-white p-6 ring-1 ring-slate-200 open:shadow-lg">
+            <summary class="flex cursor-pointer list-none items-center justify-between">
+              <div class="flex items-center gap-4">
+                <span class="text-2xl">📨</span>
+                <div>
+                  <h3 class="font-semibold text-oif-bleu">
+                    Lancer une enquête longitudinale 6 mois après formation
+                  </h3>
+                  <p class="text-sm text-slate-500">Rôle : Éditeur projet</p>
+                </div>
+              </div>
+              <span class="text-slate-400 transition group-open:rotate-180">▾</span>
+            </summary>
+            <p class="mt-4 border-t border-slate-100 pt-4 text-sm leading-relaxed text-slate-700">
+              Le coordonnateur ouvre le wizard Campagnes, sélectionne le projet
+              D-CLIC PRO, le pays Côte d'Ivoire, et la cohorte 2025. Le système
+              affiche 412 cibles ; il décoche 14 contacts dont l'email est
+              rompu, lance la campagne. Les réponses arrivent par questionnaire
+              public anonymisé.
+            </p>
+          </details>
+
+          <details class="group rounded-xl bg-white p-6 ring-1 ring-slate-200 open:shadow-lg">
+            <summary class="flex cursor-pointer list-none items-center justify-between">
+              <div class="flex items-center gap-4">
+                <span class="text-2xl">📋</span>
+                <div>
+                  <h3 class="font-semibold text-oif-bleu">
+                    Saisir une nouvelle cohorte de 80 jeunes formés
+                  </h3>
+                  <p class="text-sm text-slate-500">Rôle : Contributeur partenaire</p>
+                </div>
+              </div>
+              <span class="text-slate-400 transition group-open:rotate-180">▾</span>
+            </summary>
+            <p class="mt-4 border-t border-slate-100 pt-4 text-sm leading-relaxed text-slate-700">
+              Le partenaire prépare son fichier Excel (template fourni), lance
+              l'import, corrige les 3 lignes en erreur signalées par le rapport
+              de validation, valide. Les 80 bénéficiaires sont créés avec
+              traçabilité d'import et identifiant_externe pour ré-imports
+              ultérieurs.
+            </p>
+          </details>
+
+          <details class="group rounded-xl bg-white p-6 ring-1 ring-slate-200 open:shadow-lg">
+            <summary class="flex cursor-pointer list-none items-center justify-between">
+              <div class="flex items-center gap-4">
+                <span class="text-2xl">🌍</span>
+                <div>
+                  <h3 class="font-semibold text-oif-bleu">
+                    Consulter l'impact agrégé pour un rapport bailleur
+                  </h3>
+                  <p class="text-sm text-slate-500">Rôle : Lecteur (Ambassade, Bailleur)</p>
+                </div>
+              </div>
+              <span class="text-slate-400 transition group-open:rotate-180">▾</span>
+            </summary>
+            <p class="mt-4 border-t border-slate-100 pt-4 text-sm leading-relaxed text-slate-700">
+              L'ambassade du Canada se connecte, accède à un dashboard restreint
+              aux KPI agrégés, télécharge la fiche pays Sénégal au format PDF, et
+              cite les chiffres dans son rapport annuel sans avoir vu une seule
+              donnée nominative.
+            </p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         SECTION 8 — ROADMAP V1 → V2 → V3
+         ───────────────────────────────────────────────────────────── -->
+    <section id="roadmap" class="bg-white py-20 md:py-28">
+      <div class="mx-auto max-w-7xl px-6">
+        <div class="reveal mx-auto max-w-3xl text-center">
+          <span
+            class="inline-block rounded-full border border-oif-bleu/30 bg-oif-bleu/10 px-3 py-1 text-xs font-medium text-oif-bleu"
+            >Trajectoire produit</span
+          >
+          <h2
+            class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-5xl"
+          >
+            Roadmap : V1 → V2 → V3
+          </h2>
+          <p class="mt-4 text-base text-slate-600 md:text-lg">
+            De la base institutionnelle au copilote IA prédictif.
+          </p>
+        </div>
+
+        <div class="reveal reveal-delay-1 mt-14 grid grid-cols-1 gap-8 md:grid-cols-3">
+          <!-- V1 -->
+          <div class="relative rounded-2xl border-2 border-oif-vert bg-white p-8 shadow-lg">
+            <span
+              class="absolute -top-3 left-6 rounded-md bg-oif-vert px-3 py-1 text-xs font-bold text-white"
+              >V1 · Pilote — Juin 2026</span
+            >
+            <p class="mt-3 text-xs uppercase tracking-wide text-slate-500">
+              Status : <span class="font-semibold text-oif-vert">En cours · 95 %</span>
+            </p>
+            <h3 class="mt-3 text-2xl font-bold text-oif-bleu">Fondations institutionnelles</h3>
+            <ul class="mt-5 space-y-2.5 text-sm text-slate-700">
+              <li class="flex items-start gap-2"><span class="text-oif-vert">✓</span> Authentification Supabase + 4 rôles RLS</li>
+              <li class="flex items-start gap-2"><span class="text-oif-vert">✓</span> Saisie bénéficiaires & structures (RGPD natif)</li>
+              <li class="flex items-start gap-2"><span class="text-oif-vert">✓</span> Imports Excel template-driven</li>
+              <li class="flex items-start gap-2"><span class="text-oif-vert">✓</span> Dashboard KPI OIF (A1/A4/B1/B4/F1)</li>
+              <li class="flex items-start gap-2"><span class="text-oif-vert">✓</span> Wizard Campagnes ciblées (Resend)</li>
+              <li class="flex items-start gap-2"><span class="text-oif-vert">✓</span> Vitrine publique institutionnelle</li>
+              <li class="flex items-start gap-2"><span class="text-oif-vert">✓</span> Audit complet & soft-delete</li>
+            </ul>
+            <div class="mt-6 rounded-lg bg-oif-vert/10 p-3 text-xs text-slate-600">
+              <strong class="text-oif-vert">Cible pilote :</strong> 60 partenaires
+              de mise en œuvre, 3 projets stratégiques, 5 pays test.
+            </div>
+          </div>
+
+          <!-- V2 -->
+          <div class="relative rounded-2xl border-2 border-oif-violet bg-white p-8 shadow-lg">
+            <span
+              class="absolute -top-3 left-6 rounded-md bg-oif-violet px-3 py-1 text-xs font-bold text-white"
+              >V2 · Q4 2026</span
+            >
+            <p class="mt-3 text-xs uppercase tracking-wide text-slate-500">
+              Status : <span class="font-semibold text-oif-violet">Cadrage</span>
+            </p>
+            <h3 class="mt-3 text-2xl font-bold text-oif-bleu">IA Analytique</h3>
+            <ul class="mt-5 space-y-2.5 text-sm text-slate-700">
+              <li class="flex items-start gap-2"><span class="text-oif-violet">→</span> Module IA de génération de notes (Claude / GPT)</li>
+              <li class="flex items-start gap-2"><span class="text-oif-violet">→</span> Templates institutionnels pré-configurés</li>
+              <li class="flex items-start gap-2"><span class="text-oif-violet">→</span> Anonymisation native des invites</li>
+              <li class="flex items-start gap-2"><span class="text-oif-violet">→</span> Validation humaine obligatoire avant export</li>
+              <li class="flex items-start gap-2"><span class="text-oif-violet">→</span> Indicateurs A4 et F1 alimentés (longitudinaux)</li>
+              <li class="flex items-start gap-2"><span class="text-oif-violet">→</span> Cartographie interactive Leaflet</li>
+              <li class="flex items-start gap-2"><span class="text-oif-violet">→</span> Comparaisons cohortes / années</li>
+            </ul>
+            <div class="mt-6 rounded-lg bg-oif-violet/10 p-3 text-xs text-slate-600">
+              <strong class="text-oif-violet">Élargissement :</strong> 200
+              partenaires, 10 projets, 20 pays.
+            </div>
+          </div>
+
+          <!-- V3 -->
+          <div class="relative rounded-2xl border-2 border-oif-dore bg-white p-8 shadow-lg">
+            <span
+              class="absolute -top-3 left-6 rounded-md bg-oif-dore px-3 py-1 text-xs font-bold text-white"
+              >V3 · 2027</span
+            >
+            <p class="mt-3 text-xs uppercase tracking-wide text-slate-500">
+              Status : <span class="font-semibold text-oif-dore">Vision</span>
+            </p>
+            <h3 class="mt-3 text-2xl font-bold text-oif-bleu">Copilote prédictif</h3>
+            <ul class="mt-5 space-y-2.5 text-sm text-slate-700">
+              <li class="flex items-start gap-2"><span class="text-oif-dore">★</span> Prédiction d'impact via ML (cohortes similaires)</li>
+              <li class="flex items-start gap-2"><span class="text-oif-dore">★</span> Recommandations de ciblage projet</li>
+              <li class="flex items-start gap-2"><span class="text-oif-dore">★</span> API publique pour bailleurs (read-only)</li>
+              <li class="flex items-start gap-2"><span class="text-oif-dore">★</span> Application mobile partenaires (offline-first)</li>
+              <li class="flex items-start gap-2"><span class="text-oif-dore">★</span> Intégration HRMIS bailleurs (UE, AFD, Canada)</li>
+              <li class="flex items-start gap-2"><span class="text-oif-dore">★</span> Tableaux de bord publics par pays</li>
+            </ul>
+            <div class="mt-6 rounded-lg bg-oif-dore/10 p-3 text-xs text-slate-600">
+              <strong class="text-oif-dore">Échelle :</strong> tous les projets
+              emploi jeunes OIF, ouverture institutionnelle.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         CTA FINAL
+         ───────────────────────────────────────────────────────────── -->
+    <section
+      class="relative overflow-hidden py-20 text-center text-white md:py-24"
+      style="background: linear-gradient(135deg, #0e4f88 0%, #0198e9 100%);"
+    >
+      <div class="pattern-radial absolute inset-0"></div>
+      <div class="reveal relative mx-auto max-w-3xl px-6">
+        <h2 class="text-3xl font-bold tracking-tight md:text-5xl">
+          Une plateforme pensée par et pour le SCS
+        </h2>
+        <p class="mt-6 text-lg text-white/85 md:text-xl">
+          Au service des coordonnateurs de projet, des partenaires de terrain
+          et des bailleurs francophones. Conçue pour durer 10 ans.
+        </p>
+        <p class="mt-10 text-sm text-white/70">
+          Maquette préparée par <strong class="text-white">Carlos HOUNSINOU</strong> · Service de Conception et Suivi des projets · Avril 2026
+        </p>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         FOOTER
+         ───────────────────────────────────────────────────────────── -->
+    <footer class="border-t border-slate-200 bg-slate-50 py-10 text-sm text-slate-500">
+      <div class="mx-auto max-w-7xl px-6 text-center">
+        <p>
+          © 2026 Organisation Internationale de la Francophonie · Service de
+          Conception et Suivi
+        </p>
+        <p class="mt-2 text-xs">
+          Document interne de présentation · Ne pas diffuser hors du cadre SCS.
+        </p>
+      </div>
+    </footer>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         SCRIPT — Fade-in au scroll
+         ───────────────────────────────────────────────────────────── -->
+    <script>
+      // Active la classe .is-visible sur tous les éléments .reveal entrant dans le viewport.
+      // Respecte prefers-reduced-motion (les éléments sont rendus visibles immédiatement).
+      (function () {
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const elements = document.querySelectorAll('.reveal');
+        if (reduced) {
+          elements.forEach((el) => el.classList.add('is-visible'));
+          return;
+        }
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.15, rootMargin: '0px 0px -80px 0px' },
+        );
+        elements.forEach((el) => observer.observe(el));
+      })();
+    </script>
+  </body>
+</html>

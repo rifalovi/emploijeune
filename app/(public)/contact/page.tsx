@@ -20,7 +20,7 @@ export default function ContactPage() {
       {/* Header public minimal */}
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-8">
-          <Link href="/accueil" className="inline-flex items-center" aria-label="Accueil">
+          <Link href="/" className="inline-flex items-center" aria-label="Accueil">
             <LogoOIF size="sm" withProtectedSpace={false} />
           </Link>
           <nav className="flex items-center gap-2">
@@ -36,7 +36,7 @@ export default function ContactPage() {
 
       <main className="mx-auto max-w-5xl px-4 py-12 sm:px-8 md:py-16">
         <Link
-          href="/accueil"
+          href="/"
           className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1 text-sm"
         >
           <ArrowLeft aria-hidden className="size-4" />
