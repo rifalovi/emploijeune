@@ -1,166 +1,158 @@
-# Étape 9 — Dashboards & indicateurs (cadrage prospectif)
+# Étape 9 — Dashboards & indicateurs OIF (cadrage rétrospectif)
 
-> Cadrage rédigé en avance de phase pendant le sprint nocturne
-> 26→27 avril 2026 (autonomie max). **Pas de code livré dans cette
-> étape : ce document sert d'arbitrage pour le sprint suivant.**
+> Cadrage rétrospectif rédigé pendant la livraison (sprint nocturne
+> 26→27 avril 2026). Le brouillon prospectif (v0.1) avait été
+> commité avant arbitrage Carlos ; cette version (v1.0) reflète le
+> code livré.
 >
-> Version : 0.1 (brouillon en attente d'arbitrage Carlos) — 27 avril 2026
+> Version : 1.0 — 27 avril 2026
 
-## 1. Objectif
+## 1. Arbitrages Carlos appliqués
 
-Donner aux 4 rôles une vue agrégée et visuelle de l'activité de la
-plateforme via des dashboards adaptés à leur périmètre RLS, en se
-limitant aux indicateurs déjà calculables sur les données déjà
-présentes (A1, B1) et sans introduire de pipeline de calcul lourd.
+| Question | Arbitrage |
+|---|---|
+| Q1 — Bibliothèque graphique | **Recharts** (déjà dans `package.json` ^3.8.1) |
+| Q2 — KPI prioritaires | **A1 / A4 / B1 / B4 / F1** |
+| Q3 — Pie chart | **Par programme stratégique** (PS1 / PS2 / PS3) |
+| Q4 — Devises | **EUR par défaut + toggle FCFA** (parité fixe BCEAO 655,957) |
+| Q5 — Variantes par rôle | **3 variantes** (admin global / éditeur scope projets / autres scope org) |
+| Q6 — Activité récente | **Liste verticale + filtre période** (7j / 30j / 90j / all) |
 
-## 2. Hypothèses & contraintes
+## 2. Périmètre V1 livré
 
-### Données disponibles (post Étapes 4-7)
+### Page `/dashboard` (refondue)
 
-- `beneficiaires` (A1) — 22 colonnes utiles, dont projet_code, pays_code,
-  domaine_formation_code, sexe, statut_beneficiaire, age, date_inscription.
-- `structures` (B1) — 37 colonnes, dont type_structure, secteur_activite,
-  statut_creation, annee_appui, montant_appui, devise.
-- `enquetes` + `reponses_enquetes` — D1/D2/D3 vides en V1 (pas de
-  questionnaire fourni). À ignorer en Étape 9 V1.
-- `imports_excel` — historique des imports avec compteurs.
-- `journaux_audit` — historique des actions BDD.
+Conserve l'ancienne section « Indicateurs opérationnels » (4 KPI cards par
+rôle : comptes à valider, taux RGPD, alertes qualité, imports récents).
 
-### Contraintes techniques
+**Ajoute** une section « Indicateurs OIF stratégiques » avec :
 
-- Pas de moteur d'analytics (pas de Metabase / Superset déployé).
-- Recharts est déjà dans `package.json` (utilisé page liste 4e/5e ?
-  vérifier — sinon installer).
-- Calculs effectués en PostgreSQL via vues SQL ou requêtes server-side.
-- RLS doit s'appliquer : un coordonnateur ne voit QUE les données de
-  ses projets, un contributeur QUE les fiches qu'il a saisies.
+1. **Sélecteur de période** (push `?periode=XX` URL → re-render serveur).
+2. **Toggle EUR / FCFA** (persisté localStorage + événement `oif:devise-change`).
+3. **Grille 5 KPI OIF** (KpiGridOif) :
+   - **A1** — Jeunes formés (avec ventilation femmes/hommes).
+   - **A4** — Gain de compétences → placeholder « Phase 2 — Diapo D2 ».
+   - **B1** — Activités économiques appuyées.
+   - **B4** — Emplois indirects estimés (mention « Estimation déclarative »).
+   - **F1** — Apport du français → placeholder « Phase 2 — Diapo D3 ».
+4. **Bar chart Recharts** — top 10 projets par bénéficiaires.
+5. **Pie chart Recharts** — répartition par programme stratégique
+   (couleurs PS1/PS2/PS3 distinctes).
+6. **Activité récente** (10 max) — créations/MAJ bénéficiaires +
+   structures + imports, triée chronologiquement, filtrée par période,
+   liens cliquables vers les fiches.
 
-### Contraintes métier
+### Fonction PostgreSQL `get_indicateurs_oif_v1(p_periode TEXT)`
 
-- 4 rôles avec périmètres distincts → 4 variantes de dashboard
-  (ou 1 dashboard avec sections conditionnelles).
-- Indicateurs OIF normalisés : volumétrie + ventilation par sexe + par
-  pays + par projet (ce sont les axes d'analyse récurrents dans les
-  rapports OIF).
+Une seule fonction PL/pgSQL retourne le payload JSONB complet : 5 KPIs +
+bar_projets + pie_programmes. Filtré par rôle et par période. SECURITY
+DEFINER + filtre RLS reproduit en SQL pour éviter le multi-pass.
 
-## 3. Périmètre V1 proposé
+| Rôle | Scope retourné |
+|---|---|
+| `admin_scs` | global (toutes lignes non supprimées) |
+| `editeur_projet` | bénéficiaires + structures dans `current_projets_geres()` |
+| `contributeur_partenaire` | créés par lui ou son organisation |
+| `lecteur` | organisation OU projets visibles |
 
-### Page `/dashboard` (déjà existante en placeholder)
+## 3. Hors scope V1 (V1.5)
 
-Refondre la page `/dashboard` avec :
+- **A4 et F1 réels** : nécessitent les questionnaires Diapo D2/D3 non
+  fournis en V1. Quand alimentés, retirer le placeholder et calculer
+  depuis `reponses_enquetes`.
+- **Filtres dynamiques cross-cards** (cliquer sur PS1 filtre tout) → V1.5.
+- **Export PDF / PNG des graphiques** pour rapports OIF → V1.5.
+- **Comparaison périodes** (M-1 vs M) → V2.
+- **Cartographie géographique** par pays → V1.5 si demande métier.
 
-#### Section A — KPI cards (4-6 chiffres clés)
+## 4. Patterns réutilisés
 
-- Nombre total de bénéficiaires (filtré RLS)
-- Nombre total de structures (filtré RLS)
-- Nombre de projets actifs (selon rôle)
-- % de bénéficiaires femmes / hommes
-- Total montant d'appui aux structures (somme MGA/EUR convertie ?)
-- Nombre d'imports réalisés ces 30 derniers jours
+- Server Component principal + Client Components isolés pour Recharts
+  (le bundle Recharts est lourd ~30kB gzipped, c'est pourquoi le
+  `/dashboard` est passé de ~117kB à 273kB First Load JS).
+- Schéma Zod partagé (`indicateursOifSchema`) entre serveur et client.
+- Fonction SQL SECURITY DEFINER + filtre rôle reproduit pour éviter
+  les passes RLS coûteuses (déjà le pattern des KPI dashboards
+  opérationnels).
+- Pas de migration de données : la fonction lit l'existant
+  (`beneficiaires`, `structures`, `projets`, `programmes_strategiques`).
 
-#### Section B — 2 graphiques Recharts
+## 5. Risques & mitigations
 
-- **Bar chart** : bénéficiaires par projet (ou par pays selon rôle)
-- **Pie chart** : répartition par sexe / par tranche d'âge / par
-  domaine de formation (au choix Carlos)
+### R1 — Performance bar_projets sur volume
 
-#### Section C — Activité récente
+`SELECT projet_code, COUNT(*) GROUP BY` peut être lent si
+`beneficiaires` dépasse 50 000 lignes. **Mitigation V1** : LIMIT 10
+côté SQL + ORDER BY DESC. **V1.5** : index partiel `(projet_code)
+WHERE deleted_at IS NULL` si timing > 500ms.
 
-- 5 dernières créations bénéficiaires (avec nom_complet + projet)
-- 5 dernières créations structures (avec nom + pays)
-- 5 derniers imports (avec compteurs lues/insérées/erreurs)
+### R2 — Toggle FCFA sans montant à convertir
 
-### Variantes par rôle (RLS-driven)
+V1 affiche les KPI **en nombres**, pas en montants. Le toggle EUR/FCFA
+est exposé pour l'usage futur (V1.5 ajoutera un KPI « Montant total
+des appuis structures » qui exploitera réellement la conversion).
+Documenté dans le composant.
 
-| Rôle | Périmètre | KPI affichés |
-|------|-----------|---|
-| `admin_scs` | Toute la plateforme | Tous les KPI + onglet « Plateforme » avec compteurs globaux + audit récent |
-| `editeur_projet` | Ses projets gérés | KPI filtrés sur projets gérés + comparatif inter-projets |
-| `contributeur_partenaire` | Ses fiches | KPI sur sa contribution personnelle (combien j'ai saisi) |
-| `lecteur` | Lecture des projets autorisés | KPI agrégés sans détail nominatif |
+### R3 — Couleurs pie chart incompatibles dark mode
 
-## 4. Hors scope V1 (V1.5 / V2)
+Les 3 couleurs PS sont en HSL absolu (217 91% 60%, 142 71% 45%) et non
+des tokens du design system. Si un dark mode est ajouté plus tard,
+ajuster. La couleur PS1 utilise `hsl(var(--primary))` et suit le mode.
 
-- **Filtres dynamiques cross-cards** (ex. cliquer sur un projet filtre
-  tous les graphiques) → V1.5 si Carlos demande.
-- **Export PDF du dashboard** pour rapports OIF → V2.
-- **Indicateurs longitudinaux D1/D2/D3** (taux d'insertion, durée
-  moyenne d'accompagnement) → V2 quand les questionnaires Diapo seront
-  fournis et alimentés.
-- **Comparaison périodes** (M-1 vs M, A-1 vs A) → V2.
-- **Cartographie géographique** (carte des bénéficiaires par pays /
-  ville) → V1.5 si valeur métier confirmée.
-- **Alertes / seuils** (ex. « Projet X en sous-réalisation ») → V2.
+### R4 — Filtre période côté SQL vs côté UI
 
-## 5. Patterns à réutiliser
+Le sélecteur de période agit serveur (re-render Next.js), pas client.
+Conséquence : changement de période → loading spinner standard de
+Next + nouvelle requête RPC. Acceptable V1 (RPC <500ms attendu).
 
-- Server Components Next 14 pour les KPI cards (lecture serveur, pas
-  de hydration JS).
-- Recharts en Client Components isolés pour les graphiques.
-- Vues SQL `dashboard_kpi_v1` matérialisées ou non selon performance
-  (à benchmarker — si Supabase Free tient, pas besoin de
-  matérialisation).
-- Service_role uniquement côté serveur si on a besoin de bypasser RLS
-  pour les KPI globaux admin_scs. Sinon RLS standard.
+## 6. Tests d'acceptance
 
-## 6. Risques techniques identifiés
+`tests/unit/indicateurs-oif-schema.spec.ts` (13 tests) :
+- Payload complet valide
+- A4 et F1 nullables (proxies Phase 2)
+- Période hors enum rejetée
+- Rôle / scope hors enum rejetés
+- bar_projets et pie_programmes vides acceptés
+- 4 périodes (`7j`, `30j`, `90j`, `all`) avec libellés
+- Conversion EUR ↔ FCFA (parité 655,957)
+- Format monétaire fr-FR
 
-### R1 — Complexité RLS sur les agrégats
+Vérifs CI : tsc OK, vitest 443/443, lint OK, build OK.
 
-`COUNT(*)` filtré par RLS peut être lent sur grosses tables sans
-index. **Mitigation** : tester sur jeu de données réaliste (1 000+
-bénéficiaires), ajouter index `(projet_code, sexe)` si besoin.
+## 7. Procédure utilisateur
 
-### R2 — Conversion devises pour montants d'appui
+1. Connexion → atterrit sur `/dashboard`.
+2. Voit immédiatement la section « Indicateurs opérationnels »
+   (existant, par rôle).
+3. Voit la section « Indicateurs OIF stratégiques » avec :
+   - Sélecteur période en haut à droite (défaut 30j).
+   - Toggle EUR/FCFA à côté.
+   - 5 KPI cards (A1, A4, B1, B4, F1) — A4 et F1 affichent
+     « À venir / Phase 2 ».
+   - 2 graphiques côte à côte (bar projets + pie programmes).
+   - Liste activité récente cliquable.
+4. Change la période → URL devient `?periode=7j` et tout se met à jour.
 
-Les structures peuvent être en MGA, EUR, USD, XOF. Afficher une somme
-brute n'a pas de sens. **Mitigation V1** : afficher 1 KPI par devise
-(« 1 200 000 MGA + 12 500 EUR ») ou n'afficher que le compte du
-nombre de structures appuyées. **V2** : table de taux + conversion.
+## 8. Décisions techniques notables
 
-### R3 — Performance dashboard sur premier accès
-
-Si on calcule 6 KPI + 2 charts + 3 listes au render, on peut dépasser
-2s côté serveur. **Mitigation** : `Promise.all` pour paralléliser les
-requêtes. Si insuffisant, vue matérialisée rafraîchie toutes les 5 min.
-
-### R4 — Variantes par rôle = code conditionnel lourd
-
-Risque : 4 versions du même composant qui divergent. **Mitigation** :
-1 seul `DashboardPage` qui orchestre, et helpers `getKpiPourRole(role,
-user)` qui encapsulent la variation.
-
-## 7. Estimation effort
-
-- KPI cards (queries + UI) : 2-3h
-- 2 graphiques Recharts : 1-2h
-- Section activité récente : 1h
-- Variantes par rôle : 1-2h
-- Tests unitaires (queries KPI) : 1h
-- **Total estimé : 6-9h** sur une journée ou en 2 demi-journées.
-
-## 8. Décisions à arbitrer (Carlos)
-
-1. **Recharts ou alternative** ? (déjà dans deps ou à installer)
-2. **Quels 4-6 KPI prioritaires** parmi la liste section 3-A ?
-3. **Pie chart : sexe, âge ou domaine de formation** comme axe défaut ?
-4. **Conversion devises** : V1 multi-lignes par devise OK, ou besoin
-   d'une vraie agrégation EUR ?
-5. **Variantes par rôle** : 1 page conditionnelle ou 4 pages distinctes ?
-6. **Activité récente** : 5 lignes par catégorie OK, ou besoin d'un
-   feed unifié chronologique ?
-
-## 9. Procédure utilisateur cible
-
-1. L'utilisateur (n'importe quel rôle) se connecte → atterrit sur
-   `/dashboard` (déjà le cas en V1).
-2. Voit immédiatement les chiffres clés de son périmètre.
-3. Survole / clique sur un graphique pour voir le détail (V1.5).
-4. Clique sur une ligne « activité récente » pour ouvrir la fiche
-   correspondante.
+- **Activité récente n'utilise PAS `journaux_audit`** car la RLS de
+  cette table est admin-only. À la place, on fusionne les `updated_at`
+  les plus récents de `beneficiaires` + `structures` + `imports_excel`
+  filtrés par RLS standard. Effet : non-admin voit son activité, admin
+  voit tout.
+- **`get_indicateurs_oif_v1` est SECURITY DEFINER** (comme les fonctions
+  KPI existantes) avec filtre rôle SQL explicite. Pas de fuite de
+  données entre rôles.
+- **Format FCFA via `Intl.NumberFormat('fr-FR', { currency: 'XOF' })`** :
+  XOF est le code ISO du Franc CFA Ouest (zone BCEAO). XAF (zone BEAC)
+  formaterait à l'identique en français — choix XOF par défaut Sahel.
+- **Recharts v3** introduit des breaking changes sur les types de
+  Tooltip/Pie label : casts via `unknown` documentés dans les
+  Client Components.
 
 ## Changelog
 
 | Version | Date | Changement |
-|---------|------|------------|
-| 0.1 | 2026-04-27 | Brouillon prospectif post sprint nocturne (en attente arbitrage). |
+|---|---|---|
+| 0.1 | 2026-04-27 | Brouillon prospectif (avant arbitrage Carlos). |
+| 1.0 | 2026-04-27 | Cadrage rétrospectif post-livraison (arbitrages appliqués). |

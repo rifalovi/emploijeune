@@ -1,0 +1,100 @@
+'use client';
+
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+type Donnee = {
+  code: string;
+  libelle: string | null;
+  beneficiaires: number;
+};
+
+/**
+ * Pie chart Recharts — répartition bénéficiaires par programme stratégique
+ * (PS1/PS2/PS3) — Étape 9 Q3.
+ *
+ * Couleurs : palette dérivée des tokens design system (primary, secondary,
+ * accent) pour éviter d'introduire de nouvelles teintes.
+ */
+const COULEURS_PS: Record<string, string> = {
+  PS1: 'hsl(var(--primary))',
+  PS2: 'hsl(217 91% 60%)',
+  PS3: 'hsl(142 71% 45%)',
+};
+
+export function ChartProgrammesPie({ data }: { data: Donnee[] }) {
+  const total = data.reduce((s, d) => s + d.beneficiaires, 0);
+
+  if (data.length === 0 || total === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Répartition par programme stratégique</CardTitle>
+        </CardHeader>
+        <CardContent className="text-muted-foreground py-8 text-center text-sm italic">
+          Aucun bénéficiaire dans le périmètre sélectionné.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Répartition par programme stratégique</CardTitle>
+        <CardDescription>
+          {total} bénéficiaire(s) · {data.length} programme(s)
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey="beneficiaires"
+                nameKey="code"
+                cx="50%"
+                cy="50%"
+                outerRadius={90}
+                label={(props) => {
+                  const p = props as unknown as { code?: string; beneficiaires?: number };
+                  const code = p.code ?? '';
+                  const nb = p.beneficiaires ?? 0;
+                  return `${code} (${Math.round((nb / total) * 100)}%)`;
+                }}
+              >
+                {data.map((d) => (
+                  <Cell key={d.code} fill={COULEURS_PS[d.code] ?? 'hsl(var(--muted))'} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--background))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: 6,
+                  fontSize: 12,
+                }}
+                formatter={(v, _name, item) => {
+                  const payload = (item as { payload?: Donnee }).payload;
+                  return [
+                    `${Number(v ?? 0)} bénéficiaire(s)`,
+                    payload?.libelle ?? payload?.code ?? '',
+                  ] as [string, string];
+                }}
+              />
+              <Legend
+                wrapperStyle={{ fontSize: 12 }}
+                formatter={(value) => {
+                  const code = String(value ?? '');
+                  const item = data.find((d) => d.code === code);
+                  return item?.libelle ? `${code} — ${item.libelle}` : code;
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

@@ -5,22 +5,50 @@ import { DashboardAdminScs } from '@/components/dashboard/dashboard-admin-scs';
 import { DashboardEditeurProjet } from '@/components/dashboard/dashboard-editeur-projet';
 import { DashboardContributeur } from '@/components/dashboard/dashboard-contributeur';
 import { DashboardLecteur } from '@/components/dashboard/dashboard-lecteur';
+import { KpiGridOif } from '@/components/dashboard/kpi-grid-oif';
+import { ChartProjetsBar } from '@/components/dashboard/chart-projets-bar';
+import { ChartProgrammesPie } from '@/components/dashboard/chart-programmes-pie';
+import { ActiviteRecenteFeed } from '@/components/dashboard/activite-recente-feed';
+import { SelecteurPeriode } from '@/components/dashboard/selecteur-periode';
+import { ToggleDevise } from '@/components/dashboard/toggle-devise';
 import {
   kpiAdminScsSchema,
   kpiContributeurSchema,
   kpiEditeurProjetSchema,
   kpiLecteurSchema,
 } from '@/lib/kpis/types';
+import {
+  PERIODES,
+  PERIODE_LIBELLES,
+  indicateursOifSchema,
+  type Periode,
+} from '@/lib/kpis/indicateurs-oif';
+import { getActiviteRecente } from '@/lib/dashboard/activite-recente';
 
 export const metadata: Metadata = {
   title: 'Accueil — OIF Emploi Jeunes',
 };
 
-export default async function DashboardPage() {
+type SearchParams = Promise<{ periode?: string }>;
+
+export default async function DashboardPage({ searchParams }: { searchParams: SearchParams }) {
   const utilisateur = await requireUtilisateurValide();
   const supabase = await createSupabaseServerClient();
 
-  const { data, error } = await supabase.rpc('get_kpis_dashboard');
+  const { periode: rawPeriode } = await searchParams;
+  const periode: Periode =
+    rawPeriode && (PERIODES as readonly string[]).includes(rawPeriode)
+      ? (rawPeriode as Periode)
+      : '30j';
+
+  const [{ data, error }, { data: rawOif }, activite] = await Promise.all([
+    supabase.rpc('get_kpis_dashboard'),
+    supabase.rpc('get_indicateurs_oif_v1', { p_periode: periode }),
+    getActiviteRecente(periode),
+  ]);
+
+  const oifParse = indicateursOifSchema.safeParse(rawOif);
+  const oif = oifParse.success ? oifParse.data : null;
 
   if (error) {
     return (
@@ -39,7 +67,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           Bonjour, {utilisateur.nom_complet}
@@ -47,7 +75,28 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground text-sm">{salutationContextuelle(utilisateur.role)}</p>
       </header>
 
-      {renderDashboard(utilisateur.role, data)}
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Indicateurs opérationnels</h2>
+        {renderDashboard(utilisateur.role, data)}
+      </section>
+
+      {oif && (
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">Indicateurs OIF stratégiques</h2>
+            <div className="flex flex-wrap items-center gap-4">
+              <SelecteurPeriode valeur={periode} />
+              <ToggleDevise />
+            </div>
+          </div>
+          <KpiGridOif data={oif} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <ChartProjetsBar data={oif.bar_projets} />
+            <ChartProgrammesPie data={oif.pie_programmes} />
+          </div>
+          <ActiviteRecenteFeed evenements={activite} periodeLibelle={PERIODE_LIBELLES[periode]} />
+        </section>
+      )}
     </div>
   );
 }
