@@ -780,6 +780,7 @@ export type Database = {
           expire_at: string
           consomme_at: string | null
           session_enquete_id: string | null
+          campagne_id: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -797,6 +798,7 @@ export type Database = {
           expire_at?: string
           consomme_at?: string | null
           session_enquete_id?: string | null
+          campagne_id?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -814,6 +816,7 @@ export type Database = {
           expire_at?: string
           consomme_at?: string | null
           session_enquete_id?: string | null
+          campagne_id?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -1142,6 +1145,75 @@ export type Database = {
         }
         Relationships: []
       }
+      campagnes_collecte: {
+        Row: {
+          id: string
+          nom: string
+          description: string | null
+          questionnaire: 'A' | 'B'
+          type_vague: string
+          mode_selection: 'toutes' | 'filtres' | 'manuelle'
+          filtres: Json
+          cibles_manuelles: string[] | null
+          plafond: number
+          email_test_override: string | null
+          date_envoi_prevue: string | null
+          statut: 'brouillon' | 'programmee' | 'envoyee' | 'terminee'
+          total_cibles: number | null
+          total_envoyes: number
+          total_repondus: number
+          envoyee_at: string | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          nom: string
+          description?: string | null
+          questionnaire: 'A' | 'B'
+          type_vague: string
+          mode_selection: 'toutes' | 'filtres' | 'manuelle'
+          filtres?: Json
+          cibles_manuelles?: string[] | null
+          plafond?: number
+          email_test_override?: string | null
+          date_envoi_prevue?: string | null
+          statut?: 'brouillon' | 'programmee' | 'envoyee' | 'terminee'
+          total_cibles?: number | null
+          total_envoyes?: number
+          total_repondus?: number
+          envoyee_at?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          nom?: string
+          description?: string | null
+          questionnaire?: 'A' | 'B'
+          type_vague?: string
+          mode_selection?: 'toutes' | 'filtres' | 'manuelle'
+          filtres?: Json
+          cibles_manuelles?: string[] | null
+          plafond?: number
+          email_test_override?: string | null
+          date_envoi_prevue?: string | null
+          statut?: 'brouillon' | 'programmee' | 'envoyee' | 'terminee'
+          total_cibles?: number | null
+          total_envoyes?: number
+          total_repondus?: number
+          envoyee_at?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+        }
+        Relationships: []
+      }
       affectation_projet_courante: {
         Row: {
           attribue_par: string | null
@@ -1334,6 +1406,29 @@ export type Database = {
               projet_code: string
             }[]
           }
+      compter_strate: {
+        Args: { p_questionnaire: string; p_filtres?: Json }
+        Returns: Json
+      }
+      lister_strate: {
+        Args: {
+          p_questionnaire: string
+          p_filtres?: Json
+          p_recherche?: string | null
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: Array<{
+          id: string
+          libelle: string
+          email: string | null
+          pays_code: string
+          projet_code: string
+          annee: number
+          consentement: boolean
+          total_count: number
+        }>
+      }
       get_indicateurs_oif_v1: { Args: { p_periode?: string }; Returns: Json }
       get_indicateurs_oif_v1_for_user: {
         Args: { p_target_user_id: string; p_periode?: string }

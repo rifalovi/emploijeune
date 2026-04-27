@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, Mail } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { enqueteFiltersSchema } from '@/lib/schemas/enquetes/schemas';
 import { listSessionsEnquete } from '@/lib/enquetes/queries';
@@ -11,7 +11,6 @@ import { EnqueteTable } from '@/components/enquetes/enquete-table';
 import { EnquetePagination } from '@/components/enquetes/enquete-pagination';
 import { EnqueteEmptyState } from '@/components/enquetes/enquete-empty-state';
 import { BoutonExporterEnquetes } from '@/components/enquetes/bouton-exporter';
-import { DialogueLancerVague } from '@/components/enquetes/dialogue-lancer-vague';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -80,7 +79,15 @@ export default async function EnquetesPage({ searchParams }: PageProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {peutExporter && <BoutonExporterEnquetes totalDisponible={result.total} />}
-          {peutCreer && <DialogueLancerVague projets={projetsOptions} />}
+          {peutCreer && (
+            <Link
+              href="/enquetes/lancer"
+              className={cn(buttonVariants({ variant: 'outline' }), 'gap-2')}
+            >
+              <Mail aria-hidden className="size-4" />
+              Lancer une campagne
+            </Link>
+          )}
           {peutCreer && (
             <Link href="/enquetes/nouvelle" className={cn(buttonVariants({ variant: 'default' }))}>
               <Plus aria-hidden className="size-4" />
