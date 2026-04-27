@@ -46,12 +46,19 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 
 const MOT_PASSE = 'DemoOIF2026';
 
+/**
+ * Type ENUM `type_organisation` (cf. migration 001) : 'scs', 'unite_chef_file',
+ * 'partenaire_mise_en_oeuvre', 'autre'. Hotfix v1.3.0.1 : valeur 'partenaire'
+ * inexistante remplacée par 'partenaire_mise_en_oeuvre'.
+ */
 const COMPTES = [
   {
     email: 'marie.kouassi@francophonie.org',
     nom_complet: 'Marie KOUASSI',
     role: 'editeur_projet',
     organisation_nom: 'Service de Conception et Suivi (SCS)',
+    organisation_type: 'scs',
+    organisation_pays: 'FRA',
     affectations: [
       { projet_code: 'PROJ_A14', role_dans_projet: 'gestionnaire_principal', mois_anciennete: 18, raison: 'Coordination Afrique de l\u2019Ouest — Francophonie avec Elles' },
       { projet_code: 'PROJ_A19', role_dans_projet: 'gestionnaire_principal', mois_anciennete: 12, raison: 'Extension portfolio environnement Bassin du Congo' },
@@ -62,6 +69,8 @@ const COMPTES = [
     nom_complet: 'Jean DUPONT',
     role: 'editeur_projet',
     organisation_nom: 'Service de Conception et Suivi (SCS)',
+    organisation_type: 'scs',
+    organisation_pays: 'FRA',
     affectations: [
       { projet_code: 'PROJ_A06', role_dans_projet: 'gestionnaire_principal', mois_anciennete: 9, raison: 'Industries culturelles — pilotage Afrique francophone' },
       { projet_code: 'PROJ_A18', role_dans_projet: 'gestionnaire_principal', mois_anciennete: 4, raison: 'Lancement portefeuille climat & environnement' },
@@ -72,6 +81,8 @@ const COMPTES = [
     nom_complet: 'Aminata DIALLO',
     role: 'editeur_projet',
     organisation_nom: 'Service de Conception et Suivi (SCS)',
+    organisation_type: 'scs',
+    organisation_pays: 'FRA',
     affectations: [
       { projet_code: 'PROJ_A14', role_dans_projet: 'co_gestionnaire', mois_anciennete: 3, raison: 'Renfort Francophonie avec Elles — co-coordination' },
     ],
@@ -81,6 +92,8 @@ const COMPTES = [
     nom_complet: 'Direction CLAC Béoumi',
     role: 'contributeur_partenaire',
     organisation_nom: 'CLAC Béoumi (Côte d\u2019Ivoire)',
+    organisation_type: 'partenaire_mise_en_oeuvre',
+    organisation_pays: 'CIV',
     affectations: [],
   },
 ];
@@ -93,7 +106,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 // 1. Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function trouverOuCreerOrganisation(nom) {
+async function trouverOuCreerOrganisation({ nom, type, pays_code }) {
   const { data: existante } = await supabase
     .from('organisations')
     .select('id, nom')
@@ -103,12 +116,15 @@ async function trouverOuCreerOrganisation(nom) {
 
   if (existante) return existante.id;
 
+  // Hotfix v1.3.0.1 : `type` doit être une valeur du ENUM type_organisation
+  // (cf. migration 001) — `partenaire` n'existait pas, c'est
+  // `partenaire_mise_en_oeuvre`. SCS interne = `scs`.
   const { data: creee, error } = await supabase
     .from('organisations')
     .insert({
       nom,
-      type: 'partenaire',
-      pays_code: 'FRA', // Siège OIF Paris par défaut, peut être ajusté terrain
+      type,
+      pays_code,
       actif: true,
     })
     .select('id')
@@ -117,7 +133,7 @@ async function trouverOuCreerOrganisation(nom) {
   if (error || !creee) {
     throw new Error(`Création organisation "${nom}" échouée : ${error?.message ?? '?'}`);
   }
-  console.log(`  ✓ Organisation créée : ${nom}`);
+  console.log(`  ✓ Organisation créée : ${nom} (type=${type}, pays=${pays_code})`);
   return creee.id;
 }
 
@@ -263,7 +279,11 @@ const stats = { created: 0, updated: 0, unchanged: 0, affectations: 0 };
 for (const compte of COMPTES) {
   console.log(`\n📩 ${compte.email}`);
 
-  const orgId = await trouverOuCreerOrganisation(compte.organisation_nom);
+  const orgId = await trouverOuCreerOrganisation({
+    nom: compte.organisation_nom,
+    type: compte.organisation_type,
+    pays_code: compte.organisation_pays,
+  });
   const { user, deja } = await creerOuTrouverAuthUser(compte.email, compte.nom_complet);
 
   if (deja) console.log(`  ↺ Auth user déjà présent (${user.id})`);
