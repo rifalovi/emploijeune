@@ -26,11 +26,8 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  apercuVagueEnquete,
-  lancerVagueEnquete,
-  type LancerVagueResult,
-} from '@/lib/enquetes/lancer-vague';
+import { apercuVagueEnquete, lancerVagueEnquete } from '@/lib/enquetes/lancer-vague';
+import type { LancerVagueResult } from '@/lib/schemas/lancer-vague';
 import {
   VAGUES_ENQUETE_VALUES,
   VAGUE_ENQUETE_LIBELLES,
