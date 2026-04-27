@@ -25,8 +25,16 @@ export const PROJET_LEGACY_VERS_OFFICIEL = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mapping pays libellé FR → code ISO (cf. seed.sql public.pays).
-// Inclut les variantes orthographiques observées dans le CSV de la base OIF.
+// Inclut les variantes orthographiques observées dans le CSV de la base OIF
+// + variantes anglaises + typos courantes (hotfix v1.2.6).
+//
+// Code sentinelle ZZZ ("Non spécifié") créé en migration 019 pour router les
+// pays vides ou inattendus sans rejeter la ligne d'import (décision Carlos
+// Option B). Un libellé inattendu est routé vers ZZZ + log warning.
 // ─────────────────────────────────────────────────────────────────────────────
+
+export const CODE_PAYS_NON_SPECIFIE = 'ZZZ';
+
 const PAYS_BRUT = {
   Albanie: 'ALB',
   Andorre: 'AND',
@@ -41,7 +49,11 @@ const PAYS_BRUT = {
   Burundi: 'BDI',
   'Cabo Verde': 'CPV',
   'Cap Vert': 'CPV',
+  '6Cap Vert': 'CPV', // typo récurrente
+  'Cape Verde': 'CPV', // variante anglophone
+  'Cap Verde': 'CPV', // variante orthographique
   Cambodge: 'KHM',
+  Cambodia: 'KHM', // variante anglophone
   Cameroun: 'CMR',
   Cameroon: 'CMR', // variante anglophone vue dans structures CSV
   Canada: 'CAN',
@@ -49,17 +61,27 @@ const PAYS_BRUT = {
   'République centrafricaine': 'CAF',
   'République Centrafricaine': 'CAF',
   Comores: 'COM',
+  Comoros: 'COM', // variante anglophone
   Congo: 'COG',
   'Congo (RD)': 'COD',
   'Congo RD': 'COD',
   'Congo RDC': 'COD',
   'Congo (République démocratique)': 'COD',
+  'République démocratique du Congo': 'COD',
+  'République Démocratique du Congo': 'COD',
   "Côte d'Ivoire": 'CIV',
   'Côte d’Ivoire': 'CIV', // apostrophe Unicode
   Djibouti: 'DJI',
   Dominique: 'DOM',
   Égypte: 'EGY',
   Egypte: 'EGY',
+  Egypt: 'EGY', // variante anglophone
+  Éthiopie: 'ETH',
+  Ethiopie: 'ETH',
+  Ethiopia: 'ETH',
+  'États-Unis': 'USA',
+  'Etats-Unis': 'USA',
+  'United States': 'USA',
   France: 'FRA',
   Gabon: 'GAB',
   Ghana: 'GHA',
@@ -80,6 +102,7 @@ const PAYS_BRUT = {
   Malte: 'MLT',
   Maroc: 'MAR',
   Maurice: 'MUS',
+  Mauritius: 'MUS', // variante anglophone
   Mauritanie: 'MRT',
   Moldavie: 'MDA',
   Monaco: 'MCO',
@@ -93,11 +116,13 @@ const PAYS_BRUT = {
   Serbie: 'SRB',
   Seychelles: 'SYC',
   Suisse: 'CHE',
+  Switzerland: 'CHE', // variante anglophone
   Tchad: 'TCD',
   Togo: 'TGO',
   Tunisie: 'TUN',
   Ukraine: 'UKR',
   Vanuatu: 'VUT',
+  Vietnam: 'VNM',
   'Viêt Nam': 'VNM',
 };
 
@@ -121,12 +146,36 @@ function normaliser(s) {
     .trim();
 }
 
-/** Retourne le code ISO ou null si introuvable. */
+/**
+ * Retourne le code ISO 3 lettres correspondant au libellé. Hotfix v1.2.6 :
+ * fallback sur ZZZ ("Non spécifié") au lieu de null pour ne pas rejeter la
+ * ligne d'import (décision Carlos « Option B »). L'appelant peut tracer
+ * le mapping fallback via la valeur de retour `{ code, fallback }` du
+ * helper `paysCodeAvecTrace`.
+ */
 export function paysCode(libelle) {
-  if (!libelle) return null;
+  if (!libelle) return CODE_PAYS_NON_SPECIFIE;
   const trim = libelle.trim();
+  if (trim === '') return CODE_PAYS_NON_SPECIFIE;
   if (PAYS_NORM_VERS_CODE.has(trim)) return PAYS_NORM_VERS_CODE.get(trim);
-  return PAYS_NORM_VERS_CODE.get(normaliser(trim)) ?? null;
+  return PAYS_NORM_VERS_CODE.get(normaliser(trim)) ?? CODE_PAYS_NON_SPECIFIE;
+}
+
+/** Variante avec trace explicite pour les rapports d'import. */
+export function paysCodeAvecTrace(libelle) {
+  if (!libelle || libelle.trim() === '') {
+    return { code: CODE_PAYS_NON_SPECIFIE, fallback: true, raison: 'libelle_vide' };
+  }
+  const trim = libelle.trim();
+  const direct = PAYS_NORM_VERS_CODE.get(trim);
+  if (direct) return { code: direct, fallback: false, raison: null };
+  const norm = PAYS_NORM_VERS_CODE.get(normaliser(trim));
+  if (norm) return { code: norm, fallback: false, raison: null };
+  return {
+    code: CODE_PAYS_NON_SPECIFIE,
+    fallback: true,
+    raison: `libelle_inconnu:${trim}`,
+  };
 }
 
 /** Map sexe CSV (F/H/Femme/Homme) → enum BDD (F/M). */
@@ -176,6 +225,11 @@ export function nombreOuNull(v) {
   const n =
     typeof v === 'number'
       ? v
-      : Number(String(v).replace(/\s/g, '').replace(',', '.').replace(/[^\d.-]/g, ''));
+      : Number(
+          String(v)
+            .replace(/\s/g, '')
+            .replace(',', '.')
+            .replace(/[^\d.-]/g, ''),
+        );
   return Number.isFinite(n) ? n : null;
 }

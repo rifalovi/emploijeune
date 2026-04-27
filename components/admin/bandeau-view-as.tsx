@@ -27,9 +27,12 @@ export type BandeauViewAsProps = {
 export function BandeauViewAs({ cibleNomComplet, cibleRole, expiresAt }: BandeauViewAsProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [restant, setRestant] = useState<number>(Math.max(0, expiresAt - Date.now()));
+  // Initial null → évite le mismatch d'hydratation (Date.now() diffère
+  // entre SSR et client). Le useEffect calcule la vraie valeur après mount.
+  const [restant, setRestant] = useState<number | null>(null);
 
   useEffect(() => {
+    setRestant(Math.max(0, expiresAt - Date.now()));
     const t = setInterval(() => {
       setRestant(Math.max(0, expiresAt - Date.now()));
     }, 1000);
@@ -43,9 +46,9 @@ export function BandeauViewAs({ cibleNomComplet, cibleRole, expiresAt }: Bandeau
     });
   };
 
-  const minutes = Math.floor(restant / 60000);
-  const secondes = Math.floor((restant % 60000) / 1000);
-  const expireSoon = restant < 5 * 60 * 1000;
+  const minutes = restant === null ? null : Math.floor(restant / 60000);
+  const secondes = restant === null ? null : Math.floor((restant % 60000) / 1000);
+  const expireSoon = restant !== null && restant < 5 * 60 * 1000;
 
   return (
     <div
@@ -66,8 +69,9 @@ export function BandeauViewAs({ cibleNomComplet, cibleRole, expiresAt }: Bandeau
           <span
             className={`text-xs tabular-nums ${expireSoon ? 'font-bold text-amber-700 dark:text-amber-300' : ''}`}
             aria-label="Temps restant avant expiration de la session view-as"
+            suppressHydrationWarning
           >
-            {minutes}:{String(secondes).padStart(2, '0')}
+            {minutes === null ? '—:—' : `${minutes}:${String(secondes).padStart(2, '0')}`}
           </span>
           <Button
             size="sm"

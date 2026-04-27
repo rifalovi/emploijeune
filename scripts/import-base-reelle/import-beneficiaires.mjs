@@ -34,7 +34,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import {
   PROJET_LEGACY_VERS_OFFICIEL,
-  paysCode,
+  paysCodeAvecTrace,
   sexeCode,
   dateDebutFormation,
   emailTechnique,
@@ -88,6 +88,8 @@ console.log(`✓ ${lignes.length} lignes parsées`);
 const erreurs = [];
 /** @type {Array<object>} */
 const aInserer = [];
+/** @type {Array<{ ligne: number, libelleSource: string, raison: string }>} */
+const paysFallbacks = [];
 
 for (const ligne of lignes) {
   const index = Number(ligne.n);
@@ -107,14 +109,15 @@ for (const ligne of lignes) {
     continue;
   }
 
-  const codePays = paysCode(ligne.pays);
-  if (!codePays) {
-    erreurs.push({
-      erreur: `Pays non mappé : "${ligne.pays}"`,
-      ligne: index,
-      raw: ligne,
-    });
-    continue;
+  const {
+    code: codePays,
+    fallback: paysFallback,
+    raison: paysRaison,
+  } = paysCodeAvecTrace(ligne.pays);
+  if (paysFallback) {
+    // Hotfix v1.2.6 : fallback ZZZ au lieu de rejet (décision Carlos Option B).
+    // On trace l'incident pour le rapport mais la ligne reste importée.
+    paysFallbacks.push({ ligne: index, libelleSource: ligne.pays ?? '', raison: paysRaison });
   }
 
   const sexe = sexeCode(ligne.sexe);
@@ -160,7 +163,9 @@ for (const ligne of lignes) {
 console.log(`✓ ${aInserer.length} lignes valides — ${erreurs.length} rejetées avant insert`);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. Insertion par lots avec idempotence
+// 3. Insertion ligne par ligne via RPC upsert_beneficiaire_import
+//    (le SDK Supabase JS ne sait pas piloter ON CONFLICT WHERE sur un index
+//     partiel — cf. migration 019 hotfix v1.2.6)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -170,33 +175,34 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 let nbInserees = 0;
 let nbConflits = 0;
 const erreursInsert = [];
+const debutTs = Date.now();
 
-for (let i = 0; i < aInserer.length; i += TAILLE_LOT) {
-  const lot = aInserer.slice(i, i + TAILLE_LOT);
-  const debut = lot[0]?.import_index ?? i;
-  const fin = lot[lot.length - 1]?.import_index ?? i + lot.length - 1;
-
-  // upsert avec onConflict sur l'index unique d'idempotence
-  const { data, error } = await supabase
-    .from('beneficiaires')
-    .upsert(lot, {
-      onConflict: 'import_source,import_index',
-      ignoreDuplicates: true,
-    })
-    .select('id');
+for (let i = 0; i < aInserer.length; i++) {
+  const ligne = aInserer[i];
+  const { data, error } = await supabase.rpc('upsert_beneficiaire_import', {
+    p_payload: ligne,
+  });
 
   if (error) {
-    console.error(`✗ Lot lignes ${debut}-${fin} : ${error.message}`);
-    erreursInsert.push({ debut, fin, message: error.message });
+    erreursInsert.push({ index: ligne.import_index, message: error.message });
+    if (erreursInsert.length <= 5) {
+      console.error(`✗ Ligne ${ligne.import_index} : ${error.message}`);
+    }
     continue;
   }
 
-  const inserees = data?.length ?? 0;
-  nbInserees += inserees;
-  nbConflits += lot.length - inserees;
-  console.log(
-    `✓ Lot ${debut}-${fin} : ${inserees} insérées, ${lot.length - inserees} déjà présentes`,
-  );
+  const payload = data;
+  if (payload?.inserted) nbInserees++;
+  else if (payload?.conflicted) nbConflits++;
+
+  // Progrès tous les 200 inserts
+  if ((i + 1) % 200 === 0 || i === aInserer.length - 1) {
+    const pct = Math.round((100 * (i + 1)) / aInserer.length);
+    const elapsed = Math.round((Date.now() - debutTs) / 1000);
+    console.log(
+      `… ${i + 1}/${aInserer.length} (${pct}%) — ${nbInserees} insérées · ${nbConflits} déjà présentes · ${erreursInsert.length} erreurs · ${elapsed}s`,
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -208,12 +214,13 @@ console.log('RAPPORT D\u2019IMPORT — BÉNÉFICIAIRES');
 console.log('══════════════════════════════════════════════════════════════');
 console.log(`Source            : ${IMPORT_SOURCE}`);
 console.log(`Batch             : ${IMPORT_BATCH}`);
-console.log(`Lignes parsées    : ${lignes.length}`);
-console.log(`Lignes valides    : ${aInserer.length}`);
-console.log(`Lignes insérées   : ${nbInserees}`);
+console.log(`Lignes parsées             : ${lignes.length}`);
+console.log(`Lignes valides             : ${aInserer.length}`);
+console.log(`Lignes insérées            : ${nbInserees}`);
 console.log(`Lignes déjà présentes (idempotence) : ${nbConflits}`);
-console.log(`Lignes rejetées (mapping) : ${erreurs.length}`);
-console.log(`Lots en erreur SQL : ${erreursInsert.length}`);
+console.log(`Lignes rejetées (mapping)  : ${erreurs.length}`);
+console.log(`Pays fallback ZZZ          : ${paysFallbacks.length}`);
+console.log(`Lignes en erreur SQL       : ${erreursInsert.length}`);
 
 if (erreurs.length > 0) {
   console.log('\nDétail des rejets (50 premiers) :');
@@ -225,10 +232,28 @@ if (erreurs.length > 0) {
   }
 }
 
+if (paysFallbacks.length > 0) {
+  console.log('\nFallbacks pays ZZZ (libellés inattendus) — 30 premiers :');
+  const recap = new Map();
+  for (const f of paysFallbacks) {
+    const k = f.libelleSource || '(vide)';
+    recap.set(k, (recap.get(k) ?? 0) + 1);
+  }
+  const top = Array.from(recap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 30);
+  for (const [lib, n] of top) {
+    console.log(`  • ${lib}: ${n}`);
+  }
+}
+
 if (erreursInsert.length > 0) {
-  console.log('\nDétail des erreurs SQL :');
-  for (const e of erreursInsert) {
-    console.log(`  • lot ${e.debut}-${e.fin} : ${e.message}`);
+  console.log('\nDétail des erreurs SQL (10 premières) :');
+  for (const e of erreursInsert.slice(0, 10)) {
+    console.log(`  • ligne ${e.index} : ${e.message}`);
+  }
+  if (erreursInsert.length > 10) {
+    console.log(`  … et ${erreursInsert.length - 10} autres`);
   }
 }
 

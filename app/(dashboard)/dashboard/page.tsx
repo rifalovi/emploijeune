@@ -104,7 +104,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Indicateurs opérationnels</h2>
-        {renderDashboard(utilisateur.role, data)}
+        {effectif.isViewAs ? (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
+            <p className="text-muted-foreground">
+              Les indicateurs opérationnels (comptes à valider, alertes qualité, imports récents…)
+              sont propres à l&apos;administrateur réel et restent{' '}
+              <strong>masqués en mode visualisation</strong>. Cliquez sur « Revenir à mon admin »
+              dans le bandeau pour les retrouver.
+            </p>
+          </div>
+        ) : (
+          renderDashboard(utilisateur.role, data)
+        )}
       </section>
 
       <section className="space-y-4">

@@ -125,8 +125,33 @@ Ces décisions ont été validées dans l'Étape 4 et s'appliquent
   chef_projet, contributeur_partenaire, observateur)
 - **Soft-delete** : `deleted_at` + `deleted_by` + `deleted_reason`
   sur toutes les tables métier
-- **Audit** : `audit.operations` alimenté à chaque mutation
-  sensible (CREATE, UPDATE, DELETE)
+- **Audit** : `public.journaux_audit` alimenté automatiquement par
+  les triggers `tg_audit_row()` à chaque INSERT / UPDATE / DELETE
+  sur les tables sensibles. **Convention exacte des colonnes**
+  (à respecter pour tout SELECT / INSERT vers cette table) :
+
+  ```sql
+  -- Table : public.journaux_audit
+  --   id              BIGSERIAL  PRIMARY KEY
+  --   table_affectee  TEXT       NOT NULL
+  --   ligne_id        UUID       (NULL pour les actions VIEW_AS_*)
+  --   action          public.action_audit  NOT NULL  -- ENUM, PAS « action_type »
+  --   diff            JSONB      NOT NULL
+  --   user_id         UUID       (auteur de l'action)
+  --   user_email      TEXT       (snapshot)
+  --   horodatage      TIMESTAMPTZ NOT NULL DEFAULT NOW()  -- PAS « created_at »
+  ```
+
+  Valeurs ENUM `action_audit` : `INSERT`, `UPDATE`, `DELETE`,
+  `SOFT_DELETE`, `RESTORE`, `VIEW_AS_START`, `VIEW_AS_END`
+  (cf. migrations 001 + 016).
+
+  ⚠️ Pièges récurrents (cf. hotfix v1.2.6) :
+  - Ne jamais utiliser `created_at` pour cette table — la colonne
+    s'appelle `horodatage`.
+  - Ne jamais utiliser `action_type` — la colonne s'appelle `action`.
+  - Pour les inserts manuels (Server Actions), laisser le DEFAULT
+    NOW() sur `horodatage` plutôt que de le préciser.
 
 ### UX & design
 
