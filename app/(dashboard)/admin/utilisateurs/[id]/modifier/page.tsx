@@ -8,9 +8,15 @@ import {
   getAuditUtilisateur,
   listOrganisationsLegeres,
 } from '@/lib/utilisateurs/queries-detail';
+import {
+  getAffectationsCourantes,
+  listProjetsReferentiel,
+} from '@/lib/utilisateurs/queries-affectation';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { Card, CardContent } from '@/components/ui/card';
 import { FormulaireModifierUtilisateur } from '@/components/admin/formulaire-modifier-utilisateur';
 import { AuditUtilisateurCard } from '@/components/admin/audit-utilisateur-card';
+import { CardRattachementProjets } from '@/components/admin/card-rattachement-projets';
 
 export const metadata: Metadata = {
   title: 'Modifier utilisateur — OIF Emploi Jeunes',
@@ -41,15 +47,32 @@ export default async function ModifierUtilisateurPage({ params }: PageProps) {
   const { id } = await params;
   if (!/^[0-9a-fA-F-]{36}$/.test(id)) notFound();
 
-  const [utilisateur, audit, organisations] = await Promise.all([
+  const [utilisateur, audit, organisations, projets] = await Promise.all([
     getUtilisateurDetail(id),
     getAuditUtilisateur(id, 10),
     listOrganisationsLegeres(),
+    listProjetsReferentiel(),
   ]);
 
   if (!utilisateur) notFound();
 
   const estLuiMeme = utilisateur.user_id === utilisateurCourant.user_id;
+
+  const affectations = await getAffectationsCourantes(utilisateur.user_id);
+
+  // Liste des autres coordonnateurs actifs pour le dialog de transfert
+  const adminClient = createSupabaseAdminClient();
+  const { data: rawCoords } = await adminClient
+    .from('utilisateurs')
+    .select('user_id, nom_complet')
+    .eq('role', 'editeur_projet')
+    .eq('actif', true)
+    .is('deleted_at', null)
+    .order('nom_complet', { ascending: true });
+  const coordonnateurs = (rawCoords ?? []).map((c) => ({
+    user_id: c.user_id,
+    nom_complet: c.nom_complet,
+  }));
 
   return (
     <div className="space-y-6">
@@ -91,6 +114,19 @@ export default async function ModifierUtilisateurPage({ params }: PageProps) {
         }}
         organisations={organisations}
         estLuiMeme={estLuiMeme}
+      />
+
+      <CardRattachementProjets
+        utilisateur={{
+          id: utilisateur.id,
+          user_id: utilisateur.user_id,
+          nom_complet: utilisateur.nom_complet,
+          role: utilisateur.role,
+          organisation_nom: utilisateur.organisation_nom,
+        }}
+        affectations={affectations}
+        projets={projets}
+        coordonnateurs={coordonnateurs}
       />
 
       <AuditUtilisateurCard lignes={audit} />
