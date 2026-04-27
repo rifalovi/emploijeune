@@ -9,7 +9,7 @@
 'use client';
 
 import Link from 'next/link';
-import { UserCircle } from 'lucide-react';
+import { UserCircle, Globe } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { LogoOIF } from '@/components/branding/logo-oif';
@@ -91,6 +91,16 @@ export function Sidebar({ utilisateur, organisationLibelle, notificationsCount }
         >
           <UserCircle aria-hidden className="size-4" />
           Mon compte
+        </Link>
+        <Link
+          href="/accueil"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Voir la vitrine publique de la plateforme"
+          className="text-muted-foreground hover:text-foreground hover:bg-accent inline-flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors"
+        >
+          <Globe aria-hidden className="size-4" />
+          Vue publique
         </Link>
         <SignOutButton variant="sidebar" />
       </div>

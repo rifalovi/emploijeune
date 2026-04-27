@@ -75,6 +75,7 @@ export default async function VitrinePubliquePage() {
       <Pourquoi />
       <Audiences />
       <PaysIntervention kpis={kpis} />
+      <Citations />
       <CtaFinal />
       <FooterPublic />
     </div>
@@ -159,7 +160,7 @@ function HeroAvecCarrousel({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPu
             href="/connexion"
             className={cn(
               buttonVariants({ variant: 'outline', size: 'lg' }),
-              'border-white text-white backdrop-blur-sm hover:bg-white/15',
+              'border-white bg-white/10 text-white backdrop-blur-sm hover:bg-white/25',
             )}
           >
             Se connecter
@@ -631,6 +632,77 @@ function PaysIntervention({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPub
 // ─────────────────────────────────────────────────────────────────────────────
 // CTA final
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Citations institutionnelles (V1.6.0 polish)
+// ─────────────────────────────────────────────────────────────────────────────
+function Citations() {
+  const citations = [
+    {
+      texte:
+        'Le suivi-évaluation rigoureux de nos projets emploi jeunes est la condition de leur impact mesurable et de leur soutenabilité dans la durée.',
+      auteur: 'Cadre commun de mesure du rendement V2',
+      fonction: 'Document méthodologique OIF',
+    },
+    {
+      texte:
+        "L'apport du français à l'employabilité reste un marqueur transversal de toutes nos interventions : c'est notre signature francophone.",
+      auteur: 'Note méthodologique V2',
+      fonction: 'Service de Conception et Suivi (SCS)',
+    },
+    {
+      texte:
+        "Cibler une strate précise — un projet, un pays, une cohorte — plutôt qu'envoyer en masse : c'est ce qui distingue une collecte propre d'un envoi en masse.",
+      auteur: 'Méthodologie OIF',
+      fonction: 'Approche stratifiée des collectes',
+    },
+  ];
+  return (
+    <section className="bg-gradient-to-b from-white via-amber-50/30 to-white py-16 md:py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <Badge
+            variant="outline"
+            style={{ color: COULEUR_ACCENT, borderColor: `${COULEUR_ACCENT}66` }}
+          >
+            Méthodologie & vision
+          </Badge>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
+            Ce qui guide notre démarche
+          </h2>
+          <p className="text-muted-foreground mt-3 text-base">
+            Trois principes méthodologiques qui structurent notre approche du suivi-évaluation.
+          </p>
+        </div>
+        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+          {citations.map((c) => (
+            <Card
+              key={c.auteur}
+              className="relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg"
+            >
+              <CardContent className="p-6">
+                <div
+                  aria-hidden
+                  className="absolute -top-2 -left-1 text-[120px] leading-none opacity-10 select-none"
+                  style={{ color: COULEUR_ACCENT, fontFamily: 'Georgia, serif' }}
+                >
+                  &ldquo;
+                </div>
+                <p className="relative z-10 text-sm leading-relaxed text-gray-800 italic">
+                  &laquo;&nbsp;{c.texte}&nbsp;&raquo;
+                </p>
+                <div className="relative z-10 mt-6 border-t pt-4">
+                  <p className="font-semibold text-[#0E4F88]">{c.auteur}</p>
+                  <p className="text-muted-foreground text-xs">{c.fonction}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function CtaFinal() {
   return (
     <section
@@ -662,7 +734,7 @@ function CtaFinal() {
             href="/connexion"
             className={cn(
               buttonVariants({ variant: 'outline', size: 'lg' }),
-              'border-white text-white backdrop-blur-sm hover:bg-white/15',
+              'border-white bg-white/10 text-white backdrop-blur-sm hover:bg-white/25',
             )}
           >
             Se connecter

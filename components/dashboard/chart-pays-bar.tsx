@@ -1,8 +1,17 @@
 'use client';
 
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PROGRAMMES_STRATEGIQUES } from '@/lib/design/oif/programmes';
+import { couleurRang, tooltipPropsPremium } from '@/lib/design/charts';
 
 type Donnee = {
   code: string;
@@ -11,12 +20,13 @@ type Donnee = {
 };
 
 /**
- * Bar chart Recharts horizontal — Top 10 pays par bénéficiaires (hotfix
- * v1.2.7). KPI clé pour la démo institutionnelle (« OIF présente dans
- * 51 pays francophones »).
+ * Bar chart Recharts horizontal — Top 10 pays par bénéficiaires (V1.6.0).
  *
- * Couleur : PS1 officiel (#0198E9) — convention « pays » alignée sur le
- * bleu cyan OIF.
+ * Polish v1.6.0 :
+ *   - Effet « podium » avec couleurs variées (1er bleu OIF, puis PS officielles).
+ *   - Tooltip premium fond bleu OIF + texte blanc.
+ *   - Cursor highlight subtil.
+ *   - Axes adoucis (sans lignes intrusives).
  */
 export function ChartPaysBar({ data }: { data: Donnee[] }) {
   if (data.length === 0) {
@@ -37,44 +47,53 @@ export function ChartPaysBar({ data }: { data: Donnee[] }) {
       <CardHeader>
         <CardTitle className="text-base">Top 10 pays par bénéficiaires</CardTitle>
         <CardDescription>
-          {data.length} pays affichés — survolez une barre pour le détail
+          {data.length} pays affichés : effet podium par couleur de rang
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-72 w-full">
+        <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}
               layout="vertical"
-              margin={{ top: 10, right: 16, left: 60, bottom: 10 }}
+              margin={{ top: 10, right: 24, left: 80, bottom: 10 }}
             >
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+              <XAxis
+                type="number"
+                allowDecimals={false}
+                tick={{ fontSize: 11, fill: '#6b7280' }}
+                tickLine={false}
+                axisLine={{ stroke: '#d1d5db' }}
+              />
               <YAxis
                 type="category"
                 dataKey="libelle"
-                tick={{ fontSize: 11 }}
-                width={120}
+                tick={{ fontSize: 11, fill: '#374151' }}
+                width={140}
                 interval={0}
+                tickLine={false}
+                axisLine={{ stroke: '#d1d5db' }}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--background))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: 6,
-                  fontSize: 12,
-                }}
+                {...tooltipPropsPremium}
+                cursor={{ fill: 'rgba(14, 79, 136, 0.06)' }}
                 labelFormatter={(label) => {
                   const item = data.find((d) => d.libelle === label);
                   return item?.code ? `${label} (${item.code})` : String(label ?? '');
                 }}
-                formatter={(v) => [`${Number(v ?? 0)} bénéficiaire(s)`, ''] as [string, string]}
+                formatter={(v) =>
+                  [`${Number(v ?? 0).toLocaleString('fr-FR')} bénéficiaire(s)`, ''] as [
+                    string,
+                    string,
+                  ]
+                }
               />
-              <Bar
-                dataKey="beneficiaires"
-                fill={PROGRAMMES_STRATEGIQUES.PS1.principale}
-                radius={[0, 4, 4, 0]}
-              />
+              <Bar dataKey="beneficiaires" radius={[0, 6, 6, 0]}>
+                {data.map((d, i) => (
+                  <Cell key={d.code} fill={couleurRang(i)} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>

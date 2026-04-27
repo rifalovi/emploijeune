@@ -22,6 +22,15 @@ const COULEURS: Record<EvenementActivite['type'], string> = {
   import: 'text-purple-600',
 };
 
+// V1.6.0 polish : couleurs de bordure pour la pastille icône (fond + bord doux)
+const COULEURS_FOND: Record<EvenementActivite['type'], string> = {
+  beneficiaire_cree: 'bg-emerald-100',
+  beneficiaire_maj: 'bg-amber-100',
+  structure_cree: 'bg-blue-100',
+  structure_maj: 'bg-blue-100',
+  import: 'bg-purple-100',
+};
+
 export function ActiviteRecenteFeed({
   evenements,
   periodeLibelle,
@@ -57,8 +66,12 @@ export function ActiviteRecenteFeed({
                 locale: fr,
               });
               const ContenuPrincipal = (
-                <div className="flex items-start gap-3 py-2">
-                  <Icone aria-hidden className={`mt-0.5 size-4 shrink-0 ${COULEURS[e.type]}`} />
+                <div className="flex items-start gap-3 py-2.5">
+                  <div
+                    className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${COULEURS_FOND[e.type]}`}
+                  >
+                    <Icone aria-hidden className={`size-4 ${COULEURS[e.type]}`} />
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <Badge variant="outline" className="text-xs">
