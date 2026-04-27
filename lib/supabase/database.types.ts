@@ -1134,6 +1134,151 @@ export type Database = {
         }
         Relationships: []
       }
+      affectation_projet_courante: {
+        Row: {
+          attribue_par: string | null
+          created_at: string
+          date_debut: string
+          id: string
+          projet_code: string
+          raison_debut: string | null
+          role_dans_projet: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attribue_par?: string | null
+          created_at?: string
+          date_debut?: string
+          id?: string
+          projet_code: string
+          raison_debut?: string | null
+          role_dans_projet?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attribue_par?: string | null
+          created_at?: string
+          date_debut?: string
+          id?: string
+          projet_code?: string
+          raison_debut?: string | null
+          role_dans_projet?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affectation_projet_courante_projet_code_fkey"
+            columns: ["projet_code"]
+            isOneToOne: false
+            referencedRelation: "projets"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      affectation_projet_historique: {
+        Row: {
+          attribue_par: string | null
+          created_at: string
+          date_debut: string
+          date_fin: string | null
+          id: string
+          projet_code: string
+          raison_debut: string | null
+          raison_fin: string | null
+          role_dans_projet: string
+          transfere_a: string | null
+          transfere_par: string | null
+          user_id: string
+        }
+        Insert: {
+          attribue_par?: string | null
+          created_at?: string
+          date_debut: string
+          date_fin?: string | null
+          id?: string
+          projet_code: string
+          raison_debut?: string | null
+          raison_fin?: string | null
+          role_dans_projet: string
+          transfere_a?: string | null
+          transfere_par?: string | null
+          user_id: string
+        }
+        Update: {
+          attribue_par?: string | null
+          created_at?: string
+          date_debut?: string
+          date_fin?: string | null
+          id?: string
+          projet_code?: string
+          raison_debut?: string | null
+          raison_fin?: string | null
+          role_dans_projet?: string
+          transfere_a?: string | null
+          transfere_par?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affectation_projet_historique_projet_code_fkey"
+            columns: ["projet_code"]
+            isOneToOne: false
+            referencedRelation: "projets"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      structure_projet_historique: {
+        Row: {
+          created_at: string
+          date_debut_financement: string
+          date_fin_financement: string | null
+          enregistre_par: string | null
+          id: string
+          motif_changement: string | null
+          projet_code: string
+          structure_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_debut_financement: string
+          date_fin_financement?: string | null
+          enregistre_par?: string | null
+          id?: string
+          motif_changement?: string | null
+          projet_code: string
+          structure_id: string
+        }
+        Update: {
+          created_at?: string
+          date_debut_financement?: string
+          date_fin_financement?: string | null
+          enregistre_par?: string | null
+          id?: string
+          motif_changement?: string | null
+          projet_code?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structure_projet_historique_projet_code_fkey"
+            columns: ["projet_code"]
+            isOneToOne: false
+            referencedRelation: "projets"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "structure_projet_historique_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
