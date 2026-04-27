@@ -12,7 +12,7 @@
  *     pas de injection HTML possible).
  */
 
-export const COULEUR_PRIMAIRE = '#1f6feb';
+export const COULEUR_PRIMAIRE = '#0E4F88';
 export const COULEUR_TEXTE = '#1f2937';
 export const COULEUR_MUTED = '#6b7280';
 export const FONT_STACK = 'Inter, system-ui, -apple-system, sans-serif';

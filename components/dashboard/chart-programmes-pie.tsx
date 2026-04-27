@@ -2,6 +2,7 @@
 
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PROGRAMMES_STRATEGIQUES } from '@/lib/design/oif/programmes';
 
 type Donnee = {
   code: string;
@@ -13,13 +14,13 @@ type Donnee = {
  * Pie chart Recharts — répartition bénéficiaires par programme stratégique
  * (PS1/PS2/PS3) — Étape 9 Q3.
  *
- * Couleurs : palette dérivée des tokens design system (primary, secondary,
- * accent) pour éviter d'introduire de nouvelles teintes.
+ * Couleurs : palette OFFICIELLE OIF (Code couleur programmation OIF.pdf)
+ * via lib/design/oif/programmes.ts. PS1=#0198E9, PS2=#5D0073, PS3=#7EB301.
  */
 const COULEURS_PS: Record<string, string> = {
-  PS1: 'hsl(var(--primary))',
-  PS2: 'hsl(217 91% 60%)',
-  PS3: 'hsl(142 71% 45%)',
+  PS1: PROGRAMMES_STRATEGIQUES.PS1.principale,
+  PS2: PROGRAMMES_STRATEGIQUES.PS2.principale,
+  PS3: PROGRAMMES_STRATEGIQUES.PS3.principale,
 };
 
 export function ChartProgrammesPie({ data }: { data: Donnee[] }) {
