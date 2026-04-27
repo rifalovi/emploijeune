@@ -1326,6 +1326,7 @@ export type Database = {
               projet_code: string
             }[]
           }
+      get_indicateurs_oif_v1: { Args: { p_periode?: string }; Returns: Json }
       get_kpis_dashboard: { Args: never; Returns: Json }
       get_kpis_dashboard_admin_scs: { Args: never; Returns: Json }
       get_kpis_dashboard_contributeur_partenaire: { Args: never; Returns: Json }
