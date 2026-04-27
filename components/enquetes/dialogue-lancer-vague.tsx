@@ -122,7 +122,7 @@ export function DialogueLancerVague({ projets }: DialogueLancerVagueProps) {
         <Mail aria-hidden className="size-4" />
         Lancer une vague
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Lancer une vague d’enquête</DialogTitle>
           <DialogDescription>
@@ -178,20 +178,28 @@ export function DialogueLancerVague({ projets }: DialogueLancerVagueProps) {
                 value={projetCode || 'tous'}
                 onValueChange={(v) => setProjetCode(v === 'tous' ? '' : (v ?? ''))}
               >
-                <SelectTrigger id="projet">
+                <SelectTrigger id="projet" className="w-full">
                   <SelectValue>
                     {(v: string | null) => {
                       if (!v || v === 'tous') return 'Tous les projets';
                       const p = projets.find((x) => x.code === v);
-                      return p ? `${p.code} — ${p.libelle}` : v;
+                      const libelle = p ? `${p.code} — ${p.libelle}` : v;
+                      return (
+                        <span className="block truncate" title={libelle}>
+                          {libelle}
+                        </span>
+                      );
                     }}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-w-[36rem]">
                   <SelectItem value="tous">Tous les projets</SelectItem>
                   {projets.map((p) => (
-                    <SelectItem key={p.code} value={p.code}>
-                      {p.code} — {p.libelle}
+                    <SelectItem key={p.code} value={p.code} title={`${p.code} — ${p.libelle}`}>
+                      <span className="block truncate">
+                        <span className="font-mono text-xs">{p.code}</span>
+                        <span className="text-muted-foreground"> — {p.libelle}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
