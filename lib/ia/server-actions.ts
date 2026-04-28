@@ -5,6 +5,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { anonymiserTexte, SYSTEM_PROMPT_INSTITUTIONNEL } from '@/lib/ia/anonymisation';
+import { chargerContexteDonnees, formaterContexteDonnees } from '@/lib/ia/contexte-donnees';
+import { chargerBaseConnaissancePertinente } from '@/lib/ia/base-connaissance-loader';
 
 /**
  * Server Actions du module Assistant IA — V2.0.0.
@@ -89,13 +91,41 @@ export async function analyser(payload: z.infer<typeof analyserSchema>): Promise
     content: anonymiserTexte(m.content),
   }));
 
-  // 6. Appel Claude API
+  // 6. Enrichissement du contexte avec les données live (V2.2.0)
+  //    + base de connaissance super_admin pertinente.
+  const [contexteDonnees, contexteConnaissance] = await Promise.all([
+    chargerContexteDonnees(),
+    chargerBaseConnaissancePertinente(parsed.data.messages.map((m) => m.content).join('\n')),
+  ]);
+
+  const blocsContexte: string[] = [SYSTEM_PROMPT_INSTITUTIONNEL];
+  if (contexteDonnees) {
+    blocsContexte.push('---');
+    blocsContexte.push(formaterContexteDonnees(contexteDonnees));
+  }
+  if (contexteConnaissance && contexteConnaissance.length > 0) {
+    blocsContexte.push('---');
+    blocsContexte.push('## Base de connaissance institutionnelle (super_admin)');
+    blocsContexte.push(
+      'Les notes ci-dessous ont été ajoutées par le SCS comme références faisant autorité. ' +
+        'Cite-les explicitement quand elles sont pertinentes.',
+    );
+    blocsContexte.push('');
+    for (const note of contexteConnaissance) {
+      blocsContexte.push(`### ${note.titre}`);
+      blocsContexte.push(note.contenu);
+      blocsContexte.push('');
+    }
+  }
+  const systemPromptEnrichi = blocsContexte.join('\n');
+
+  // 7. Appel Claude API
   const client = new Anthropic({ apiKey });
   try {
     const reponse = await client.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT_INSTITUTIONNEL,
+      max_tokens: 2048,
+      system: systemPromptEnrichi,
       messages: messagesAnonymises,
     });
 

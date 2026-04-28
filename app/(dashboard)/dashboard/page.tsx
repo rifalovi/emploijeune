@@ -174,6 +174,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
 
 function renderDashboard(role: string, raw: unknown) {
   switch (role) {
+    // super_admin hérite de la vue admin_scs (cohérence avec is_admin_scs RLS).
+    case 'super_admin':
     case 'admin_scs': {
       const parsed = kpiAdminScsSchema.safeParse(raw);
       if (!parsed.success) return <KpiLoadError />;
@@ -209,6 +211,8 @@ function KpiLoadError() {
 
 function salutationContextuelle(role: string): string {
   switch (role) {
+    case 'super_admin':
+      return 'Vue super_admin : tous les indicateurs de la plateforme + actions sensibles.';
     case 'admin_scs':
       return 'Voici les indicateurs à surveiller sur la plateforme aujourd\u2019hui.';
     case 'editeur_projet':

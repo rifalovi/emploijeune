@@ -10,6 +10,8 @@ import { listerAlertesQualite } from '@/lib/alertes-qualite/queries';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PanneauAnalyseIa } from '@/components/alertes-qualite/panneau-analyse-ia';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
   Table,
   TableBody,
@@ -58,8 +60,13 @@ export default async function AlertesQualitePage({ searchParams }: { searchParam
 
   const totalPages = Math.max(1, Math.ceil(total / TAILLE));
 
-  return (
-    <div className="space-y-6">
+  // Module IA actif pour le rôle ? Détermine si on affiche le panneau d'analyse IA.
+  const supabaseRpc = await createSupabaseServerClient();
+  const { data: iaActif } = await supabaseRpc.rpc('module_ia_actif_pour_courant');
+  const afficherPanneauIa = iaActif === true;
+
+  const contenuPrincipal = (
+    <>
       <div>
         <Link
           href="/dashboard"
@@ -217,6 +224,22 @@ export default async function AlertesQualitePage({ searchParams }: { searchParam
         Export Excel des alertes prévu en V1.5. Pour l&apos;instant, ouvrez chaque fiche pour
         compléter les champs manquants.
       </p>
+    </>
+  );
+
+  return (
+    <div
+      className={cn(
+        'gap-6',
+        afficherPanneauIa ? 'grid grid-cols-1 lg:grid-cols-[1fr_360px]' : 'space-y-6',
+      )}
+    >
+      <div className="space-y-6">{contenuPrincipal}</div>
+      {afficherPanneauIa && (
+        <aside>
+          <PanneauAnalyseIa typeAlerte={type} />
+        </aside>
+      )}
     </div>
   );
 }

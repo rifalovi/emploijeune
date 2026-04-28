@@ -13,7 +13,7 @@ export const metadata: Metadata = {
  */
 export default async function ImportsPage() {
   const utilisateur = await requireUtilisateurValide();
-  if (!['admin_scs', 'editeur_projet'].includes(utilisateur.role)) notFound();
+  if (!['super_admin', 'admin_scs', 'editeur_projet'].includes(utilisateur.role)) notFound();
 
   return (
     <div className="space-y-6">

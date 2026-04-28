@@ -14,6 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
+      conversations_ia: {
+        Row: {
+          id: string
+          user_id: string
+          titre: string | null
+          resume: string | null
+          archive: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          titre?: string | null
+          resume?: string | null
+          archive?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          titre?: string | null
+          resume?: string | null
+          archive?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages_ia: {
+        Row: {
+          id: string
+          conversation_id: string
+          role: string
+          contenu: string
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          role: string
+          contenu: string
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          role?: string
+          contenu?: string
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      base_connaissance: {
+        Row: {
+          id: string
+          titre: string
+          type: string
+          contenu_text: string | null
+          fichier_url: string | null
+          fichier_extracted_text: string | null
+          source_conversation_id: string | null
+          ajoute_par: string
+          ajoute_at: string
+          archive: boolean
+          tags: string[]
+        }
+        Insert: {
+          id?: string
+          titre: string
+          type: string
+          contenu_text?: string | null
+          fichier_url?: string | null
+          fichier_extracted_text?: string | null
+          source_conversation_id?: string | null
+          ajoute_par: string
+          ajoute_at?: string
+          archive?: boolean
+          tags?: string[]
+        }
+        Update: {
+          id?: string
+          titre?: string
+          type?: string
+          contenu_text?: string | null
+          fichier_url?: string | null
+          fichier_extracted_text?: string | null
+          source_conversation_id?: string | null
+          ajoute_par?: string
+          ajoute_at?: string
+          archive?: boolean
+          tags?: string[]
+        }
+        Relationships: []
+      }
       activation_modules: {
         Row: {
           id: string
@@ -1542,6 +1641,17 @@ export type Database = {
       is_user_suspended: { Args: { p_user_id: string }; Returns: boolean }
       is_organisation_archived: { Args: { p_organisation_id: string }; Returns: boolean }
       module_ia_actif_pour_courant: { Args: never; Returns: boolean }
+      creer_conversation_ia: { Args: { p_titre?: string | null }; Returns: string }
+      rechercher_base_connaissance: {
+        Args: { p_query: string; p_limit?: number }
+        Returns: {
+          id: string
+          titre: string
+          type: string
+          contenu: string
+          pertinence: number
+        }[]
+      }
       toggle_module_pour_role: {
         Args: {
           p_module: string

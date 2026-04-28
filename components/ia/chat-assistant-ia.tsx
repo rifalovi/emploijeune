@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useTransition } from 'react';
 import { toast } from 'sonner';
-import { Send, Sparkles, User, Trash2 } from 'lucide-react';
+import { Send, Sparkles, User, Trash2, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { analyser } from '@/lib/ia/server-actions';
@@ -151,8 +151,21 @@ export function ChatAssistantIa() {
 
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user';
+  const [copied, setCopied] = useState(false);
+
+  const onCopier = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      toast.success('Copié dans le presse-papiers');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Impossible de copier — vérifiez les permissions du navigateur.');
+    }
+  };
+
   return (
-    <div className={cn('flex items-start gap-3', isUser && 'flex-row-reverse')}>
+    <div className={cn('group flex items-start gap-3', isUser && 'flex-row-reverse')}>
       <span
         className={cn(
           'inline-flex size-8 shrink-0 items-center justify-center rounded-full text-white',
@@ -171,10 +184,31 @@ function MessageBubble({ message }: { message: Message }) {
       </span>
       <div
         className={cn(
-          'max-w-[85%] rounded-lg px-4 py-2.5 text-sm leading-relaxed',
+          'relative max-w-[85%] rounded-lg px-4 py-2.5 text-sm leading-relaxed',
           isUser ? 'bg-[#0E4F88] text-white' : 'bg-white ring-1 ring-slate-200',
         )}
       >
+        {!isUser && (
+          <button
+            type="button"
+            onClick={onCopier}
+            aria-label="Copier la réponse"
+            title={copied ? 'Copié !' : 'Copier la réponse (Markdown brut)'}
+            className={cn(
+              'absolute -top-2 -right-2 inline-flex size-7 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition-all',
+              'opacity-0 group-hover:opacity-100 focus:opacity-100',
+              copied
+                ? 'border-emerald-300 text-emerald-600'
+                : 'text-slate-500 hover:border-[#0E4F88]/40 hover:text-[#0E4F88]',
+            )}
+          >
+            {copied ? (
+              <Check className="size-3.5" aria-hidden />
+            ) : (
+              <Copy className="size-3.5" aria-hidden />
+            )}
+          </button>
+        )}
         {isUser ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
