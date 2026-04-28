@@ -23,9 +23,24 @@ import { chargerBaseConnaissancePertinente } from '@/lib/ia/base-connaissance-lo
  * la plateforme.
  */
 
+/**
+ * Pièce jointe au message — V2.2.1.
+ * - 'image' : envoyée à Claude Vision en base64
+ * - 'texte' : injectée comme bloc de texte dans le message user
+ */
+const piecesJointesSchema = z.object({
+  type: z.enum(['image', 'texte']),
+  nom: z.string().min(1).max(255),
+  // Pour les images : base64 brut + mime ; pour le texte : contenu directement
+  base64: z.string().optional(),
+  mime: z.string().optional(),
+  contenu_text: z.string().max(50000).optional(),
+});
+
 const messageSchema = z.object({
   role: z.enum(['user', 'assistant']),
   content: z.string().min(1).max(10000),
+  pieces_jointes: z.array(piecesJointesSchema).max(5).optional(),
 });
 
 const analyserSchema = z.object({
@@ -85,11 +100,54 @@ export async function analyser(payload: z.infer<typeof analyserSchema>): Promise
     };
   }
 
-  // 5. Anonymisation systématique côté serveur
-  const messagesAnonymises = parsed.data.messages.map((m) => ({
-    role: m.role,
-    content: anonymiserTexte(m.content),
-  }));
+  // 5. Anonymisation systématique + intégration des pièces jointes (V2.2.1)
+  type ContentBlock =
+    | { type: 'text'; text: string }
+    | {
+        type: 'image';
+        source: { type: 'base64'; media_type: string; data: string };
+      };
+  type MessageMultimodal = {
+    role: 'user' | 'assistant';
+    content: string | ContentBlock[];
+  };
+
+  const messagesAnonymises: MessageMultimodal[] = parsed.data.messages.map((m) => {
+    const texteAnonymise = anonymiserTexte(m.content);
+
+    // Si pas de pièces jointes : on garde le format simple string.
+    if (!m.pieces_jointes || m.pieces_jointes.length === 0) {
+      return { role: m.role, content: texteAnonymise };
+    }
+
+    // Sinon : on construit un array de content blocks (multimodal Claude).
+    const blocks: ContentBlock[] = [];
+
+    // 5a. Images Claude Vision en premier (recommandation Anthropic).
+    for (const pj of m.pieces_jointes) {
+      if (pj.type === 'image' && pj.base64 && pj.mime) {
+        blocks.push({
+          type: 'image',
+          source: { type: 'base64', media_type: pj.mime, data: pj.base64 },
+        });
+      }
+    }
+
+    // 5b. Textes des fichiers attachés en bloc préfixé.
+    const blocsTexte: string[] = [];
+    for (const pj of m.pieces_jointes) {
+      if (pj.type === 'texte' && pj.contenu_text) {
+        blocsTexte.push(`### Pièce jointe : ${pj.nom}\n\n${anonymiserTexte(pj.contenu_text)}`);
+      }
+    }
+    if (blocsTexte.length > 0) {
+      blocks.push({ type: 'text', text: blocsTexte.join('\n\n---\n\n') });
+    }
+
+    // 5c. Le message user lui-même
+    blocks.push({ type: 'text', text: texteAnonymise });
+    return { role: m.role, content: blocks };
+  });
 
   // 6. Enrichissement du contexte avec les données live (V2.2.0)
   //    + base de connaissance super_admin pertinente.
@@ -119,14 +177,16 @@ export async function analyser(payload: z.infer<typeof analyserSchema>): Promise
   }
   const systemPromptEnrichi = blocsContexte.join('\n');
 
-  // 7. Appel Claude API
+  // 7. Appel Claude API (avec support multimodal)
   const client = new Anthropic({ apiKey });
   try {
     const reponse = await client.messages.create({
       model: 'claude-sonnet-4-5',
       max_tokens: 2048,
       system: systemPromptEnrichi,
-      messages: messagesAnonymises,
+      // Le SDK Anthropic accepte string ou array de blocks pour content.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages: messagesAnonymises as any,
     });
 
     // Extraction du texte (Claude renvoie un array de blocks de différents types)

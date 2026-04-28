@@ -10,7 +10,7 @@ import { listerAlertesQualite } from '@/lib/alertes-qualite/queries';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PanneauAnalyseIa } from '@/components/alertes-qualite/panneau-analyse-ia';
+import { PanneauCorrectionsBlocs } from '@/components/alertes-qualite/panneau-corrections-blocs';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
   Table,
@@ -32,12 +32,14 @@ const TYPE_FILTRES = [
   { value: '', label: 'Tous les types' },
   { value: 'consentement_sans_date', label: 'Consentement sans date' },
   { value: 'date_naissance_manquante', label: 'Date de naissance manquante' },
+  { value: 'statut_acheve_sans_date_fin', label: 'Statut achevé sans date de fin' },
   { value: 'subvention_sans_montant', label: 'Subvention sans montant' },
 ] as const;
 
 const TYPE_BADGES: Record<string, 'default' | 'outline' | 'secondary' | 'destructive'> = {
   consentement_sans_date: 'destructive',
   date_naissance_manquante: 'secondary',
+  statut_acheve_sans_date_fin: 'secondary',
   subvention_sans_montant: 'destructive',
 };
 
@@ -84,8 +86,8 @@ export default async function AlertesQualitePage({ searchParams }: { searchParam
         </p>
       </header>
 
-      {/* Compteurs */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {/* Compteurs — 4 types depuis v2.2.1 */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <CompteurCard
           libelle="Consentement RGPD sans date"
           valeur={compteurs.consentement_sans_date ?? 0}
@@ -98,6 +100,12 @@ export default async function AlertesQualitePage({ searchParams }: { searchParam
           valeur={compteurs.date_naissance_manquante ?? 0}
           actif={type === 'date_naissance_manquante'}
           href={`/admin/alertes-qualite?type=date_naissance_manquante${projet ? `&projet=${projet}` : ''}`}
+        />
+        <CompteurCard
+          libelle="Statut achevé sans date de fin"
+          valeur={compteurs.statut_acheve_sans_date_fin ?? 0}
+          actif={type === 'statut_acheve_sans_date_fin'}
+          href={`/admin/alertes-qualite?type=statut_acheve_sans_date_fin${projet ? `&projet=${projet}` : ''}`}
         />
         <CompteurCard
           libelle="Subvention sans montant"
@@ -237,7 +245,7 @@ export default async function AlertesQualitePage({ searchParams }: { searchParam
       <div className="space-y-6">{contenuPrincipal}</div>
       {afficherPanneauIa && (
         <aside>
-          <PanneauAnalyseIa typeAlerte={type} />
+          <PanneauCorrectionsBlocs typeAlerte={type} />
         </aside>
       )}
     </div>

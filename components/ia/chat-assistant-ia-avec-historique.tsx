@@ -25,8 +25,10 @@ import {
   genererTitreConversation,
   supprimerConversation,
 } from '@/lib/ia/conversations-actions';
+import type { FichierTraite } from '@/lib/ia/upload-actions';
 import { cn } from '@/lib/utils';
 import { MarkdownRenderer } from './markdown-renderer';
+import { ZoneUploadFichier } from './zone-upload-fichier';
 
 type Message = { role: 'user' | 'assistant'; content: string; horodatage: string };
 type ConversationListItem = { id: string; titre: string | null; updated_at: string };
@@ -47,6 +49,7 @@ export function ChatAssistantIaAvecHistorique({
   const [conversationId, setConversationId] = useState<string | null>(conversationIdInitial);
   const [messages, setMessages] = useState<Message[]>(messagesInitiaux);
   const [draft, setDraft] = useState('');
+  const [fichiersAttaches, setFichiersAttaches] = useState<FichierTraite[]>([]);
   const [pending, startTransition] = useTransition();
   const [historiqueOuvert, setHistoriqueOuvert] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -65,16 +68,26 @@ export function ChatAssistantIaAvecHistorique({
 
   const onEnvoyer = () => {
     const texte = draft.trim();
-    if (!texte || pending) return;
+    if ((!texte && fichiersAttaches.length === 0) || pending) return;
+
+    // Si seulement des fichiers : on injecte un texte par défaut.
+    const contenuFinal = texte || 'Analyse les fichiers joints.';
 
     const nouveauMessage: Message = {
       role: 'user',
-      content: texte,
+      content: contenuFinal,
       horodatage: new Date().toISOString(),
     };
+    // Snapshot des fichiers attachés au moment de l'envoi
+    const piecesJointes = fichiersAttaches.map((f) =>
+      f.type === 'image'
+        ? { type: 'image' as const, nom: f.nom, base64: f.base64, mime: f.mime }
+        : { type: 'texte' as const, nom: f.nom, contenu_text: f.contenu_text },
+    );
     const next = [...messages, nouveauMessage];
     setMessages(next);
     setDraft('');
+    setFichiersAttaches([]);
 
     startTransition(async () => {
       // 1. Crée la conversation si nécessaire (premier message)
@@ -97,10 +110,13 @@ export function ChatAssistantIaAvecHistorique({
         window.history.replaceState(null, '', `?${params.toString()}`);
       }
 
-      // 2. Appel Claude
-      const res = await analyser({
-        messages: next.map((m) => ({ role: m.role, content: m.content })),
-      });
+      // 2. Appel Claude (les pièces jointes ne sont attachées qu'au DERNIER message)
+      const messagesPourIa = next.map((m, idx) =>
+        idx === next.length - 1
+          ? { role: m.role, content: m.content, pieces_jointes: piecesJointes }
+          : { role: m.role, content: m.content },
+      );
+      const res = await analyser({ messages: messagesPourIa });
 
       if (res.status === 'erreur') {
         toast.error(`Erreur IA : ${res.message}`);
@@ -292,7 +308,15 @@ export function ChatAssistantIaAvecHistorique({
         </div>
 
         {/* Composer (sticky en bas) */}
-        <div className="sticky bottom-0 border-t border-slate-200 bg-white p-3">
+        <div className="sticky bottom-0 space-y-2 border-t border-slate-200 bg-white p-3">
+          <ZoneUploadFichier
+            fichiersAttaches={fichiersAttaches}
+            onFichiersAjoutes={(nouveaux) => setFichiersAttaches((prev) => [...prev, ...nouveaux])}
+            onFichierRetire={(idx) =>
+              setFichiersAttaches((prev) => prev.filter((_, i) => i !== idx))
+            }
+            disabled={pending}
+          />
           <div className="flex items-end gap-2">
             <Textarea
               value={draft}
@@ -310,16 +334,16 @@ export function ChatAssistantIaAvecHistorique({
             />
             <Button
               onClick={onEnvoyer}
-              disabled={pending || draft.trim().length === 0}
+              disabled={pending || (draft.trim().length === 0 && fichiersAttaches.length === 0)}
               className="gap-1.5"
             >
               <Send className="size-4" aria-hidden />
               Envoyer
             </Button>
           </div>
-          <p className="text-muted-foreground mt-2 text-[11px]">
+          <p className="text-muted-foreground text-[11px]">
             Modèle Claude · Données live + base de connaissance dans le contexte · Anonymisation
-            côté serveur.
+            côté serveur · Images analysées par Claude Vision.
           </p>
         </div>
       </div>
