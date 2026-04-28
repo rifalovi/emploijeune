@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import localFont from 'next/font/local';
 import { Toaster } from '@/components/ui/sonner';
+import { ChatbotScs } from '@/components/chatbot-scs/chatbot-scs';
 import { cn } from '@/lib/utils';
 import './globals.css';
 
@@ -45,6 +46,7 @@ export default function RootLayout({
     <html lang="fr">
       <body className={cn(inter.variable, geistMono.variable, 'font-sans antialiased')}>
         {children}
+        <ChatbotScs />
         <Toaster richColors position="top-right" />
       </body>
     </html>
