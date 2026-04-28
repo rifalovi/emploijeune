@@ -134,8 +134,14 @@ export async function creerCompteUtilisateur(raw: unknown): Promise<CreerCompteR
   }
 
   // Étape 5 : génère un lien de récupération (force changement mdp au login)
+  //
+  // Hotfix v2.0.1.2 : on n'utilise PLUS `action_link` directement (le hash
+  // fragment du redirect Supabase ne reach pas le serveur). On utilise
+  // `hashed_token` pour pointer le lien vers notre callback avec
+  // token_hash + type=recovery en query string.
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-  const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent('/motpasse/changer?premier_login=1')}`;
+  const redirectInterne = '/motpasse/changer?premier_login=1';
+  const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent(redirectInterne)}`;
 
   const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: 'recovery',
@@ -143,14 +149,19 @@ export async function creerCompteUtilisateur(raw: unknown): Promise<CreerCompteR
     options: { redirectTo },
   });
 
-  if (linkError || !linkData?.properties?.action_link) {
+  const hashedToken = linkData?.properties?.hashed_token;
+  if (linkError || !hashedToken) {
     return {
       status: 'erreur_inconnue',
-      message: `Génération lien activation échouée : ${linkError?.message ?? 'erreur'}`,
+      message: `Génération lien activation échouée : ${linkError?.message ?? 'hashed_token manquant'}`,
     };
   }
 
-  const lienActivation = linkData.properties.action_link;
+  const lienActivation =
+    `${origin}/api/auth/callback` +
+    `?token_hash=${encodeURIComponent(hashedToken)}` +
+    `&type=recovery` +
+    `&redirect=${encodeURIComponent(redirectInterne)}`;
 
   // Étape 6 : email d'invitation (template centralisé Étape 6.5d)
   const roleLibelle =
@@ -232,18 +243,28 @@ export async function reinitialiserMotPasseUtilisateur(
   const email = authUser?.user?.email;
   if (!email) return { status: 'erreur_inconnue', message: 'Email introuvable côté Auth' };
 
+  // Hotfix v2.0.1.2 : usage de hashed_token + lien direct vers notre callback
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-  const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent('/motpasse/changer?reset=1')}`;
+  const redirectInterne = '/motpasse/changer?reset=1';
+  const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent(redirectInterne)}`;
 
   const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: 'recovery',
     email,
     options: { redirectTo },
   });
-  if (linkError || !linkData?.properties?.action_link) {
-    return { status: 'erreur_inconnue', message: linkError?.message ?? 'Génération lien KO' };
+  const hashedToken = linkData?.properties?.hashed_token;
+  if (linkError || !hashedToken) {
+    return {
+      status: 'erreur_inconnue',
+      message: linkError?.message ?? 'hashed_token manquant',
+    };
   }
-  const lienActivation = linkData.properties.action_link;
+  const lienActivation =
+    `${origin}/api/auth/callback` +
+    `?token_hash=${encodeURIComponent(hashedToken)}` +
+    `&type=recovery` +
+    `&redirect=${encodeURIComponent(redirectInterne)}`;
 
   const tplReset = templateResetMotPasse({
     prenom: u.nom_complet.split(' ')[0] ?? '',

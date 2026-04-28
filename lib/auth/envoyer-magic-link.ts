@@ -75,8 +75,15 @@ export async function envoyerMagicLink(
   }
 
   // 2. Génère le lien magique côté serveur (pas d'envoi auto Supabase)
+  //
+  // Hotfix v2.0.1.2 : on n'utilise PLUS `action_link` directement (cf.
+  // envoyer-reset-mot-passe.ts pour le rationale complet). Supabase
+  // /auth/v1/verify redirige avec un hash fragment qui ne reach jamais le
+  // serveur. On construit un lien direct vers notre callback avec
+  // `token_hash` + `type=magiclink` en query string.
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-  const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent('/dashboard')}`;
+  const redirectInterne = '/dashboard';
+  const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent(redirectInterne)}`;
 
   const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: 'magiclink',
@@ -84,17 +91,24 @@ export async function envoyerMagicLink(
     options: { redirectTo },
   });
 
-  if (linkError || !linkData?.properties?.action_link) {
+  const hashedToken = linkData?.properties?.hashed_token;
+  if (linkError || !hashedToken) {
     return {
       status: 'erreur_inconnue',
-      message: `Génération du lien magique : ${linkError?.message ?? 'erreur inconnue'}`,
+      message: `Génération du lien magique : ${linkError?.message ?? 'hashed_token manquant'}`,
     };
   }
+
+  const lienMagic =
+    `${origin}/api/auth/callback` +
+    `?token_hash=${encodeURIComponent(hashedToken)}` +
+    `&type=magiclink` +
+    `&redirect=${encodeURIComponent(redirectInterne)}`;
 
   // 3. Envoie l'email via Resend avec notre template OIF
   const tpl = templateMagicLink({
     prenom: utilisateurRow.nom_complet.split(' ')[0],
-    lienMagic: linkData.properties.action_link,
+    lienMagic,
   });
 
   const envoi = await envoyerEmail({
