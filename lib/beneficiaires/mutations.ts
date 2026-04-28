@@ -327,7 +327,7 @@ export async function setBeneficiaireDeleted(
   raison?: string,
 ): Promise<SetBeneficiaireDeletedResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || utilisateur.role !== 'admin_scs') {
+  if (!utilisateur || (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin')) {
     return {
       status: 'erreur_rls',
       message: 'Seul un administrateur SCS peut supprimer un bénéficiaire.',

@@ -37,11 +37,12 @@ export default async function BeneficiaireDetailPage({ params }: PageProps) {
   // Droits UI (la RLS reste la vraie barrière)
   const peutEditer =
     utilisateur.role === 'admin_scs' ||
+    utilisateur.role === 'super_admin' ||
     utilisateur.role === 'editeur_projet' ||
     (utilisateur.role === 'contributeur_partenaire' &&
       (fiche.created_by === utilisateur.user_id ||
         fiche.organisation_id === utilisateur.organisation_id));
-  const peutSupprimer = utilisateur.role === 'admin_scs';
+  const peutSupprimer = utilisateur.role === 'admin_scs' || utilisateur.role === 'super_admin';
 
   // Couleur bordure gauche selon PS (continuité visuelle avec la liste)
   const ps = fiche.programme_strategique as ProgrammeStrategiqueCode | null | undefined;

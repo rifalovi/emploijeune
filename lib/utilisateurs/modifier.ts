@@ -35,7 +35,10 @@ export type ModifierUtilisateurResult =
 
 export async function modifierUtilisateur(raw: unknown): Promise<ModifierUtilisateurResult> {
   const utilisateurCourant = await getCurrentUtilisateur();
-  if (!utilisateurCourant || utilisateurCourant.role !== 'admin_scs') {
+  if (
+    !utilisateurCourant ||
+    (utilisateurCourant.role !== 'admin_scs' && utilisateurCourant.role !== 'super_admin')
+  ) {
     return {
       status: 'erreur_droits',
       message: 'Réservé aux administrateurs SCS.',
@@ -89,7 +92,10 @@ export async function modifierUtilisateur(raw: unknown): Promise<ModifierUtilisa
   }
 
   // Garde-fou : ne pas vider la liste des admin_scs actifs
-  if (cible.role === 'admin_scs' && (data.role !== 'admin_scs' || !data.actif)) {
+  if (
+    (cible.role === 'admin_scs' || cible.role === 'super_admin') &&
+    ((data.role !== 'admin_scs' && data.role !== 'super_admin') || !data.actif)
+  ) {
     const { count } = await supabase
       .from('utilisateurs')
       .select('id', { count: 'exact', head: true })

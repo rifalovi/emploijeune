@@ -289,7 +289,7 @@ export async function setStructureDeleted(
   raison?: string,
 ): Promise<SetStructureDeletedResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || utilisateur.role !== 'admin_scs') {
+  if (!utilisateur || (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin')) {
     return {
       status: 'erreur_rls',
       message: 'Seul un administrateur SCS peut supprimer une structure.',

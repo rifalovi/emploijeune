@@ -19,7 +19,7 @@ export const metadata: Metadata = {
  */
 export default async function AdminPage() {
   const utilisateur = await requireUtilisateurValide();
-  if (utilisateur.role !== 'admin_scs') notFound();
+  if (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin') notFound();
 
   const nbDemandesEnAttente = await compterDemandesEnAttente().catch(() => 0);
 

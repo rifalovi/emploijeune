@@ -23,6 +23,7 @@ export default async function NouveauBeneficiairePage({ searchParams }: PageProp
   // Seuls les rôles écriture peuvent créer
   const peutCreer =
     utilisateur.role === 'admin_scs' ||
+    utilisateur.role === 'super_admin' ||
     utilisateur.role === 'editeur_projet' ||
     utilisateur.role === 'contributeur_partenaire';
   if (!peutCreer) notFound();
@@ -42,7 +43,12 @@ export default async function NouveauBeneficiairePage({ searchParams }: PageProp
   const nomenclatures = await getNomenclatures();
 
   const projetsOptions = Array.from(nomenclatures.projets.entries())
-    .filter(([, meta]) => utilisateur.role === 'admin_scs' || meta.programme_strategique === 'PS3')
+    .filter(
+      ([, meta]) =>
+        utilisateur.role === 'admin_scs' ||
+        utilisateur.role === 'super_admin' ||
+        meta.programme_strategique === 'PS3',
+    )
     .map(([code, meta]) => ({ code, libelle: `${code} — ${meta.libelle}` }));
 
   const paysOptions = Array.from(nomenclatures.pays.entries()).map(([code, libelle]) => ({

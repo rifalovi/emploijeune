@@ -52,7 +52,7 @@ async function loggerAudit(
  */
 export async function assumerVueUtilisateur(targetUserId: string): Promise<AssumerVueResult> {
   const courant = await getCurrentUtilisateur();
-  if (!courant || courant.role !== 'admin_scs') {
+  if (!courant || (courant.role !== 'admin_scs' && courant.role !== 'super_admin')) {
     return { status: 'erreur_droits', message: 'Réservé aux administrateurs SCS.' };
   }
   if (!targetUserId || !/^[0-9a-fA-F-]{36}$/.test(targetUserId)) {

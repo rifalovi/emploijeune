@@ -15,11 +15,17 @@ import type { UtilisateurProfile } from '@/lib/supabase/auth';
 type MobileHeaderProps = {
   utilisateur: UtilisateurProfile;
   notificationsCount?: number;
+  /** Module IA activé pour le rôle de l'utilisateur courant (V2.0.0). */
+  moduleIaActif?: boolean;
 };
 
-export function MobileHeader({ utilisateur, notificationsCount }: MobileHeaderProps) {
+export function MobileHeader({
+  utilisateur,
+  notificationsCount,
+  moduleIaActif = false,
+}: MobileHeaderProps) {
   const [open, setOpen] = useState(false);
-  const items = visibleNavItems(utilisateur.role);
+  const items = visibleNavItems(utilisateur.role, { module_ia: moduleIaActif });
 
   return (
     <header className="bg-background sticky top-0 z-30 flex h-14 items-center justify-between border-b px-3 md:hidden">
@@ -58,7 +64,8 @@ export function MobileHeader({ utilisateur, notificationsCount }: MobileHeaderPr
                     icon={item.icon}
                     onNavigate={() => setOpen(false)}
                     badge={
-                      item.href === '/admin' && utilisateur.role === 'admin_scs'
+                      item.href === '/admin' &&
+                      (utilisateur.role === 'admin_scs' || utilisateur.role === 'super_admin')
                         ? notificationsCount
                         : undefined
                     }

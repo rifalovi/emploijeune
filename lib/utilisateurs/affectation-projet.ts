@@ -43,7 +43,7 @@ async function gardeAdmin(): Promise<
   { ok: true; userId: string } | { ok: false; err: ResultatErr }
 > {
   const courant = await getCurrentUtilisateur();
-  if (!courant || courant.role !== 'admin_scs') {
+  if (!courant || (courant.role !== 'admin_scs' && courant.role !== 'super_admin')) {
     return {
       ok: false,
       err: {

@@ -27,7 +27,7 @@ export default async function EnqueteDetailPage({ params }: PageProps) {
   const session = await getSessionEnqueteById(id);
   if (!session) notFound();
 
-  const peutSupprimer = utilisateur.role === 'admin_scs';
+  const peutSupprimer = utilisateur.role === 'admin_scs' || utilisateur.role === 'super_admin';
 
   const liensCible = session.beneficiaire_id
     ? { href: `/beneficiaires/${session.beneficiaire_id}`, label: 'Voir la fiche bénéficiaire' }

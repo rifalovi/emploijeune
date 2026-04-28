@@ -20,7 +20,8 @@ type PageProps = { params: Promise<{ id: string }> };
 
 export default async function HistoriqueUtilisateurPage({ params }: PageProps) {
   const utilisateurCourant = await requireUtilisateurValide();
-  if (utilisateurCourant.role !== 'admin_scs') notFound();
+  if (utilisateurCourant.role !== 'admin_scs' && utilisateurCourant.role !== 'super_admin')
+    notFound();
 
   const { id } = await params;
   if (!/^[0-9a-fA-F-]{36}$/.test(id)) notFound();

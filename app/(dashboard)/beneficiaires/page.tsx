@@ -57,7 +57,12 @@ export default async function BeneficiairesPage({ searchParams }: PageProps) {
   // Listes filtrées : on n'affiche que les projets concernés par emploi jeunes
   // par défaut (règle métier seed SQL). Admin_scs voit tous les projets.
   const projetsOptions = Array.from(nomenclatures.projets.entries())
-    .filter(([, meta]) => utilisateur.role === 'admin_scs' || meta.programme_strategique === 'PS3')
+    .filter(
+      ([, meta]) =>
+        utilisateur.role === 'admin_scs' ||
+        utilisateur.role === 'super_admin' ||
+        meta.programme_strategique === 'PS3',
+    )
     .map(([code, meta]) => ({ code, libelle: `${code} — ${meta.libelle}` }));
 
   const paysOptions = Array.from(nomenclatures.pays.entries()).map(([code, libelle]) => ({
@@ -73,10 +78,14 @@ export default async function BeneficiairesPage({ searchParams }: PageProps) {
   // Droits UI (la RLS reste la vraie barrière côté serveur)
   const peutCreer =
     utilisateur.role === 'admin_scs' ||
+    utilisateur.role === 'super_admin' ||
     utilisateur.role === 'editeur_projet' ||
     utilisateur.role === 'contributeur_partenaire';
-  const peutEditerTout = utilisateur.role === 'admin_scs' || utilisateur.role === 'editeur_projet';
-  const peutSupprimer = utilisateur.role === 'admin_scs';
+  const peutEditerTout =
+    utilisateur.role === 'admin_scs' ||
+    utilisateur.role === 'super_admin' ||
+    utilisateur.role === 'editeur_projet';
+  const peutSupprimer = utilisateur.role === 'admin_scs' || utilisateur.role === 'super_admin';
 
   const hasActiveFilters = Boolean(
     filters.q ||

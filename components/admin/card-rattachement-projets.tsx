@@ -70,7 +70,7 @@ export function CardRattachementProjets({
   projets,
   coordonnateurs,
 }: CardRattachementProjetsProps) {
-  if (utilisateur.role === 'admin_scs') {
+  if (utilisateur.role === 'admin_scs' || utilisateur.role === 'super_admin') {
     return (
       <Card>
         <CardHeader>

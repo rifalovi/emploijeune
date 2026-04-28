@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default async function AdminUtilisateursPage() {
   const utilisateur = await requireUtilisateurValide();
-  if (utilisateur.role !== 'admin_scs') notFound();
+  if (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin') notFound();
 
   const supabase = await createSupabaseServerClient();
   const [utilisateurs, nomenclatures, organisationsData] = await Promise.all([

@@ -26,7 +26,7 @@ export default async function AdminDemandesAccesPage({
   searchParams: Promise<{ statut?: string }>;
 }) {
   const utilisateur = await requireUtilisateurValide();
-  if (utilisateur.role !== 'admin_scs') notFound();
+  if (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin') notFound();
 
   const { statut } = await searchParams;
   const filtre =

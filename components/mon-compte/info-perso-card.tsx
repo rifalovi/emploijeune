@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import type { RoleUtilisateur } from '@/lib/supabase/auth';
 
 const ROLE_LIBELLES: Record<RoleUtilisateur, string> = {
+  super_admin: 'Super administrateur',
   admin_scs: 'Administrateur SCS',
   editeur_projet: 'Coordonnateur de projet',
   contributeur_partenaire: 'Contributeur partenaire',

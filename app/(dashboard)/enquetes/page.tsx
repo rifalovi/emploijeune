@@ -44,16 +44,22 @@ export default async function EnquetesPage({ searchParams }: PageProps) {
   const result = await listSessionsEnquete(filters, pageSize);
 
   const projetsOptions = Array.from(nomenclatures.projets.entries())
-    .filter(([, meta]) => utilisateur.role === 'admin_scs' || meta.programme_strategique === 'PS3')
+    .filter(
+      ([, meta]) =>
+        utilisateur.role === 'admin_scs' ||
+        utilisateur.role === 'super_admin' ||
+        meta.programme_strategique === 'PS3',
+    )
     .map(([code, meta]) => ({ code, libelle: `${code} — ${meta.libelle}` }));
 
   const peutCreer =
     utilisateur.role === 'admin_scs' ||
+    utilisateur.role === 'super_admin' ||
     utilisateur.role === 'editeur_projet' ||
     utilisateur.role === 'contributeur_partenaire';
   // Décision Étape 6f : export Excel des enquêtes réservé admin_scs
   // (pilotage transverse, alimente l'analyse des indicateurs publics).
-  const peutExporter = utilisateur.role === 'admin_scs';
+  const peutExporter = utilisateur.role === 'admin_scs' || utilisateur.role === 'super_admin';
 
   const hasActiveFilters = Boolean(
     filters.q ||

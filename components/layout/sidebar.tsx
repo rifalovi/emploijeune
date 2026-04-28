@@ -22,6 +22,8 @@ type SidebarProps = {
   utilisateur: UtilisateurProfile;
   organisationLibelle?: string | null;
   notificationsCount?: number;
+  /** Module IA activé pour le rôle de l'utilisateur courant (V2.0.0). */
+  moduleIaActif?: boolean;
 };
 
 function initialsFromName(name: string): string {
@@ -29,8 +31,13 @@ function initialsFromName(name: string): string {
   return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '?';
 }
 
-export function Sidebar({ utilisateur, organisationLibelle, notificationsCount }: SidebarProps) {
-  const items = visibleNavItems(utilisateur.role);
+export function Sidebar({
+  utilisateur,
+  organisationLibelle,
+  notificationsCount,
+  moduleIaActif = false,
+}: SidebarProps) {
+  const items = visibleNavItems(utilisateur.role, { module_ia: moduleIaActif });
 
   return (
     <aside
@@ -63,7 +70,8 @@ export function Sidebar({ utilisateur, organisationLibelle, notificationsCount }
             label={item.label}
             icon={item.icon}
             badge={
-              item.href === '/admin' && utilisateur.role === 'admin_scs'
+              item.href === '/admin' &&
+              (utilisateur.role === 'admin_scs' || utilisateur.role === 'super_admin')
                 ? notificationsCount
                 : undefined
             }
@@ -110,6 +118,8 @@ export function Sidebar({ utilisateur, organisationLibelle, notificationsCount }
 
 function roleLibelle(role: UtilisateurProfile['role']): string {
   switch (role) {
+    case 'super_admin':
+      return 'Super Administrateur';
     case 'admin_scs':
       return 'Administrateur SCS';
     case 'editeur_projet':

@@ -184,9 +184,9 @@ export async function getUtilisateurEffectif(): Promise<UtilisateurEffectif | nu
   if (!reel) return null;
 
   const ctx = await getViewAsContext();
-  if (!ctx || reel.role !== 'admin_scs') {
+  if (!ctx || (reel.role !== 'admin_scs' && reel.role !== 'super_admin')) {
     // Si non admin ou pas de cookie : profil réel uniquement.
-    if (ctx && reel.role !== 'admin_scs') {
+    if (ctx && reel.role !== 'admin_scs' && reel.role !== 'super_admin') {
       // Cookie présent mais l'utilisateur n'est plus admin → on nettoie.
       await clearViewAsCookie();
     }

@@ -64,7 +64,11 @@ export async function envoyerMagicLink(
     .is('deleted_at', null)
     .maybeSingle();
 
-  if (!utilisateurRow || utilisateurRow.role !== 'admin_scs' || !authUser.email) {
+  if (
+    !utilisateurRow ||
+    (utilisateurRow.role !== 'admin_scs' && utilisateurRow.role !== 'super_admin') ||
+    !authUser.email
+  ) {
     // Compte existant mais pas admin_scs : on simule succès aussi
     // (politique « le magic-link ne sait rien révéler »).
     return { status: 'succes' };

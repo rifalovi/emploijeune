@@ -43,7 +43,7 @@ export type CreerCompteResult =
  */
 export async function creerCompteUtilisateur(raw: unknown): Promise<CreerCompteResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || utilisateur.role !== 'admin_scs') {
+  if (!utilisateur || (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin')) {
     return {
       status: 'erreur_droits',
       message: 'Seul un administrateur SCS peut créer un compte.',
@@ -176,7 +176,7 @@ export async function toggleCompteActif(
   actif: boolean,
 ): Promise<ToggleCompteActifResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || utilisateur.role !== 'admin_scs') {
+  if (!utilisateur || (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin')) {
     return { status: 'erreur_droits', message: 'Réservé aux administrateurs SCS.' };
   }
   const supabase = await createSupabaseServerClient();
@@ -199,7 +199,7 @@ export async function reinitialiserMotPasseUtilisateur(
   utilisateurId: string,
 ): Promise<ReinitMdpResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || utilisateur.role !== 'admin_scs') {
+  if (!utilisateur || (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin')) {
     return { status: 'erreur_droits', message: 'Réservé aux administrateurs SCS.' };
   }
   const supabase = await createSupabaseServerClient();

@@ -167,7 +167,7 @@ export type ApprouverDemandeResult =
 
 export async function approuverDemandeAcces(demandeId: string): Promise<ApprouverDemandeResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || utilisateur.role !== 'admin_scs') {
+  if (!utilisateur || (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin')) {
     return { status: 'erreur_droits', message: 'Réservé aux administrateurs SCS.' };
   }
   if (
@@ -290,7 +290,7 @@ export type RejeterDemandeResult =
 
 export async function rejeterDemandeAcces(raw: unknown): Promise<RejeterDemandeResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || utilisateur.role !== 'admin_scs') {
+  if (!utilisateur || (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin')) {
     return { status: 'erreur_droits', message: 'Réservé aux administrateurs SCS.' };
   }
 
@@ -364,7 +364,7 @@ export type SupprimerDemandeResult =
  */
 export async function supprimerDemandeAcces(demandeId: string): Promise<SupprimerDemandeResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || utilisateur.role !== 'admin_scs') {
+  if (!utilisateur || (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin')) {
     return { status: 'erreur_droits', message: 'Réservé aux administrateurs SCS.' };
   }
   if (

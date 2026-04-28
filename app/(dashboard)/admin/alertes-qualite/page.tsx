@@ -41,7 +41,7 @@ const TYPE_BADGES: Record<string, 'default' | 'outline' | 'secondary' | 'destruc
 
 export default async function AlertesQualitePage({ searchParams }: { searchParams: SearchParams }) {
   const utilisateur = await requireUtilisateurValide();
-  if (utilisateur.role !== 'admin_scs') notFound();
+  if (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin') notFound();
 
   const params = await searchParams;
   const type = TYPE_FILTRES.find((t) => t.value === params.type)?.value ?? '';

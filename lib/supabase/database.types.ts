@@ -14,6 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
+      activation_modules: {
+        Row: {
+          id: string
+          module: string
+          role_cible: Database["public"]["Enums"]["role_utilisateur"]
+          active: boolean
+          activated_by: string | null
+          activated_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          module: string
+          role_cible: Database["public"]["Enums"]["role_utilisateur"]
+          active?: boolean
+          activated_by?: string | null
+          activated_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          module?: string
+          role_cible?: Database["public"]["Enums"]["role_utilisateur"]
+          active?: boolean
+          activated_by?: string | null
+          activated_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      suspensions_utilisateurs: {
+        Row: {
+          id: string
+          user_id: string
+          suspendu_par: string
+          date_debut: string
+          date_fin: string | null
+          motif: string | null
+          leve_at: string | null
+          leve_par: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          suspendu_par: string
+          date_debut?: string
+          date_fin?: string | null
+          motif?: string | null
+          leve_at?: string | null
+          leve_par?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          suspendu_par?: string
+          date_debut?: string
+          date_fin?: string | null
+          motif?: string | null
+          leve_at?: string | null
+          leve_par?: string | null
+        }
+        Relationships: []
+      }
+      archives_partenaires: {
+        Row: {
+          id: string
+          organisation_id: string
+          archive_par: string
+          archive_at: string
+          motif: string | null
+          desarchive_at: string | null
+          desarchive_par: string | null
+        }
+        Insert: {
+          id?: string
+          organisation_id: string
+          archive_par: string
+          archive_at?: string
+          motif?: string | null
+          desarchive_at?: string | null
+          desarchive_par?: string | null
+        }
+        Update: {
+          id?: string
+          organisation_id?: string
+          archive_par?: string
+          archive_at?: string
+          motif?: string | null
+          desarchive_at?: string | null
+          desarchive_par?: string | null
+        }
+        Relationships: []
+      }
       beneficiaires: {
         Row: {
           annee_formation: number
@@ -1445,6 +1538,18 @@ export type Database = {
       get_kpis_dashboard_editeur_projet: { Args: never; Returns: Json }
       get_kpis_dashboard_lecteur: { Args: never; Returns: Json }
       is_admin_scs: { Args: never; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
+      is_user_suspended: { Args: { p_user_id: string }; Returns: boolean }
+      is_organisation_archived: { Args: { p_organisation_id: string }; Returns: boolean }
+      module_ia_actif_pour_courant: { Args: never; Returns: boolean }
+      toggle_module_pour_role: {
+        Args: {
+          p_module: string
+          p_role_cible: Database["public"]["Enums"]["role_utilisateur"]
+          p_active: boolean
+        }
+        Returns: Json
+      }
       notifications_admin_non_lues_count: { Args: never; Returns: number }
       rechercher_beneficiaires: {
         Args: { search_text: string; seuil_similarite?: number }
@@ -1537,6 +1642,7 @@ export type Database = {
         | "editeur_projet"
         | "contributeur_partenaire"
         | "lecteur"
+        | "super_admin"
       sexe: "F" | "M" | "Autre"
       source_import:
         | "manuelle"
@@ -1705,6 +1811,7 @@ export const Constants = {
         "editeur_projet",
         "contributeur_partenaire",
         "lecteur",
+        "super_admin",
       ],
       sexe: ["F", "M", "Autre"],
       source_import: [

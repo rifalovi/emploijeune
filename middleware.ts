@@ -107,7 +107,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/structures') ||
     pathname.startsWith('/enquetes') || // /enquetes/public/* déjà court-circuité plus haut
     pathname.startsWith('/imports') ||
-    pathname.startsWith('/admin');
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/super-admin') ||
+    pathname.startsWith('/assistant-ia');
 
   if (isProtected) {
     const { data } = await supabase.auth.getUser();
