@@ -39,14 +39,24 @@ export function Sidebar({
 }: SidebarProps) {
   const items = visibleNavItems(utilisateur.role, { module_ia: moduleIaActif });
 
+  // V2.2.2 — Sidebar sticky avec profil utilisateur toujours visible.
+  //
+  // Architecture flex column en 3 zones :
+  //   1. Header logo + sous-marque (shrink-0)
+  //   2. Nav items (flex-1 overflow-y-auto min-h-0) — scrollable si trop d'items
+  //   3. Profil utilisateur (shrink-0) — sticky en bas par construction flex
+  //
+  // Le `sticky top-0 h-screen` sur le <aside> détache la sidebar du flux du
+  // layout : la sidebar reste ancrée au viewport quand on scrolle le contenu
+  // principal, et sa hauteur est plafonnée à 100vh pour que le profil reste
+  // visible quelle que soit la longueur de la liste d'items.
   return (
     <aside
       aria-label="Navigation principale"
-      className="bg-sidebar text-sidebar-foreground hidden min-h-screen w-64 flex-col border-r md:flex"
+      className="bg-sidebar text-sidebar-foreground sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r md:flex"
     >
-      {/* En-tête de sidebar : logotype OIF officiel + sous-marque plateforme.
-          Logo à taille minimum charte (96 px) avec espace protégé respecté. */}
-      <div className="px-3 py-4">
+      {/* Header logo + sous-marque (shrink-0 pour ne pas être compressé) */}
+      <div className="shrink-0 px-3 py-4">
         <LogoOIF
           variant="quadri"
           size="sm"
@@ -62,7 +72,12 @@ export function Sidebar({
 
       <Separator />
 
-      <nav aria-label="Menu" className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      {/*
+        Nav items scrollable si trop nombreux. `min-h-0` est OBLIGATOIRE pour
+        que `overflow-y-auto` fonctionne dans un flex container : sans lui,
+        l'enfant flex prend sa taille de contenu et déborde.
+      */}
+      <nav aria-label="Menu" className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {items.map((item) => (
           <NavLink
             key={item.href}
@@ -81,7 +96,9 @@ export function Sidebar({
 
       <Separator />
 
-      <div className="space-y-3 px-4 py-4">
+      {/* Bloc profil utilisateur — toujours visible (shrink-0 + bg fond pour
+          masquer un éventuel overflow de la nav au-dessus). */}
+      <div className="bg-sidebar shrink-0 space-y-3 px-4 py-4">
         <div className="flex items-center gap-3">
           <Avatar className="size-9">
             <AvatarFallback>{initialsFromName(utilisateur.nom_complet)}</AvatarFallback>
