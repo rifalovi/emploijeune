@@ -6,10 +6,9 @@
     <title>Plateforme OIF Emploi Jeunes — Présentation V1</title>
     <meta
       name="description"
-      content="Présentation factuelle de la Plateforme OIF Emploi Jeunes V1. Service de Conception et Suivi (SCS), Organisation Internationale de la Francophonie."
+      content="Présentation de la Plateforme OIF Emploi Jeunes. Service de Conception et Suivi (SCS), Organisation Internationale de la Francophonie."
     />
 
-    <!-- Tailwind CDN (suffisant pour une maquette standalone) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -18,7 +17,7 @@
             colors: {
               oif: {
                 bleu: '#0E4F88',
-                clair: '#0198E9',
+                bleuClair: '#1565a8',
                 cyan: '#0198E9',
                 violet: '#5D0073',
                 vert: '#7EB301',
@@ -36,7 +35,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap"
       rel="stylesheet"
     />
 
@@ -47,22 +46,64 @@
       body {
         font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
       }
+
+      /* Reveal au scroll */
       .reveal {
         opacity: 0;
-        transform: translateY(16px);
+        transform: translateY(20px);
         transition:
-          opacity 0.6s ease-out,
-          transform 0.6s ease-out;
+          opacity 0.7s ease-out,
+          transform 0.7s ease-out;
       }
       .reveal.is-visible {
         opacity: 1;
         transform: translateY(0);
       }
+
+      /* Pattern overlay sur hero */
       .pattern-radial {
         background-image:
-          radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-          radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+          radial-gradient(circle at 15% 80%, rgba(255, 255, 255, 0.06) 0%, transparent 50%),
+          radial-gradient(circle at 85% 20%, rgba(245, 166, 35, 0.08) 0%, transparent 50%);
       }
+
+      /* Bordures et ombres pour les mockups d'écrans */
+      .device-shadow {
+        box-shadow:
+          0 25px 50px -12px rgba(14, 79, 136, 0.25),
+          0 0 0 1px rgba(14, 79, 136, 0.05);
+      }
+
+      /* Frame Mac/PC (browser chrome) */
+      .frame-browser {
+        background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+        border-radius: 12px 12px 0 0;
+        padding: 10px 14px;
+        border-bottom: 1px solid #cbd5e1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .frame-browser-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+
+      /* Hero overlay subtle gradient sur images */
+      .hero-overlay {
+        background: linear-gradient(135deg, rgba(14, 79, 136, 0.92) 0%, rgba(14, 79, 136, 0.78) 60%, rgba(1, 152, 233, 0.7) 100%);
+      }
+
+      /* Pattern de fond pour mock charts */
+      .chart-grid {
+        background-image:
+          linear-gradient(to right, rgba(14, 79, 136, 0.06) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(14, 79, 136, 0.06) 1px, transparent 1px);
+        background-size: 20px 20px;
+      }
+
+      /* Scrollbar discrète */
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
@@ -73,6 +114,28 @@
       ::-webkit-scrollbar-thumb {
         background: #cbd5e1;
         border-radius: 4px;
+      }
+
+      /* Anim carrousel dot pulse */
+      @keyframes dotPulse {
+        0%, 100% { opacity: 0.4; transform: scale(0.8); }
+        50% { opacity: 1; transform: scale(1.1); }
+      }
+      .dot-active {
+        animation: dotPulse 1.6s ease-in-out infinite;
+      }
+
+      /* Frame mobile : encoche + speaker */
+      .phone-notch {
+        position: absolute;
+        top: 6px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 18px;
+        background: #0f172a;
+        border-radius: 0 0 12px 12px;
+        z-index: 5;
       }
     </style>
   </head>
@@ -96,10 +159,10 @@
           </div>
         </a>
         <nav class="hidden items-center gap-1 text-sm md:flex">
+          <a href="#decouvrez" class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu">Plateforme</a>
+          <a href="#responsive" class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu">Multi-devices</a>
           <a href="#cadre-commun" class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu">Cadre commun</a>
-          <a href="#dashboard" class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu">Dashboard</a>
-          <a href="#beneficiaires" class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu">Bénéficiaires</a>
-          <a href="#campagnes" class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu">Campagnes</a>
+          <a href="#architecture" class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu">Architecture</a>
           <a href="#roles" class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu">Rôles</a>
           <a href="#rgpd" class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-oif-bleu">RGPD</a>
         </nav>
@@ -109,54 +172,735 @@
       </div>
     </header>
 
-    <!-- ─────────────── 1. HERO ─────────────── -->
+    <!-- ─────────────── 1. HERO (réplique de la vraie vitrine) ─────────────── -->
     <section
       id="hero"
       class="pattern-radial relative overflow-hidden text-white"
       style="background: linear-gradient(135deg, #0e4f88 0%, #1565a8 60%, #0198e9 100%);"
     >
-      <div class="mx-auto max-w-7xl px-6 py-20 md:py-28">
+      <!-- Overlay image carrousel simulée -->
+      <div class="absolute inset-0 opacity-30 mix-blend-overlay" style="
+        background-image:
+          radial-gradient(ellipse at 30% 70%, rgba(245, 166, 35, 0.4) 0%, transparent 50%),
+          radial-gradient(ellipse at 70% 30%, rgba(14, 79, 136, 0.6) 0%, transparent 60%);
+      "></div>
+
+      <div class="relative mx-auto max-w-7xl px-6 py-20 md:py-28">
         <div class="reveal max-w-4xl">
           <span class="mb-6 inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-medium tracking-wide backdrop-blur-sm">
             Plateforme officielle SCS · Organisation Internationale de la Francophonie
           </span>
           <h1 class="text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
-            Suivi-évaluation des projets emploi jeunes de la Francophonie
+            Suivi-évaluation des projets
+            <span class="text-oif-dore">emploi jeunes</span> de la Francophonie
           </h1>
           <p class="mt-6 max-w-3xl text-lg text-white/90">
-            Plateforme de gestion et de suivi opérationnel des programmes OIF d'insertion économique
-            des jeunes francophones. Données réelles, conformité RGPD native, quatre rôles
-            cloisonnés.
+            Plateforme institutionnelle dédiée au pilotage opérationnel et stratégique des
+            programmes OIF d&apos;insertion économique des jeunes francophones.
+          </p>
+          <p class="mt-4 text-base text-white/80">
+            <strong class="text-white">5 513</strong> jeunes accompagnés dans
+            <strong class="text-white">53</strong> pays — période 2018 à 2025.
+          </p>
+          <div class="mt-10 flex flex-wrap gap-3">
+            <a
+              href="#decouvrez"
+              class="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 font-semibold text-oif-bleu shadow-xl transition hover:bg-blue-50"
+            >
+              Découvrir la plateforme
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+            <a
+              href="#responsive"
+              class="inline-flex items-center gap-2 rounded-lg border border-white/40 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur-sm transition hover:bg-white/25"
+            >
+              Voir multi-devices
+            </a>
+          </div>
+        </div>
+
+        <!-- Carrousel dots simulés -->
+        <div class="mt-16 flex items-center justify-between">
+          <div class="flex gap-2">
+            <span class="dot-active size-2.5 rounded-full bg-white"></span>
+            <span class="size-2.5 rounded-full bg-white/40"></span>
+            <span class="size-2.5 rounded-full bg-white/40"></span>
+            <span class="size-2.5 rounded-full bg-white/40"></span>
+            <span class="size-2.5 rounded-full bg-white/40"></span>
+          </div>
+          <span class="text-xs text-white/60">© OIF</span>
+        </div>
+      </div>
+
+      <!-- Flèches navigation carrousel -->
+      <button class="absolute left-4 top-1/2 -translate-y-1/2 hidden size-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition hover:bg-white/25 lg:flex" aria-hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+      </button>
+      <button class="absolute right-4 top-1/2 -translate-y-1/2 hidden size-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition hover:bg-white/25 lg:flex" aria-hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+      </button>
+    </section>
+
+    <!-- ─────────────── 2. DÉCOUVREZ LA PLATEFORME (4 captures) ─────────────── -->
+    <section id="decouvrez" class="bg-white py-20 md:py-24">
+      <div class="mx-auto max-w-7xl px-6">
+        <div class="reveal mx-auto max-w-3xl text-center">
+          <span class="inline-block rounded-full border border-oif-bleu/30 bg-oif-bleu/10 px-3 py-1 text-xs font-medium text-oif-bleu">
+            Découvrez la plateforme
+          </span>
+          <h2 class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-4xl">
+            Quatre écrans-clés du quotidien SCS
+          </h2>
+          <p class="mt-4 text-base text-slate-600">
+            Aperçu réaliste des interfaces opérationnelles V1.
           </p>
         </div>
 
-        <!-- Chiffres clés -->
-        <div class="reveal mt-14 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-          <div class="rounded-xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
-            <p class="text-3xl font-bold tabular-nums md:text-4xl">5 512</p>
-            <p class="mt-1 text-xs text-white/80 md:text-sm">Bénéficiaires accompagnés</p>
+        <!-- Capture 1 : connexion -->
+        <div class="reveal mt-14 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_2fr] lg:items-center">
+          <div>
+            <span class="inline-block rounded bg-oif-dore/15 px-2 py-0.5 text-xs font-bold text-oif-dore">01</span>
+            <h3 class="mt-2 text-xl font-bold text-slate-900">Écran de connexion</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-600">
+              Authentification email + mot de passe ou magic link pour les administrateurs SCS.
+              Anti-énumération des comptes : la réponse est identique que l&apos;email existe ou non.
+            </p>
+            <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
+              <li>Récupération de mot de passe avec lien à usage unique</li>
+              <li>Magic link réservé aux admin SCS</li>
+              <li>Mode &laquo;&nbsp;Visualiser comme&nbsp;&raquo; pour démos institutionnelles</li>
+            </ul>
           </div>
-          <div class="rounded-xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
-            <p class="text-3xl font-bold tabular-nums md:text-4xl">318</p>
-            <p class="mt-1 text-xs text-white/80 md:text-sm">Structures appuyées</p>
-          </div>
-          <div class="rounded-xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
-            <p class="text-3xl font-bold tabular-nums md:text-4xl">53</p>
-            <p class="mt-1 text-xs text-white/80 md:text-sm">Pays d'intervention</p>
-          </div>
-          <div class="rounded-xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
-            <p class="text-3xl font-bold tabular-nums md:text-4xl">91 %</p>
-            <p class="mt-1 text-xs text-white/80 md:text-sm">Femmes accompagnées</p>
+          <div class="device-shadow overflow-hidden rounded-xl ring-1 ring-slate-200">
+            <div class="frame-browser">
+              <span class="frame-browser-dot bg-red-400"></span>
+              <span class="frame-browser-dot bg-amber-400"></span>
+              <span class="frame-browser-dot bg-green-400"></span>
+              <span class="ml-3 truncate rounded bg-white px-3 py-0.5 font-mono text-xs text-slate-500 ring-1 ring-slate-200">suivi-projet.org/connexion</span>
+            </div>
+            <!-- Mockup connexion -->
+            <div class="bg-gradient-to-b from-slate-50 to-white p-8">
+              <div class="mx-auto max-w-sm">
+                <div class="flex justify-center">
+                  <div class="h-12 w-32 rounded bg-oif-bleu/90"></div>
+                </div>
+                <h4 class="mt-6 text-center text-lg font-semibold text-slate-900">Connexion à votre espace</h4>
+                <div class="mt-6 space-y-3">
+                  <div>
+                    <label class="text-xs font-medium text-slate-700">Adresse e-mail</label>
+                    <div class="mt-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-400">
+                      carlos.hounsinou@francophonie.org
+                    </div>
+                  </div>
+                  <div>
+                    <label class="text-xs font-medium text-slate-700">Mot de passe</label>
+                    <div class="mt-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm">
+                      ••••••••••••
+                    </div>
+                  </div>
+                  <button class="w-full rounded-md bg-oif-bleu py-2.5 text-sm font-semibold text-white">
+                    Se connecter
+                  </button>
+                  <div class="flex items-center justify-between text-xs">
+                    <a class="text-oif-bleu underline-offset-2 hover:underline">Mot de passe oublié ?</a>
+                    <a class="text-oif-bleu underline-offset-2 hover:underline">Magic link admin</a>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <p class="reveal mt-6 text-xs text-white/70">
-          Données réelles : base SCS au 27 avril 2026, période cumulée 2018-2025.
-        </p>
+
+        <!-- Capture 2 : dashboard -->
+        <div class="reveal mt-16 grid grid-cols-1 gap-8 lg:grid-cols-[2fr_1fr] lg:items-center">
+          <div class="device-shadow overflow-hidden rounded-xl ring-1 ring-slate-200 lg:order-1">
+            <div class="frame-browser">
+              <span class="frame-browser-dot bg-red-400"></span>
+              <span class="frame-browser-dot bg-amber-400"></span>
+              <span class="frame-browser-dot bg-green-400"></span>
+              <span class="ml-3 truncate rounded bg-white px-3 py-0.5 font-mono text-xs text-slate-500 ring-1 ring-slate-200">suivi-projet.org/dashboard</span>
+            </div>
+            <div class="grid grid-cols-[180px_1fr] bg-white">
+              <!-- Sidebar mockup -->
+              <aside class="border-r border-slate-200 bg-slate-50 p-3">
+                <div class="mb-3">
+                  <div class="h-7 w-20 rounded bg-oif-bleu/90"></div>
+                  <p class="mt-1 text-[10px] font-semibold text-slate-700">Emploi Jeunes</p>
+                </div>
+                <hr class="my-2 border-slate-200" />
+                <nav class="space-y-1 text-[11px]">
+                  <div class="flex items-center gap-1.5 rounded bg-oif-bleu px-1.5 py-1 text-white">
+                    <span class="size-3 rounded-sm bg-white/30"></span>Accueil
+                  </div>
+                  <div class="flex items-center gap-1.5 rounded px-1.5 py-1 text-slate-600">
+                    <span class="size-3 rounded-sm bg-slate-300"></span>Bénéficiaires
+                  </div>
+                  <div class="flex items-center gap-1.5 rounded px-1.5 py-1 text-slate-600">
+                    <span class="size-3 rounded-sm bg-slate-300"></span>Structures
+                  </div>
+                  <div class="flex items-center gap-1.5 rounded px-1.5 py-1 text-slate-600">
+                    <span class="size-3 rounded-sm bg-slate-300"></span>Enquêtes
+                  </div>
+                  <div class="flex items-center gap-1.5 rounded px-1.5 py-1 text-slate-600">
+                    <span class="size-3 rounded-sm bg-slate-300"></span>Imports
+                  </div>
+                  <div class="flex items-center gap-1.5 rounded px-1.5 py-1 text-slate-600">
+                    <span class="size-3 rounded-sm bg-slate-300"></span>Administration
+                  </div>
+                </nav>
+              </aside>
+              <!-- Main content -->
+              <div class="p-4">
+                <h4 class="text-sm font-bold text-slate-900">Tableau de bord</h4>
+                <p class="text-[10px] text-slate-500">Période : depuis toujours · Vue Admin SCS</p>
+
+                <!-- KPI grid -->
+                <div class="mt-3 grid grid-cols-3 gap-2">
+                  <!-- Hero A1 -->
+                  <div class="col-span-2 rounded-lg p-3 text-white shadow-sm" style="background: linear-gradient(135deg, #0e4f88 0%, #1565a8 100%);">
+                    <span class="rounded border border-white/40 bg-white/15 px-1.5 py-0.5 font-mono text-[9px]">A1</span>
+                    <p class="mt-1 text-[9px] font-medium text-white/90">Jeunes formés</p>
+                    <p class="mt-2 text-3xl font-bold tabular-nums">5 513</p>
+                    <p class="text-[9px] text-white/80"><strong>5 025</strong> femmes · <strong>488</strong> hommes</p>
+                  </div>
+                  <!-- A4 -->
+                  <div class="rounded-lg border-l-4 bg-white p-2.5 shadow-sm" style="border-left-color: #5d0073;">
+                    <span class="rounded border px-1 py-0.5 font-mono text-[8px]" style="color: #5d0073; border-color: #5d007366;">A4</span>
+                    <p class="mt-1 text-[9px] font-medium text-slate-700">Gain de compétences</p>
+                    <p class="mt-2 text-[9px] italic text-slate-500">À venir (Diapo D2)</p>
+                  </div>
+                  <!-- B1 -->
+                  <div class="rounded-lg border-l-4 bg-white p-2.5 shadow-sm" style="border-left-color: #7eb301;">
+                    <span class="rounded border px-1 py-0.5 font-mono text-[8px]" style="color: #7eb301; border-color: #7eb30166;">B1</span>
+                    <p class="mt-1 text-[9px] font-medium text-slate-700">Activités économiques</p>
+                    <p class="mt-2 text-2xl font-bold tabular-nums text-slate-900">319</p>
+                  </div>
+                  <!-- B4 -->
+                  <div class="rounded-lg border-l-4 bg-white p-2.5 shadow-sm" style="border-left-color: #f5a623;">
+                    <span class="rounded border px-1 py-0.5 font-mono text-[8px]" style="color: #f5a623; border-color: #f5a62366;">B4</span>
+                    <p class="mt-1 text-[9px] font-medium text-slate-700">Emplois indirects</p>
+                    <p class="mt-2 text-[9px] italic text-slate-500">À venir (Q210/B)</p>
+                  </div>
+                  <!-- F1 -->
+                  <div class="rounded-lg border-l-4 bg-white p-2.5 shadow-sm" style="border-left-color: #0198e9;">
+                    <span class="rounded border px-1 py-0.5 font-mono text-[8px]" style="color: #0198e9; border-color: #0198e966;">F1</span>
+                    <p class="mt-1 text-[9px] font-medium text-slate-700">Apport du français</p>
+                    <p class="mt-2 text-[9px] italic text-slate-500">À venir (Diapo D3)</p>
+                  </div>
+                </div>
+
+                <!-- Charts row -->
+                <div class="mt-3 grid grid-cols-2 gap-2">
+                  <div class="rounded-md bg-white p-2 ring-1 ring-slate-200">
+                    <p class="text-[10px] font-semibold text-slate-900">Top 5 pays</p>
+                    <div class="mt-2 space-y-1">
+                      <div class="flex items-center gap-1 text-[8px]">
+                        <span class="w-12 truncate">Sénégal</span>
+                        <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
+                          <div class="h-1.5 rounded-full" style="width:100%; background: linear-gradient(90deg, #0e4f88, #0198e9);"></div>
+                        </div>
+                        <span class="w-7 text-right tabular-nums font-semibold">1247</span>
+                      </div>
+                      <div class="flex items-center gap-1 text-[8px]">
+                        <span class="w-12 truncate">Côte d'Iv.</span>
+                        <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
+                          <div class="h-1.5 rounded-full" style="width:78%; background: #0198e9;"></div>
+                        </div>
+                        <span class="w-7 text-right tabular-nums font-semibold">974</span>
+                      </div>
+                      <div class="flex items-center gap-1 text-[8px]">
+                        <span class="w-12 truncate">Cameroun</span>
+                        <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
+                          <div class="h-1.5 rounded-full" style="width:62%; background: #7eb301;"></div>
+                        </div>
+                        <span class="w-7 text-right tabular-nums font-semibold">781</span>
+                      </div>
+                      <div class="flex items-center gap-1 text-[8px]">
+                        <span class="w-12 truncate">Bénin</span>
+                        <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
+                          <div class="h-1.5 rounded-full" style="width:48%; background: #5d0073;"></div>
+                        </div>
+                        <span class="w-7 text-right tabular-nums font-semibold">605</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="rounded-md bg-white p-2 ring-1 ring-slate-200">
+                    <p class="text-[10px] font-semibold text-slate-900">Programmes stratégiques</p>
+                    <div class="mt-2 flex h-4 overflow-hidden rounded">
+                      <div class="flex items-center justify-center" style="width: 90%; background: #7eb301;">
+                        <span class="text-[8px] font-semibold text-white">98%</span>
+                      </div>
+                      <div style="width: 5%; background: #0198e9;"></div>
+                      <div style="width: 5%; background: #5d0073;"></div>
+                    </div>
+                    <ul class="mt-2 space-y-0.5 text-[8px]">
+                      <li class="flex items-center gap-1">
+                        <span class="size-1.5 rounded-full" style="background: #7eb301;"></span>
+                        <span class="font-mono font-semibold" style="color: #7eb301;">PS3</span>
+                        <span class="ml-auto font-semibold tabular-nums">98%</span>
+                      </li>
+                      <li class="flex items-center gap-1">
+                        <span class="size-1.5 rounded-full" style="background: #0198e9;"></span>
+                        <span class="font-mono font-semibold" style="color: #0198e9;">PS1</span>
+                        <span class="ml-auto font-semibold tabular-nums">1%</span>
+                      </li>
+                      <li class="flex items-center gap-1">
+                        <span class="size-1.5 rounded-full" style="background: #5d0073;"></span>
+                        <span class="font-mono font-semibold" style="color: #5d0073;">PS2</span>
+                        <span class="ml-auto font-semibold tabular-nums">1%</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <span class="inline-block rounded bg-oif-dore/15 px-2 py-0.5 text-xs font-bold text-oif-dore">02</span>
+            <h3 class="mt-2 text-xl font-bold text-slate-900">Tableau de bord opérationnel</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-600">
+              Cinq indicateurs OIF (A1, A4, B1, B4, F1) du Cadre commun de mesure V2,
+              répartition géographique top 10, programmes stratégiques en stacked bar.
+            </p>
+            <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
+              <li>Filtres période (7j / 30j / 90j / cumul)</li>
+              <li>Mode &laquo;&nbsp;Visualiser comme&nbsp;&raquo; (admin SCS)</li>
+              <li>Données live filtrées par RLS selon le rôle</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Capture 3 : utilisateurs -->
+        <div class="reveal mt-16 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_2fr] lg:items-center">
+          <div>
+            <span class="inline-block rounded bg-oif-dore/15 px-2 py-0.5 text-xs font-bold text-oif-dore">03</span>
+            <h3 class="mt-2 text-xl font-bold text-slate-900">Gestion des utilisateurs</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-600">
+              Création, modification, suspension de comptes selon une hiérarchie stricte :
+              un rôle ne peut JAMAIS attribuer un niveau égal ou supérieur au sien.
+            </p>
+            <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
+              <li>Filtres par rôle, organisation, statut</li>
+              <li>Historique d&apos;activité et d&apos;affectations projet</li>
+              <li>Audit log automatique de chaque modification</li>
+            </ul>
+          </div>
+          <div class="device-shadow overflow-hidden rounded-xl ring-1 ring-slate-200">
+            <div class="frame-browser">
+              <span class="frame-browser-dot bg-red-400"></span>
+              <span class="frame-browser-dot bg-amber-400"></span>
+              <span class="frame-browser-dot bg-green-400"></span>
+              <span class="ml-3 truncate rounded bg-white px-3 py-0.5 font-mono text-xs text-slate-500 ring-1 ring-slate-200">suivi-projet.org/admin/utilisateurs</span>
+            </div>
+            <div class="bg-white p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="text-sm font-bold text-slate-900">Utilisateurs</h4>
+                  <p class="text-[10px] text-slate-500">12 comptes · admin réservé SCS</p>
+                </div>
+                <span class="rounded bg-oif-bleu px-2.5 py-1 text-[11px] font-medium text-white">+ Nouveau compte</span>
+              </div>
+              <div class="mt-2 flex flex-wrap gap-1">
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">Tous</span>
+                <span class="rounded-full bg-oif-bleu/10 px-2 py-0.5 text-[10px] font-medium text-oif-bleu">Admin SCS</span>
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">Éditeur</span>
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">Partenaire</span>
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">Lecteur</span>
+              </div>
+              <div class="mt-3 overflow-x-auto rounded border border-slate-200">
+                <table class="w-full text-[11px]">
+                  <thead class="bg-slate-50 text-[9px] uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th class="px-2 py-1.5 text-left">Nom complet</th>
+                      <th class="px-2 py-1.5 text-left">Rôle</th>
+                      <th class="px-2 py-1.5 text-left">Organisation</th>
+                      <th class="px-2 py-1.5 text-left">Statut</th>
+                      <th class="px-2 py-1.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="border-t border-slate-100">
+                      <td class="px-2 py-1.5 font-medium">Carlos HOUNSINOU</td>
+                      <td class="px-2 py-1.5"><span class="rounded bg-oif-bleu/10 px-1.5 py-0.5 font-mono text-[9px] text-oif-bleu">admin_scs</span></td>
+                      <td class="px-2 py-1.5 text-slate-600">SCS Paris</td>
+                      <td class="px-2 py-1.5"><span class="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] text-emerald-700">Actif</span></td>
+                      <td class="px-2 py-1.5 text-right text-slate-400">⋯</td>
+                    </tr>
+                    <tr class="border-t border-slate-100">
+                      <td class="px-2 py-1.5 font-medium">Aïssatou DIOP</td>
+                      <td class="px-2 py-1.5"><span class="rounded bg-blue-100 px-1.5 py-0.5 font-mono text-[9px] text-blue-700">editeur_projet</span></td>
+                      <td class="px-2 py-1.5 text-slate-600">D-CLIC PRO</td>
+                      <td class="px-2 py-1.5"><span class="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] text-emerald-700">Actif</span></td>
+                      <td class="px-2 py-1.5 text-right text-slate-400">⋯</td>
+                    </tr>
+                    <tr class="border-t border-slate-100">
+                      <td class="px-2 py-1.5 font-medium">Mamadou KONÉ</td>
+                      <td class="px-2 py-1.5"><span class="rounded bg-emerald-100 px-1.5 py-0.5 font-mono text-[9px] text-emerald-700">contributeur_partenaire</span></td>
+                      <td class="px-2 py-1.5 text-slate-600">FALG Ouaga</td>
+                      <td class="px-2 py-1.5"><span class="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] text-emerald-700">Actif</span></td>
+                      <td class="px-2 py-1.5 text-right text-slate-400">⋯</td>
+                    </tr>
+                    <tr class="border-t border-slate-100">
+                      <td class="px-2 py-1.5 font-medium">Fatoumata BARRY</td>
+                      <td class="px-2 py-1.5"><span class="rounded bg-violet-100 px-1.5 py-0.5 font-mono text-[9px] text-violet-700">lecteur</span></td>
+                      <td class="px-2 py-1.5 text-slate-600">Ambassade FR</td>
+                      <td class="px-2 py-1.5"><span class="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] text-emerald-700">Actif</span></td>
+                      <td class="px-2 py-1.5 text-right text-slate-400">⋯</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Capture 4 : wizard campagnes -->
+        <div class="reveal mt-16 grid grid-cols-1 gap-8 lg:grid-cols-[2fr_1fr] lg:items-center">
+          <div class="device-shadow overflow-hidden rounded-xl ring-1 ring-slate-200 lg:order-1">
+            <div class="frame-browser">
+              <span class="frame-browser-dot bg-red-400"></span>
+              <span class="frame-browser-dot bg-amber-400"></span>
+              <span class="frame-browser-dot bg-green-400"></span>
+              <span class="ml-3 truncate rounded bg-white px-3 py-0.5 font-mono text-xs text-slate-500 ring-1 ring-slate-200">suivi-projet.org/enquetes/lancer</span>
+            </div>
+            <div class="bg-white p-4">
+              <h4 class="text-sm font-bold text-slate-900">Lancer une campagne ciblée</h4>
+              <p class="text-[10px] text-slate-500">Étape 2/3 — Révision des cibles éligibles</p>
+
+              <div class="mt-3 grid grid-cols-2 gap-3">
+                <!-- Strate -->
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <p class="text-[10px] font-semibold uppercase tracking-wide text-oif-dore">Aperçu de la strate</p>
+                  <p class="mt-1 text-[10px] text-slate-500">Filtres : PROJ_A14 · Sénégal · 2025 · Femmes · Formé</p>
+                  <div class="mt-2 grid grid-cols-2 gap-2">
+                    <div>
+                      <p class="text-xl font-bold tabular-nums text-slate-900">342</p>
+                      <p class="text-[9px] text-slate-500">Cibles</p>
+                    </div>
+                    <div>
+                      <p class="text-xl font-bold tabular-nums" style="color: #7eb301;">298</p>
+                      <p class="text-[9px] text-slate-500">Éligibles</p>
+                    </div>
+                    <div>
+                      <p class="text-xl font-bold tabular-nums text-amber-500">38</p>
+                      <p class="text-[9px] text-slate-500">Sans email</p>
+                    </div>
+                    <div>
+                      <p class="text-xl font-bold tabular-nums text-slate-400">6</p>
+                      <p class="text-[9px] text-slate-500">Sans consent.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Liste -->
+                <div class="rounded-md border border-slate-200 bg-white p-3">
+                  <div class="flex items-center justify-between">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-700">Cibles éligibles</p>
+                    <span class="text-[9px] text-slate-500">298 / 298 cochées</span>
+                  </div>
+                  <ul class="mt-2 max-h-32 space-y-1 overflow-hidden text-[10px]">
+                    <li class="flex items-center gap-2">
+                      <span class="size-3 rounded-sm bg-oif-bleu"></span>
+                      <span>Aïssatou D.</span>
+                      <span class="ml-auto font-mono text-[9px] text-slate-400">aissatou@…</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                      <span class="size-3 rounded-sm bg-oif-bleu"></span>
+                      <span>Mariam S.</span>
+                      <span class="ml-auto font-mono text-[9px] text-slate-400">mariam@…</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                      <span class="size-3 rounded-sm bg-oif-bleu"></span>
+                      <span>Fatou N.</span>
+                      <span class="ml-auto font-mono text-[9px] text-slate-400">fatou@…</span>
+                    </li>
+                    <li class="flex items-center gap-2 text-slate-400">
+                      <span class="size-3 rounded-sm border border-slate-300"></span>
+                      <span class="line-through">Khady T. (rompu)</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                      <span class="size-3 rounded-sm bg-oif-bleu"></span>
+                      <span>Aminata K.</span>
+                      <span class="ml-auto font-mono text-[9px] text-slate-400">aminata@…</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                      <span class="size-3 rounded-sm bg-oif-bleu"></span>
+                      <span>Awa B.</span>
+                      <span class="ml-auto font-mono text-[9px] text-slate-400">awa@…</span>
+                    </li>
+                    <li class="text-slate-400 italic">+ 292 autres…</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="mt-3 flex items-center justify-between">
+                <span class="text-[10px] text-slate-500">298 destinataires sélectionnés (1 décoché manuellement)</span>
+                <span class="rounded bg-oif-bleu px-2.5 py-1 text-[11px] font-medium text-white">Lancer →</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <span class="inline-block rounded bg-oif-dore/15 px-2 py-0.5 text-xs font-bold text-oif-dore">04</span>
+            <h3 class="mt-2 text-xl font-bold text-slate-900">Wizard campagnes ciblées</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-600">
+              Stratification précise (projet, pays, année, profil) plutôt qu&apos;envoi en masse.
+              Décoche unitaire possible pour exclure les contacts rompus, doublons, ou personnes décédées.
+            </p>
+            <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
+              <li>Aperçu live des cibles éligibles</li>
+              <li>Liste paginée 50/page avec recherche</li>
+              <li>Envoi via Resend, journalisation complète</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- ─────────────── 2. CADRE COMMUN ─────────────── -->
-    <section id="cadre-commun" class="bg-white py-20 md:py-24">
+    <!-- ─────────────── 3. RESPONSIVE MULTI-DEVICES ─────────────── -->
+    <section id="responsive" class="bg-slate-50 py-20 md:py-24">
+      <div class="mx-auto max-w-7xl px-6">
+        <div class="reveal mx-auto max-w-3xl text-center">
+          <span class="inline-block rounded-full border px-3 py-1 text-xs font-medium" style="border-color: #7eb30166; background-color: #7eb30119; color: #5b8200;">
+            Responsive multi-devices
+          </span>
+          <h2 class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-4xl">
+            Une expérience adaptée à chaque écran
+          </h2>
+          <p class="mt-4 text-base text-slate-600">
+            Desktop opérationnel, tablette pour les déplacements, smartphone pour la consultation rapide.
+          </p>
+        </div>
+
+        <div class="reveal mt-14 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-end">
+          <!-- Desktop -->
+          <div class="lg:col-span-7">
+            <p class="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">Desktop · 1920×1080</p>
+            <div class="device-shadow rounded-xl bg-slate-900 p-3">
+              <div class="overflow-hidden rounded-md bg-white">
+                <div class="frame-browser">
+                  <span class="frame-browser-dot bg-red-400"></span>
+                  <span class="frame-browser-dot bg-amber-400"></span>
+                  <span class="frame-browser-dot bg-green-400"></span>
+                </div>
+                <div class="grid grid-cols-[120px_1fr] bg-white">
+                  <aside class="border-r border-slate-200 bg-slate-50 p-2">
+                    <div class="h-5 w-14 rounded bg-oif-bleu/90"></div>
+                    <ul class="mt-2 space-y-1">
+                      <li class="rounded bg-oif-bleu px-1 py-0.5 text-[8px] text-white">Accueil</li>
+                      <li class="px-1 py-0.5 text-[8px] text-slate-600">Bénéficiaires</li>
+                      <li class="px-1 py-0.5 text-[8px] text-slate-600">Structures</li>
+                      <li class="px-1 py-0.5 text-[8px] text-slate-600">Enquêtes</li>
+                    </ul>
+                  </aside>
+                  <div class="p-3">
+                    <div class="h-2 w-24 rounded bg-slate-200"></div>
+                    <div class="mt-2 grid grid-cols-3 gap-1.5">
+                      <div class="col-span-2 h-12 rounded text-white" style="background: linear-gradient(135deg, #0e4f88, #1565a8);"></div>
+                      <div class="h-12 rounded border-l-4 bg-white shadow-sm" style="border-left-color: #5d0073;"></div>
+                      <div class="h-10 rounded border-l-4 bg-white shadow-sm" style="border-left-color: #7eb301;"></div>
+                      <div class="h-10 rounded border-l-4 bg-white shadow-sm" style="border-left-color: #f5a623;"></div>
+                      <div class="h-10 rounded border-l-4 bg-white shadow-sm" style="border-left-color: #0198e9;"></div>
+                    </div>
+                    <div class="chart-grid mt-2 h-12 rounded"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-2 flex justify-center">
+                <div class="h-1 w-12 rounded bg-slate-700"></div>
+              </div>
+            </div>
+            <div class="mt-2 flex flex-col items-center text-xs text-slate-600">
+              <p class="font-semibold">Vue principale opérationnelle</p>
+              <p class="text-[11px] italic">Sidebar + dashboard complet visible</p>
+            </div>
+          </div>
+
+          <!-- Tablet -->
+          <div class="lg:col-span-3">
+            <p class="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">Tablette · 768×1024</p>
+            <div class="device-shadow mx-auto max-w-[260px] rounded-2xl bg-slate-900 p-2">
+              <div class="overflow-hidden rounded-md bg-white">
+                <div class="flex items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1">
+                  <span class="size-3 rounded-sm bg-slate-300"></span>
+                  <span class="ml-1 text-[8px] font-semibold">OIF Emploi Jeunes</span>
+                </div>
+                <div class="p-2">
+                  <p class="text-[9px] font-bold text-slate-900">Tableau de bord</p>
+                  <div class="mt-1 grid grid-cols-2 gap-1">
+                    <div class="col-span-2 h-12 rounded text-white" style="background: linear-gradient(135deg, #0e4f88, #1565a8);"></div>
+                    <div class="h-9 rounded border-l-2 bg-white shadow-sm" style="border-left-color: #5d0073;"></div>
+                    <div class="h-9 rounded border-l-2 bg-white shadow-sm" style="border-left-color: #7eb301;"></div>
+                    <div class="h-9 rounded border-l-2 bg-white shadow-sm" style="border-left-color: #f5a623;"></div>
+                    <div class="h-9 rounded border-l-2 bg-white shadow-sm" style="border-left-color: #0198e9;"></div>
+                  </div>
+                  <div class="chart-grid mt-2 h-10 rounded"></div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-2 flex flex-col items-center text-xs text-slate-600">
+              <p class="font-semibold">Sidebar collapsée</p>
+              <p class="text-[11px] italic">Adaptation portrait/paysage</p>
+            </div>
+          </div>
+
+          <!-- Mobile -->
+          <div class="lg:col-span-2">
+            <p class="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">iPhone · 375×812</p>
+            <div class="device-shadow relative mx-auto max-w-[160px] rounded-[28px] bg-slate-900 p-1.5">
+              <div class="phone-notch"></div>
+              <div class="overflow-hidden rounded-[22px] bg-white">
+                <div class="flex items-center justify-between bg-slate-50 px-2 pb-1 pt-6 text-[8px]">
+                  <span>9:41</span>
+                  <span>📶 🔋</span>
+                </div>
+                <div class="flex items-center justify-between border-b border-slate-200 px-2 py-1">
+                  <span class="text-[8px]">☰</span>
+                  <span class="text-[9px] font-bold">OIF</span>
+                  <span class="text-[8px]">⚙</span>
+                </div>
+                <div class="p-2">
+                  <p class="text-[9px] font-bold text-slate-900">Accueil</p>
+                  <div class="mt-1 space-y-1">
+                    <div class="h-12 rounded text-white" style="background: linear-gradient(135deg, #0e4f88, #1565a8);"></div>
+                    <div class="h-9 rounded border-l-2 bg-white shadow-sm" style="border-left-color: #5d0073;"></div>
+                    <div class="h-9 rounded border-l-2 bg-white shadow-sm" style="border-left-color: #7eb301;"></div>
+                    <div class="h-9 rounded border-l-2 bg-white shadow-sm" style="border-left-color: #f5a623;"></div>
+                    <div class="h-9 rounded border-l-2 bg-white shadow-sm" style="border-left-color: #0198e9;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-2 flex flex-col items-center text-xs text-slate-600">
+              <p class="font-semibold">Menu burger</p>
+              <p class="text-[11px] italic">Cards empilées, touch-friendly</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Note app native -->
+        <div class="reveal mt-12 mx-auto max-w-3xl rounded-xl border-2 border-dashed border-oif-dore/40 bg-white p-6 text-center">
+          <p class="text-xs font-semibold uppercase tracking-wide text-oif-dore">Capacitor · iOS / Android</p>
+          <p class="mt-2 text-sm text-slate-600">
+            La plateforme est également packageable comme <strong>application native iOS / Android</strong>
+            via Capacitor — installation depuis App Store / Play Store, expérience identique au web,
+            authentification SSO préservée. Voir documentation déploiement V2.3.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────── 4. ARCHITECTURE TECHNIQUE ─────────────── -->
+    <section id="architecture" class="bg-white py-20 md:py-24">
+      <div class="mx-auto max-w-7xl px-6">
+        <div class="reveal mx-auto max-w-3xl text-center">
+          <span class="inline-block rounded-full border border-oif-bleu/30 bg-oif-bleu/10 px-3 py-1 text-xs font-medium text-oif-bleu">
+            Architecture technique
+          </span>
+          <h2 class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-4xl">
+            Stack moderne, RGPD natif, prêt pour l'échelle
+          </h2>
+        </div>
+
+        <div class="reveal mt-12 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <!-- Frontend -->
+          <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="flex size-10 items-center justify-center rounded-lg bg-oif-bleu/10 text-oif-bleu">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+              </div>
+              <h3 class="font-semibold text-slate-900">Frontend</h3>
+            </div>
+            <ul class="mt-4 space-y-1.5 text-xs text-slate-600">
+              <li><strong class="text-slate-900">Next.js 14</strong> (App Router, Server Actions)</li>
+              <li><strong class="text-slate-900">TypeScript</strong> strict</li>
+              <li><strong class="text-slate-900">Tailwind CSS</strong> v4 + charte OIF</li>
+              <li><strong class="text-slate-900">Recharts</strong> pour les visualisations</li>
+              <li><strong class="text-slate-900">Capacitor</strong> pour iOS / Android</li>
+            </ul>
+          </div>
+          <!-- Backend -->
+          <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="flex size-10 items-center justify-center rounded-lg" style="background-color: #7eb3011a; color: #7eb301;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7zm0 0h16M8 4v16" /></svg>
+              </div>
+              <h3 class="font-semibold text-slate-900">Backend</h3>
+            </div>
+            <ul class="mt-4 space-y-1.5 text-xs text-slate-600">
+              <li><strong class="text-slate-900">Supabase</strong> (PostgreSQL + Auth + Storage)</li>
+              <li><strong class="text-slate-900">RLS</strong> 4 rôles (admin / éditeur / partenaire / lecteur)</li>
+              <li><strong class="text-slate-900">RPC PL/pgSQL</strong> SECURITY DEFINER</li>
+              <li><strong class="text-slate-900">Resend</strong> SMTP transactionnel</li>
+              <li>Hébergement <strong class="text-slate-900">EU Frankfurt</strong></li>
+            </ul>
+          </div>
+          <!-- Sécurité -->
+          <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="flex size-10 items-center justify-center rounded-lg" style="background-color: #5d00731a; color: #5d0073;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.6 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <h3 class="font-semibold text-slate-900">Sécurité</h3>
+            </div>
+            <ul class="mt-4 space-y-1.5 text-xs text-slate-600">
+              <li><strong class="text-slate-900">RGPD natif</strong> : consentement requis</li>
+              <li><strong class="text-slate-900">Soft-delete</strong> avec audit trail</li>
+              <li><strong class="text-slate-900">RLS strictes</strong> impossibles à contourner</li>
+              <li><strong class="text-slate-900">Backups</strong> chiffrés quotidiens</li>
+              <li><strong class="text-slate-900">Audit log</strong> immuable de chaque action</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Diagramme flux -->
+        <div class="reveal mt-10 rounded-xl bg-slate-50 p-8">
+          <p class="text-center text-xs font-semibold uppercase tracking-wide text-slate-500">Flux de données simplifié</p>
+          <div class="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm">
+            <div class="flex flex-col items-center">
+              <div class="flex size-12 items-center justify-center rounded-lg bg-oif-bleu text-white">📱</div>
+              <p class="mt-1.5 text-xs font-medium">Utilisateur</p>
+            </div>
+            <span class="text-slate-400">→</span>
+            <div class="flex flex-col items-center">
+              <div class="flex size-12 items-center justify-center rounded-lg bg-white ring-1 ring-slate-200">
+                <span class="text-xs font-bold text-oif-bleu">Next.js</span>
+              </div>
+              <p class="mt-1.5 text-xs font-medium">Frontend SSR</p>
+            </div>
+            <span class="text-slate-400">→</span>
+            <div class="flex flex-col items-center">
+              <div class="flex size-12 items-center justify-center rounded-lg" style="background-color: #7eb301; color: white;">
+                <span class="text-xs font-bold">Sup.</span>
+              </div>
+              <p class="mt-1.5 text-xs font-medium">Supabase RLS</p>
+            </div>
+            <span class="text-slate-400">→</span>
+            <div class="flex flex-col items-center">
+              <div class="flex size-12 items-center justify-center rounded-lg bg-slate-900 text-white">
+                <span class="text-xs font-bold">PG</span>
+              </div>
+              <p class="mt-1.5 text-xs font-medium">PostgreSQL EU</p>
+            </div>
+          </div>
+          <p class="mt-6 text-center text-xs text-slate-600">
+            Chaque requête passe par <code class="rounded bg-white px-1 text-[11px]">auth.uid()</code> + politique RLS.
+            Les données nominatives ne quittent jamais le périmètre du rôle authentifié.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────── 5. CADRE COMMUN ─────────────── -->
+    <section id="cadre-commun" class="bg-slate-50 py-20 md:py-24">
       <div class="mx-auto max-w-7xl px-6">
         <div class="reveal mx-auto max-w-3xl text-center">
           <span class="inline-block rounded-full border border-oif-dore/30 bg-oif-dore/10 px-3 py-1 text-xs font-medium text-oif-dore">
@@ -165,74 +909,57 @@
           <h2 class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-4xl">
             Un référentiel unique : 5 indicateurs OIF
           </h2>
-          <p class="mt-4 text-base text-slate-600">
-            Tous les projets emploi jeunes utilisent le même cadre de mesure, validé par le SCS.
-          </p>
         </div>
 
         <div class="reveal mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-          <div class="rounded-xl border-l-4 bg-slate-50 p-5" style="border-left-color: #0e4f88;">
+          <div class="rounded-xl border-l-4 bg-white p-5 shadow-sm" style="border-left-color: #0e4f88;">
             <span class="font-mono text-xs font-bold text-oif-bleu">A1</span>
             <h3 class="mt-1 text-sm font-semibold text-slate-900">Jeunes formés</h3>
-            <p class="mt-2 text-xs leading-relaxed text-slate-600">
-              Bénéficiaires ayant suivi une formation au cours de la période.
-            </p>
+            <p class="mt-2 text-xs leading-relaxed text-slate-600">Bénéficiaires ayant suivi une formation au cours de la période.</p>
           </div>
-          <div class="rounded-xl border-l-4 bg-slate-50 p-5" style="border-left-color: #5d0073;">
+          <div class="rounded-xl border-l-4 bg-white p-5 shadow-sm" style="border-left-color: #5d0073;">
             <span class="font-mono text-xs font-bold" style="color: #5d0073;">A4</span>
             <h3 class="mt-1 text-sm font-semibold text-slate-900">Gain de compétences</h3>
-            <p class="mt-2 text-xs leading-relaxed text-slate-600">
-              Bénéficiaires en gain de compétences (questionnaire longitudinal D2).
-            </p>
+            <p class="mt-2 text-xs leading-relaxed text-slate-600">Bénéficiaires en gain de compétences (questionnaire longitudinal D2).</p>
           </div>
-          <div class="rounded-xl border-l-4 bg-slate-50 p-5" style="border-left-color: #7eb301;">
+          <div class="rounded-xl border-l-4 bg-white p-5 shadow-sm" style="border-left-color: #7eb301;">
             <span class="font-mono text-xs font-bold" style="color: #7eb301;">B1</span>
             <h3 class="mt-1 text-sm font-semibold text-slate-900">Activités économiques</h3>
-            <p class="mt-2 text-xs leading-relaxed text-slate-600">
-              Activités économiques appuyées par les programmes OIF.
-            </p>
+            <p class="mt-2 text-xs leading-relaxed text-slate-600">Activités économiques appuyées par les programmes OIF.</p>
           </div>
-          <div class="rounded-xl border-l-4 bg-slate-50 p-5" style="border-left-color: #f5a623;">
+          <div class="rounded-xl border-l-4 bg-white p-5 shadow-sm" style="border-left-color: #f5a623;">
             <span class="font-mono text-xs font-bold" style="color: #f5a623;">B4</span>
             <h3 class="mt-1 text-sm font-semibold text-slate-900">Emplois indirects</h3>
-            <p class="mt-2 text-xs leading-relaxed text-slate-600">
-              Emplois indirects induits par les activités économiques accompagnées.
-            </p>
+            <p class="mt-2 text-xs leading-relaxed text-slate-600">Emplois indirects induits (questionnaire B Q210/Q212/Q213).</p>
           </div>
-          <div class="rounded-xl border-l-4 bg-slate-50 p-5" style="border-left-color: #0198e9;">
+          <div class="rounded-xl border-l-4 bg-white p-5 shadow-sm" style="border-left-color: #0198e9;">
             <span class="font-mono text-xs font-bold" style="color: #0198e9;">F1</span>
             <h3 class="mt-1 text-sm font-semibold text-slate-900">Apport du français</h3>
-            <p class="mt-2 text-xs leading-relaxed text-slate-600">
-              Marqueur transversal : contribution du français à l'employabilité.
-            </p>
+            <p class="mt-2 text-xs leading-relaxed text-slate-600">Marqueur transversal : contribution à l&apos;employabilité.</p>
           </div>
         </div>
 
         <!-- 4 piliers -->
-        <div class="reveal mt-12 rounded-2xl border border-slate-200 bg-slate-50 p-8">
-          <h3 class="text-base font-semibold text-oif-bleu">
-            Les quatre piliers du Cadre commun
-          </h3>
-          <p class="mt-1 text-sm text-slate-600">
-            Référentiel partagé par tous les projets emploi jeunes OIF.
-          </p>
+        <div class="reveal mt-12 rounded-2xl border border-slate-200 bg-white p-8">
+          <h3 class="text-base font-semibold text-oif-bleu">Les quatre piliers du Cadre commun</h3>
+          <p class="mt-1 text-sm text-slate-600">Référentiel partagé par tous les projets emploi jeunes OIF.</p>
           <ol class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <li class="rounded-md bg-white p-4 ring-1 ring-slate-200">
+            <li class="rounded-md bg-slate-50 p-4 ring-1 ring-slate-200">
               <p class="text-2xl font-bold text-oif-bleu">01</p>
               <p class="mt-2 font-semibold text-slate-900">Insertion professionnelle</p>
               <p class="mt-1 text-xs text-slate-600">Formation, employabilité, accès à l'emploi.</p>
             </li>
-            <li class="rounded-md bg-white p-4 ring-1 ring-slate-200">
+            <li class="rounded-md bg-slate-50 p-4 ring-1 ring-slate-200">
               <p class="text-2xl font-bold text-oif-dore">02</p>
               <p class="mt-2 font-semibold text-slate-900">Entrepreneuriat</p>
               <p class="mt-1 text-xs text-slate-600">Soutien aux activités économiques portées par les jeunes.</p>
             </li>
-            <li class="rounded-md bg-white p-4 ring-1 ring-slate-200">
+            <li class="rounded-md bg-slate-50 p-4 ring-1 ring-slate-200">
               <p class="text-2xl font-bold text-oif-bleu">03</p>
               <p class="mt-2 font-semibold text-slate-900">Égalité femmes-hommes</p>
               <p class="mt-1 text-xs text-slate-600">Marqueur transversal — 91 % de femmes accompagnées.</p>
             </li>
-            <li class="rounded-md bg-white p-4 ring-1 ring-slate-200">
+            <li class="rounded-md bg-slate-50 p-4 ring-1 ring-slate-200">
               <p class="text-2xl font-bold text-oif-dore">04</p>
               <p class="mt-2 font-semibold text-slate-900">Apport du français (F1)</p>
               <p class="mt-1 text-xs text-slate-600">Contribution du français à l'accès à l'emploi.</p>
@@ -242,551 +969,65 @@
       </div>
     </section>
 
-    <!-- ─────────────── 3. VUE DASHBOARD ─────────────── -->
-    <section id="dashboard" class="bg-slate-50 py-20 md:py-24">
-      <div class="mx-auto max-w-7xl px-6">
-        <div class="reveal mx-auto max-w-3xl text-center">
-          <span class="inline-block rounded-full border border-oif-bleu/30 bg-oif-bleu/10 px-3 py-1 text-xs font-medium text-oif-bleu">
-            Page Accueil — /dashboard
-          </span>
-          <h2 class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-4xl">
-            Tableau de bord : les 5 indicateurs en un coup d'œil
-          </h2>
-          <p class="mt-4 text-base text-slate-600">
-            Vue centrale de la plateforme. Les chiffres affichés ici reflètent les données réelles
-            de la base SCS.
-          </p>
-        </div>
-
-        <!-- Mockup browser frame -->
-        <div class="reveal mt-12 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-          <!-- Browser bar -->
-          <div class="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-            <div class="flex gap-1.5">
-              <span class="h-3 w-3 rounded-full bg-red-400"></span>
-              <span class="h-3 w-3 rounded-full bg-amber-400"></span>
-              <span class="h-3 w-3 rounded-full bg-green-400"></span>
-            </div>
-            <span class="ml-3 rounded bg-white px-3 py-1 font-mono text-xs text-slate-500 ring-1 ring-slate-200">
-              suivi-projet.org/dashboard
-            </span>
-          </div>
-
-          <div class="flex">
-            <!-- Sidebar mockup -->
-            <aside class="hidden w-56 shrink-0 border-r border-slate-200 bg-slate-50 p-4 md:block">
-              <div class="mb-4">
-                <div class="h-10 w-24 rounded bg-oif-bleu/90"></div>
-                <p class="mt-2 text-xs font-semibold text-slate-700">Emploi Jeunes</p>
-                <p class="text-xs text-slate-500">Plateforme SCS</p>
-              </div>
-              <hr class="my-3 border-slate-200" />
-              <nav class="space-y-1 text-sm">
-                <div class="flex items-center gap-2 rounded bg-oif-bleu px-2 py-1.5 text-white">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
-                  Accueil
-                </div>
-                <div class="flex items-center gap-2 rounded px-2 py-1.5 text-slate-600">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M15 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm6 3a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Zm-13.5 0a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/></svg>
-                  Bénéficiaires
-                </div>
-                <div class="flex items-center gap-2 rounded px-2 py-1.5 text-slate-600">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
-                  Structures
-                </div>
-                <div class="flex items-center gap-2 rounded px-2 py-1.5 text-slate-600">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"/></svg>
-                  Enquêtes
-                </div>
-                <div class="flex items-center gap-2 rounded px-2 py-1.5 text-slate-600">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
-                  Imports
-                </div>
-                <div class="flex items-center gap-2 rounded px-2 py-1.5 text-slate-600">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
-                  Administration
-                </div>
-              </nav>
-            </aside>
-
-            <!-- Main content -->
-            <div class="flex-1 p-6 md:p-8">
-              <div class="flex items-center justify-between">
-                <div>
-                  <h3 class="text-xl font-bold text-slate-900">Tableau de bord</h3>
-                  <p class="text-xs text-slate-500">Période : depuis toujours · Vue Admin SCS</p>
-                </div>
-                <div class="hidden gap-1 rounded-md bg-slate-100 p-1 text-xs md:flex">
-                  <span class="px-2 py-1 text-slate-500">7 j</span>
-                  <span class="px-2 py-1 text-slate-500">30 j</span>
-                  <span class="px-2 py-1 text-slate-500">90 j</span>
-                  <span class="rounded bg-white px-2 py-1 font-medium shadow-sm">Tout</span>
-                </div>
-              </div>
-
-              <!-- KPI grid mockup -->
-              <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                <!-- Hero A1 -->
-                <div
-                  class="relative overflow-hidden rounded-xl p-6 text-white shadow-lg sm:col-span-2 xl:col-span-2"
-                  style="background: linear-gradient(135deg, #0e4f88 0%, #1565a8 100%);"
-                >
-                  <div class="flex items-start justify-between">
-                    <div>
-                      <span class="inline-block rounded border border-white/40 bg-white/15 px-2 py-0.5 font-mono text-xs">A1</span>
-                      <p class="mt-2 text-sm font-medium text-white/90">Jeunes formés au cours de la période</p>
-                    </div>
-                    <span class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium" style="background-color: #f5a62325; color: #f5a623;">↗ Vue globale</span>
-                  </div>
-                  <p class="mt-5 text-5xl font-bold tabular-nums md:text-6xl">5 512</p>
-                  <p class="mt-2 text-xs text-white/80">
-                    <strong class="text-white">5 025</strong> femmes · <strong class="text-white">488</strong> hommes
-                  </p>
-                </div>
-
-                <!-- A4 -->
-                <div class="rounded-xl border-l-4 bg-white p-5 shadow-sm" style="border-left-color: #5d0073;">
-                  <div class="flex items-start justify-between">
-                    <div>
-                      <span class="inline-block rounded border px-2 py-0.5 font-mono text-xs" style="color: #5d0073; border-color: #5d007366;">A4</span>
-                      <p class="mt-1.5 text-xs font-medium text-slate-700">Gain de compétences</p>
-                    </div>
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl" style="background-color: #5d00731a; color: #5d0073;">
-                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/></svg>
-                    </div>
-                  </div>
-                  <div class="mt-4 rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-3">
-                    <p class="text-xs font-medium italic text-slate-700">À venir</p>
-                    <p class="mt-0.5 text-[11px] text-slate-500">Diapo D2 — questionnaire longitudinal</p>
-                  </div>
-                </div>
-
-                <!-- B1 -->
-                <div class="rounded-xl border-l-4 bg-white p-5 shadow-sm" style="border-left-color: #7eb301;">
-                  <div class="flex items-start justify-between">
-                    <div>
-                      <span class="inline-block rounded border px-2 py-0.5 font-mono text-xs" style="color: #7eb301; border-color: #7eb30166;">B1</span>
-                      <p class="mt-1.5 text-xs font-medium text-slate-700">Activités économiques appuyées</p>
-                    </div>
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl" style="background-color: #7eb3011a; color: #7eb301;">
-                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15"/></svg>
-                    </div>
-                  </div>
-                  <p class="mt-4 text-3xl font-bold tabular-nums text-slate-900">319</p>
-                </div>
-
-                <!-- B4 -->
-                <div class="rounded-xl border-l-4 bg-white p-5 shadow-sm" style="border-left-color: #f5a623;">
-                  <div class="flex items-start justify-between">
-                    <div>
-                      <span class="inline-block rounded border px-2 py-0.5 font-mono text-xs" style="color: #f5a623; border-color: #f5a62366;">B4</span>
-                      <p class="mt-1.5 text-xs font-medium text-slate-700">Emplois indirects</p>
-                    </div>
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl" style="background-color: #f5a6231a; color: #f5a623;">
-                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.073a2.25 2.25 0 0 1-1.632 2.163C16.872 20.793 14.49 21 12 21c-2.49 0-4.872-.207-6.618-.614A2.25 2.25 0 0 1 3.75 18.223V14.15"/></svg>
-                    </div>
-                  </div>
-                  <p class="mt-4 text-3xl font-bold tabular-nums text-slate-900">500</p>
-                  <p class="mt-1 text-[11px] text-slate-500">Estimation Sondex</p>
-                </div>
-
-                <!-- F1 -->
-                <div class="rounded-xl border-l-4 bg-white p-5 shadow-sm" style="border-left-color: #0198e9;">
-                  <div class="flex items-start justify-between">
-                    <div>
-                      <span class="inline-block rounded border px-2 py-0.5 font-mono text-xs" style="color: #0198e9; border-color: #0198e966;">F1</span>
-                      <p class="mt-1.5 text-xs font-medium text-slate-700">Apport du français à l'employabilité</p>
-                    </div>
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl" style="background-color: #0198e91a; color: #0198e9;">
-                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3"/></svg>
-                    </div>
-                  </div>
-                  <div class="mt-4 rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-3">
-                    <p class="text-xs font-medium italic text-slate-700">À venir</p>
-                    <p class="mt-0.5 text-[11px] text-slate-500">Diapo D3 — questionnaire longitudinal</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Charts row -->
-              <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <div class="rounded-xl bg-white p-5 ring-1 ring-slate-200">
-                  <h4 class="text-sm font-semibold text-slate-900">Top 5 pays · bénéficiaires</h4>
-                  <div class="mt-4 space-y-2 text-xs">
-                    <div class="flex items-center gap-2">
-                      <span class="w-20 truncate font-medium">Sénégal</span>
-                      <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
-                        <div class="h-2 rounded-full" style="width:100%; background: linear-gradient(90deg, #0e4f88, #0198e9);"></div>
-                      </div>
-                      <span class="w-12 text-right tabular-nums font-semibold">1 247</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-20 truncate font-medium">Côte d'Ivoire</span>
-                      <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
-                        <div class="h-2 rounded-full" style="width:78%; background: #0198e9;"></div>
-                      </div>
-                      <span class="w-12 text-right tabular-nums font-semibold">974</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-20 truncate font-medium">Cameroun</span>
-                      <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
-                        <div class="h-2 rounded-full" style="width:62%; background: #7eb301;"></div>
-                      </div>
-                      <span class="w-12 text-right tabular-nums font-semibold">781</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-20 truncate font-medium">Bénin</span>
-                      <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
-                        <div class="h-2 rounded-full" style="width:48%; background: #5d0073;"></div>
-                      </div>
-                      <span class="w-12 text-right tabular-nums font-semibold">605</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="w-20 truncate font-medium">Mali</span>
-                      <div class="flex-1 overflow-hidden rounded-full bg-slate-100">
-                        <div class="h-2 rounded-full" style="width:41%; background: #f5a623;"></div>
-                      </div>
-                      <span class="w-12 text-right tabular-nums font-semibold">521</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="rounded-xl bg-white p-5 ring-1 ring-slate-200">
-                  <h4 class="text-sm font-semibold text-slate-900">Répartition par programme stratégique</h4>
-                  <p class="text-[11px] text-slate-500">5 512 bénéficiaires · 3 programmes</p>
-                  <!-- Stacked bar (cohérent avec v1.7.1) -->
-                  <div class="mt-4 flex h-10 w-full overflow-hidden rounded-lg shadow-inner ring-1 ring-slate-200">
-                    <div class="flex items-center justify-center" style="width: 90%; background: #7eb301;">
-                      <span class="text-xs font-semibold text-white">98%</span>
-                    </div>
-                    <div class="border-l border-white/40" style="width: 5%; background: #0198e9;"></div>
-                    <div class="border-l border-white/40" style="width: 5%; background: #5d0073;"></div>
-                  </div>
-                  <ul class="mt-4 space-y-2 text-[11px]">
-                    <li class="flex items-center gap-2">
-                      <span class="h-3 w-3 rounded-full" style="background: #7eb301;"></span>
-                      <span class="font-mono font-semibold" style="color: #7eb301;">PS3</span>
-                      <span class="text-slate-700">— Cultures, éducation, économie</span>
-                      <span class="ml-auto font-semibold tabular-nums">98%</span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                      <span class="h-3 w-3 rounded-full" style="background: #0198e9;"></span>
-                      <span class="font-mono font-semibold" style="color: #0198e9;">PS1</span>
-                      <span class="text-slate-700">— Langue française, vecteur</span>
-                      <span class="ml-auto font-semibold tabular-nums">1%</span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                      <span class="h-3 w-3 rounded-full" style="background: #5d0073;"></span>
-                      <span class="font-mono font-semibold" style="color: #5d0073;">PS2</span>
-                      <span class="text-slate-700">— Démocratie, droits humains</span>
-                      <span class="ml-auto font-semibold tabular-nums">1%</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─────────────── 4. VUE BÉNÉFICIAIRES ─────────────── -->
-    <section id="beneficiaires" class="bg-white py-20 md:py-24">
-      <div class="mx-auto max-w-7xl px-6">
-        <div class="reveal mx-auto max-w-3xl text-center">
-          <span class="inline-block rounded-full border border-oif-bleu/30 bg-oif-bleu/10 px-3 py-1 text-xs font-medium text-oif-bleu">
-            Page Bénéficiaires — /beneficiaires
-          </span>
-          <h2 class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-4xl">
-            Saisie et consultation des bénéficiaires
-          </h2>
-          <p class="mt-4 text-base text-slate-600">
-            5 512 bénéficiaires en base · saisie individuelle ou par import Excel · contrôles RGPD
-            natifs.
-          </p>
-        </div>
-
-        <div class="reveal mt-12 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-          <div class="border-b border-slate-200 bg-slate-50 px-6 py-4">
-            <div class="flex flex-wrap items-center gap-3">
-              <h3 class="text-base font-semibold text-slate-900">Bénéficiaires</h3>
-              <span class="rounded-full bg-oif-bleu/10 px-2 py-0.5 text-xs font-medium text-oif-bleu">5 512 résultats</span>
-              <div class="ml-auto flex gap-2">
-                <span class="rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600">+ Nouveau bénéficiaire</span>
-                <span class="rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600">⤓ Exporter</span>
-              </div>
-            </div>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <span class="rounded-full bg-white px-3 py-1 text-xs ring-1 ring-slate-200">Recherche…</span>
-              <span class="rounded-full bg-white px-3 py-1 text-xs ring-1 ring-slate-200">Pays : tous</span>
-              <span class="rounded-full bg-white px-3 py-1 text-xs ring-1 ring-slate-200">Projet : tous</span>
-              <span class="rounded-full bg-white px-3 py-1 text-xs ring-1 ring-slate-200">Sexe : tous</span>
-              <span class="rounded-full bg-white px-3 py-1 text-xs ring-1 ring-slate-200">Année : 2018-2025</span>
-            </div>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                  <th class="px-4 py-2 text-left">Nom complet</th>
-                  <th class="px-4 py-2 text-left">Pays</th>
-                  <th class="px-4 py-2 text-left">Projet</th>
-                  <th class="px-4 py-2 text-left">Année</th>
-                  <th class="px-4 py-2 text-left">Statut</th>
-                  <th class="px-4 py-2 text-left">Consentement</th>
-                </tr>
-              </thead>
-              <tbody class="text-slate-700">
-                <tr class="border-b border-slate-100 hover:bg-slate-50">
-                  <td class="px-4 py-2.5 font-medium">Aïssatou D.</td>
-                  <td class="px-4 py-2.5">Sénégal</td>
-                  <td class="px-4 py-2.5 font-mono text-xs">PROJ_A14</td>
-                  <td class="px-4 py-2.5 tabular-nums">2025</td>
-                  <td class="px-4 py-2.5"><span class="rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">Formé · entrepreneuriat</span></td>
-                  <td class="px-4 py-2.5"><span class="text-emerald-600">✓ Recueilli</span></td>
-                </tr>
-                <tr class="border-b border-slate-100 hover:bg-slate-50">
-                  <td class="px-4 py-2.5 font-medium">Mamadou K.</td>
-                  <td class="px-4 py-2.5">Mali</td>
-                  <td class="px-4 py-2.5 font-mono text-xs">PROJ_M07</td>
-                  <td class="px-4 py-2.5 tabular-nums">2024</td>
-                  <td class="px-4 py-2.5"><span class="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700">Formé · insertion</span></td>
-                  <td class="px-4 py-2.5"><span class="text-emerald-600">✓ Recueilli</span></td>
-                </tr>
-                <tr class="border-b border-slate-100 hover:bg-slate-50">
-                  <td class="px-4 py-2.5 font-medium">Fatoumata B.</td>
-                  <td class="px-4 py-2.5">Côte d'Ivoire</td>
-                  <td class="px-4 py-2.5 font-mono text-xs">PROJ_A14</td>
-                  <td class="px-4 py-2.5 tabular-nums">2025</td>
-                  <td class="px-4 py-2.5"><span class="rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">Formé · entrepreneuriat</span></td>
-                  <td class="px-4 py-2.5"><span class="text-emerald-600">✓ Recueilli</span></td>
-                </tr>
-                <tr class="border-b border-slate-100 hover:bg-slate-50">
-                  <td class="px-4 py-2.5 font-medium">Kossi A.</td>
-                  <td class="px-4 py-2.5">Togo</td>
-                  <td class="px-4 py-2.5 font-mono text-xs">PROJ_T03</td>
-                  <td class="px-4 py-2.5 tabular-nums">2023</td>
-                  <td class="px-4 py-2.5"><span class="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700">En cours</span></td>
-                  <td class="px-4 py-2.5"><span class="text-slate-400">— Non requis</span></td>
-                </tr>
-                <tr class="hover:bg-slate-50">
-                  <td class="px-4 py-2.5 font-medium">Awa S.</td>
-                  <td class="px-4 py-2.5">Bénin</td>
-                  <td class="px-4 py-2.5 font-mono text-xs">PROJ_B05</td>
-                  <td class="px-4 py-2.5 tabular-nums">2024</td>
-                  <td class="px-4 py-2.5"><span class="rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">Formée · insertion</span></td>
-                  <td class="px-4 py-2.5"><span class="text-emerald-600">✓ Recueilli</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="border-t border-slate-200 bg-slate-50 px-6 py-3 text-xs text-slate-500">
-            Affichage 1-5 sur 5 512 · pagination 50 lignes/page · données illustratives anonymisées.
-          </div>
-        </div>
-
-        <!-- 318 structures résumé -->
-        <div class="reveal mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div class="rounded-xl bg-slate-50 p-6 ring-1 ring-slate-200">
-            <p class="text-xs uppercase tracking-wide text-slate-500">Bénéficiaires</p>
-            <p class="mt-2 text-3xl font-bold tabular-nums text-oif-bleu">5 512</p>
-            <p class="mt-1 text-xs text-slate-600">
-              91 % de femmes · 53 pays · 2018-2025
-            </p>
-          </div>
-          <div class="rounded-xl bg-slate-50 p-6 ring-1 ring-slate-200">
-            <p class="text-xs uppercase tracking-wide text-slate-500">Structures appuyées</p>
-            <p class="mt-2 text-3xl font-bold tabular-nums" style="color: #7eb301;">318</p>
-            <p class="mt-1 text-xs text-slate-600">
-              Activités économiques : <strong>319</strong> liées
-            </p>
-          </div>
-          <div class="rounded-xl bg-slate-50 p-6 ring-1 ring-slate-200">
-            <p class="text-xs uppercase tracking-wide text-slate-500">Imports Excel</p>
-            <p class="mt-2 text-3xl font-bold tabular-nums" style="color: #f5a623;">Template</p>
-            <p class="mt-1 text-xs text-slate-600">
-              Validation par lignes · rapport d'erreurs détaillé · ré-imports idempotents par identifiant_externe
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─────────────── 5. WIZARD CAMPAGNES ─────────────── -->
-    <section id="campagnes" class="bg-slate-50 py-20 md:py-24">
-      <div class="mx-auto max-w-7xl px-6">
-        <div class="reveal mx-auto max-w-3xl text-center">
-          <span class="inline-block rounded-full border px-3 py-1 text-xs font-medium" style="border-color: #7eb30166; background-color: #7eb30119; color: #5b8200;">
-            Page Enquêtes — /enquetes/lancer
-          </span>
-          <h2 class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-4xl">
-            Lancer une campagne ciblée par strate
-          </h2>
-          <p class="mt-4 text-base text-slate-600">
-            Cibler une cohorte précise (projet, pays, année, profil) plutôt qu'envoyer en masse.
-            Méthodologie OIF appliquée informatiquement.
-          </p>
-        </div>
-
-        <div class="reveal mt-12 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-oif-bleu text-xs font-bold text-white">1</div>
-            <h3 class="mt-4 text-base font-semibold text-slate-900">Définir la strate</h3>
-            <p class="mt-2 text-sm text-slate-600">
-              Filtres combinables : projet, pays, année de formation, sexe, statut, type de structure,
-              secteur d'activité.
-            </p>
-          </div>
-          <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-oif-bleu text-xs font-bold text-white">2</div>
-            <h3 class="mt-4 text-base font-semibold text-slate-900">Réviser les cibles</h3>
-            <p class="mt-2 text-sm text-slate-600">
-              Liste paginée des cibles, toutes pré-cochées. Possibilité de décocher individuellement
-              les contacts à exclure (rompus, doublons).
-            </p>
-          </div>
-          <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <div class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-oif-bleu text-xs font-bold text-white">3</div>
-            <h3 class="mt-4 text-base font-semibold text-slate-900">Envoyer & suivre</h3>
-            <p class="mt-2 text-sm text-slate-600">
-              Envoi par Resend (SMTP transactionnel), journalisation complète, suivi des taux
-              d'ouverture et de complétion.
-            </p>
-          </div>
-        </div>
-
-        <!-- Aperçu strate -->
-        <div class="reveal mt-10 rounded-xl border border-slate-200 bg-white p-6">
-          <p class="text-xs font-semibold uppercase tracking-wide text-oif-dore">
-            Exemple : aperçu de strate
-          </p>
-          <p class="mt-1 text-xs text-slate-500">
-            Filtres : projet PROJ_A14, pays Sénégal, année 2025, sexe femme, statut formé.
-          </p>
-          <div class="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <div>
-              <p class="text-2xl font-bold tabular-nums text-slate-900">342</p>
-              <p class="text-xs text-slate-500">Cibles totales</p>
-            </div>
-            <div>
-              <p class="text-2xl font-bold tabular-nums" style="color: #7eb301;">298</p>
-              <p class="text-xs text-slate-500">Avec consentement et email</p>
-            </div>
-            <div>
-              <p class="text-2xl font-bold tabular-nums text-amber-500">38</p>
-              <p class="text-xs text-slate-500">Sans email</p>
-            </div>
-            <div>
-              <p class="text-2xl font-bold tabular-nums text-slate-400">6</p>
-              <p class="text-xs text-slate-500">Sans consentement</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─────────────── 6. ARCHITECTURE DES RÔLES ─────────────── -->
+    <!-- ─────────────── 6. RÔLES ─────────────── -->
     <section id="roles" class="bg-white py-20 md:py-24">
       <div class="mx-auto max-w-7xl px-6">
         <div class="reveal mx-auto max-w-3xl text-center">
-          <span class="inline-block rounded-full border border-oif-bleu/30 bg-oif-bleu/10 px-3 py-1 text-xs font-medium text-oif-bleu">
-            Architecture
-          </span>
-          <h2 class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-4xl">
-            Quatre rôles, cloisonnement strict
-          </h2>
-          <p class="mt-4 text-base text-slate-600">
-            Chaque utilisateur ne voit que les données de son périmètre. Cloisonnement appliqué
-            au niveau de la base via Row Level Security (PostgreSQL).
-          </p>
+          <span class="inline-block rounded-full border border-oif-bleu/30 bg-oif-bleu/10 px-3 py-1 text-xs font-medium text-oif-bleu">Architecture des rôles</span>
+          <h2 class="mt-4 text-3xl font-bold tracking-tight text-oif-bleu md:text-4xl">Quatre rôles, cloisonnement strict</h2>
+          <p class="mt-4 text-base text-slate-600">Cloisonnement appliqué au niveau de la base via Row Level Security (PostgreSQL).</p>
         </div>
 
         <div class="reveal mt-12 grid grid-cols-1 gap-6 md:grid-cols-2">
           <div class="rounded-xl border-t-4 bg-slate-50 p-6" style="border-top-color: #0e4f88;">
             <h3 class="text-lg font-semibold text-slate-900">Admin SCS</h3>
             <p class="mt-1 text-xs text-slate-500">Service de Conception et Suivi</p>
-            <p class="mt-3 text-sm text-slate-700">
-              Vue globale de toutes les données. Gestion des utilisateurs, validation des demandes
-              d'accès, journal d'audit, exports complets, paramétrage de la plateforme.
-            </p>
+            <p class="mt-3 text-sm text-slate-700">Vue globale, gestion des utilisateurs, validation des demandes d'accès, journal d'audit, exports complets, paramétrage de la plateforme.</p>
           </div>
           <div class="rounded-xl border-t-4 bg-slate-50 p-6" style="border-top-color: #0198e9;">
             <h3 class="text-lg font-semibold text-slate-900">Éditeur de projet</h3>
             <p class="mt-1 text-xs text-slate-500">Coordonnateurs OIF</p>
-            <p class="mt-3 text-sm text-slate-700">
-              Pilotage des projets gérés (filtre <span class="font-mono text-xs bg-slate-200 px-1 rounded">projets_geres</span>).
-              Lancement de campagnes, suivi des cohortes, indicateurs A1/B1/B4 sur le périmètre projet.
-            </p>
+            <p class="mt-3 text-sm text-slate-700">Pilotage des projets gérés. Lancement de campagnes, suivi des cohortes, indicateurs A1/B1/B4 sur le périmètre projet.</p>
           </div>
           <div class="rounded-xl border-t-4 bg-slate-50 p-6" style="border-top-color: #7eb301;">
             <h3 class="text-lg font-semibold text-slate-900">Contributeur partenaire</h3>
             <p class="mt-1 text-xs text-slate-500">Partenaires de mise en œuvre</p>
-            <p class="mt-3 text-sm text-slate-700">
-              Saisie des bénéficiaires et structures de leur organisation. Suivi des
-              consentements RGPD, génération d'enquêtes longitudinales, exports périmètre
-              partenaire.
-            </p>
+            <p class="mt-3 text-sm text-slate-700">Saisie des bénéficiaires et structures de leur organisation. Suivi des consentements RGPD, exports périmètre partenaire.</p>
           </div>
           <div class="rounded-xl border-t-4 bg-slate-50 p-6" style="border-top-color: #5d0073;">
             <h3 class="text-lg font-semibold text-slate-900">Lecteur</h3>
             <p class="mt-1 text-xs text-slate-500">Bailleurs, ambassades, États</p>
-            <p class="mt-3 text-sm text-slate-700">
-              Lecture seule des indicateurs agrégés et anonymisés. Reporting institutionnel.
-              Aucune donnée nominative accessible.
-            </p>
+            <p class="mt-3 text-sm text-slate-700">Lecture seule des indicateurs agrégés et anonymisés. Reporting institutionnel. Aucune donnée nominative accessible.</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ─────────────── 7. RGPD ─────────────── -->
-    <section
-      id="rgpd"
-      class="relative overflow-hidden py-20 text-white md:py-24"
-      style="background: linear-gradient(135deg, #5d0073 0%, #0e4f88 100%);"
-    >
+    <section id="rgpd" class="relative overflow-hidden py-20 text-white md:py-24" style="background: linear-gradient(135deg, #5d0073 0%, #0e4f88 100%);">
       <div class="pattern-radial absolute inset-0"></div>
       <div class="relative mx-auto max-w-7xl px-6">
         <div class="reveal mx-auto max-w-3xl text-center">
-          <span class="inline-block rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur-sm">
-            Sécurité & conformité
-          </span>
-          <h2 class="mt-4 text-3xl font-bold tracking-tight md:text-4xl">
-            Conformité RGPD native
-          </h2>
-          <p class="mt-4 text-base text-white/85">
-            Quatre principes appliqués au niveau de la base, impossibles à contourner depuis
-            l'application.
-          </p>
+          <span class="inline-block rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur-sm">Sécurité & conformité</span>
+          <h2 class="mt-4 text-3xl font-bold tracking-tight md:text-4xl">Conformité RGPD native</h2>
         </div>
 
         <div class="reveal mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           <div class="rounded-xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm">
             <div class="text-2xl font-bold text-oif-dore">Consentement</div>
-            <p class="mt-2 text-sm text-white/85">
-              Pas de courriel ni de téléphone enregistré sans consentement explicite et daté du
-              bénéficiaire (contrainte SQL).
-            </p>
+            <p class="mt-2 text-sm text-white/85">Pas de courriel ni de téléphone enregistré sans consentement explicite et daté du bénéficiaire.</p>
           </div>
           <div class="rounded-xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm">
             <div class="text-2xl font-bold text-oif-dore">RLS</div>
-            <p class="mt-2 text-sm text-white/85">
-              Row Level Security PostgreSQL : politique appliquée à chaque requête, pour les
-              quatre rôles, sans exception.
-            </p>
+            <p class="mt-2 text-sm text-white/85">Row Level Security PostgreSQL : politique appliquée à chaque requête, sans exception.</p>
           </div>
           <div class="rounded-xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm">
             <div class="text-2xl font-bold text-oif-dore">Soft-delete</div>
-            <p class="mt-2 text-sm text-white/85">
-              Les suppressions sont tracées (qui, quand, motif) et conservées en table d'audit.
-              Pas de perte irréversible.
-            </p>
+            <p class="mt-2 text-sm text-white/85">Les suppressions sont tracées (qui, quand, motif) et conservées en table d'audit.</p>
           </div>
           <div class="rounded-xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm">
             <div class="text-2xl font-bold text-oif-dore">Hébergement EU</div>
-            <p class="mt-2 text-sm text-white/85">
-              Supabase région Frankfurt, conforme RGPD, sauvegardes quotidiennes chiffrées.
-            </p>
+            <p class="mt-2 text-sm text-white/85">Supabase région Frankfurt, conforme RGPD, sauvegardes quotidiennes chiffrées.</p>
           </div>
         </div>
       </div>
@@ -798,10 +1039,7 @@
         <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div>
             <p class="font-semibold text-oif-bleu">Plateforme Emploi Jeunes</p>
-            <p class="mt-2 text-xs leading-relaxed">
-              Service de Conception et Suivi (SCS) de l'Organisation Internationale de la
-              Francophonie. Plateforme officielle de suivi-évaluation des projets emploi jeunes.
-            </p>
+            <p class="mt-2 text-xs leading-relaxed">Service de Conception et Suivi (SCS) de l'Organisation Internationale de la Francophonie. Plateforme officielle de suivi-évaluation des projets emploi jeunes.</p>
           </div>
           <div>
             <p class="font-semibold text-oif-bleu">Périmètre V1</p>
@@ -812,6 +1050,7 @@
               <li>• Dashboard 5 indicateurs OIF</li>
               <li>• Wizard campagnes ciblées</li>
               <li>• Vitrine publique institutionnelle</li>
+              <li>• Mobile native (iOS / Android via Capacitor)</li>
             </ul>
           </div>
           <div>
