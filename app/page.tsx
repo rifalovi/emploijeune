@@ -582,8 +582,9 @@ function Audiences() {
     },
     {
       icone: Vote,
-      titre: 'Bailleurs et États',
-      description: 'Reporting agrégé, indicateurs stratégiques, exports pour rapports annuels.',
+      titre: 'Bailleurs et États et gouvernements membres',
+      description:
+        'Reporting agrégé, indicateurs stratégiques, exports pour rapports annuels — destinés aux bailleurs (UE, AFD, etc.) et aux représentants des États et gouvernements membres, membres associés et observateurs de l\u2019OIF.',
     },
   ];
   return (
@@ -758,12 +759,12 @@ function CtaFinal({ isAuthenticated }: { isAuthenticated: boolean }) {
         <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
           {isAuthenticated
             ? 'Reprenez votre travail dans votre espace'
-            : 'Vous êtes partenaire ou bailleur OIF\u00a0?'}
+            : 'Partenaire de mise en œuvre, bailleur ou représentant institutionnel\u00a0?'}
         </h2>
         <p className="mt-4 text-lg text-blue-50 md:text-xl">
           {isAuthenticated
             ? 'Tableaux de bord, indicateurs OIF, lancement de campagnes : tout est dans votre espace de travail.'
-            : 'Demandez un accès partenaire pour piloter vos projets ou consulter les indicateurs agrégés.'}
+            : 'Demandez un accès pour piloter vos projets de mise en œuvre, ou consulter les indicateurs agrégés en lecture seule.'}
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           {isAuthenticated ? (

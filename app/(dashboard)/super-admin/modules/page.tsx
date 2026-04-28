@@ -28,7 +28,7 @@ const ROLES_LIBELLES: Record<string, { libelle: string; description: string }> =
     description: 'Saisie terrain, complétion des dossiers, exports périmètre partenaire.',
   },
   lecteur: {
-    libelle: 'Lecteurs (bailleurs, États)',
+    libelle: 'Lecteurs (bailleurs, représentants d\u2019États et gouvernements OIF)',
     description: 'Lecture seule des indicateurs agrégés et anonymisés.',
   },
 };
