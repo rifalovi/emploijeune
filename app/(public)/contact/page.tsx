@@ -1,12 +1,10 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { ArrowLeft, Mail, MapPin, ShieldCheck } from 'lucide-react';
+import { Mail, MapPin, ShieldCheck } from 'lucide-react';
 
-import { LogoOIF } from '@/components/branding/logo-oif';
 import { Card, CardContent } from '@/components/ui/card';
-import { buttonVariants } from '@/components/ui/button';
 import { FormulaireContact } from '@/components/landing/formulaire-contact';
-import { cn } from '@/lib/utils';
+import { HeaderPublic } from '@/components/landing/header-public';
+import { getAuthUser } from '@/lib/supabase/auth';
 
 export const metadata: Metadata = {
   title: 'Nous contacter : Plateforme OIF Emploi Jeunes',
@@ -14,35 +12,15 @@ export const metadata: Metadata = {
     "Contactez le Service de Conception et Suivi (SCS) de l'Organisation Internationale de la Francophonie pour toute question, demande d'accès ou partenariat.",
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const user = await getAuthUser();
+  const isAuthenticated = Boolean(user);
+
   return (
     <div className="bg-background min-h-screen">
-      {/* Header public minimal */}
-      <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-8">
-          <Link href="/" className="inline-flex items-center" aria-label="Accueil">
-            <LogoOIF size="sm" withProtectedSpace={false} />
-          </Link>
-          <nav className="flex items-center gap-2">
-            <Link
-              href="/connexion"
-              className={cn(buttonVariants({ variant: 'default', size: 'sm' }))}
-            >
-              Se connecter
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <HeaderPublic isAuthenticated={isAuthenticated} />
 
       <main className="mx-auto max-w-5xl px-4 py-12 sm:px-8 md:py-16">
-        <Link
-          href="/"
-          className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1 text-sm"
-        >
-          <ArrowLeft aria-hidden className="size-4" />
-          Retour à l&apos;accueil
-        </Link>
-
         <header className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
             Nous contacter

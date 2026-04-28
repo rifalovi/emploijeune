@@ -22,6 +22,7 @@ import {
 
 import { LogoOIF } from '@/components/branding/logo-oif';
 import { CarrouselHero } from '@/components/landing/carrousel-hero';
+import { HeaderPublic } from '@/components/landing/header-public';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
@@ -129,48 +130,10 @@ function BandeauAuthentifie() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Header
+// Header — réutilise le composant partagé V2.4.0 (4 onglets : Accueil,
+// Référentiels, Réalisations, Contacts).
+// Cf. components/landing/header-public.tsx.
 // ─────────────────────────────────────────────────────────────────────────────
-function HeaderPublic({ isAuthenticated }: { isAuthenticated: boolean }) {
-  return (
-    <header className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-8">
-        <Link href="/" className="inline-flex items-center" aria-label="Accueil">
-          <LogoOIF size="sm" withProtectedSpace={false} />
-        </Link>
-        <nav className="flex items-center gap-2">
-          <Link href="/contact" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
-            Contact
-          </Link>
-          {isAuthenticated ? (
-            <Link
-              href="/dashboard"
-              className={cn(buttonVariants({ variant: 'default', size: 'sm' }), 'gap-1.5')}
-            >
-              <LayoutDashboard aria-hidden className="size-4" />
-              Mon espace
-            </Link>
-          ) : (
-            <>
-              <Link
-                href="/demande-acces"
-                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
-              >
-                Demander un accès
-              </Link>
-              <Link
-                href="/connexion"
-                className={cn(buttonVariants({ variant: 'default', size: 'sm' }))}
-              >
-                Se connecter
-              </Link>
-            </>
-          )}
-        </nav>
-      </div>
-    </header>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Hero avec carrousel
