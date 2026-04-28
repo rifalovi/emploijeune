@@ -29,7 +29,13 @@ const indicateurValeurSchema = z.object({
 });
 
 export const indicateursOifSchema = z.object({
-  role: z.enum(['admin_scs', 'editeur_projet', 'contributeur_partenaire', 'lecteur']),
+  role: z.enum([
+    'super_admin',
+    'admin_scs',
+    'editeur_projet',
+    'contributeur_partenaire',
+    'lecteur',
+  ]),
   periode: z.enum(PERIODES),
   scope: z.enum(['global', 'projets_geres', 'organisation']),
   indicateurs: z.object({

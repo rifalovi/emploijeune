@@ -40,9 +40,10 @@ import {
 } from '@/components/ui/select';
 import {
   modifierUtilisateurSchema,
-  ROLES_MODIFIABLES,
+  rolesAttribuables,
   ROLE_MODIFIABLE_LIBELLES,
   type ModifierUtilisateurInput,
+  type RoleModifiable,
 } from '@/lib/schemas/utilisateur-modifier';
 import { modifierUtilisateur } from '@/lib/utilisateurs/modifier';
 import { cn } from '@/lib/utils';
@@ -57,6 +58,8 @@ export type FormulaireModifierUtilisateurProps = {
   };
   organisations: Array<{ id: string; nom: string; projets_geres: string[] }>;
   estLuiMeme: boolean;
+  /** Rôle de l'utilisateur courant : sert à filtrer les rôles attribuables. v2.0.1. */
+  roleCourant: string;
 };
 
 export function FormulaireModifierUtilisateur({
@@ -64,7 +67,21 @@ export function FormulaireModifierUtilisateur({
   initialValues,
   organisations,
   estLuiMeme,
+  roleCourant,
 }: FormulaireModifierUtilisateurProps) {
+  // Hiérarchie : un rôle ne peut JAMAIS modifier vers un compte de
+  // même niveau ou supérieur (cf. lib/schemas/utilisateur-modifier).
+  // On inclut toujours le rôle initial dans la liste pour éviter de le
+  // perdre s'il est hors hiérarchie (ex. admin_scs modifie un super_admin
+  // existant — cas théorique).
+  const rolesDisponibles: RoleModifiable[] = (() => {
+    const base = rolesAttribuables(roleCourant);
+    const initial = initialValues.role as RoleModifiable;
+    if (initial && !base.includes(initial)) {
+      return [...base, initial];
+    }
+    return base;
+  })();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [confirmRoleOuvert, setConfirmRoleOuvert] = useState(false);
@@ -176,7 +193,7 @@ export function FormulaireModifierUtilisateur({
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {ROLES_MODIFIABLES.map((r) => (
+                      {rolesDisponibles.map((r) => (
                         <SelectItem key={r} value={r}>
                           {ROLE_MODIFIABLE_LIBELLES[r]}
                         </SelectItem>

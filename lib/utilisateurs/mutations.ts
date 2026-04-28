@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
-import { creerCompteUtilisateurSchema } from '@/lib/schemas/utilisateur';
+import { creerCompteUtilisateurSchema, rolesCreablesPar } from '@/lib/schemas/utilisateur';
 import { envoyerEmail } from '@/lib/email/envoyer';
 import { templateInvitationCompte, templateResetMotPasse } from '@/lib/email/templates';
 import { ROLE_CREABLE_LIBELLES } from '@/lib/schemas/utilisateur';
@@ -46,7 +46,7 @@ export async function creerCompteUtilisateur(raw: unknown): Promise<CreerCompteR
   if (!utilisateur || (utilisateur.role !== 'admin_scs' && utilisateur.role !== 'super_admin')) {
     return {
       status: 'erreur_droits',
-      message: 'Seul un administrateur SCS peut créer un compte.',
+      message: 'Seul un administrateur SCS ou un super_admin peut créer un compte.',
     };
   }
 
@@ -61,6 +61,17 @@ export async function creerCompteUtilisateur(raw: unknown): Promise<CreerCompteR
     };
   }
   const data = parse.data;
+
+  // V2.0.1 — Hiérarchie : un rôle ne peut JAMAIS créer un compte de
+  // même niveau ou supérieur. Le filtre côté UI cache l'option ; on
+  // applique ici un filtre serveur défensif (defense-in-depth).
+  const rolesAutorises = rolesCreablesPar(utilisateur.role);
+  if (!rolesAutorises.includes(data.role as (typeof rolesAutorises)[number])) {
+    return {
+      status: 'erreur_droits',
+      message: `Vous n'avez pas les droits pour créer un compte de rôle « ${data.role} ».`,
+    };
+  }
 
   const adminClient = createSupabaseAdminClient();
 
@@ -101,7 +112,12 @@ export async function creerCompteUtilisateur(raw: unknown): Promise<CreerCompteR
   const { error: insertError } = await supabaseUser.from('utilisateurs').insert({
     user_id: newUserId,
     nom_complet: nomComplet,
-    role: data.role as 'editeur_projet' | 'contributeur_partenaire' | 'lecteur',
+    role: data.role as
+      | 'super_admin'
+      | 'admin_scs'
+      | 'editeur_projet'
+      | 'contributeur_partenaire'
+      | 'lecteur',
     organisation_id: data.organisation_id ?? null,
     actif: true,
     statut_validation: 'valide',

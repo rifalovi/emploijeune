@@ -98,9 +98,17 @@ describe('creerCompteUtilisateurSchema', () => {
     ).toBe(true);
   });
 
-  it('rejette un rôle inattendu (admin_scs interdit à la création par cet endpoint)', () => {
+  it("accepte admin_scs au niveau Zod (v2.0.1) — la hiérarchie est appliquée par la Server Action via rolesCreablesPar", () => {
+    // Le schéma Zod accepte tous les rôles ; le filtrage hiérarchique est fait
+    // côté Server Action (cf. rolesCreablesPar dans @/lib/schemas/utilisateur).
     expect(
       creerCompteUtilisateurSchema.safeParse({ ...baseValide, role: 'admin_scs' }).success,
+    ).toBe(true);
+  });
+
+  it('rejette un rôle inconnu', () => {
+    expect(
+      creerCompteUtilisateurSchema.safeParse({ ...baseValide, role: 'visiteur' }).success,
     ).toBe(false);
   });
 
@@ -113,13 +121,43 @@ describe('creerCompteUtilisateurSchema', () => {
 });
 
 describe('ROLES_CREABLES + libellés', () => {
-  it('expose 3 rôles créables (pas admin_scs)', () => {
-    expect(ROLES_CREABLES).toEqual(['editeur_projet', 'contributeur_partenaire', 'lecteur']);
+  it('expose les 5 rôles (v2.0.1+) — le filtrage est fait par rolesCreablesPar', () => {
+    expect(ROLES_CREABLES).toEqual([
+      'super_admin',
+      'admin_scs',
+      'editeur_projet',
+      'contributeur_partenaire',
+      'lecteur',
+    ]);
   });
 
   it('chaque rôle a un libellé non vide', () => {
     for (const r of ROLES_CREABLES) {
       expect(ROLE_CREABLE_LIBELLES[r]).toBeTruthy();
     }
+  });
+});
+
+describe('rolesCreablesPar — hiérarchie v2.0.1', () => {
+  it('super_admin peut créer tous les rôles', async () => {
+    const { rolesCreablesPar } = await import('@/lib/schemas/utilisateur');
+    const roles = rolesCreablesPar('super_admin');
+    expect(roles).toContain('super_admin');
+    expect(roles).toContain('admin_scs');
+    expect(roles).toContain('lecteur');
+    expect(roles).toHaveLength(5);
+  });
+
+  it("admin_scs peut créer uniquement editeur_projet, contributeur_partenaire, lecteur", async () => {
+    const { rolesCreablesPar } = await import('@/lib/schemas/utilisateur');
+    const roles = rolesCreablesPar('admin_scs');
+    expect(roles).toEqual(['editeur_projet', 'contributeur_partenaire', 'lecteur']);
+  });
+
+  it("les autres rôles ne peuvent rien créer", async () => {
+    const { rolesCreablesPar } = await import('@/lib/schemas/utilisateur');
+    expect(rolesCreablesPar('editeur_projet')).toEqual([]);
+    expect(rolesCreablesPar('contributeur_partenaire')).toEqual([]);
+    expect(rolesCreablesPar('lecteur')).toEqual([]);
   });
 });

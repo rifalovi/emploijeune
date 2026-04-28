@@ -3,8 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getCurrentUtilisateur } from '@/lib/supabase/auth';
-import { modifierUtilisateurSchema } from '@/lib/schemas/utilisateur-modifier';
+import { getCurrentUtilisateur, type RoleUtilisateur } from '@/lib/supabase/auth';
+import { modifierUtilisateurSchema, rolesAttribuables } from '@/lib/schemas/utilisateur-modifier';
 
 /**
  * Server Action — Modification d'un utilisateur (Étape 8 enrichie).
@@ -72,6 +72,19 @@ export async function modifierUtilisateur(raw: unknown): Promise<ModifierUtilisa
     return { status: 'erreur_introuvable', message: 'Utilisateur introuvable.' };
   }
 
+  // V2.0.1 — Hiérarchie : si le rôle change, l'appelant doit avoir le droit
+  // d'attribuer le nouveau rôle. Empêche un admin_scs de promouvoir vers
+  // super_admin ou admin_scs (defense-in-depth, en plus du filtre UI).
+  if (data.role !== cible.role) {
+    const rolesAutorises = rolesAttribuables(utilisateurCourant.role);
+    if (!rolesAutorises.includes(data.role as (typeof rolesAutorises)[number])) {
+      return {
+        status: 'erreur_droits',
+        message: `Vous n'avez pas les droits pour attribuer le rôle « ${data.role} ».`,
+      };
+    }
+  }
+
   // Garde-fou : pas de modification de soi-même sur les champs sensibles
   const estLuiMeme = cible.user_id === utilisateurCourant.user_id;
   if (estLuiMeme) {
@@ -128,7 +141,7 @@ export async function modifierUtilisateur(raw: unknown): Promise<ModifierUtilisa
     .from('utilisateurs')
     .update({
       nom_complet: data.nom_complet,
-      role: data.role as 'admin_scs' | 'editeur_projet' | 'contributeur_partenaire' | 'lecteur',
+      role: data.role as RoleUtilisateur,
       organisation_id: data.organisation_id ?? null,
       actif: data.actif,
     })

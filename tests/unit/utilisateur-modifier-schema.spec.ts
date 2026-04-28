@@ -42,8 +42,14 @@ describe('modifierUtilisateurSchema', () => {
     ).toBe(true);
   });
 
-  it('rejette rôle hors enum', () => {
+  it('accepte super_admin (v2.0.1+)', () => {
     expect(modifierUtilisateurSchema.safeParse({ ...valide, role: 'super_admin' }).success).toBe(
+      true,
+    );
+  });
+
+  it('rejette rôle hors enum', () => {
+    expect(modifierUtilisateurSchema.safeParse({ ...valide, role: 'visiteur' }).success).toBe(
       false,
     );
   });
@@ -72,8 +78,9 @@ describe('modifierUtilisateurSchema', () => {
 });
 
 describe('ROLES_MODIFIABLES', () => {
-  it('expose 4 rôles (admin_scs inclus pour la modification)', () => {
+  it('expose 5 rôles (super_admin inclus depuis v2.0.1)', () => {
     expect(ROLES_MODIFIABLES).toEqual([
+      'super_admin',
       'admin_scs',
       'editeur_projet',
       'contributeur_partenaire',

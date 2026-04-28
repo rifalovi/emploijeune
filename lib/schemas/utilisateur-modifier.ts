@@ -20,6 +20,7 @@
 import { z } from 'zod';
 
 export const ROLES_MODIFIABLES = [
+  'super_admin',
   'admin_scs',
   'editeur_projet',
   'contributeur_partenaire',
@@ -28,11 +29,34 @@ export const ROLES_MODIFIABLES = [
 export type RoleModifiable = (typeof ROLES_MODIFIABLES)[number];
 
 export const ROLE_MODIFIABLE_LIBELLES: Record<RoleModifiable, string> = {
+  super_admin: 'Super administrateur',
   admin_scs: 'Administrateur SCS',
   editeur_projet: 'Coordonnateur de projet',
   contributeur_partenaire: 'Contributeur / Partenaire',
   lecteur: 'Lecteur (lecture seule)',
 };
+
+/**
+ * Hiérarchie de création / modification — v2.0.1.
+ *
+ * Principe : un rôle ne peut JAMAIS créer / promouvoir vers un compte de
+ * même niveau ou supérieur.
+ *
+ *   super_admin → peut attribuer : super_admin, admin_scs, editeur_projet,
+ *                  contributeur_partenaire, lecteur (tous)
+ *   admin_scs   → peut attribuer : editeur_projet, contributeur_partenaire,
+ *                  lecteur (pas super_admin, pas admin_scs)
+ *   autres      → ne peuvent rien attribuer
+ */
+export function rolesAttribuables(roleCreateur: string): RoleModifiable[] {
+  if (roleCreateur === 'super_admin') {
+    return [...ROLES_MODIFIABLES];
+  }
+  if (roleCreateur === 'admin_scs') {
+    return ['editeur_projet', 'contributeur_partenaire', 'lecteur'];
+  }
+  return [];
+}
 
 const nomCompletRegex = /^[\p{L}\p{M}\s'’\-]+$/u;
 

@@ -115,6 +115,7 @@ export default async function ModifierUtilisateurPage({ params }: PageProps) {
         }}
         organisations={organisations}
         estLuiMeme={estLuiMeme}
+        roleCourant={utilisateurCourant.role}
       />
 
       <CardRattachementProjets

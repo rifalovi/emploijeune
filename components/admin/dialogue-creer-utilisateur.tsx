@@ -36,9 +36,10 @@ import {
 } from '@/components/ui/select';
 import {
   creerCompteUtilisateurSchema,
-  ROLES_CREABLES,
+  rolesCreablesPar,
   ROLE_CREABLE_LIBELLES,
   type CreerCompteUtilisateurInput,
+  type RoleCreable,
 } from '@/lib/schemas/utilisateur';
 import { creerCompteUtilisateur } from '@/lib/utilisateurs/mutations';
 import { cn } from '@/lib/utils';
@@ -46,12 +47,19 @@ import { cn } from '@/lib/utils';
 export type DialogueCreerUtilisateurProps = {
   organisations: Array<{ id: string; nom: string }>;
   projets: Array<{ code: string; libelle: string }>;
+  /** Rôle de l'utilisateur courant : sert à filtrer les rôles attribuables. v2.0.1. */
+  roleCourant: string;
 };
 
 export function DialogueCreerUtilisateur({
   organisations,
   projets,
+  roleCourant,
 }: DialogueCreerUtilisateurProps) {
+  // V2.0.1 — Hiérarchie : un rôle ne peut JAMAIS créer un compte de
+  // même niveau ou supérieur.
+  const rolesDisponibles: RoleCreable[] = rolesCreablesPar(roleCourant);
+  const rolePremier: RoleCreable = rolesDisponibles[0] ?? 'lecteur';
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -62,7 +70,7 @@ export function DialogueCreerUtilisateur({
       email: '',
       prenom: '',
       nom: '',
-      role: 'editeur_projet',
+      role: rolePremier,
       organisation_id: undefined,
       projets_geres: [],
     },
@@ -193,7 +201,7 @@ export function DialogueCreerUtilisateur({
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {ROLES_CREABLES.map((r) => (
+                      {rolesDisponibles.map((r) => (
                         <SelectItem key={r} value={r}>
                           {ROLE_CREABLE_LIBELLES[r]}
                         </SelectItem>

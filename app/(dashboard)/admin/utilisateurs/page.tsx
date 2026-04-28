@@ -48,7 +48,11 @@ export default async function AdminUtilisateursPage() {
             administrateurs SCS.
           </p>
         </div>
-        <DialogueCreerUtilisateur organisations={organisations} projets={projets} />
+        <DialogueCreerUtilisateur
+          organisations={organisations}
+          projets={projets}
+          roleCourant={utilisateur.role}
+        />
       </header>
 
       {!process.env.RESEND_API_KEY && (

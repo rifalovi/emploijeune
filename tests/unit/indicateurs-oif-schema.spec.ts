@@ -41,8 +41,14 @@ describe('indicateursOifSchema', () => {
     expect(indicateursOifSchema.safeParse({ ...payloadValide, periode: '6m' }).success).toBe(false);
   });
 
-  it('rejette un rôle inconnu', () => {
+  it('accepte super_admin (v2.0.0+)', () => {
     expect(indicateursOifSchema.safeParse({ ...payloadValide, role: 'super_admin' }).success).toBe(
+      true,
+    );
+  });
+
+  it('rejette un rôle inconnu', () => {
+    expect(indicateursOifSchema.safeParse({ ...payloadValide, role: 'visiteur' }).success).toBe(
       false,
     );
   });

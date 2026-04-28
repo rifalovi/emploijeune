@@ -26,7 +26,11 @@ describe('anonymisation IA — V2.0.0', () => {
     });
 
     it('laisse les champs absents tels quels', () => {
-      const out = anonymiserBeneficiaire({ prenom: 'X', nom: 'Y' }, 0);
+      const entree: { prenom: string; nom: string; courriel?: string; telephone?: string } = {
+        prenom: 'X',
+        nom: 'Y',
+      };
+      const out = anonymiserBeneficiaire(entree, 0);
       expect(out.courriel).toBeUndefined();
       expect(out.telephone).toBeUndefined();
     });

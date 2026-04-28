@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { analyser } from '@/lib/ia/server-actions';
 import { cn } from '@/lib/utils';
+import { MarkdownRenderer } from './markdown-renderer';
 
 type Message = { role: 'user' | 'assistant'; content: string; horodatage: string };
 
@@ -174,7 +175,11 @@ function MessageBubble({ message }: { message: Message }) {
           isUser ? 'bg-[#0E4F88] text-white' : 'bg-white ring-1 ring-slate-200',
         )}
       >
-        <p className="whitespace-pre-wrap">{message.content}</p>
+        {isUser ? (
+          <p className="whitespace-pre-wrap">{message.content}</p>
+        ) : (
+          <MarkdownRenderer>{message.content}</MarkdownRenderer>
+        )}
       </div>
     </div>
   );
