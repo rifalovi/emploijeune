@@ -40,3 +40,67 @@ export type ResultatImport =
   | { status: 'erreur_droits'; message: string }
   | { status: 'erreur_fichier'; message: string }
   | { status: 'erreur_inconnue'; message: string };
+
+// =============================================================================
+// Rapport ENRICHI — pipeline import tolérant (Phase A du sprint « absorber max »)
+// -----------------------------------------------------------------------------
+// Ces types coexistent avec RapportImport ci-dessus le temps de la bascule
+// progressive. Une fois le nouveau pipeline en place, on pourra alias
+// ResultatImport vers ResultatImportEnrichi.
+// =============================================================================
+
+/** Cas de figure d'une ligne après le pipeline tolérant. */
+export type StatutLigneImport =
+  | 'inseree' // Nouvelle fiche ajoutée (complète ou partielle)
+  | 'enrichie' // Doublon existant en BDD → champs NULL comblés
+  | 'doublon_identique' // Doublon, rien à enrichir → ignoré
+  | 'incomplete' // Insérée mais champs obligatoires manquants (à collecter plus tard)
+  | 'rejetee'; // Erreur bloquante (pays inconnu, etc.) → non importée
+
+export type LigneRapportImport = {
+  /** Numéro de ligne dans le fichier Excel. */
+  numero_ligne: number;
+  statut: StatutLigneImport;
+  /** Liste lisible des mappings appliqués (« H → M », « P6 → PROJ_A06 »). */
+  mappages_auto: string[];
+  /** Champs métier laissés vides faute de donnée (pour future campagne de collecte). */
+  champs_manquants: string[];
+  /** Champs effectivement mis à jour lors d'un enrichissement de doublon. */
+  champs_mis_a_jour: string[];
+  /** Avertissements non-bloquants (ex. consentement absent mais courriel présent). */
+  alertes: string[];
+  /** Erreurs bloquantes (uniquement pour statut 'rejetee'). */
+  erreurs: ErreurImport[];
+  /** Échantillon des données importées (visible dans le rapport UI). */
+  donnees_importees?: {
+    courriel?: string | null;
+    pays?: string | null;
+    projet?: string | null;
+    annee?: number | null;
+  };
+};
+
+export type RapportImportEnrichi = {
+  fichier_nom: string;
+  nb_lignes_total: number;
+  nb_inserees: number;
+  nb_enrichies: number;
+  nb_doublons_identiques: number;
+  nb_incompletes: number;
+  nb_rejetees: number;
+  /** Mappings d'en-têtes auto-détectés (« Pays de Provenance » → « Code pays bénéficiaire * »). */
+  headers_mappes_auto: Record<string, string>;
+  /** Colonnes du fichier non reconnues, ignorées du pipeline. */
+  headers_non_reconnus: string[];
+  /** Détail ligne par ligne. */
+  lignes: LigneRapportImport[];
+  /** ID de la ligne `imports_excel` créée pour audit (null si pas encore tracé). */
+  import_id: string | null;
+  execute_a: string;
+};
+
+export type ResultatImportEnrichi =
+  | { status: 'succes'; rapport: RapportImportEnrichi }
+  | { status: 'erreur_droits'; message: string }
+  | { status: 'erreur_fichier'; message: string }
+  | { status: 'erreur_inconnue'; message: string };
