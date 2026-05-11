@@ -19,7 +19,7 @@ import { AuditUtilisateurCard } from '@/components/admin/audit-utilisateur-card'
 import { CardRattachementProjets } from '@/components/admin/card-rattachement-projets';
 
 export const metadata: Metadata = {
-  title: 'Modifier utilisateur — OIF Emploi Jeunes',
+  title: 'Modifier utilisateur – OIF Emploi Jeunes',
 };
 
 type PageProps = {
@@ -92,14 +92,14 @@ export default async function ModifierUtilisateurPage({ params }: PageProps) {
           Modifier · {utilisateur.nom_complet}
         </h1>
         <p className="text-muted-foreground text-sm">
-          Email : <code className="font-mono">{utilisateur.email ?? '—'}</code> · Compte créé le{' '}
+          Email : <code className="font-mono">{utilisateur.email ?? '–'}</code> · Compte créé le{' '}
           {new Date(utilisateur.created_at).toLocaleDateString('fr-FR')}
         </p>
       </header>
 
       <Card>
         <CardContent className="bg-muted/30 p-3 text-xs">
-          <strong>Email non modifiable</strong> — le changement d’email impacte l’authentification
+          <strong>Email non modifiable</strong> – le changement d’email impacte l’authentification
           (auth.users) et la cohérence des sessions actives. Pour modifier un email, supprimez le
           compte et créez-en un nouveau (ou attendez V1.5).
         </CardContent>

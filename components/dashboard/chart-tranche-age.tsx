@@ -5,9 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Users } from 'lucide-react';
 import type { RepartitionTrancheAge } from '@/lib/landing/queries';
 
-const COULEUR_JEUNE = '#0198E9';   // PS1 cyan — jeunes 18-34
-const COULEUR_ADULTE = '#5D0073';  // PS2 violet — adultes 35+
-const COULEUR_NR = '#e2e8f0';      // gris clair — non renseigné
+const COULEUR_JEUNE = '#0198E9';   // PS1 cyan – jeunes 18-34
+const COULEUR_ADULTE = '#5D0073';  // PS2 violet – adultes 35+
+const COULEUR_NR = '#e2e8f0';      // gris clair – non renseigné
 
 /**
  * Widget répartition Jeune / Adulte (tranche_age_declaree).

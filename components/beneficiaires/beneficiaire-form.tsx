@@ -52,8 +52,8 @@ import { calculerTrancheAge } from './tranche-age';
  * ternaire côté parent. Ce Record doit donc indexer par `'true'`/`'false'`.
  */
 const CONSENTEMENT_LIBELLES: Record<'true' | 'false', string> = {
-  true: 'Oui — consentement recueilli',
-  false: 'Non — pas de consentement',
+  true: 'Oui – consentement recueilli',
+  false: 'Non – pas de consentement',
 };
 
 /**
@@ -718,8 +718,8 @@ export function BeneficiaireForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="true">Oui — consentement recueilli</SelectItem>
-                        <SelectItem value="false">Non — pas de consentement</SelectItem>
+                        <SelectItem value="true">Oui – consentement recueilli</SelectItem>
+                        <SelectItem value="false">Non – pas de consentement</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription>

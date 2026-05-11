@@ -102,8 +102,8 @@ export function BeneficiaireDetail({ beneficiaire, nomenclatures }: Beneficiaire
               />
             </div>
             <Champ label="Pays" valeur={`${paysLibelle} (${beneficiaire.pays_code})`} />
-            <Champ label="Organisation" valeur={beneficiaire.organisation_nom ?? '—'} />
-            <Champ label="Partenaire" valeur={beneficiaire.partenaire_accompagnement ?? '—'} />
+            <Champ label="Organisation" valeur={beneficiaire.organisation_nom ?? '–'} />
+            <Champ label="Partenaire" valeur={beneficiaire.partenaire_accompagnement ?? '–'} />
           </CardContent>
         </Card>
 
@@ -114,22 +114,22 @@ export function BeneficiaireDetail({ beneficiaire, nomenclatures }: Beneficiaire
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <Champ label="Domaine" valeur={domaineLibelle} />
-            <Champ label="Intitulé" valeur={beneficiaire.intitule_formation ?? '—'} />
-            <Champ label="Modalité" valeur={modaliteLibelle ?? '—'} />
+            <Champ label="Intitulé" valeur={beneficiaire.intitule_formation ?? '–'} />
+            <Champ label="Modalité" valeur={modaliteLibelle ?? '–'} />
             <Champ label="Année" valeur={String(beneficiaire.annee_formation)} />
             <Champ
               label="Période"
               valeur={
                 beneficiaire.date_debut_formation || beneficiaire.date_fin_formation
                   ? `${formatDateFR(beneficiaire.date_debut_formation)} → ${formatDateFR(beneficiaire.date_fin_formation)}`
-                  : '—'
+                  : '–'
               }
             />
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground w-32 shrink-0">Statut</span>
               <StatutBadge code={beneficiaire.statut_code as StatutBeneficiaireCode} />
             </div>
-            <Champ label="Fonction actuelle" valeur={beneficiaire.fonction_actuelle ?? '—'} />
+            <Champ label="Fonction actuelle" valeur={beneficiaire.fonction_actuelle ?? '–'} />
           </CardContent>
         </Card>
 
@@ -146,9 +146,9 @@ export function BeneficiaireDetail({ beneficiaire, nomenclatures }: Beneficiaire
             {beneficiaire.consentement_recueilli && (
               <Champ label="Recueilli le" valeur={formatDateFR(beneficiaire.consentement_date)} />
             )}
-            <Champ label="Téléphone" valeur={beneficiaire.telephone ?? '—'} monospace />
-            <Champ label="Courriel" valeur={beneficiaire.courriel ?? '—'} />
-            <Champ label="Localité" valeur={beneficiaire.localite_residence ?? '—'} />
+            <Champ label="Téléphone" valeur={beneficiaire.telephone ?? '–'} monospace />
+            <Champ label="Courriel" valeur={beneficiaire.courriel ?? '–'} />
+            <Champ label="Localité" valeur={beneficiaire.localite_residence ?? '–'} />
           </CardContent>
         </Card>
       </div>
@@ -199,7 +199,7 @@ function Champ({
 }
 
 function formatDateFR(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '–';
   try {
     return format(new Date(iso), 'd MMMM yyyy', { locale: fr });
   } catch {
@@ -208,7 +208,7 @@ function formatDateFR(iso: string | null): string {
 }
 
 function formatDateTimeFR(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '–';
   try {
     return format(new Date(iso), "d MMM yyyy 'à' HH:mm", { locale: fr });
   } catch {

@@ -203,7 +203,7 @@ export async function genererClasseurEnquetes(
 function deduireQuestionnaire(r: ReponseEnqueteExportRow): string {
   if (r.beneficiaire_id) return 'A';
   if (r.structure_id) return 'B';
-  return '—';
+  return '–';
 }
 
 type SessionAgregee = {

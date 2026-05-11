@@ -67,7 +67,7 @@ export function RepriseApresEnregistrement({
               <span className="font-medium">Projet :</span>{' '}
               <span className={cn('font-mono text-xs')}>
                 {cohorteProjet}
-                {projetLibelle && ` — ${projetLibelle}`}
+                {projetLibelle && ` – ${projetLibelle}`}
               </span>
             </li>
             {paysLibelle && (

@@ -144,7 +144,7 @@ export const a4Schema = z
         code: z.ZodIssueCode.custom,
         path: ['niveau_apres'],
         message:
-          'Régression de niveau improbable post-formation — vérifiez la saisie ou ajoutez une note dans les compétences acquises',
+          'Régression de niveau improbable post-formation – vérifiez la saisie ou ajoutez une note dans les compétences acquises',
       });
     }
   });

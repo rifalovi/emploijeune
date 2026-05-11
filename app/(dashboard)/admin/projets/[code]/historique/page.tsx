@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ROLE_DANS_PROJET_LIBELLES, type RoleDansProjet } from '@/lib/schemas/affectation-projet';
 
 export const metadata: Metadata = {
-  title: 'Historique projet — OIF Emploi Jeunes',
+  title: 'Historique projet – OIF Emploi Jeunes',
 };
 
 type PageProps = { params: Promise<{ code: string }> };

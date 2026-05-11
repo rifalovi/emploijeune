@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { getStatsGlobales, listerActivationsIa } from '@/lib/super-admin/queries';
 
 export const metadata: Metadata = {
-  title: 'Super Administration — OIF Emploi Jeunes',
+  title: 'Super Administration – OIF Emploi Jeunes',
 };
 
 export const dynamic = 'force-dynamic';
@@ -104,7 +104,7 @@ export default async function SuperAdminHomePage() {
             Quand le module est activé pour un rôle, ses utilisateurs voient apparaître l'item «
             Assistant IA » dans la sidebar et peuvent accéder à{' '}
             <code className="bg-muted rounded px-1 text-xs">/assistant-ia</code>. Désactivé, aucune
-            trace n'apparaît nulle part — les autres utilisateurs ne savent même pas que ce module
+            trace n'apparaît nulle part – les autres utilisateurs ne savent même pas que ce module
             existe.
           </p>
           <div className="flex flex-wrap gap-2">

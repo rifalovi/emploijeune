@@ -17,7 +17,7 @@ export function SidebarReferentiels() {
 
   return (
     <aside className="lg:sticky lg:top-24">
-      <nav aria-label="Référentiels — navigation" className="space-y-4 text-sm">
+      <nav aria-label="Référentiels – navigation" className="space-y-4 text-sm">
         <Link
           href="/referentiels"
           className={cn(

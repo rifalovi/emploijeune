@@ -92,13 +92,13 @@ export function ZoneUploadImport({
             {
               description:
                 rapport.erreurs.length > 0
-                  ? `${rapport.erreurs.length} erreur(s) — voir le rapport.`
+                  ? `${rapport.erreurs.length} erreur(s) – voir le rapport.`
                   : 'Aucune erreur.',
             },
           );
         } else if (rapport.erreurs.length > 0) {
           toast.error('Aucune ligne importée', {
-            description: `${rapport.erreurs.length} erreur(s) — voir le rapport.`,
+            description: `${rapport.erreurs.length} erreur(s) – voir le rapport.`,
           });
         } else {
           toast.info('Fichier vide', { description: 'Aucune ligne de données détectée.' });
@@ -164,7 +164,7 @@ export function ZoneUploadImport({
         <div className="flex items-center justify-between gap-2">
           {templateLabel && (
             <p className="text-muted-foreground text-xs">
-              💡 {templateLabel} — utilisez le bouton « Exporter vers Excel » de la liste pour
+              💡 {templateLabel} – utilisez le bouton « Exporter vers Excel » de la liste pour
               récupérer un modèle.
             </p>
           )}

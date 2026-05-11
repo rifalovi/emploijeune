@@ -33,8 +33,8 @@ export const HEADERS_B1_OBLIGATOIRES = [
   'Année appui *',
   'Nature appui *',
   'Consentement *',
-  'Porteur — nom *',
-  'Porteur — sexe *',
+  'Porteur – nom *',
+  'Porteur – sexe *',
 ] as const;
 
 export function mapLigneVersStructure(donnees: Record<string, unknown>): {
@@ -66,7 +66,7 @@ export function mapLigneVersStructure(donnees: Record<string, unknown>): {
     inverser(NATURE_APPUI_LIBELLES),
   );
   const devise = lireCodeOuLibelleOpt(donnees['Devise'], DEVISES_CODES, inverser(DEVISE_LIBELLES));
-  const sexePorteur = lireCodeOuLibelle(donnees['Porteur — sexe *'], SEXE_VALUES, {
+  const sexePorteur = lireCodeOuLibelle(donnees['Porteur – sexe *'], SEXE_VALUES, {
     Femme: 'F',
     Homme: 'M',
     F: 'F',
@@ -113,8 +113,8 @@ export function mapLigneVersStructure(donnees: Record<string, unknown>): {
     });
   if (!sexePorteur)
     erreurs.push({
-      colonne: 'Porteur — sexe *',
-      valeur: stringify(donnees['Porteur — sexe *']),
+      colonne: 'Porteur – sexe *',
+      valeur: stringify(donnees['Porteur – sexe *']),
       message: 'Sexe attendu : F, M ou Autre.',
     });
   if (consentement === null)
@@ -158,10 +158,10 @@ export function mapLigneVersStructure(donnees: Record<string, unknown>): {
     return { donneesParsees: null, erreursMapping: erreurs };
   }
 
-  const porteurNom = lireTexte(donnees['Porteur — nom *']);
+  const porteurNom = lireTexte(donnees['Porteur – nom *']);
   if (!porteurNom) {
     erreurs.push({
-      colonne: 'Porteur — nom *',
+      colonne: 'Porteur – nom *',
       valeur: null,
       message: 'Nom du porteur obligatoire.',
     });
@@ -178,11 +178,11 @@ export function mapLigneVersStructure(donnees: Record<string, unknown>): {
     statut_creation: statutCreation as 'creation' | 'renforcement' | 'relance',
     projet_code: projet,
     pays_code: pays,
-    porteur_prenom: lireTexte(donnees['Porteur — prénom']),
+    porteur_prenom: lireTexte(donnees['Porteur – prénom']),
     porteur_nom: porteurNom,
     porteur_sexe: sexePorteur,
     porteur_date_naissance: lireDateOpt(
-      donnees['Porteur — date naissance'],
+      donnees['Porteur – date naissance'],
     ) as unknown as undefined,
     fonction_porteur: lireTexte(donnees['Fonction porteur']),
     annee_appui: annee,

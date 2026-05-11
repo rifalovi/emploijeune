@@ -104,7 +104,7 @@ export function ChartProgrammesPie({ data }: { data: Donnee[] }) {
             return (
               <div
                 key={l.code}
-                title={`${l.code} — ${l.libelle ?? l.code} : ${l.beneficiaires.toLocaleString('fr-FR')} bénéficiaire(s) (${pctArrondi}%)`}
+                title={`${l.code} – ${l.libelle ?? l.code} : ${l.beneficiaires.toLocaleString('fr-FR')} bénéficiaire(s) (${pctArrondi}%)`}
                 className={cn(
                   'group relative flex items-center justify-center transition-all duration-300',
                   'hover:brightness-110',

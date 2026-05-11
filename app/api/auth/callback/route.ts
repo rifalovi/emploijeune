@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
   // échoué (cas idempotent du double-clic / prefetch).
   if (echecVerification) {
     // eslint-disable-next-line no-console
-    console.warn('[auth/callback] Verification a échoué mais session existante — flux poursuivi', {
+    console.warn('[auth/callback] Verification a échoué mais session existante – flux poursuivi', {
       raison: echecVerification,
       userId: user.id,
     });

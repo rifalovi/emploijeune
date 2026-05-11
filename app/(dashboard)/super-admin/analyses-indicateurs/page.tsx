@@ -12,7 +12,7 @@ import { BoutonGenerer, BoutonPublier, BoutonSupprimer } from './boutons-actions
 import { EditeurAnalyse } from './editeur-analyse';
 
 export const metadata: Metadata = {
-  title: 'Analyses IA — Super Administration',
+  title: 'Analyses IA – Super Administration',
 };
 
 // Forcer le rendu dynamique (données en temps réel)

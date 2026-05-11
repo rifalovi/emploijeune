@@ -103,11 +103,11 @@ export function formaterContexteDonnees(ctx: ContexteDonnees): string {
   const i = ctx.indicateurs;
   const ligneA1 =
     i.A1.valeur !== null
-      ? `**A1 — ${i.A1.libelle}** : **${i.A1.valeur.toLocaleString('fr-FR')}**` +
+      ? `**A1 – ${i.A1.libelle}** : **${i.A1.valeur.toLocaleString('fr-FR')}**` +
         (i.A1.femmes !== undefined && i.A1.hommes !== undefined
           ? ` (${i.A1.femmes.toLocaleString('fr-FR')} femmes · ${i.A1.hommes.toLocaleString('fr-FR')} hommes)`
           : '')
-      : `**A1 — ${i.A1.libelle}** : à venir`;
+      : `**A1 – ${i.A1.libelle}** : à venir`;
   lignes.push(`- ${ligneA1}`);
 
   const formatIndicateur = (
@@ -115,9 +115,9 @@ export function formaterContexteDonnees(ctx: ContexteDonnees): string {
     ind: { libelle: string; valeur: number | null; proxy?: string },
   ) => {
     if (ind.valeur === null) {
-      return `- **${code} — ${ind.libelle}** : à venir${ind.proxy ? ` (${ind.proxy})` : ''}`;
+      return `- **${code} – ${ind.libelle}** : à venir${ind.proxy ? ` (${ind.proxy})` : ''}`;
     }
-    return `- **${code} — ${ind.libelle}** : **${ind.valeur.toLocaleString('fr-FR')}**`;
+    return `- **${code} – ${ind.libelle}** : **${ind.valeur.toLocaleString('fr-FR')}**`;
   };
   lignes.push(formatIndicateur('A4', i.A4));
   lignes.push(formatIndicateur('B1', i.B1));
@@ -141,7 +141,7 @@ export function formaterContexteDonnees(ctx: ContexteDonnees): string {
     lignes.push('### Top projets par bénéficiaires');
     for (const p of ctx.bar_projets) {
       lignes.push(
-        `- \`${p.code}\` (${p.libelle ?? '—'}) : ${p.beneficiaires.toLocaleString('fr-FR')}`,
+        `- \`${p.code}\` (${p.libelle ?? '–'}) : ${p.beneficiaires.toLocaleString('fr-FR')}`,
       );
     }
     lignes.push('');

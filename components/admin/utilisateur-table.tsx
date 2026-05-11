@@ -88,7 +88,7 @@ function UtilisateurRow({ row }: { row: UtilisateurListItem }) {
         toast.success('Lien de réinitialisation généré', {
           description:
             result.emailEnvoi === 'mock'
-              ? `MOCK — Lien à transmettre manuellement : ${result.lienActivation}`
+              ? `MOCK – Lien à transmettre manuellement : ${result.lienActivation}`
               : 'Email envoyé à l’utilisateur.',
           duration: 12000,
         });
@@ -114,7 +114,7 @@ function UtilisateurRow({ row }: { row: UtilisateurListItem }) {
       const result = await assumerVueUtilisateur(row.user_id);
       if (result.status === 'succes') {
         toast.success(`Vue de ${result.targetNomComplet} activée`, {
-          description: 'Mode visualisation 30 min — toutes les écritures sont bloquées.',
+          description: 'Mode visualisation 30 min – toutes les écritures sont bloquées.',
         });
         router.push('/dashboard');
         router.refresh();
@@ -133,7 +133,7 @@ function UtilisateurRow({ row }: { row: UtilisateurListItem }) {
         <Badge variant="outline">{roleLib}</Badge>
       </TableCell>
       <TableCell className="text-sm">
-        {row.organisation_nom ?? <span className="text-muted-foreground">—</span>}
+        {row.organisation_nom ?? <span className="text-muted-foreground">–</span>}
       </TableCell>
       <TableCell>
         <BadgeStatut actif={row.actif} statut={row.statut_validation} />

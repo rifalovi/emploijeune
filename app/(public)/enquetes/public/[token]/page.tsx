@@ -5,7 +5,7 @@ import { validerToken } from '@/lib/enquetes/tokens-publics';
 import { EnqueteSaisiePublique } from '@/components/enquetes/enquete-saisie-publique';
 
 export const metadata: Metadata = {
-  title: 'Enquête OIF — Plateforme Emploi Jeunes',
+  title: 'Enquête OIF – Plateforme Emploi Jeunes',
 };
 
 export const dynamic = 'force-dynamic';

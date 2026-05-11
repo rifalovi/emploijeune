@@ -74,4 +74,9 @@ await applyMigration(
   '20260511300001_clean_resumes_analyses.sql',
 );
 
+await applyMigration(
+  'Migration 028-typo (em-dash → en-dash dans analyses)',
+  '20260511400001_emdash_to_endash_analyses.sql',
+);
+
 console.log('\n🎉 Toutes les migrations ont été appliquées avec succès.');

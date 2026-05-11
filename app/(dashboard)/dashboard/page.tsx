@@ -30,7 +30,7 @@ import { getActiviteRecente } from '@/lib/dashboard/activite-recente';
 import { getRepartitionTrancheAge } from '@/lib/landing/queries';
 
 export const metadata: Metadata = {
-  title: 'Accueil — OIF Emploi Jeunes',
+  title: 'Accueil – OIF Emploi Jeunes',
 };
 
 type SearchParams = Promise<{ periode?: string }>;

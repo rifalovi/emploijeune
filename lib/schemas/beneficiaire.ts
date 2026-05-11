@@ -90,7 +90,7 @@ const baseBeneficiaireSchema = z.object({
 
   date_naissance: optionalDate.refine(
     (d) => !d || (d >= new Date('1900-01-01') && d <= new Date()),
-    'Date de naissance hors plage (1900 — aujourd’hui)',
+    'Date de naissance hors plage (1900 – aujourd’hui)',
   ),
 
   // === 2. Rattachement ===

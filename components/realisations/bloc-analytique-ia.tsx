@@ -152,7 +152,7 @@ function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string
   const ESTLISTE_RE = /^\s*[-*]\s+(.+)$/; // capture l'item sans le préfixe ni l'indentation
   // Aussi `—+` (em-dash U+2014) qui apparaît parfois comme séparateur typo,
   // pas seulement les --- ASCII / *** / ___.
-  const ESTHR_RE = /^\s*(?:-{3,}|\*{3,}|_{3,}|—+)\s*$/;
+  const ESTHR_RE = /^\s*(?:-{3,}|\*{3,}|_{3,}|–+)\s*$/;
   // Accepte H1 à H4 — Claude génère parfois un H1 unique en tête de
   // réponse ; sans cette tolérance le `#` resterait visible en texte brut.
   // Tous mappés sur H3 (le bloc parent porte déjà un H2).

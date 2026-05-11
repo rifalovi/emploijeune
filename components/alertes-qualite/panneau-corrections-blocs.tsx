@@ -91,7 +91,7 @@ export function PanneauCorrectionsBlocs({ typeAlerte }: { typeAlerte: string }) 
     }
     const totalCorrections = blocsAAppliquer.reduce((s, b) => s + b.cas_concernes, 0);
     const confirme = confirm(
-      `Appliquer ${blocsAAppliquer.length} bloc(s) — ${totalCorrections} correction(s) au total ?\n\n` +
+      `Appliquer ${blocsAAppliquer.length} bloc(s) – ${totalCorrections} correction(s) au total ?\n\n` +
         'Les modifications seront journalisées dans le journal d\u2019audit.',
     );
     if (!confirme) return;
@@ -127,7 +127,7 @@ export function PanneauCorrectionsBlocs({ typeAlerte }: { typeAlerte: string }) 
         toast.success(`${totalAppliquees} correction(s) appliquée(s) avec succès.`);
       } else {
         toast.warning(
-          `${totalAppliquees} appliquée(s) · ${totalErreurs} erreur(s) — voir le journal d\u2019audit.`,
+          `${totalAppliquees} appliquée(s) · ${totalErreurs} erreur(s) – voir le journal d\u2019audit.`,
         );
       }
       setAnalyse(null);

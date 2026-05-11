@@ -29,7 +29,7 @@ export function DashboardContributeur({ data }: { data: KpiContributeur }) {
   let alerteImport = false;
   if (dernier) {
     const date = format(new Date(dernier.demarre_a), "d MMM yyyy 'à' HH:mm", { locale: fr });
-    sousTexteImport = `${dernier.fichier_nom} — ${statutLibelle(dernier.statut)} (${date})`;
+    sousTexteImport = `${dernier.fichier_nom} – ${statutLibelle(dernier.statut)} (${date})`;
     alerteImport =
       dernier.nb_erreurs > 0 ||
       dernier.statut === 'echec_partiel' ||
@@ -47,7 +47,7 @@ export function DashboardContributeur({ data }: { data: KpiContributeur }) {
       />
       <KpiCard
         titre="Mon dernier import"
-        valeur={dernier ? `${dernier.nb_lignes_a1 + dernier.nb_lignes_b1}` : '—'}
+        valeur={dernier ? `${dernier.nb_lignes_a1 + dernier.nb_lignes_b1}` : '–'}
         sousTexte={sousTexteImport}
         icone={Upload}
         href={dernier ? `/imports/${dernier.id}` : '/imports'}

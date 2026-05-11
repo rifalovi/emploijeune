@@ -62,8 +62,8 @@ import { EcranSuccesCreationStructure } from './ecran-succes-creation-structure'
  * Mapping booléen→libellé pour le Select « Consentement RGPD ».
  */
 const CONSENTEMENT_LIBELLES: Record<'true' | 'false', string> = {
-  true: 'Oui — consentement recueilli',
-  false: 'Non — pas de consentement',
+  true: 'Oui – consentement recueilli',
+  false: 'Non – pas de consentement',
 };
 
 /**
@@ -730,8 +730,8 @@ export function StructureForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="true">Oui — consentement recueilli</SelectItem>
-                        <SelectItem value="false">Non — pas de consentement</SelectItem>
+                        <SelectItem value="true">Oui – consentement recueilli</SelectItem>
+                        <SelectItem value="false">Non – pas de consentement</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription>
@@ -976,7 +976,7 @@ export function StructureForm({
             {/* === Section 7 : Indicateurs B === */}
             <div>
               <h3 className="mt-6 mb-3 text-sm font-semibold tracking-tight">
-                7. Informations complémentaires (optionnels — alimentent les indicateurs B)
+                7. Informations complémentaires (optionnels – alimentent les indicateurs B)
               </h3>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField

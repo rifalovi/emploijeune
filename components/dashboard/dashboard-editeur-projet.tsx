@@ -20,7 +20,7 @@ export function DashboardEditeurProjet({ data }: { data: KpiEditeurProjet }) {
         valeur={`${a2.valeur}\u00a0%`}
         sousTexte={
           a2.proxy
-            ? 'Approximation via statut « formation achevée » — enquête A2 à venir'
+            ? 'Approximation via statut « formation achevée » – enquête A2 à venir'
             : `${a2.numerateur ?? 0} / ${a2.denominateur ?? 0}`
         }
         icone={GraduationCap}

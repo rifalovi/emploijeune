@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const metadata: Metadata = {
-  title: 'Compte en attente de validation — OIF Emploi Jeunes',
+  title: 'Compte en attente de validation – OIF Emploi Jeunes',
 };
 
 export default async function EnAttenteValidationPage() {

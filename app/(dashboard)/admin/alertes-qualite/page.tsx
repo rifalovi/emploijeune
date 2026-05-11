@@ -23,7 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Alertes qualité — OIF Emploi Jeunes',
+  title: 'Alertes qualité – OIF Emploi Jeunes',
 };
 
 type SearchParams = Promise<{ type?: string; projet?: string; page?: string }>;
@@ -82,7 +82,7 @@ export default async function AlertesQualitePage({ searchParams }: { searchParam
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Alertes qualité</h1>
         <p className="text-muted-foreground text-sm">
-          Incohérences détectées dans les données saisies — à corriger au fil de l&apos;eau.
+          Incohérences détectées dans les données saisies – à corriger au fil de l&apos;eau.
         </p>
       </header>
 
@@ -172,11 +172,11 @@ export default async function AlertesQualitePage({ searchParams }: { searchParam
                         {r.projet_code}
                       </Badge>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-muted-foreground">–</span>
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs">
-                    {r.pays_code ?? '—'}
+                    {r.pays_code ?? '–'}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs tabular-nums">
                     {format(new Date(r.cree_le), 'd MMM yyyy', { locale: fr })}

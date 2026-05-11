@@ -4,7 +4,7 @@ import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { ImportsPageClient } from './imports-client';
 
 export const metadata: Metadata = {
-  title: 'Imports Excel — OIF Emploi Jeunes',
+  title: 'Imports Excel – OIF Emploi Jeunes',
 };
 
 /**

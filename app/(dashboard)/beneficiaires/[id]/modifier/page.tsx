@@ -14,8 +14,8 @@ type PageProps = {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const fiche = await getBeneficiaireById(id);
-  if (!fiche) return { title: 'Modifier — OIF Emploi Jeunes' };
-  return { title: `Modifier ${fiche.prenom} ${fiche.nom} — OIF Emploi Jeunes` };
+  if (!fiche) return { title: 'Modifier – OIF Emploi Jeunes' };
+  return { title: `Modifier ${fiche.prenom} ${fiche.nom} – OIF Emploi Jeunes` };
 }
 
 export default async function ModifierBeneficiairePage({ params }: PageProps) {
@@ -47,11 +47,11 @@ export default async function ModifierBeneficiairePage({ params }: PageProps) {
         utilisateur.role === 'super_admin' ||
         meta.programme_strategique === 'PS3',
     )
-    .map(([code, meta]) => ({ code, libelle: `${code} — ${meta.libelle}` }));
+    .map(([code, meta]) => ({ code, libelle: `${code} – ${meta.libelle}` }));
 
   const paysOptions = Array.from(nomenclatures.pays.entries()).map(([code, libelle]) => ({
     code,
-    libelle: `${code} — ${libelle}`,
+    libelle: `${code} – ${libelle}`,
   }));
 
   const domainesOptions = Array.from(nomenclatures.domaines.entries()).map(([code, libelle]) => ({
@@ -76,7 +76,7 @@ export default async function ModifierBeneficiairePage({ params }: PageProps) {
           Modifier · {fiche.prenom} {fiche.nom}
         </h1>
         <p className="text-muted-foreground text-sm">
-          Indicateur A1 — modification d&apos;une fiche existante
+          Indicateur A1 – modification d&apos;une fiche existante
         </p>
       </header>
 

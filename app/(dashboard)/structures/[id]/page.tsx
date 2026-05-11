@@ -19,8 +19,8 @@ type PageProps = {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const fiche = await getStructureById(id);
-  if (!fiche) return { title: 'Structure introuvable — OIF Emploi Jeunes' };
-  return { title: `${fiche.nom_structure} — OIF Emploi Jeunes` };
+  if (!fiche) return { title: 'Structure introuvable – OIF Emploi Jeunes' };
+  return { title: `${fiche.nom_structure} – OIF Emploi Jeunes` };
 }
 
 export default async function StructureDetailPage({ params }: PageProps) {

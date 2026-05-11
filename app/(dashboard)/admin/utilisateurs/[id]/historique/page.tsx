@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ROLE_DANS_PROJET_LIBELLES, type RoleDansProjet } from '@/lib/schemas/affectation-projet';
 
 export const metadata: Metadata = {
-  title: 'Historique projets — OIF Emploi Jeunes',
+  title: 'Historique projets – OIF Emploi Jeunes',
 };
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -70,7 +70,7 @@ export default async function HistoriqueUtilisateurPage({ params }: PageProps) {
                       {l.projet_code}
                     </Badge>
                     <CardTitle className="text-base font-medium">
-                      {l.projet_libelle ?? '—'}
+                      {l.projet_libelle ?? '–'}
                     </CardTitle>
                     {actif && <Badge>Actif</Badge>}
                     <Badge variant="secondary" className="text-xs">

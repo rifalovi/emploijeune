@@ -26,7 +26,7 @@ export function EditeurAnalyse({
           htmlFor={`resume-${analyse.id}`}
           className="mb-1 block text-xs font-medium text-slate-600"
         >
-          Résumé (accroche — max 150 car.)
+          Résumé (accroche – max 150 car.)
         </label>
         <input
           id={`resume-${analyse.id}`}

@@ -8,7 +8,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { WizardCampagne } from '@/components/campagnes/wizard-campagne';
 
 export const metadata: Metadata = {
-  title: 'Lancer une campagne de collecte — OIF Emploi Jeunes',
+  title: 'Lancer une campagne de collecte – OIF Emploi Jeunes',
 };
 
 /**

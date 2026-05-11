@@ -85,7 +85,7 @@ export function DialogueCreerUtilisateur({
         toast.success('Compte créé avec succès', {
           description:
             result.emailEnvoi === 'mock'
-              ? `MOCK — Lien d'activation à transmettre manuellement : ${result.lienActivation}`
+              ? `MOCK – Lien d'activation à transmettre manuellement : ${result.lienActivation}`
               : `Email d'activation envoyé à ${result.email}.`,
           duration: 15000,
         });

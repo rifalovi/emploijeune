@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { listerEvenementsAudit } from '@/lib/super-admin/queries';
 
 export const metadata: Metadata = {
-  title: 'Tracking & Logs — Super Administration',
+  title: 'Tracking & Logs – Super Administration',
 };
 
 export const dynamic = 'force-dynamic';
@@ -33,7 +33,7 @@ export default async function TrackingPage() {
               <Activity className="size-5" aria-hidden />
             </span>
             <div>
-              <CardTitle>Journal d'audit — 200 derniers évènements</CardTitle>
+              <CardTitle>Journal d'audit – 200 derniers évènements</CardTitle>
               <CardDescription>
                 Lecture étendue de la table{' '}
                 <code className="bg-muted rounded px-1 text-xs">journaux_audit</code>. Chaque ligne
@@ -69,7 +69,7 @@ export default async function TrackingPage() {
                         </td>
                         <td className="px-3 py-2">
                           <p className="font-medium text-slate-900">
-                            {e.acteur_nom ?? <span className="text-slate-400 italic">—</span>}
+                            {e.acteur_nom ?? <span className="text-slate-400 italic">–</span>}
                           </p>
                           {e.user_email && (
                             <p className="text-muted-foreground text-xs">{e.user_email}</p>
@@ -88,7 +88,7 @@ export default async function TrackingPage() {
                           {e.table_affectee}
                         </td>
                         <td className="px-3 py-2 font-mono text-[11px] text-slate-500">
-                          {e.ligne_id ? e.ligne_id.slice(0, 8) + '…' : '—'}
+                          {e.ligne_id ? e.ligne_id.slice(0, 8) + '…' : '–'}
                         </td>
                       </tr>
                     );

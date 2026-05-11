@@ -362,7 +362,7 @@ function MessageBubble({ message }: { message: Message }) {
       toast.success('Copié dans le presse-papiers');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Impossible de copier — vérifiez les permissions du navigateur.');
+      toast.error('Impossible de copier – vérifiez les permissions du navigateur.');
     }
   };
 

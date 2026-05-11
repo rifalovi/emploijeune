@@ -10,7 +10,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Nouveau bénéficiaire — OIF Emploi Jeunes',
+  title: 'Nouveau bénéficiaire – OIF Emploi Jeunes',
 };
 
 type PageProps = {
@@ -49,11 +49,11 @@ export default async function NouveauBeneficiairePage({ searchParams }: PageProp
         utilisateur.role === 'super_admin' ||
         meta.programme_strategique === 'PS3',
     )
-    .map(([code, meta]) => ({ code, libelle: `${code} — ${meta.libelle}` }));
+    .map(([code, meta]) => ({ code, libelle: `${code} – ${meta.libelle}` }));
 
   const paysOptions = Array.from(nomenclatures.pays.entries()).map(([code, libelle]) => ({
     code,
-    libelle: `${code} — ${libelle}`,
+    libelle: `${code} – ${libelle}`,
   }));
 
   const domainesOptions = Array.from(nomenclatures.domaines.entries()).map(([code, libelle]) => ({
@@ -74,7 +74,7 @@ export default async function NouveauBeneficiairePage({ searchParams }: PageProp
           </Link>
           <h1 className="text-2xl font-semibold tracking-tight">Nouveau bénéficiaire</h1>
           <p className="text-muted-foreground text-sm">
-            Indicateur A1 — saisie d&apos;une fiche bénéficiaire
+            Indicateur A1 – saisie d&apos;une fiche bénéficiaire
           </p>
         </div>
         <Link

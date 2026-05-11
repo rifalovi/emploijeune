@@ -10,7 +10,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Nouvelle structure — OIF Emploi Jeunes',
+  title: 'Nouvelle structure – OIF Emploi Jeunes',
 };
 
 type PageProps = {
@@ -50,11 +50,11 @@ export default async function NouvelleStructurePage({ searchParams }: PageProps)
         utilisateur.role === 'super_admin' ||
         meta.programme_strategique === 'PS3',
     )
-    .map(([code, meta]) => ({ code, libelle: `${code} — ${meta.libelle}` }));
+    .map(([code, meta]) => ({ code, libelle: `${code} – ${meta.libelle}` }));
 
   const paysOptions = Array.from(nomenclatures.pays.entries()).map(([code, libelle]) => ({
     code,
-    libelle: `${code} — ${libelle}`,
+    libelle: `${code} – ${libelle}`,
   }));
 
   return (
@@ -70,7 +70,7 @@ export default async function NouvelleStructurePage({ searchParams }: PageProps)
           </Link>
           <h1 className="text-2xl font-semibold tracking-tight">Nouvelle structure</h1>
           <p className="text-muted-foreground text-sm">
-            Indicateur B1 — saisie d&apos;une structure appuyée
+            Indicateur B1 – saisie d&apos;une structure appuyée
           </p>
         </div>
         <Link

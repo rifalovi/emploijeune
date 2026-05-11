@@ -66,10 +66,10 @@ export const COLONNES_B1 = [
   { key: 'devise', header: 'Devise', width: 12 },
   { key: 'consentement', header: 'Consentement *', width: 26 },
   // --- Détails optionnels (14-33) ---
-  { key: 'porteur_prenom', header: 'Porteur — prénom', width: 18 },
-  { key: 'porteur_nom', header: 'Porteur — nom *', width: 20 },
-  { key: 'porteur_sexe', header: 'Porteur — sexe *', width: 8 },
-  { key: 'porteur_date_naissance', header: 'Porteur — date naissance', width: 18 },
+  { key: 'porteur_prenom', header: 'Porteur – prénom', width: 18 },
+  { key: 'porteur_nom', header: 'Porteur – nom *', width: 20 },
+  { key: 'porteur_sexe', header: 'Porteur – sexe *', width: 8 },
+  { key: 'porteur_date_naissance', header: 'Porteur – date naissance', width: 18 },
   { key: 'fonction_porteur', header: 'Fonction porteur', width: 22 },
   { key: 'telephone_porteur', header: 'Téléphone (avec indicatif)', width: 20 },
   { key: 'courriel_porteur', header: 'Courriel porteur', width: 28 },
@@ -95,8 +95,8 @@ export const COLONNES_B1 = [
 
 /** Libellés des 2 valeurs de consentement (alignés sur l'export A1). */
 export const CONSENTEMENT_LIBELLES: Record<'true' | 'false', string> = {
-  true: 'Oui — consentement recueilli',
-  false: 'Non — pas de consentement',
+  true: 'Oui – consentement recueilli',
+  false: 'Non – pas de consentement',
 };
 
 // =============================================================================
@@ -446,7 +446,7 @@ function remplirFeuilleMetadata(ws: ExcelJS.Worksheet, ctx: ExportStructuresCont
 
   const lignes: Array<[string, string]> = [
     ['Export généré par', 'Plateforme OIF Emploi Jeunes'],
-    ['Indicateur', 'B1 — structures appuyées'],
+    ['Indicateur', 'B1 – structures appuyées'],
     ['Date d’export', dateLocale],
     [
       'Utilisateur',

@@ -11,7 +11,7 @@ import { DemandeAccesSupprimer } from '@/components/demandes-acces/demande-acces
 import { ROLE_DEMANDABLE_LIBELLES } from '@/lib/schemas/demande-acces';
 
 export const metadata: Metadata = {
-  title: 'Administration · Demandes d’accès — OIF Emploi Jeunes',
+  title: 'Administration · Demandes d’accès – OIF Emploi Jeunes',
 };
 
 const STATUTS_LIBELLES = {

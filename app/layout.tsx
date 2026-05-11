@@ -26,9 +26,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'OIF — Suivi Emploi Jeunes',
+  title: 'OIF – Suivi Emploi Jeunes',
   description:
-    "Plateforme de gestion et de suivi des données du Service de Conception et Suivi de projet de l'OIF — thématique emploi des jeunes.",
+    "Plateforme de gestion et de suivi des données du Service de Conception et Suivi de projet de l'OIF – thématique emploi des jeunes.",
   // Non-indexation en phase dev/pilote. À lever en production officielle une fois
   // le domaine et le contenu public validés.
   robots: {

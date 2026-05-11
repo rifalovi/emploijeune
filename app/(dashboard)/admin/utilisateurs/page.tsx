@@ -9,7 +9,7 @@ import { DialogueCreerUtilisateur } from '@/components/admin/dialogue-creer-util
 import { Card, CardContent } from '@/components/ui/card';
 
 export const metadata: Metadata = {
-  title: 'Administration · Utilisateurs — OIF Emploi Jeunes',
+  title: 'Administration · Utilisateurs – OIF Emploi Jeunes',
 };
 
 export default async function AdminUtilisateursPage() {
@@ -58,7 +58,7 @@ export default async function AdminUtilisateursPage() {
       {!process.env.RESEND_API_KEY && (
         <Card>
           <CardContent className="bg-amber-50/50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-            <strong>Phase MOCK email</strong> — la variable
+            <strong>Phase MOCK email</strong> – la variable
             <code className="mx-1 rounded bg-amber-100/60 px-1 dark:bg-amber-900/40">
               RESEND_API_KEY
             </code>

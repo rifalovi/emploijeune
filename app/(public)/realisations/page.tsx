@@ -8,9 +8,9 @@ import { getAuthUser } from '@/lib/supabase/auth';
 import { PILIERS, indicateursParPilier, type CodePilier } from '@/lib/referentiels/indicateurs';
 
 export const metadata: Metadata = {
-  title: 'Réalisations — Plateforme OIF Emploi Jeunes',
+  title: 'Réalisations – Plateforme OIF Emploi Jeunes',
   description:
-    'Résultats des projets OIF en matière d\u2019emploi des jeunes francophones — indicateurs A, B, C, D et marqueur F.',
+    'Résultats des projets OIF en matière d\u2019emploi des jeunes francophones – indicateurs A, B, C, D et marqueur F.',
 };
 
 export default async function RealisationsPage() {

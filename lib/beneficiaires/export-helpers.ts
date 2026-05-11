@@ -62,8 +62,8 @@ export const COLONNES_A1 = [
 
 /** Libellés des 3 valeurs de consentement dans le Template V1. */
 export const CONSENTEMENT_LIBELLES: Record<'true' | 'false', string> = {
-  true: 'Oui — consentement recueilli',
-  false: 'Non — pas de consentement',
+  true: 'Oui – consentement recueilli',
+  false: 'Non – pas de consentement',
 };
 
 /** Libellés des tranches d'âge OIF (Questionnaire A Q105). */
@@ -249,7 +249,7 @@ function mapperLigneExport(
     fonction: null,
     consentement:
       r.consentement_recueilli === true ? CONSENTEMENT_LIBELLES.true : CONSENTEMENT_LIBELLES.false,
-    telephone: null, // Volontairement non exporté depuis la liste (privacy — exigerait un fetch détail par ligne)
+    telephone: null, // Volontairement non exporté depuis la liste (privacy – exigerait un fetch détail par ligne)
     courriel: null,
     localite: null,
     commentaire: null,

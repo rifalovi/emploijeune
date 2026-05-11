@@ -71,7 +71,7 @@ export async function listUtilisateurs(): Promise<UtilisateurListItem[]> {
       actif: r.actif,
       statut_validation: r.statut_validation,
       created_at: r.created_at,
-      derniere_connexion: null, // accessible via service_role auth.users — V1.5
+      derniere_connexion: null, // accessible via service_role auth.users – V1.5
     };
   });
 }

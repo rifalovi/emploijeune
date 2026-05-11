@@ -5,7 +5,7 @@ import { listerActivationsIa } from '@/lib/super-admin/queries';
 import { ToggleModuleRow } from '@/components/super-admin/toggle-module-row';
 
 export const metadata: Metadata = {
-  title: 'Modules — Super Administration',
+  title: 'Modules – Super Administration',
 };
 
 export const dynamic = 'force-dynamic';
@@ -60,7 +60,7 @@ export default async function ModulesPage() {
               <CardTitle>Assistant IA Analytique</CardTitle>
               <CardDescription>
                 Activez le module IA pour les rôles autorisés. Les utilisateurs des rôles désactivés
-                ne voient aucune trace du module — pas d'item sidebar, pas de mention.
+                ne voient aucune trace du module – pas d'item sidebar, pas de mention.
               </CardDescription>
             </div>
           </div>
@@ -96,7 +96,7 @@ export default async function ModulesPage() {
               <li>
                 Quand vous désactivez, l'item disparaît immédiatement et la route
                 <code className="mx-1 rounded bg-white px-1.5 py-0.5">/assistant-ia</code> retourne
-                404 — comme si la page n'existait pas.
+                404 – comme si la page n'existait pas.
               </li>
               <li>
                 Les invites envoyées à Claude API sont anonymisées côté serveur AVANT envoi (noms,

@@ -14,8 +14,8 @@ type PageProps = {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const fiche = await getStructureById(id);
-  if (!fiche) return { title: 'Modifier — OIF Emploi Jeunes' };
-  return { title: `Modifier ${fiche.nom_structure} — OIF Emploi Jeunes` };
+  if (!fiche) return { title: 'Modifier – OIF Emploi Jeunes' };
+  return { title: `Modifier ${fiche.nom_structure} – OIF Emploi Jeunes` };
 }
 
 export default async function ModifierStructurePage({ params }: PageProps) {
@@ -47,11 +47,11 @@ export default async function ModifierStructurePage({ params }: PageProps) {
         utilisateur.role === 'super_admin' ||
         meta.programme_strategique === 'PS3',
     )
-    .map(([code, meta]) => ({ code, libelle: `${code} — ${meta.libelle}` }));
+    .map(([code, meta]) => ({ code, libelle: `${code} – ${meta.libelle}` }));
 
   const paysOptions = Array.from(nomenclatures.pays.entries()).map(([code, libelle]) => ({
     code,
-    libelle: `${code} — ${libelle}`,
+    libelle: `${code} – ${libelle}`,
   }));
 
   return (
@@ -69,7 +69,7 @@ export default async function ModifierStructurePage({ params }: PageProps) {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Modifier · {fiche.nom_structure}</h1>
         <p className="text-muted-foreground text-sm">
-          Indicateur B1 — modification d&apos;une structure existante
+          Indicateur B1 – modification d&apos;une structure existante
         </p>
       </header>
 

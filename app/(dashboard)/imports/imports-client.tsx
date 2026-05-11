@@ -18,14 +18,14 @@ export function ImportsPageClient() {
         <ZoneUploadImport
           endpoint="/api/imports/beneficiaires"
           titre="Importer des bénéficiaires (A1)"
-          description="Format attendu : Template V1 — feuille « Bénéficiaires » avec les 22 colonnes du modèle (Code projet, Code pays, Prénom, Nom, Sexe, etc.)."
+          description="Format attendu : Template V1 – feuille « Bénéficiaires » avec les 22 colonnes du modèle (Code projet, Code pays, Prénom, Nom, Sexe, etc.)."
           templateLabel="Modèle"
           onRapport={setRapport}
         />
         <ZoneUploadImport
           endpoint="/api/imports/structures"
           titre="Importer des structures (B1)"
-          description="Format attendu : Template V1 — feuille « Structures B1 » avec les 37 colonnes du modèle (Code projet, Nom structure, Type, Secteur, Porteur, etc.)."
+          description="Format attendu : Template V1 – feuille « Structures B1 » avec les 37 colonnes du modèle (Code projet, Nom structure, Type, Secteur, Porteur, etc.)."
           templateLabel="Modèle"
           onRapport={setRapport}
         />

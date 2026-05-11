@@ -104,7 +104,7 @@ const baseStructureSchema = z.object({
 
   date_creation: optionalDate.refine(
     (d) => !d || (d >= new Date('1900-01-01') && d <= new Date()),
-    'Date de création hors plage (1900 — aujourd’hui)',
+    'Date de création hors plage (1900 – aujourd’hui)',
   ),
 
   statut_creation: z.enum([...STATUTS_STRUCTURE_VALUES] as [string, ...string[]], {
@@ -142,7 +142,7 @@ const baseStructureSchema = z.object({
 
   porteur_date_naissance: optionalDate.refine(
     (d) => !d || (d >= new Date('1900-01-01') && d <= new Date()),
-    'Date de naissance hors plage (1900 — aujourd’hui)',
+    'Date de naissance hors plage (1900 – aujourd’hui)',
   ),
 
   // === Section 4 : Appui ===

@@ -143,7 +143,7 @@ function StructureRow({
       </TableCell>
       <TableCell className="text-right tabular-nums">
         <LibelleCell href={href}>
-          {montantFormate || <span className="text-muted-foreground">—</span>}
+          {montantFormate || <span className="text-muted-foreground">–</span>}
         </LibelleCell>
       </TableCell>
       <TableCell>

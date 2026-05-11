@@ -71,7 +71,7 @@ export function BandeauViewAs({ cibleNomComplet, cibleRole, expiresAt }: Bandeau
             aria-label="Temps restant avant expiration de la session view-as"
             suppressHydrationWarning
           >
-            {minutes === null ? '—:—' : `${minutes}:${String(secondes).padStart(2, '0')}`}
+            {minutes === null ? '–:–' : `${minutes}:${String(secondes).padStart(2, '0')}`}
           </span>
           <Button
             size="sm"

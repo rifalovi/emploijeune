@@ -88,8 +88,8 @@ export function EnqueteFilters({ projets }: EnqueteFiltersProps) {
           label="Questionnaire"
           value={get('questionnaire') || TOUS}
           options={[
-            { code: 'A', libelle: 'A — Bénéficiaires' },
-            { code: 'B', libelle: 'B — Structures' },
+            { code: 'A', libelle: 'A – Bénéficiaires' },
+            { code: 'B', libelle: 'B – Structures' },
           ]}
           onChange={(v) => setParams({ questionnaire: v })}
         />

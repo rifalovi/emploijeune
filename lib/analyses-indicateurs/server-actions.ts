@@ -30,7 +30,7 @@ import { indicateurParCode } from '@/lib/referentiels/indicateurs';
 async function exigerSuperAdmin() {
   const utilisateur = await getCurrentUtilisateur();
   if (!utilisateur || utilisateur.role !== 'super_admin') {
-    throw new Error('Accès refusé — rôle super_admin requis.');
+    throw new Error('Accès refusé – rôle super_admin requis.');
   }
   return utilisateur;
 }
@@ -85,9 +85,9 @@ function construirePrompt(indicateurCode: string): string {
       ? `\n## Indicateurs connexes à mentionner\nDans ton analyse, établis des liens explicites avec ces indicateurs du même cadre CMR :\n${connexes.join(', ')}\n\nPar exemple : "Un ${indicateurCode} élevé combiné à [indicateur connexe] élevé suggère…" ou "Si ${indicateurCode} est fort mais [indicateur connexe] faible, cela indique…"\n`
       : '';
 
-  return `Tu es un expert en suivi-évaluation de projets d'emploi pour les jeunes dans l'espace francophone (OIF — Organisation Internationale de la Francophonie).
+  return `Tu es un expert en suivi-évaluation de projets d'emploi pour les jeunes dans l'espace francophone (OIF – Organisation Internationale de la Francophonie).
 
-Tu dois rédiger une **analyse synthétique** de l'indicateur CMR "${ind.code} — ${ind.intitule}" pour le tableau de bord public de la plateforme OIF Emploi Jeunes.
+Tu dois rédiger une **analyse synthétique** de l'indicateur CMR "${ind.code} – ${ind.intitule}" pour le tableau de bord public de la plateforme OIF Emploi Jeunes.
 
 ## Contexte de l'indicateur
 - **Code** : ${ind.code}
@@ -101,17 +101,17 @@ ${sectionConnexes}
 ## Instructions de rédaction
 Rédige une analyse en **4 à 5 paragraphes** (environ 250 à 350 mots) en Markdown, structurée ainsi :
 
-1. **Signification et importance** — Pourquoi cet indicateur est-il stratégique pour mesurer l'impact des projets emploi jeunes OIF ? Quel objectif stratégique francophone éclaire-t-il ?
-2. **Interprétation des données** — Comment lire et interpréter les valeurs de cet indicateur ? Quels seuils ou tendances sont significatifs dans le contexte des pays francophones en développement ?
-3. **Lecture transversale** — Quelles conclusions systémiques émergent quand on croise ${indicateurCode} avec ses indicateurs connexes ? Donne au moins **un exemple concret de combinaison** (ex : "fort ${indicateurCode} sans [connexe] élevé signale un problème de…").
-4. **Facteurs d'influence** — Quels facteurs contextuels (économiques, institutionnels, sociaux, infrastructure, genre) peuvent expliquer les variations observées en Afrique francophone subsaharienne et dans les autres zones d'intervention OIF ?
-5. **Recommandations actionnables et vision systémique** — Liste 3 recommandations concrètes adaptées au contexte francophone, puis termine par une lecture systémique : quelle combinaison d'indicateurs permettrait de conclure que le programme atteint son objectif global d'insertion durable des jeunes ?
+1. **Signification et importance** – Pourquoi cet indicateur est-il stratégique pour mesurer l'impact des projets emploi jeunes OIF ? Quel objectif stratégique francophone éclaire-t-il ?
+2. **Interprétation des données** – Comment lire et interpréter les valeurs de cet indicateur ? Quels seuils ou tendances sont significatifs dans le contexte des pays francophones en développement ?
+3. **Lecture transversale** – Quelles conclusions systémiques émergent quand on croise ${indicateurCode} avec ses indicateurs connexes ? Donne au moins **un exemple concret de combinaison** (ex : "fort ${indicateurCode} sans [connexe] élevé signale un problème de…").
+4. **Facteurs d'influence** – Quels facteurs contextuels (économiques, institutionnels, sociaux, infrastructure, genre) peuvent expliquer les variations observées en Afrique francophone subsaharienne et dans les autres zones d'intervention OIF ?
+5. **Recommandations actionnables et vision systémique** – Liste 3 recommandations concrètes adaptées au contexte francophone, puis termine par une lecture systémique : quelle combinaison d'indicateurs permettrait de conclure que le programme atteint son objectif global d'insertion durable des jeunes ?
 
 ## Contraintes
 - Ton professionnel et pédagogique, accessible à des coordinateurs de projets en pays francophones du Sud
 - Ne cite pas de chiffres spécifiques de la base de données (données fictives en V1)
 - Utilise le format Markdown avec des **titres de niveau 3** (###) pour chaque section
-- N'utilise PAS de lignes horizontales (---), de blockquotes (>) ni de listes imbriquées (sous-puces avec indentation) — le rendu plateforme est volontairement simplifié
+- N'utilise PAS de lignes horizontales (---), de blockquotes (>), de tirets longs em-dash (—) ni de listes imbriquées (sous-puces avec indentation). Préfère le tiret moyen (–), la virgule, le deux-points ou les parenthèses pour marquer les pauses. Le rendu plateforme est volontairement simplifié.
 - Maximum 400 mots
 - Langue : français`;
 }

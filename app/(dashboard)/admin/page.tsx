@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 
 export const metadata: Metadata = {
-  title: 'Administration — OIF Emploi Jeunes',
+  title: 'Administration – OIF Emploi Jeunes',
 };
 
 /**

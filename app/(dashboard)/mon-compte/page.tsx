@@ -5,7 +5,7 @@ import { InfoPersoCard } from '@/components/mon-compte/info-perso-card';
 import { ChangerMdpForm } from '@/components/mon-compte/changer-mdp-form';
 
 export const metadata: Metadata = {
-  title: 'Mon compte — OIF Emploi Jeunes',
+  title: 'Mon compte – OIF Emploi Jeunes',
 };
 
 /**
@@ -24,7 +24,7 @@ export default async function MonComptePage() {
 
   const supabase = await createSupabaseServerClient();
   const { data: auth } = await supabase.auth.getUser();
-  const email = auth.user?.email ?? '—';
+  const email = auth.user?.email ?? '–';
   const createdAt = auth.user?.created_at ?? new Date().toISOString();
 
   // Récupère organisation + projets gérés (pour rôles partenaire/coordo)

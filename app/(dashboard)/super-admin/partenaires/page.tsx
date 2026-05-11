@@ -6,7 +6,7 @@ import { listerPartenairesAvecArchive } from '@/lib/super-admin/queries';
 import { ActionsPartenaireRow } from '@/components/super-admin/actions-partenaire-row';
 
 export const metadata: Metadata = {
-  title: 'Partenaires — Super Administration',
+  title: 'Partenaires – Super Administration',
 };
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,7 @@ export default async function PartenairesPage() {
             </span>
             <div>
               <CardTitle>
-                Partenaires ({partenaires.length}) — {actifs.length} actifs · {archives.length}{' '}
+                Partenaires ({partenaires.length}) – {actifs.length} actifs · {archives.length}{' '}
                 archivés
               </CardTitle>
               <CardDescription>
@@ -60,10 +60,10 @@ export default async function PartenairesPage() {
                   >
                     <td className="px-3 py-2 font-medium text-slate-900">{p.nom}</td>
                     <td className="px-3 py-2 text-xs text-slate-600">
-                      {p.type_organisation ?? '—'}
+                      {p.type_organisation ?? '–'}
                     </td>
                     <td className="px-3 py-2 font-mono text-xs text-slate-600">
-                      {p.pays_code ?? '—'}
+                      {p.pays_code ?? '–'}
                     </td>
                     <td className="px-3 py-2 text-slate-700 tabular-nums">
                       {p.utilisateurs_count}

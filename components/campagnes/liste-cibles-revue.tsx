@@ -165,7 +165,7 @@ export function ListeCiblesRevue({
                           {l.tranche_age_declaree === 'Jeune' ? 'Jeune 18–34' : 'Adulte 35+'}
                         </Badge>
                       ) : (
-                        <span className="text-muted-foreground text-[10px] italic">—</span>
+                        <span className="text-muted-foreground text-[10px] italic">–</span>
                       )}
                     </td>
                     <td className="p-2">
@@ -175,7 +175,7 @@ export function ListeCiblesRevue({
                     </td>
                     <td className="p-2 text-xs">{l.pays_code}</td>
                     <td className="text-muted-foreground max-w-[220px] truncate p-2 text-xs">
-                      {emailAffichable ?? <span className="italic">— sans email valide</span>}
+                      {emailAffichable ?? <span className="italic">– sans email valide</span>}
                     </td>
                   </tr>
                 );

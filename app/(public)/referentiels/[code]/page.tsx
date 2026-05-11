@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const ind = indicateurParCode(code);
   if (!ind) return { title: 'Indicateur introuvable' };
   return {
-    title: `${ind.code} — ${ind.intitule} · Référentiels OIF`,
+    title: `${ind.code} – ${ind.intitule} · Référentiels OIF`,
     description: ind.definition,
   };
 }
@@ -73,7 +73,7 @@ export default async function FicheIndicateurPage({ params }: Props) {
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl leading-tight font-bold md:text-3xl">{ind.intitule}</h1>
             <p className="mt-1 text-sm text-white/85">
-              {pilier.titre} — {pilier.sousTitre}
+              {pilier.titre} – {pilier.sousTitre}
             </p>
           </div>
         </div>
@@ -197,7 +197,7 @@ export default async function FicheIndicateurPage({ params }: Props) {
       {/* Lien vers documentation OIF */}
       <p className="text-muted-foreground border-t border-slate-200 pt-6 text-xs">
         <ArrowUpRight className="mr-1 inline size-3" aria-hidden />
-        Source officielle : <em>Cadre commun de mesure du rendement V2</em>, OIF — Service de
+        Source officielle : <em>Cadre commun de mesure du rendement V2</em>, OIF – Service de
         Conception et Suivi des projets.
       </p>
     </article>

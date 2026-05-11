@@ -14,7 +14,7 @@ import { BoutonExporterStructures } from '@/components/structures/bouton-exporte
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Structures — OIF Emploi Jeunes',
+  title: 'Structures – OIF Emploi Jeunes',
 };
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -60,11 +60,11 @@ export default async function StructuresPage({ searchParams }: PageProps) {
         utilisateur.role === 'super_admin' ||
         meta.programme_strategique === 'PS3',
     )
-    .map(([code, meta]) => ({ code, libelle: `${code} — ${meta.libelle}` }));
+    .map(([code, meta]) => ({ code, libelle: `${code} – ${meta.libelle}` }));
 
   const paysOptions = Array.from(nomenclatures.pays.entries()).map(([code, libelle]) => ({
     code,
-    libelle: `${code} — ${libelle}`,
+    libelle: `${code} – ${libelle}`,
   }));
 
   // Droits UI (la RLS reste la vraie barrière côté serveur).
@@ -102,7 +102,7 @@ export default async function StructuresPage({ searchParams }: PageProps) {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Structures</h1>
           <p className="text-muted-foreground text-sm">
-            Indicateur B1 — {result.total.toLocaleString('fr-FR')} structure
+            Indicateur B1 – {result.total.toLocaleString('fr-FR')} structure
             {result.total > 1 ? 's' : ''} appuyée
             {result.total > 1 ? 's' : ''} dans votre périmètre
           </p>

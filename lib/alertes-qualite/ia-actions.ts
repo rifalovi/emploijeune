@@ -51,7 +51,7 @@ export async function analyserAlertesIa(
   if (!apiKey) {
     return {
       status: 'erreur',
-      message: 'ANTHROPIC_API_KEY absente — contactez le super_admin.',
+      message: 'ANTHROPIC_API_KEY absente – contactez le super_admin.',
     };
   }
 

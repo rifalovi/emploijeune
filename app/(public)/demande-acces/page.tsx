@@ -5,7 +5,7 @@ import { LogoOIF } from '@/components/branding/logo-oif';
 import { DemandeAccesForm } from '@/components/demandes-acces/demande-acces-form';
 
 export const metadata: Metadata = {
-  title: 'Demander l’accès — OIF Emploi Jeunes',
+  title: 'Demander l’accès – OIF Emploi Jeunes',
 };
 
 /**

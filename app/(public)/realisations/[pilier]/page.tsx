@@ -18,8 +18,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { pilier } = await params;
   const code = pilier.toUpperCase() as CodePilier;
   const p = PILIERS[code];
-  if (!p) return { title: 'Réalisations — OIF' };
-  return { title: `Catégorie ${code} — ${p.sousTitre} · Réalisations OIF` };
+  if (!p) return { title: 'Réalisations – OIF' };
+  return { title: `Catégorie ${code} – ${p.sousTitre} · Réalisations OIF` };
 }
 
 export default async function PilierPage({ params }: Props) {
@@ -64,7 +64,7 @@ export default async function PilierPage({ params }: Props) {
         {/* Liste des indicateurs */}
         <section className="mt-12">
           <h2 className="text-xl font-semibold text-[#0E4F88]">
-            {indicateurs.length} indicateur{indicateurs.length > 1 ? 's' : ''} — cliquez pour voir les réalisations
+            {indicateurs.length} indicateur{indicateurs.length > 1 ? 's' : ''} – cliquez pour voir les réalisations
           </h2>
           <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
             {indicateurs.map((ind) => (

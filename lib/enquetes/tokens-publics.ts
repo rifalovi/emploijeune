@@ -80,7 +80,7 @@ export async function validerToken(token: string): Promise<ValiderTokenResult> {
 
   const ben = Array.isArray(data.beneficiaire) ? data.beneficiaire[0] : data.beneficiaire;
   const str = Array.isArray(data.structure) ? data.structure[0] : data.structure;
-  const cibleLibelle = ben ? `${ben.prenom} ${ben.nom}` : (str?.nom_structure ?? '—');
+  const cibleLibelle = ben ? `${ben.prenom} ${ben.nom}` : (str?.nom_structure ?? '–');
   const cibleId = data.cible_type === 'beneficiaire' ? data.beneficiaire_id! : data.structure_id!;
 
   return {
@@ -145,7 +145,7 @@ export async function genererTokenEnquete(input: GenererTokenInput): Promise<Gen
 
   // Récupère cible (RLS-safe) pour projet + nom + email destinataire potentiel
   let projetCible: string | null = null;
-  let cibleLibelle = '—';
+  let cibleLibelle = '–';
   let emailCible: string | null = null;
 
   if (input.cibleType === 'beneficiaire') {

@@ -46,8 +46,8 @@ export const revalidate = 3600;
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { indicateur } = await params;
   const ind = indicateurParCode(indicateur);
-  if (!ind) return { title: 'Indicateur introuvable — OIF' };
-  return { title: `${ind.code} — ${ind.intitule} · Réalisations OIF` };
+  if (!ind) return { title: 'Indicateur introuvable – OIF' };
+  return { title: `${ind.code} – ${ind.intitule} · Réalisations OIF` };
 }
 
 // ─── Types d'indicateurs ──────────────────────────────────────────────────────
@@ -266,7 +266,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
           <div className="mt-6 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <AlertCircle className="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden />
             <p className="text-xs text-slate-400 leading-relaxed">
-              <span className="font-semibold">Données indicatives</span> — Les chiffres ci-dessous sont fictifs et présentés à des fins de présentation.
+              <span className="font-semibold">Données indicatives</span> – Les chiffres ci-dessous sont fictifs et présentés à des fins de présentation.
               Ils seront remplacés par les données réelles dès l&apos;alimentation des questionnaires de collecte.
             </p>
           </div>
@@ -391,7 +391,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
         <div className="mt-12">
           <Link href={`/realisations/${pilier}`} className="inline-flex items-center gap-2 text-sm font-medium text-[#0E4F88] hover:underline">
             <ArrowLeft className="size-4" aria-hidden />
-            Retour — Catégorie {ind.pilier}
+            Retour – Catégorie {ind.pilier}
           </Link>
         </div>
       </main>

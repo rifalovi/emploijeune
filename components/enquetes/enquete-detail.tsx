@@ -56,7 +56,7 @@ export function EnqueteDetail({ session }: EnqueteDetailProps) {
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <Champ label="Cible">
-            <span className="font-medium">{session.cible_libelle ?? '—'}</span>
+            <span className="font-medium">{session.cible_libelle ?? '–'}</span>
           </Champ>
           <Champ label="Questionnaire">
             <Badge variant="outline" className="font-mono">
@@ -67,7 +67,7 @@ export function EnqueteDetail({ session }: EnqueteDetailProps) {
             {session.projet_code ? (
               <BadgeProjet code={session.projet_code} programmeStrategique={ps} variant="inline" />
             ) : (
-              <span className="text-muted-foreground">—</span>
+              <span className="text-muted-foreground">–</span>
             )}
           </Champ>
           <Champ label="Date de collecte">

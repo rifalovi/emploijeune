@@ -4,7 +4,7 @@ import { LogoOIF } from '@/components/branding/logo-oif';
 import { ConnexionForm } from './connexion-form';
 
 export const metadata: Metadata = {
-  title: 'Connexion — OIF Emploi Jeunes',
+  title: 'Connexion – OIF Emploi Jeunes',
 };
 
 export default function ConnexionPage() {

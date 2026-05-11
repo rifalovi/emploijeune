@@ -34,7 +34,7 @@ export function ActionsUtilisateurRow({ userId, nomComplet, suspendu, isCourant 
   const [pending, startTransition] = useTransition();
 
   if (isCourant) {
-    return <span className="text-muted-foreground text-xs italic">—</span>;
+    return <span className="text-muted-foreground text-xs italic">–</span>;
   }
 
   if (suspendu) {

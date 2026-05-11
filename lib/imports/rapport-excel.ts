@@ -48,8 +48,8 @@ export async function genererRapportExcel(rapport: RapportImport): Promise<Array
   for (const e of rapport.erreurs as ErreurImport[]) {
     wsErr.addRow({
       ligne: e.ligne,
-      colonne: e.colonne ?? '—',
-      valeur: e.valeur ?? '—',
+      colonne: e.colonne ?? '–',
+      valeur: e.valeur ?? '–',
       message: e.message,
     });
   }

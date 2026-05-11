@@ -102,7 +102,7 @@ export function StructureDetail({ structure, nomenclatures }: StructureDetailPro
               <span className="text-muted-foreground w-32 shrink-0">Statut</span>
               <StatutStructureBadge code={structure.statut_creation as StatutStructure} />
             </div>
-            <Champ label="Initiative" valeur={structure.intitule_initiative ?? '—'} />
+            <Champ label="Initiative" valeur={structure.intitule_initiative ?? '–'} />
           </CardContent>
         </Card>
 
@@ -122,7 +122,7 @@ export function StructureDetail({ structure, nomenclatures }: StructureDetailPro
               />
             </div>
             <Champ label="Pays" valeur={`${paysLibelle} (${structure.pays_code})`} />
-            <Champ label="Organisation" valeur={structure.organisation_nom ?? '—'} />
+            <Champ label="Organisation" valeur={structure.organisation_nom ?? '–'} />
             <Champ label="Année d’appui" valeur={String(structure.annee_appui)} />
             <Champ
               label="Responsable"
@@ -140,10 +140,10 @@ export function StructureDetail({ structure, nomenclatures }: StructureDetailPro
             <Champ label="Nature appui" valeur={natureLibelle} />
             <Champ
               label="Montant"
-              valeur={montantFormate || '—'}
+              valeur={montantFormate || '–'}
               monospace={Boolean(montantFormate)}
             />
-            <Champ label="Devise" valeur={deviseLibelle ?? '—'} />
+            <Champ label="Devise" valeur={deviseLibelle ?? '–'} />
           </CardContent>
         </Card>
 
@@ -160,8 +160,8 @@ export function StructureDetail({ structure, nomenclatures }: StructureDetailPro
             {structure.consentement_recueilli && (
               <Champ label="Recueilli le" valeur={formatDateFR(structure.consentement_date)} />
             )}
-            <Champ label="Téléphone" valeur={structure.telephone_porteur ?? '—'} monospace />
-            <Champ label="Courriel" valeur={structure.courriel_porteur ?? '—'} />
+            <Champ label="Téléphone" valeur={structure.telephone_porteur ?? '–'} monospace />
+            <Champ label="Courriel" valeur={structure.courriel_porteur ?? '–'} />
           </CardContent>
         </Card>
       </div>
@@ -208,7 +208,7 @@ export function StructureDetail({ structure, nomenclatures }: StructureDetailPro
                 {(structure.latitude !== null || structure.longitude !== null) && (
                   <Champ
                     label="Coordonnées GPS"
-                    valeur={`${structure.latitude ?? '—'}, ${structure.longitude ?? '—'}`}
+                    valeur={`${structure.latitude ?? '–'}, ${structure.longitude ?? '–'}`}
                     monospace
                   />
                 )}
@@ -314,7 +314,7 @@ function Champ({
 }
 
 function formatDateFR(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '–';
   try {
     return format(new Date(iso), 'd MMMM yyyy', { locale: fr });
   } catch {
@@ -323,7 +323,7 @@ function formatDateFR(iso: string | null): string {
 }
 
 function formatDateTimeFR(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '–';
   try {
     return format(new Date(iso), "d MMM yyyy 'à' HH:mm", { locale: fr });
   } catch {

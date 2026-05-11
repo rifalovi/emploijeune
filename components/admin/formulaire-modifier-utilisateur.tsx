@@ -217,7 +217,7 @@ export function FormulaireModifierUtilisateur({
             <CardTitle className="text-base">3. Rattachement organisation</CardTitle>
             {role === 'admin_scs' && (
               <CardDescription>
-                Les administrateurs SCS ont accès à tous les projets et structures — le rattachement
+                Les administrateurs SCS ont accès à tous les projets et structures – le rattachement
                 organisation est facultatif.
               </CardDescription>
             )}

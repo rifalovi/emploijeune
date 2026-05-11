@@ -283,7 +283,7 @@ export async function lancerCampagne(campagneId: string): Promise<LancerCampagne
   if (campagne.statut !== 'brouillon' && campagne.statut !== 'programmee') {
     return {
       status: 'erreur_etat',
-      message: `Campagne dans le statut « ${campagne.statut} » — relance impossible. Créez une nouvelle campagne.`,
+      message: `Campagne dans le statut « ${campagne.statut} » – relance impossible. Créez une nouvelle campagne.`,
     };
   }
 

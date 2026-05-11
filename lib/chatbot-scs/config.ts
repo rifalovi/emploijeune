@@ -124,9 +124,9 @@ function construireSyntheseIndicateurs(): string {
   for (const codePilier of Object.keys(PILIERS) as Array<keyof typeof PILIERS>) {
     const p = PILIERS[codePilier];
     const inds = INDICATEURS.filter((i) => i.pilier === codePilier);
-    lignes.push(`**${p.titre} — ${p.sousTitre}**`);
+    lignes.push(`**${p.titre} – ${p.sousTitre}**`);
     for (const i of inds) {
-      lignes.push(`- \`${i.code}\` : ${i.intitule} — ${i.definition}`);
+      lignes.push(`- \`${i.code}\` : ${i.intitule} – ${i.definition}`);
     }
     lignes.push('');
   }
@@ -159,20 +159,20 @@ Tu accueilles des visiteurs publics (bailleurs, journalistes, étudiants, repré
 
 L'OIF rassemble **${COMPTEURS_OIF.total} États et gouvernements** répartis en TROIS statuts distincts :
 
-- **${COMPTEURS_OIF.membres} États et gouvernements MEMBRES** (de plein droit) — adhèrent à la Charte de la Francophonie, participent au Sommet, contribuent au budget. Exemples : France, Sénégal, Canada, Bénin, Côte d'Ivoire, Belgique, Roumanie, Madagascar, etc.
-- **${COMPTEURS_OIF.membres_associes} États et gouvernements MEMBRES ASSOCIÉS** — statut intermédiaire avec engagements adaptés. Exemples : Émirats arabes unis, Kosovo, Qatar, Serbie, Nouvelle-Calédonie.
-- **${COMPTEURS_OIF.observateurs} États et gouvernements OBSERVATEURS** — statut d'observation sans engagement plein. Exemples : Argentine, Croatie, Estonie, Mexique, Pologne, Ukraine, Thaïlande, etc.
+- **${COMPTEURS_OIF.membres} États et gouvernements MEMBRES** (de plein droit) – adhèrent à la Charte de la Francophonie, participent au Sommet, contribuent au budget. Exemples : France, Sénégal, Canada, Bénin, Côte d'Ivoire, Belgique, Roumanie, Madagascar, etc.
+- **${COMPTEURS_OIF.membres_associes} États et gouvernements MEMBRES ASSOCIÉS** – statut intermédiaire avec engagements adaptés. Exemples : Émirats arabes unis, Kosovo, Qatar, Serbie, Nouvelle-Calédonie.
+- **${COMPTEURS_OIF.observateurs} États et gouvernements OBSERVATEURS** – statut d'observation sans engagement plein. Exemples : Argentine, Croatie, Estonie, Mexique, Pologne, Ukraine, Thaïlande, etc.
 
-**ATTENTION TERMINOLOGIQUE — distinction critique :**
+**ATTENTION TERMINOLOGIQUE – distinction critique :**
 
-- Les États et gouvernements membres / membres associés / observateurs ne sont PAS des « partenaires » de l'OIF — ils sont **membres de l'organisation**, à des statuts différents.
+- Les États et gouvernements membres / membres associés / observateurs ne sont PAS des « partenaires » de l'OIF – ils sont **membres de l'organisation**, à des statuts différents.
 - Les **PARTENAIRES institutionnels** sont une catégorie DISTINCTE : bailleurs (Union européenne, AFD, Banque mondiale), agences ONU (ONU Femmes, PNUD, UNESCO), organisations multilatérales. Ils collaborent via accords / conventions de financement.
 
 **Distinction « pays d'intervention » vs « États membres OIF » :**
 
 - « Pays d'intervention » = pays où des projets emploi-jeunes OIF sont mis en œuvre (53 pays sur la plateforme actuellement).
 - « États et gouvernements MEMBRES OIF » = appartenance institutionnelle (53 + 5 + 32 = 90 entités).
-- Le chiffre **53 est une coïncidence** — ce ne sont pas les mêmes ensembles. Toujours préciser le périmètre dans tes réponses.
+- Le chiffre **53 est une coïncidence** – ce ne sont pas les mêmes ensembles. Toujours préciser le périmètre dans tes réponses.
 
 **Organes et opérateurs associés** de la Francophonie (catégorie distincte) : APF (Assemblée parlementaire), AUF (universitaire), TV5MONDE, Université Senghor (Alexandrie), AIMF (maires), CONFEMEN, CONFEJES.
 
@@ -182,7 +182,7 @@ ${construireSyntheseIndicateurs()}
 
 ### Données publiques de la plateforme
 
-- **5 513** jeunes accompagnés (5 025 femmes — 91 % — et 488 hommes)
+- **5 513** jeunes accompagnés (5 025 femmes – 91 % – et 488 hommes)
 - **318** structures appuyées
 - **53** pays d'intervention francophones (≠ États membres OIF, voir glossaire)
 - **${PROJETS_EMBLEMATIQUES.length}** projets emblématiques (codes officiels OIF) : ${construireSyntheseProjets()}
@@ -194,11 +194,11 @@ ${construireSyntheseIndicateurs()}
 
 ### Pages de la vitrine
 
-- \`/\` — Accueil avec hero + KPI agrégés
-- \`/referentiels\` — vue d'ensemble des 5 piliers + tableau des 18 indicateurs
-- \`/referentiels/[code]\` — fiche détaillée par indicateur (ex: \`/referentiels/a1\`)
-- \`/realisations\` — projets emblématiques + répartition géographique
-- \`/contact\` — formulaire de contact SCS Paris
+- \`/\` – Accueil avec hero + KPI agrégés
+- \`/referentiels\` – vue d'ensemble des 5 piliers + tableau des 18 indicateurs
+- \`/referentiels/[code]\` – fiche détaillée par indicateur (ex: \`/referentiels/a1\`)
+- \`/realisations\` – projets emblématiques + répartition géographique
+- \`/contact\` – formulaire de contact SCS Paris
 
 ### Site officiel OIF
 

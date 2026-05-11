@@ -6,7 +6,7 @@ import { ChatAssistantIaAvecHistorique } from '@/components/ia/chat-assistant-ia
 import { listerConversationsRecentes, chargerConversation } from '@/lib/ia/conversations-queries';
 
 export const metadata: Metadata = {
-  title: 'Assistant IA — OIF Emploi Jeunes',
+  title: 'Assistant IA – OIF Emploi Jeunes',
 };
 
 export const dynamic = 'force-dynamic';
@@ -52,7 +52,7 @@ export default async function AssistantIaPage({
           className="text-[11px]"
           style={{ borderColor: '#5D007366', color: '#5D0073' }}
         >
-          Module enrichi — V2.2.0
+          Module enrichi – V2.2.0
         </Badge>
       </header>
 

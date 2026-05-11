@@ -88,7 +88,7 @@ export function BadgeProjet({
       <span className="font-semibold">{code}</span>
       {libelle && (
         <>
-          <span aria-hidden>—</span>
+          <span aria-hidden>–</span>
           <span className="font-normal">{libelle}</span>
         </>
       )}

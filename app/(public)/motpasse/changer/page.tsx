@@ -4,7 +4,7 @@ import { LogoOIF } from '@/components/branding/logo-oif';
 import { ChangerMotPasseForm } from './changer-form';
 
 export const metadata: Metadata = {
-  title: 'Changer mon mot de passe — OIF Emploi Jeunes',
+  title: 'Changer mon mot de passe – OIF Emploi Jeunes',
 };
 
 /**

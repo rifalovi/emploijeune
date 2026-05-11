@@ -7,7 +7,7 @@ import { FormulaireAjouterNote } from '@/components/super-admin/formulaire-ajout
 import { ListeNotesConnaissance } from '@/components/super-admin/liste-notes-connaissance';
 
 export const metadata: Metadata = {
-  title: 'Base de connaissance — Super Administration',
+  title: 'Base de connaissance – Super Administration',
 };
 
 export const dynamic = 'force-dynamic';
@@ -93,7 +93,7 @@ export default async function BaseConnaissancePage() {
             </Badge>
             <ul className="list-disc space-y-1 pl-4">
               <li>
-                Recherche full-text PostgreSQL (français) à chaque appel IA — top 5 pertinents
+                Recherche full-text PostgreSQL (français) à chaque appel IA – top 5 pertinents
                 injectés.
               </li>
               <li>

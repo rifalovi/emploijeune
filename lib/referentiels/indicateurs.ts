@@ -31,7 +31,7 @@ export const PILIERS: Record<CodePilier, Pilier> = {
     titre: 'Catégorie A',
     sousTitre: 'Compétences et employabilité',
     description:
-      "Les indicateurs de cette catégorie suivent les jeunes formés et leur progression — depuis l'inscription en formation jusqu'à l'insertion professionnelle 6 ou 12 mois après. Ils permettent de mesurer la qualité et l'efficacité des dispositifs de formation soutenus par l'OIF.",
+      "Les indicateurs de cette catégorie suivent les jeunes formés et leur progression – depuis l'inscription en formation jusqu'à l'insertion professionnelle 6 ou 12 mois après. Ils permettent de mesurer la qualité et l'efficacité des dispositifs de formation soutenus par l'OIF.",
     couleur: '#0E4F88', // bleu institutionnel
   },
   B: {

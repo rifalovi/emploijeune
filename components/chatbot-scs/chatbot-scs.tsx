@@ -75,7 +75,7 @@ function ChatbotBubble({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label="Ouvrir l'Assistant SCS"
-      title="💬 Assistant SCS — Posez vos questions"
+      title="💬 Assistant SCS – Posez vos questions"
       className={cn(
         'fixed right-6 bottom-6 z-50 inline-flex size-14 items-center justify-center rounded-full text-white shadow-xl transition-all',
         'hover:scale-110 hover:shadow-2xl',

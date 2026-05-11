@@ -34,7 +34,7 @@ type TrancheCalculeeProps = {
 
 export function TrancheAgeCalculeeBadge({ tranche, estDeclaree }: TrancheCalculeeProps) {
   if (tranche === 'Non renseigné') {
-    return <span className="text-muted-foreground text-xs italic">—</span>;
+    return <span className="text-muted-foreground text-xs italic">–</span>;
   }
 
   const { couleur, libelle } = TRANCHE_CALCULEE_META[tranche];
@@ -62,7 +62,7 @@ const TRANCHE_CALCULEE_META: Record<TrancheAge, { couleur: string; libelle: stri
   '35-60 ans': { couleur: ADULTE_COLOR, libelle: 'Adulte 35–60' },
   '+60 ans': { couleur: SENIOR_COLOR, libelle: 'Senior 60+' },
   'Mineur (<18)': { couleur: MINEUR_COLOR, libelle: 'Mineur <18' },
-  'Non renseigné': { couleur: SENIOR_COLOR, libelle: '—' },
+  'Non renseigné': { couleur: SENIOR_COLOR, libelle: '–' },
 };
 
 // ─── 2. Depuis tranche déclarée OIF (Jeune / Adulte) ─────────────────────────
@@ -73,7 +73,7 @@ type TrancheDeclareeProps = {
 
 export function TrancheAgeDeclareesBadge({ tranche }: TrancheDeclareeProps) {
   if (!tranche) {
-    return <span className="text-muted-foreground text-[10px] italic">—</span>;
+    return <span className="text-muted-foreground text-[10px] italic">–</span>;
   }
 
   const couleur = tranche === 'Jeune' ? JEUNE_COLOR : ADULTE_COLOR;

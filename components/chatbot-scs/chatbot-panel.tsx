@@ -54,7 +54,7 @@ export function ChatbotPanel({ onClose }: { onClose: () => void }) {
         'animate-in slide-in-from-bottom-4 fade-in duration-300',
       )}
       role="dialog"
-      aria-label="Assistant SCS — chatbot public"
+      aria-label="Assistant SCS – chatbot public"
       aria-modal="true"
     >
       {/* Header */}
@@ -147,7 +147,7 @@ export function ChatbotPanel({ onClose }: { onClose: () => void }) {
             maxLength={TAILLE_MAX_MESSAGE}
             placeholder={
               limiteAtteinte
-                ? 'Limite atteinte — utilisez le formulaire de contact.'
+                ? 'Limite atteinte – utilisez le formulaire de contact.'
                 : 'Posez votre question…'
             }
             disabled={pending || limiteAtteinte}

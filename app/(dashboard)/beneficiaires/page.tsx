@@ -14,7 +14,7 @@ import { BoutonExporter } from '@/components/beneficiaires/bouton-exporter';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Bénéficiaires — OIF Emploi Jeunes',
+  title: 'Bénéficiaires – OIF Emploi Jeunes',
 };
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -63,11 +63,11 @@ export default async function BeneficiairesPage({ searchParams }: PageProps) {
         utilisateur.role === 'super_admin' ||
         meta.programme_strategique === 'PS3',
     )
-    .map(([code, meta]) => ({ code, libelle: `${code} — ${meta.libelle}` }));
+    .map(([code, meta]) => ({ code, libelle: `${code} – ${meta.libelle}` }));
 
   const paysOptions = Array.from(nomenclatures.pays.entries()).map(([code, libelle]) => ({
     code,
-    libelle: `${code} — ${libelle}`,
+    libelle: `${code} – ${libelle}`,
   }));
 
   const domainesOptions = Array.from(nomenclatures.domaines.entries()).map(([code, libelle]) => ({
@@ -105,7 +105,7 @@ export default async function BeneficiairesPage({ searchParams }: PageProps) {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Bénéficiaires</h1>
           <p className="text-muted-foreground text-sm">
-            Indicateur A1 — {result.total.toLocaleString('fr-FR')} bénéficiaire
+            Indicateur A1 – {result.total.toLocaleString('fr-FR')} bénéficiaire
             {result.total > 1 ? 's' : ''} dans votre périmètre
           </p>
         </div>

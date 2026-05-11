@@ -19,9 +19,9 @@ type PageProps = {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const fiche = await getBeneficiaireById(id);
-  if (!fiche) return { title: 'Bénéficiaire introuvable — OIF Emploi Jeunes' };
+  if (!fiche) return { title: 'Bénéficiaire introuvable – OIF Emploi Jeunes' };
   return {
-    title: `${fiche.prenom} ${fiche.nom} — OIF Emploi Jeunes`,
+    title: `${fiche.prenom} ${fiche.nom} – OIF Emploi Jeunes`,
   };
 }
 

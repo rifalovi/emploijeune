@@ -40,7 +40,7 @@ export function DemandeAccesActions({ demandeId, demandeurLibelle }: DemandeAcce
         toast.success('Demande approuvée et compte créé', {
           description:
             result.emailEnvoi === 'mock'
-              ? `MOCK — Lien d’activation : ${result.lienActivation}`
+              ? `MOCK – Lien d’activation : ${result.lienActivation}`
               : `Email d’invitation envoyé`,
           duration: 12000,
         });
@@ -59,7 +59,7 @@ export function DemandeAccesActions({ demandeId, demandeurLibelle }: DemandeAcce
     startTransition(async () => {
       const result = await rejeterDemandeAcces({ demandeId, raison });
       if (result.status === 'succes') {
-        toast.success('Demande rejetée — email envoyé');
+        toast.success('Demande rejetée – email envoyé');
         setOpenRejeter(false);
         setRaison('');
       } else if (result.status === 'erreur_validation') {

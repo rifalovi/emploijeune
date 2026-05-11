@@ -584,7 +584,7 @@ function Audiences() {
       icone: Vote,
       titre: 'Bailleurs et États et gouvernements membres',
       description:
-        'Reporting agrégé, indicateurs stratégiques, exports pour rapports annuels — destinés aux bailleurs (UE, AFD, etc.) et aux représentants des États et gouvernements membres, membres associés et observateurs de l\u2019OIF.',
+        'Reporting agrégé, indicateurs stratégiques, exports pour rapports annuels – destinés aux bailleurs (UE, AFD, etc.) et aux représentants des États et gouvernements membres, membres associés et observateurs de l\u2019OIF.',
     },
   ];
   return (
@@ -692,7 +692,7 @@ function Citations() {
     },
     {
       texte:
-        "Cibler une strate précise — un projet, un pays, une cohorte — plutôt qu'envoyer en masse : c'est ce qui distingue une collecte propre d'un envoi en masse.",
+        "Cibler une strate précise – un projet, un pays, une cohorte – plutôt qu'envoyer en masse : c'est ce qui distingue une collecte propre d'un envoi en masse.",
       auteur: 'Méthodologie OIF',
       fonction: 'Approche stratifiée des collectes',
     },

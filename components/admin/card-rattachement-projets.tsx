@@ -257,7 +257,7 @@ function CoordonnateurUI({
                 <Badge variant="outline" className="font-mono text-xs">
                   {a.projet_code}
                 </Badge>
-                <span className="flex-1 truncate">{a.projet_libelle ?? '—'}</span>
+                <span className="flex-1 truncate">{a.projet_libelle ?? '–'}</span>
                 <Badge variant="secondary" className="text-xs">
                   {ROLE_DANS_PROJET_LIBELLES[a.role_dans_projet as RoleDansProjet] ??
                     a.role_dans_projet}
@@ -556,7 +556,7 @@ function DialogTransfertProjet({
               <SelectContent>
                 {affectations.map((a) => (
                   <SelectItem key={a.projet_code} value={a.projet_code}>
-                    {a.projet_code} — {a.projet_libelle ?? '—'}
+                    {a.projet_code} – {a.projet_libelle ?? '–'}
                   </SelectItem>
                 ))}
               </SelectContent>

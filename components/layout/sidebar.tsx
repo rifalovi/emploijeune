@@ -62,7 +62,7 @@ export function Sidebar({
           size="sm"
           withProtectedSpace
           priority
-          ariaLabel="OIF — Organisation Internationale de la Francophonie"
+          ariaLabel="OIF – Organisation Internationale de la Francophonie"
         />
         <div className="mt-1 px-2 leading-tight">
           <p className="text-sm font-semibold">Emploi Jeunes</p>

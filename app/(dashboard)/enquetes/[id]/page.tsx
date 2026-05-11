@@ -14,9 +14,9 @@ type PageProps = {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const session = await getSessionEnqueteById(id);
-  if (!session) return { title: 'Enquête — OIF Emploi Jeunes' };
+  if (!session) return { title: 'Enquête – OIF Emploi Jeunes' };
   return {
-    title: `Enquête ${session.questionnaire ?? ''} · ${session.cible_libelle ?? ''} — OIF Emploi Jeunes`,
+    title: `Enquête ${session.questionnaire ?? ''} · ${session.cible_libelle ?? ''} – OIF Emploi Jeunes`,
   };
 }
 
@@ -58,10 +58,10 @@ export default async function EnqueteDetailPage({ params }: PageProps) {
       <header className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Enquête · {session.cible_libelle ?? '—'}
+            Enquête · {session.cible_libelle ?? '–'}
           </h1>
           <p className="text-muted-foreground text-sm">
-            Session {id.slice(0, 8)}… — {Object.keys(session.reponses).length} indicateurs
+            Session {id.slice(0, 8)}… – {Object.keys(session.reponses).length} indicateurs
             collectés.
           </p>
         </div>

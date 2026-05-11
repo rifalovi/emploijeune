@@ -14,7 +14,7 @@ import { BoutonExporterEnquetes } from '@/components/enquetes/bouton-exporter';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Enquêtes — OIF Emploi Jeunes',
+  title: 'Enquêtes – OIF Emploi Jeunes',
 };
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -50,7 +50,7 @@ export default async function EnquetesPage({ searchParams }: PageProps) {
         utilisateur.role === 'super_admin' ||
         meta.programme_strategique === 'PS3',
     )
-    .map(([code, meta]) => ({ code, libelle: `${code} — ${meta.libelle}` }));
+    .map(([code, meta]) => ({ code, libelle: `${code} – ${meta.libelle}` }));
 
   const peutCreer =
     utilisateur.role === 'admin_scs' ||
@@ -79,7 +79,7 @@ export default async function EnquetesPage({ searchParams }: PageProps) {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Enquêtes</h1>
           <p className="text-muted-foreground text-sm">
-            Indicateurs A2/A3/A4/A5 + B2/B3/B4 + F1 + C5 — {result.total.toLocaleString('fr-FR')}{' '}
+            Indicateurs A2/A3/A4/A5 + B2/B3/B4 + F1 + C5 – {result.total.toLocaleString('fr-FR')}{' '}
             session{result.total > 1 ? 's' : ''} d’enquête dans votre périmètre
           </p>
         </div>

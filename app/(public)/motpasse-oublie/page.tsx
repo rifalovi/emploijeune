@@ -5,7 +5,7 @@ import { LogoOIF } from '@/components/branding/logo-oif';
 import { MotPasseOublieForm } from './motpasse-oublie-form';
 
 export const metadata: Metadata = {
-  title: 'Mot de passe oublié — OIF Emploi Jeunes',
+  title: 'Mot de passe oublié – OIF Emploi Jeunes',
 };
 
 export default function MotPasseOubliePage() {

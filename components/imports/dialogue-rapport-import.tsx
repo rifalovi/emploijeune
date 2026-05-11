@@ -82,7 +82,7 @@ export function DialogueRapportImport({ rapport, onClose }: DialogueRapportImpor
           <DialogTitle>Rapport d’import</DialogTitle>
           {rapport && (
             <DialogDescription>
-              <strong>{rapport.fichier_nom}</strong> — exécuté le{' '}
+              <strong>{rapport.fichier_nom}</strong> – exécuté le{' '}
               {new Date(rapport.execute_a).toLocaleString('fr-FR', {
                 dateStyle: 'short',
                 timeStyle: 'short',
@@ -134,9 +134,9 @@ export function DialogueRapportImport({ rapport, onClose }: DialogueRapportImpor
                           <TableCell className="font-mono text-xs tabular-nums">
                             {e.ligne}
                           </TableCell>
-                          <TableCell className="text-xs">{e.colonne ?? '—'}</TableCell>
+                          <TableCell className="text-xs">{e.colonne ?? '–'}</TableCell>
                           <TableCell className="text-muted-foreground max-w-[12rem] truncate text-xs">
-                            {e.valeur ?? '—'}
+                            {e.valeur ?? '–'}
                           </TableCell>
                           <TableCell className="text-xs">{e.message}</TableCell>
                         </TableRow>
@@ -146,7 +146,7 @@ export function DialogueRapportImport({ rapport, onClose }: DialogueRapportImpor
                 </div>
                 {reste > 0 && (
                   <p className="text-muted-foreground text-xs italic">
-                    ({reste} erreur(s) supplémentaire(s) — téléchargez le rapport pour la liste
+                    ({reste} erreur(s) supplémentaire(s) – téléchargez le rapport pour la liste
                     complète.)
                   </p>
                 )}

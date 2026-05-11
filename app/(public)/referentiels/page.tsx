@@ -9,7 +9,7 @@ import {
 } from '@/lib/referentiels/indicateurs';
 
 export const metadata: Metadata = {
-  title: 'Référentiels — Cadre Commun OIF V2',
+  title: 'Référentiels – Cadre Commun OIF V2',
   description:
     'Tableau de bord des 18 indicateurs du Cadre Commun de mesure du rendement OIF V2 pour le suivi-évaluation des projets emploi jeunes.',
 };
@@ -33,7 +33,7 @@ export default function ReferentielsAccueil() {
           Cadre Commun de mesure du rendement V2
         </Badge>
         <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-          Référentiel OIF — Tableau de bord CMR
+          Référentiel OIF – Tableau de bord CMR
         </h1>
         <p className="text-muted-foreground mt-4 max-w-3xl text-sm leading-relaxed">
           Vue synthétique des 18 indicateurs du Cadre Commun. Cliquez sur un indicateur pour
@@ -141,7 +141,7 @@ export default function ReferentielsAccueil() {
         Source :{' '}
         <em>
           Cadre commun pour le suivi et la documentation des résultats de l&apos;emploi des jeunes
-          — Note méthodologique V2
+          – Note méthodologique V2
         </em>
         , validé par le Service de Conception et Suivi (SCS) de l&apos;OIF.
       </p>

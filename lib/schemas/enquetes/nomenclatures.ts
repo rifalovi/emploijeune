@@ -230,8 +230,8 @@ export type IndicateurCible =
 
 /** Libellés humains des questionnaires (UI). */
 export const QUESTIONNAIRE_LIBELLES: Record<CodeQuestionnaire, string> = {
-  A: 'Questionnaire A — Bénéficiaires (formation et insertion)',
-  B: 'Questionnaire B — Structures (survie et emplois)',
+  A: 'Questionnaire A – Bénéficiaires (formation et insertion)',
+  B: 'Questionnaire B – Structures (survie et emplois)',
 };
 
 // =============================================================================

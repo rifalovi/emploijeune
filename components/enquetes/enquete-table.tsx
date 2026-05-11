@@ -77,7 +77,7 @@ function EnqueteRow({ row }: { row: SessionEnqueteListItem }) {
 
       <TableCell className="font-medium">
         <LibelleCell href={href} title={row.cible_libelle ?? undefined}>
-          <span className="block max-w-[16rem] truncate">{row.cible_libelle ?? '—'}</span>
+          <span className="block max-w-[16rem] truncate">{row.cible_libelle ?? '–'}</span>
         </LibelleCell>
       </TableCell>
 
@@ -86,7 +86,7 @@ function EnqueteRow({ row }: { row: SessionEnqueteListItem }) {
           {row.questionnaire === 'A' ? (
             <TrancheAgeDeclareesBadge tranche={row.tranche_age_declaree} />
           ) : (
-            <span className="text-muted-foreground text-[10px]">—</span>
+            <span className="text-muted-foreground text-[10px]">–</span>
           )}
         </LibelleCell>
       </TableCell>
@@ -94,7 +94,7 @@ function EnqueteRow({ row }: { row: SessionEnqueteListItem }) {
       <TableCell>
         <LibelleCell href={href}>
           <Badge variant="outline" className="font-mono">
-            {row.questionnaire ?? '—'}
+            {row.questionnaire ?? '–'}
           </Badge>
         </LibelleCell>
       </TableCell>
@@ -104,7 +104,7 @@ function EnqueteRow({ row }: { row: SessionEnqueteListItem }) {
           {row.projet_code ? (
             <BadgeProjet code={row.projet_code} programmeStrategique={ps} variant="inline" />
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <span className="text-muted-foreground">–</span>
           )}
         </LibelleCell>
       </TableCell>

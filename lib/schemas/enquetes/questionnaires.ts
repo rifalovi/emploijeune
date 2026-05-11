@@ -97,7 +97,7 @@ const toOptions = <T extends string>(
 
 export const QUESTIONNAIRE_A: Questionnaire = {
   code: 'A',
-  titre: 'Questionnaire A — Bénéficiaires (formation et insertion)',
+  titre: 'Questionnaire A – Bénéficiaires (formation et insertion)',
   indicateurs: ['A2', 'A3', 'A4', 'A5', 'F1', 'C5'],
   introduction:
     'Enquête de suivi socio-économique adressée aux jeunes ayant bénéficié d’une formation via un projet OIF. Données strictement confidentielles, traitées de manière anonyme, conformément au secret statistique.',
@@ -105,7 +105,7 @@ export const QUESTIONNAIRE_A: Questionnaire = {
     {
       id: 'A_PARTICIPATION',
       titre: 'Participation à la formation',
-      description: 'Indicateur A2 — taux d’achèvement.',
+      description: 'Indicateur A2 – taux d’achèvement.',
       questions: [
         {
           id: 'A201',
@@ -189,7 +189,7 @@ export const QUESTIONNAIRE_A: Questionnaire = {
     {
       id: 'A_COMPETENCES',
       titre: 'Gain de compétences',
-      description: 'Indicateur A4 — auto-évaluation T0 / T1.',
+      description: 'Indicateur A4 – auto-évaluation T0 / T1.',
       questions: [
         {
           id: 'A301',
@@ -274,7 +274,7 @@ export const QUESTIONNAIRE_A: Questionnaire = {
             'Pensez-vous que votre usage du français a facilité l’accès ou l’amélioration de l’emploi ?',
           champ_payload: 'f1.francais_facilite_emploi',
           obligatoire: true,
-          aide: 'Indicateur F1 — apport du français à l’employabilité.',
+          aide: 'Indicateur F1 – apport du français à l’employabilité.',
         },
         {
           id: 'A408',
@@ -323,7 +323,7 @@ export const QUESTIONNAIRE_A: Questionnaire = {
 
 export const QUESTIONNAIRE_B: Questionnaire = {
   code: 'B',
-  titre: 'Questionnaire B — Structures (survie et emplois)',
+  titre: 'Questionnaire B – Structures (survie et emplois)',
   indicateurs: ['B2', 'B3', 'B4', 'C5'],
   introduction:
     'Enquête de suivi socio-économique adressée aux organisations et entreprises ayant bénéficié d’un appui via un projet OIF. Données strictement confidentielles, traitées conformément au secret statistique.',
@@ -331,7 +331,7 @@ export const QUESTIONNAIRE_B: Questionnaire = {
     {
       id: 'B_SURVIE',
       titre: 'Survie de l’activité économique',
-      description: 'Indicateur B2 — survie 12/24 mois + amorce B3.',
+      description: 'Indicateur B2 – survie 12/24 mois + amorce B3.',
       questions: [
         {
           id: 'B201',

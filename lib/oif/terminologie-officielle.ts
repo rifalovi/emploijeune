@@ -322,16 +322,16 @@ export const GLOSSAIRE_OIF = {
 
   /** Distinction officielle États OIF / Partenaires. */
   distinction: [
-    "États et gouvernements MEMBRES de l'OIF (53) — adhèrent à la Charte de la Francophonie, participent au Sommet, contribuent au budget.",
-    'États et gouvernements MEMBRES ASSOCIÉS (5) — statut intermédiaire avec engagements adaptés.',
-    'États et gouvernements OBSERVATEURS (32) — statut d\u2019observation sans engagement plein.',
-    'PARTENAIRES institutionnels — catégorie DISTINCTE des États : bailleurs (Union européenne, AFD, Banque mondiale), agences ONU (ONU Femmes, PNUD, UNESCO), organisations multilatérales. Liés par accords ou conventions de financement.',
+    "États et gouvernements MEMBRES de l'OIF (53) – adhèrent à la Charte de la Francophonie, participent au Sommet, contribuent au budget.",
+    'États et gouvernements MEMBRES ASSOCIÉS (5) – statut intermédiaire avec engagements adaptés.',
+    'États et gouvernements OBSERVATEURS (32) – statut d\u2019observation sans engagement plein.',
+    'PARTENAIRES institutionnels – catégorie DISTINCTE des États : bailleurs (Union européenne, AFD, Banque mondiale), agences ONU (ONU Femmes, PNUD, UNESCO), organisations multilatérales. Liés par accords ou conventions de financement.',
   ],
 
   /** Distinction Pays d'intervention / États membres OIF. */
   pays_intervention_vs_membres: [
     '« Pays d\u2019intervention » : pays où des projets emploi-jeunes OIF sont mis en œuvre (53 pays sur la plateforme actuellement).',
     '« États et gouvernements MEMBRES de l\u2019OIF » : appartenance institutionnelle (53 + 5 + 32 = 90 entités).',
-    'Le chiffre 53 est une coïncidence — ce ne sont pas les mêmes ensembles. Toujours préciser le périmètre.',
+    'Le chiffre 53 est une coïncidence – ce ne sont pas les mêmes ensembles. Toujours préciser le périmètre.',
   ],
 } as const;

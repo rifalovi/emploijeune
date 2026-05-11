@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EnqueteSaisie } from '@/components/enquetes/enquete-saisie';
 
 export const metadata: Metadata = {
-  title: 'Nouvelle enquête — OIF Emploi Jeunes',
+  title: 'Nouvelle enquête – OIF Emploi Jeunes',
 };
 
 type PageProps = {
@@ -86,7 +86,7 @@ export default async function NouvelleEnquetePage({ searchParams }: PageProps) {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Nouvelle enquête · {cibleLibelle}</h1>
         <p className="text-muted-foreground text-sm">
-          Questionnaire {questionnaire} — saisissez les réponses ci-dessous. Le brouillon est
+          Questionnaire {questionnaire} – saisissez les réponses ci-dessous. Le brouillon est
           sauvegardé automatiquement dans votre navigateur.
         </p>
       </header>

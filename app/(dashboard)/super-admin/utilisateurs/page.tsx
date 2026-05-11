@@ -7,7 +7,7 @@ import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { ActionsUtilisateurRow } from '@/components/super-admin/actions-utilisateur-row';
 
 export const metadata: Metadata = {
-  title: 'Utilisateurs avancé — Super Administration',
+  title: 'Utilisateurs avancé – Super Administration',
 };
 
 export const dynamic = 'force-dynamic';
@@ -74,7 +74,7 @@ export default async function UtilisateursAvancePage() {
                         </Badge>
                       </td>
                       <td className="px-3 py-2 text-xs text-slate-600">
-                        {u.organisation_nom ?? <span className="text-slate-400 italic">—</span>}
+                        {u.organisation_nom ?? <span className="text-slate-400 italic">–</span>}
                       </td>
                       <td className="px-3 py-2">
                         {u.suspendu ? (
@@ -112,7 +112,7 @@ export default async function UtilisateursAvancePage() {
                       <td className="px-3 py-2 text-xs text-slate-600 tabular-nums">
                         {u.derniere_connexion
                           ? new Date(u.derniere_connexion).toLocaleString('fr-FR')
-                          : '—'}
+                          : '–'}
                       </td>
                       <td className="px-3 py-2">
                         <ActionsUtilisateurRow
