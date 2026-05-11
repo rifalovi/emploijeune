@@ -8,7 +8,6 @@ import { HeaderPublic } from '@/components/landing/header-public';
 import { getAuthUser } from '@/lib/supabase/auth';
 import { PILIERS, INDICATEURS, indicateurParCode, type CodePilier } from '@/lib/referentiels/indicateurs';
 import { getKpisPublics, getRepartitionTrancheAge } from '@/lib/landing/queries';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 type Props = { params: Promise<{ pilier: string; indicateur: string }> };
 

@@ -132,6 +132,7 @@ export async function listerStrate(
     projet_code: string;
     annee: number;
     consentement: boolean;
+    tranche_age_declaree: 'Jeune' | 'Adulte' | null;
     total_count: number;
   }>;
 
@@ -147,6 +148,9 @@ export async function listerStrate(
       projet_code: r.projet_code,
       annee: r.annee,
       consentement: r.consentement,
+      // Renvoyée par lister_strate uniquement pour questionnaire A (bénéficiaires).
+      // Pour B (structures), la colonne est NULL côté SQL.
+      tranche_age_declaree: r.tranche_age_declaree,
     })),
   };
 }
