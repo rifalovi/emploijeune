@@ -13,8 +13,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   PILIERS,
-  INDICATEURS,
   indicateursParPilier,
+  type INDICATEURS,
   type CodePilier,
 } from '@/lib/referentiels/indicateurs';
 
