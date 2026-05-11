@@ -57,7 +57,10 @@ export function BlocAnalytiqueIA({ analyse, couleur }: Props) {
               stocké comme résumé. On masque ces résumés trop courts pour ne
               pas afficher en double avec le H3 qui suit dans le contenu. */}
           {analyse.resume && analyse.resume.length >= 60 && (
-            <p className="mb-4 text-sm font-medium leading-relaxed" style={{ color: couleur }}>
+            <p
+              className="mb-4 text-sm font-medium leading-relaxed text-justify hyphens-auto"
+              style={{ color: couleur }}
+            >
               {analyse.resume}
             </p>
           )}
@@ -198,7 +201,7 @@ function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string
         elements.push(
           <p
             key={i}
-            className="mb-3 text-sm leading-relaxed text-slate-700"
+            className="mb-3 text-sm leading-relaxed text-slate-700 text-justify hyphens-auto"
             dangerouslySetInnerHTML={{ __html: formatInline(contenu) }}
           />,
         );
@@ -217,7 +220,7 @@ function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string
     elements.push(
       <p
         key={i}
-        className="mb-3 text-sm leading-relaxed text-slate-700"
+        className="mb-3 text-sm leading-relaxed text-slate-700 text-justify hyphens-auto"
         dangerouslySetInnerHTML={{ __html: formatInline(ligne) }}
       />,
     );
