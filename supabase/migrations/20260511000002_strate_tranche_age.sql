@@ -22,6 +22,11 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 1. lister_strate — ajout colonne tranche_age_declaree + filtre
 -- ─────────────────────────────────────────────────────────────────────────────
+-- Le retour TABLE change (ajout colonne tranche_age_declaree), donc Postgres
+-- refuse un simple CREATE OR REPLACE — il faut un DROP préalable.
+-- IF EXISTS pour idempotence (replay de la migration).
+DROP FUNCTION IF EXISTS public.lister_strate(CHAR, JSONB, TEXT, INTEGER, INTEGER);
+
 CREATE OR REPLACE FUNCTION public.lister_strate(
   p_questionnaire CHAR(1),
   p_filtres JSONB DEFAULT '{}'::jsonb,
