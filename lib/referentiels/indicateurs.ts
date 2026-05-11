@@ -415,7 +415,14 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer satisfaction générale et utilité effective',
       'Éviter les questions orientées',
     ],
-    projetsConcernes: ['PROJ_A16a', 'PROJ_A17', 'PROJ_A20', 'PROJ_A15', 'PROJ_A19', 'nouveau projet emploi jeunesse'],
+    projetsConcernes: [
+      'PROJ_A16a',
+      'PROJ_A17',
+      'PROJ_A20',
+      'PROJ_A15',
+      'PROJ_A19',
+      'nouveau projet emploi jeunesse',
+    ],
   },
 
   // ─────────────────────────── CATÉGORIE D ───────────────────────────
