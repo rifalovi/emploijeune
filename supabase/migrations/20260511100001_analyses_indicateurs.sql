@@ -68,7 +68,7 @@ CREATE POLICY "super_admin_lecture_complete"
   USING (
     EXISTS (
       SELECT 1 FROM public.utilisateurs u
-      WHERE u.id = auth.uid() AND u.role = 'super_admin'
+      WHERE u.user_id = auth.uid() AND u.role = 'super_admin'
     )
   );
 
@@ -80,7 +80,7 @@ CREATE POLICY "super_admin_insert"
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.utilisateurs u
-      WHERE u.id = auth.uid() AND u.role = 'super_admin'
+      WHERE u.user_id = auth.uid() AND u.role = 'super_admin'
     )
   );
 
@@ -92,13 +92,13 @@ CREATE POLICY "super_admin_update"
   USING (
     EXISTS (
       SELECT 1 FROM public.utilisateurs u
-      WHERE u.id = auth.uid() AND u.role = 'super_admin'
+      WHERE u.user_id = auth.uid() AND u.role = 'super_admin'
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.utilisateurs u
-      WHERE u.id = auth.uid() AND u.role = 'super_admin'
+      WHERE u.user_id = auth.uid() AND u.role = 'super_admin'
     )
   );
 
@@ -110,7 +110,7 @@ CREATE POLICY "super_admin_delete"
   USING (
     EXISTS (
       SELECT 1 FROM public.utilisateurs u
-      WHERE u.id = auth.uid() AND u.role = 'super_admin'
+      WHERE u.user_id = auth.uid() AND u.role = 'super_admin'
     )
   );
 

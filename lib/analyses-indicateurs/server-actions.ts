@@ -169,7 +169,9 @@ export async function genererAnalyseIndicateur(formData: FormData): Promise<void
     modifie_par_sa: false,
     prompt_utilise: prompt,
     tokens_utilises: tokens,
-    created_by: utilisateur.id,
+    // created_by référence auth.users(id) — donc on stocke l'auth UUID
+    // (utilisateur.user_id), pas l'UUID de la ligne utilisateurs (utilisateur.id).
+    created_by: utilisateur.user_id,
   });
 
   if (error) throw new Error(`Erreur de sauvegarde : ${error.message}`);
@@ -213,7 +215,8 @@ export async function publierAnalyse(formData: FormData): Promise<void> {
     .update({
       statut: 'publiee',
       published_at: new Date().toISOString(),
-      published_by: utilisateur.id,
+      // published_by référence auth.users(id) (cf. created_by ci-dessus).
+      published_by: utilisateur.user_id,
     })
     .eq('id', parsed.data.analyse_id);
 

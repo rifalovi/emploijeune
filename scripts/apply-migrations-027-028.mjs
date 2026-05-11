@@ -64,4 +64,9 @@ await applyMigration(
   '20260511100001_analyses_indicateurs.sql',
 );
 
+await applyMigration(
+  'Migration 028-fix (RLS u.id → u.user_id sur analyses_indicateurs)',
+  '20260511200001_fix_rls_analyses_indicateurs.sql',
+);
+
 console.log('\n🎉 Toutes les migrations ont été appliquées avec succès.');
