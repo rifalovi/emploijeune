@@ -1,0 +1,214 @@
+import ExcelJS from 'exceljs';
+import { detecterEnTetesFlexibles } from './smart-mapper';
+import type { ErreurImport } from './types';
+
+/**
+ * Parser Excel **tolérant** pour le pipeline d'import "absorber le maximum"
+ * (Phase B). Diffère de `parser-excel.ts` sur 3 axes :
+ *
+ *   1. **Détection auto de la ligne d'en-tête** : on parcourt les 15 premières
+ *      lignes et on garde celle avec le plus de cellules non-vides (utile
+ *      quand le fichier a un bandeau de titre, des fusions, ou des lignes
+ *      d'instructions avant la vraie ligne d'en-tête).
+ *   2. **Mapping flou des en-têtes** : via `detecterEnTetesFlexibles()` du
+ *      smart-mapper, on accepte les variantes courantes ("Projet" →
+ *      "Code projet *", "Pays de Provenance" → "Code pays bénéficiaire *").
+ *   3. **AUCUN rejet** sur en-têtes obligatoires manquants — les colonnes
+ *      manquantes sont signalées dans le rapport, et chaque ligne est traitée
+ *      avec les données disponibles (l'algo de complétude décide si la ligne
+ *      est `inseree`, `incomplete` ou `rejetee` selon le détail).
+ */
+
+const PLAFOND_LIGNES = 5000;
+const HORIZON_LIGNE_ENTETE = 15;
+
+export type ParseExcelFlexibleResult = {
+  /**
+   * Lignes de données mappées sur les en-têtes canoniques (template officiel).
+   * Les colonnes non reconnues sont conservées dans `donneesBrutes` pour
+   * traçabilité (au cas où l'algo veut récupérer une info plus tard).
+   */
+  lignes: Array<{
+    numLigne: number;
+    /** Données indexées par l'en-tête canonique cible. */
+    donnees: Record<string, unknown>;
+    /** Données brutes complètes (header lu original → valeur). */
+    donneesBrutes: Record<string, unknown>;
+  }>;
+  /** Map header lu → header canonique cible, pour les mappings non-triviaux. */
+  headersMappesAuto: Record<string, string>;
+  /** En-têtes du fichier qui n'ont pas pu être identifiés. */
+  headersNonReconnus: string[];
+  /** Numéro de ligne de l'en-tête détecté (≥ 1). */
+  ligneEnTeteDetectee: number;
+  /** Erreurs de structure (fichier illisible, vide, etc.). */
+  erreursStructure: ErreurImport[];
+};
+
+export async function parseExcelFlexible(
+  buffer: ArrayBuffer | Buffer,
+  enTetesAttendus: ReadonlyArray<string>,
+): Promise<ParseExcelFlexibleResult> {
+  const workbook = new ExcelJS.Workbook();
+  const buf = buffer instanceof Buffer ? buffer : Buffer.from(new Uint8Array(buffer));
+
+  try {
+    await workbook.xlsx.load(buf as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+  } catch (err) {
+    return {
+      lignes: [],
+      headersMappesAuto: {},
+      headersNonReconnus: [],
+      ligneEnTeteDetectee: 0,
+      erreursStructure: [
+        {
+          ligne: 0,
+          colonne: null,
+          valeur: null,
+          message: `Fichier Excel illisible : ${err instanceof Error ? err.message : 'format invalide'}`,
+        },
+      ],
+    };
+  }
+
+  const ws = workbook.worksheets[0];
+  if (!ws) {
+    return {
+      lignes: [],
+      headersMappesAuto: {},
+      headersNonReconnus: [],
+      ligneEnTeteDetectee: 0,
+      erreursStructure: [
+        {
+          ligne: 0,
+          colonne: null,
+          valeur: null,
+          message: 'Le classeur ne contient aucune feuille.',
+        },
+      ],
+    };
+  }
+
+  // 1. Détecter la ligne d'en-tête : celle avec le plus de cellules non-vides
+  //    dans les 15 premières lignes. Heuristique simple mais robuste face aux
+  //    fichiers avec bandeau de titre, instructions, lignes de séparation.
+  const horizonMax = Math.min(HORIZON_LIGNE_ENTETE, ws.rowCount);
+  let meilleureLigne = 1;
+  let meilleurScore = 0;
+  for (let r = 1; r <= horizonMax; r++) {
+    const row = ws.getRow(r);
+    let cellulesNonVides = 0;
+    row.eachCell({ includeEmpty: false }, (cell) => {
+      const v = cell.value;
+      if (v !== null && v !== undefined && String(v).trim() !== '') cellulesNonVides++;
+    });
+    if (cellulesNonVides > meilleurScore) {
+      meilleurScore = cellulesNonVides;
+      meilleureLigne = r;
+    }
+  }
+
+  // 2. Lire les en-têtes de la ligne détectée
+  const headerRow = ws.getRow(meilleureLigne);
+  const headersLus: Array<string | null> = [];
+  headerRow.eachCell({ includeEmpty: true }, (cell) => {
+    const v = cell.value;
+    headersLus.push(typeof v === 'string' ? v.trim() : v ? String(v).trim() : null);
+  });
+
+  // 3. Appliquer le mapping flou
+  const { mapping, headersMappesAuto, headersNonReconnus } = detecterEnTetesFlexibles(
+    headersLus,
+    enTetesAttendus,
+  );
+
+  // 4. Lire les données à partir de la ligne suivante
+  const totalRows = ws.rowCount;
+  const erreursStructure: ErreurImport[] = [];
+
+  if (totalRows - meilleureLigne > PLAFOND_LIGNES) {
+    erreursStructure.push({
+      ligne: 0,
+      colonne: null,
+      valeur: null,
+      message: `Trop de lignes (${totalRows - meilleureLigne}). Maximum autorisé : ${PLAFOND_LIGNES} par import. Scindez le fichier.`,
+    });
+    return {
+      lignes: [],
+      headersMappesAuto,
+      headersNonReconnus,
+      ligneEnTeteDetectee: meilleureLigne,
+      erreursStructure,
+    };
+  }
+
+  // Index header_lu → numéro de colonne (1-based pour ExcelJS)
+  const indexParHeaderLu = new Map<string, number>();
+  headersLus.forEach((h, i) => {
+    if (h) indexParHeaderLu.set(h, i + 1);
+  });
+
+  const lignes: ParseExcelFlexibleResult['lignes'] = [];
+
+  for (let r = meilleureLigne + 1; r <= totalRows; r++) {
+    const row = ws.getRow(r);
+    const donnees: Record<string, unknown> = {};
+    const donneesBrutes: Record<string, unknown> = {};
+    let aAuMoinsUneCellule = false;
+
+    for (const [headerLu, colIndex] of indexParHeaderLu) {
+      const cell = row.getCell(colIndex);
+      const valeur = extraireValeurCellule(cell);
+      if (valeur !== null && valeur !== undefined && valeur !== '') aAuMoinsUneCellule = true;
+      donneesBrutes[headerLu] = valeur;
+      const cible = mapping.get(headerLu);
+      if (cible) donnees[cible] = valeur;
+    }
+
+    // Skip lignes 100% vides (résidu de fichier nettoyé à la main)
+    if (!aAuMoinsUneCellule) continue;
+    lignes.push({ numLigne: r, donnees, donneesBrutes });
+  }
+
+  return {
+    lignes,
+    headersMappesAuto,
+    headersNonReconnus,
+    ligneEnTeteDetectee: meilleureLigne,
+    erreursStructure,
+  };
+}
+
+/**
+ * Extrait la valeur d'une cellule Excel en normalisant les types.
+ * Logique identique à parser-excel.ts pour cohérence.
+ */
+function extraireValeurCellule(cell: ExcelJS.Cell): string | number | null {
+  const v = cell.value;
+  if (v === null || v === undefined) return null;
+
+  if (v instanceof Date) {
+    return v.toISOString().slice(0, 10);
+  }
+
+  if (typeof v === 'object' && v && 'result' in v) {
+    const res = (v as { result?: unknown }).result;
+    if (res === null || res === undefined) return null;
+    if (res instanceof Date) return res.toISOString().slice(0, 10);
+    return typeof res === 'number' ? res : String(res).trim();
+  }
+
+  if (typeof v === 'object' && v && 'text' in v) {
+    return String((v as { text: unknown }).text).trim();
+  }
+
+  if (typeof v === 'object' && v && 'richText' in v) {
+    return (v as { richText: Array<{ text: string }> }).richText
+      .map((r) => r.text)
+      .join('')
+      .trim();
+  }
+
+  if (typeof v === 'number') return v;
+  return String(v).trim();
+}

@@ -226,6 +226,84 @@ export type BeneficiaireInsertInput = z.input<typeof beneficiaireInsertSchema>;
 export type BeneficiaireInsertOutput = z.output<typeof beneficiaireInsertSchema>;
 
 // =============================================================================
+// 1.bis beneficiaireImportSchema — pipeline d'import tolérant (Phase B)
+// -----------------------------------------------------------------------------
+// Variante assouplie pour absorber des fichiers Excel hétérogènes :
+//   - prenom / nom acceptent vide → remplacés par 'INCONNU' (anonyme)
+//   - domaine_formation_code optionnel (à compléter via campagne)
+//   - tranche_age_declaree accepté ('Jeune' | 'Adulte' | null)
+//   - PAS de superRefine RGPD strict : les contacts sans consentement sont
+//     traités comme alerte côté pipeline (ils peuvent être stockés mais
+//     marqués pour validation manuelle), pas comme erreur bloquante.
+//   - Date de fin >= début reste vérifiée car ne dépend pas du RGPD.
+// =============================================================================
+
+function reglesNonRgpdImport(
+  data: Pick<BaseBeneficiaireShape, 'date_debut_formation' | 'date_fin_formation'>,
+  ctx: z.RefinementCtx,
+): void {
+  if (
+    data.date_debut_formation &&
+    data.date_fin_formation &&
+    data.date_fin_formation < data.date_debut_formation
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['date_fin_formation'],
+      message: 'La date de fin doit être postérieure à la date de début',
+    });
+  }
+}
+
+export const beneficiaireImportSchema = baseBeneficiaireSchema
+  .extend({
+    prenom: z
+      .union([z.string(), z.null(), z.undefined()])
+      .transform((v) => {
+        if (v === null || v === undefined) return 'INCONNU';
+        const t = v.trim();
+        return t === '' ? 'INCONNU' : t;
+      })
+      .pipe(z.string().max(100)),
+    nom: z
+      .union([z.string(), z.null(), z.undefined()])
+      .transform((v) => {
+        if (v === null || v === undefined) return 'INCONNU';
+        const t = v.trim();
+        return t === '' ? 'INCONNU' : t.toLocaleUpperCase('fr-FR');
+      })
+      .pipe(z.string().max(100)),
+    sexe: z
+      .union([
+        z.enum([...SEXE_VALUES] as [string, ...string[]]),
+        z.literal(''),
+        z.null(),
+        z.undefined(),
+      ])
+      .transform((v) => (v === '' || v === null ? undefined : v))
+      .optional(),
+    domaine_formation_code: z
+      .union([
+        z.enum([...DOMAINES_FORMATION_CODES] as [string, ...string[]]),
+        z.literal(''),
+        z.null(),
+        z.undefined(),
+      ])
+      .transform((v) => (v === '' || v === null ? undefined : v))
+      .optional(),
+    /** Tranche d'âge OIF déclarée (import sans date_naissance). Voir
+     *  migration 20260511000001_tranche_age_declaree.sql. */
+    tranche_age_declaree: z
+      .union([z.enum(['Jeune', 'Adulte']), z.null(), z.undefined()])
+      .optional(),
+    consentement_recueilli: z.coerce.boolean().default(false),
+  })
+  .superRefine(reglesNonRgpdImport);
+
+export type BeneficiaireImportInput = z.input<typeof beneficiaireImportSchema>;
+export type BeneficiaireImportOutput = z.output<typeof beneficiaireImportSchema>;
+
+// =============================================================================
 // 2. beneficiaireUpdateSchema — édition d'une fiche existante
 // =============================================================================
 
