@@ -222,8 +222,12 @@ export async function publierAnalyse(formData: FormData): Promise<void> {
 
   if (error) throw new Error(error.message);
 
+  // Invalide à la fois la page admin (rafraîchit la liste avec le nouveau
+  // statut) ET la vitrine publique. Le `, 'layout'` propage à toute la
+  // sous-arborescence /realisations/[pilier]/[indicateur]/* (sinon la page
+  // dynamique cachée par ISR pourrait rester sur l'ancienne analyse).
   revalidatePath('/super-admin/analyses-indicateurs');
-  revalidatePath('/realisations');
+  revalidatePath('/realisations', 'layout');
 }
 
 // ─── 3. Modifier le contenu ───────────────────────────────────────────────────
@@ -259,7 +263,11 @@ export async function modifierAnalyse(formData: FormData): Promise<void> {
   if (error) throw new Error(error.message);
 
   revalidatePath('/super-admin/analyses-indicateurs');
-  revalidatePath('/realisations');
+  // Modification édite le contenu mais ne change pas le statut. La page
+  // publique ne montre que les analyses publiées — la modif d'un brouillon
+  // n'a donc d'impact public que si on (re)publie ensuite. On invalide
+  // quand même par sécurité (cas où on édite directement une publiée).
+  revalidatePath('/realisations', 'layout');
 }
 
 // ─── 4. Supprimer un brouillon ────────────────────────────────────────────────

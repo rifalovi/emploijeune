@@ -1,14 +1,15 @@
 import type { Metadata } from 'next';
-import { Sparkles, Bot, CheckCircle2, Clock, PenLine, Trash2, RefreshCw, Eye } from 'lucide-react';
+import { Sparkles, Bot, CheckCircle2, Clock, PenLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { INDICATEURS, PILIERS, type CodePilier } from '@/lib/referentiels/indicateurs';
 import { listerAnalysesAdmin } from '@/lib/analyses-indicateurs/queries';
 import {
   genererAnalyseIndicateur,
   publierAnalyse,
-  modifierAnalyse,
   supprimerAnalyse,
 } from '@/lib/analyses-indicateurs/server-actions';
+import { BoutonGenerer, BoutonPublier, BoutonSupprimer } from './boutons-actions';
+import { EditeurAnalyse } from './editeur-analyse';
 
 export const metadata: Metadata = {
   title: 'Analyses IA — Super Administration',
@@ -149,27 +150,14 @@ export default async function AnalysesIndicateursPage() {
                         {/* Générer / Regénérer */}
                         <form action={genererAnalyseIndicateur}>
                           <input type="hidden" name="indicateur_code" value={ind.code} />
-                          <button
-                            type="submit"
-                            className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                          >
-                            <RefreshCw className="size-3" aria-hidden />
-                            {analyse ? 'Regénérer' : 'Générer'}
-                          </button>
+                          <BoutonGenerer aDejaAnalyse={!!analyse} />
                         </form>
 
                         {/* Publier (si brouillon) */}
                         {estBrouillon && analyse && (
                           <form action={publierAnalyse}>
                             <input type="hidden" name="analyse_id" value={analyse.id} />
-                            <button
-                              type="submit"
-                              className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium transition-colors hover:bg-emerald-50"
-                              style={{ color: pilier.couleur }}
-                            >
-                              <Eye className="size-3" aria-hidden />
-                              Publier
-                            </button>
+                            <BoutonPublier couleur={pilier.couleur} />
                           </form>
                         )}
 
@@ -177,13 +165,7 @@ export default async function AnalysesIndicateursPage() {
                         {estBrouillon && analyse && (
                           <form action={supprimerAnalyse}>
                             <input type="hidden" name="analyse_id" value={analyse.id} />
-                            <button
-                              type="submit"
-                              className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                            >
-                              <Trash2 className="size-3" aria-hidden />
-                              Supprimer
-                            </button>
+                            <BoutonSupprimer />
                           </form>
                         )}
                       </div>
@@ -220,56 +202,5 @@ export default async function AnalysesIndicateursPage() {
   );
 }
 
-// ─── Sous-composant : éditeur inline du brouillon ─────────────────────────────
-/**
- * Formulaire d'édition du contenu d'une analyse brouillon.
- * Pattern "progressive disclosure" : l'éditeur n'est visible que
- * pour les brouillons, évitant la surcharge visuelle.
- */
-function EditeurAnalyse({
-  analyse,
-}: {
-  analyse: { id: string; contenu: string; resume: string | null };
-}) {
-  return (
-    <form action={modifierAnalyse} className="space-y-3">
-      <input type="hidden" name="analyse_id" value={analyse.id} />
-      <div>
-        <label htmlFor={`resume-${analyse.id}`} className="mb-1 block text-xs font-medium text-slate-600">
-          Résumé (accroche — max 150 car.)
-        </label>
-        <input
-          id={`resume-${analyse.id}`}
-          name="resume"
-          type="text"
-          maxLength={150}
-          defaultValue={analyse.resume ?? ''}
-          className="w-full rounded border border-slate-200 px-3 py-1.5 text-xs focus:border-[#0E4F88] focus:outline-none"
-          placeholder="Accroche de l'analyse (optionnel)"
-        />
-      </div>
-      <div>
-        <label htmlFor={`contenu-${analyse.id}`} className="mb-1 block text-xs font-medium text-slate-600">
-          Contenu (Markdown)
-        </label>
-        <textarea
-          id={`contenu-${analyse.id}`}
-          name="contenu"
-          rows={12}
-          defaultValue={analyse.contenu}
-          className="w-full rounded border border-slate-200 px-3 py-2 font-mono text-xs focus:border-[#0E4F88] focus:outline-none"
-          placeholder="Contenu en Markdown…"
-        />
-      </div>
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[#0E4F88] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#0a3d6b]"
-        >
-          <PenLine className="size-3" aria-hidden />
-          Sauvegarder les modifications
-        </button>
-      </div>
-    </form>
-  );
-}
+// EditeurAnalyse a été déplacé dans `./editeur-analyse.tsx` (Client Component)
+// pour pouvoir y intégrer BoutonSauvegarder qui utilise useFormStatus.
