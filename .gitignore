@@ -75,5 +75,13 @@ Thumbs.db
 # restent versionnés grâce à la portée racine `/`).
 /*.pdf
 
+# Doublons locaux de fichiers déjà versionnés ailleurs dans le repo
+# (laissés sur disque pour le confort local de Carlos, mais ignorés
+# de git pour ne pas polluer le status).
+# - /00_NOMENCLATURE_PROJETS_OIF.md : canonique dans docs/references/
+# - /sprint-global-ressources/      : BRIEF dupliqué de la racine + logo déjà dans public/
+/00_NOMENCLATURE_PROJETS_OIF.md
+/sprint-global-ressources/
+
 # Configuration locale Claude Code (sessions dev preview)
 /.claude/
