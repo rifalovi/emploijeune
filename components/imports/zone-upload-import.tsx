@@ -6,7 +6,17 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { RapportImport, ResultatImport } from '@/lib/imports/types';
+import type {
+  RapportImport,
+  RapportImportEnrichi,
+  ResultatImport,
+  ResultatImportEnrichi,
+} from '@/lib/imports/types';
+
+/** Discrimine entre rapport classique (RapportImport) et enrichi. */
+function estEnrichi(r: RapportImport | RapportImportEnrichi): r is RapportImportEnrichi {
+  return 'nb_inserees' in r;
+}
 import { cn } from '@/lib/utils';
 
 export type ZoneUploadImportProps = {
@@ -17,7 +27,7 @@ export type ZoneUploadImportProps = {
   /** Nom de fichier modèle pour le lien « Télécharger le template ». */
   templateLabel?: string;
   /** Callback quand un import réussit (avec rapport). */
-  onRapport: (rapport: RapportImport) => void;
+  onRapport: (rapport: RapportImport | RapportImportEnrichi) => void;
 };
 
 const MAX_TAILLE_MO = 5;
@@ -79,26 +89,35 @@ export function ZoneUploadImport({
           return;
         }
 
-        const result = (await response.json()) as ResultatImport;
+        const result = (await response.json()) as ResultatImport | ResultatImportEnrichi;
         if (result.status !== 'succes') {
           toast.error('Import refusé', { description: result.message });
           return;
         }
 
         const rapport = result.rapport;
-        if (rapport.nb_lignes_inserees > 0) {
+        const nbImportees = estEnrichi(rapport)
+          ? rapport.nb_inserees + rapport.nb_enrichies + rapport.nb_incompletes
+          : rapport.nb_lignes_inserees;
+        const nbErreurs = estEnrichi(rapport)
+          ? rapport.nb_rejetees
+          : rapport.erreurs.length;
+
+        if (nbImportees > 0) {
           toast.success(
-            `${rapport.nb_lignes_inserees} ligne${rapport.nb_lignes_inserees > 1 ? 's' : ''} importée${rapport.nb_lignes_inserees > 1 ? 's' : ''}`,
+            `${nbImportees} ligne${nbImportees > 1 ? 's' : ''} importée${nbImportees > 1 ? 's' : ''}`,
             {
               description:
-                rapport.erreurs.length > 0
-                  ? `${rapport.erreurs.length} erreur(s) – voir le rapport.`
-                  : 'Aucune erreur.',
+                nbErreurs > 0
+                  ? `${nbErreurs} erreur(s) – voir le rapport.`
+                  : estEnrichi(rapport) && rapport.nb_incompletes > 0
+                    ? `Dont ${rapport.nb_incompletes} incomplète(s).`
+                    : 'Aucune erreur.',
             },
           );
-        } else if (rapport.erreurs.length > 0) {
+        } else if (nbErreurs > 0) {
           toast.error('Aucune ligne importée', {
-            description: `${rapport.erreurs.length} erreur(s) – voir le rapport.`,
+            description: `${nbErreurs} erreur(s) – voir le rapport.`,
           });
         } else {
           toast.info('Fichier vide', { description: 'Aucune ligne de données détectée.' });
