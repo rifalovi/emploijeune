@@ -30,10 +30,38 @@ export const TRANCHES_AGE = [
 
 export type TrancheAge = (typeof TRANCHES_AGE)[number];
 
+/** Valeurs admises pour la tranche déclarée dans la base OIF. */
+export type TrancheAgeDeclaree = 'Jeune' | 'Adulte';
+
 /**
- * Retourne la tranche d'âge calculée à partir de `dateNaissance` et
- * `dateReference` (défaut : aujourd'hui). Si `dateNaissance` est null,
- * undefined, ou invalide, renvoie « Non renseigné ».
+ * Convertit la tranche déclarée OIF (« Jeune » / « Adulte ») en libellé
+ * affiché sur la plateforme, aligné sur les tranches officielles du
+ * Questionnaire A V2 (question 105).
+ *
+ * Mapping :
+ *   « Jeune »  (18-34 ans) → '18-34 ans'
+ *   « Adulte » (35 ans et +) → '35-60 ans'  ← convention : on ne peut pas
+ *     distinguer 35-60 et +60 depuis la base OIF (catégorie trop large).
+ *     Un badge visuel "(déclaré)" est recommandé côté UI pour signaler
+ *     l'absence de date de naissance.
+ */
+export function trancheAgeDepuisDeclaree(
+  declaree: TrancheAgeDeclaree | string | null | undefined,
+): TrancheAge | null {
+  if (!declaree) return null;
+  const v = declaree.trim().toLowerCase();
+  if (v === 'jeune') return '18-34 ans';
+  if (v === 'adulte') return '35-60 ans';
+  return null;
+}
+
+/**
+ * Retourne la tranche d'âge à afficher pour un bénéficiaire.
+ *
+ * Priorité :
+ *   1. Calcul précis depuis `dateNaissance` si disponible
+ *   2. Conversion depuis `trancheAgeDeclaree` (import OIF) si date_naissance NULL
+ *   3. « Non renseigné » si aucune des deux n'est disponible
  *
  * L'âge est calculé au jour le jour : si l'anniversaire n'a pas encore eu
  * lieu dans l'année de référence, l'âge retenu est (année_ref - année_naiss - 1).
@@ -41,18 +69,26 @@ export type TrancheAge = (typeof TRANCHES_AGE)[number];
 export function calculerTrancheAge(
   dateNaissance: Date | string | null | undefined,
   dateReference: Date = new Date(),
+  trancheDeclaree?: string | null,
 ): TrancheAge {
-  if (!dateNaissance) return 'Non renseigné';
+  // 1. Calcul depuis date_naissance (cas saisie manuelle ou questionnaire)
+  if (dateNaissance) {
+    const naissance = dateNaissance instanceof Date ? dateNaissance : new Date(dateNaissance);
+    if (!isNaN(naissance.getTime())) {
+      const age = calculerAge(naissance, dateReference);
+      if (age < 18) return 'Mineur (<18)';
+      if (age <= 34) return '18-34 ans';
+      if (age <= 60) return '35-60 ans';
+      return '+60 ans';
+    }
+  }
 
-  const naissance = dateNaissance instanceof Date ? dateNaissance : new Date(dateNaissance);
-  if (isNaN(naissance.getTime())) return 'Non renseigné';
+  // 2. Fallback sur la tranche déclarée dans la base OIF (import Excel)
+  const depuisDeclaree = trancheAgeDepuisDeclaree(trancheDeclaree ?? null);
+  if (depuisDeclaree) return depuisDeclaree;
 
-  const age = calculerAge(naissance, dateReference);
-
-  if (age < 18) return 'Mineur (<18)';
-  if (age <= 34) return '18-34 ans';
-  if (age <= 60) return '35-60 ans';
-  return '+60 ans';
+  // 3. Aucune information disponible
+  return 'Non renseigné';
 }
 
 /**

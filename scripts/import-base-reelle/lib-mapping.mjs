@@ -212,6 +212,34 @@ export function emailTechnique(prenom, nom, index) {
   return `${base || 'beneficiaire'}.${index}@import-oif-2025.local`;
 }
 
+/**
+ * Normalise la tranche d'âge déclarée dans la base OIF (col « age_groupe »).
+ *
+ * L'Excel peut contenir :
+ *   - « Jeune »  (18-34 ans selon définition OIF)
+ *   - « Adulte » (35 ans et +)
+ *   - Variantes avec la définition complète : « Jeune (18-34 ans) »
+ *
+ * Retourne 'Jeune', 'Adulte', ou null si la valeur est absente/inconnue.
+ */
+export function trancheAgeDeclaree(brut) {
+  if (!brut) return null;
+  const v = String(brut).trim().toLowerCase();
+  if (v.startsWith('jeune')) return 'Jeune';
+  if (v.startsWith('adulte')) return 'Adulte';
+  return null;
+}
+
+/**
+ * Normalise un numéro de téléphone depuis le CSV.
+ * Retourne la valeur nettoyée ou null si vide.
+ */
+export function telephoneOuNull(v) {
+  if (v === null || v === undefined) return null;
+  const t = String(v).trim();
+  return t === '' ? null : t;
+}
+
 /** Texte trimé ou null si vide. */
 export function texteOuNull(v) {
   if (v === null || v === undefined) return null;

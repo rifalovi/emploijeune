@@ -223,7 +223,7 @@ function mapperLigneExport(
   r: BeneficiaireListItem,
   nomenclatures: Nomenclatures,
 ): Record<string, unknown> {
-  const tranche = calculerTrancheAge(r.date_naissance);
+  const tranche = calculerTrancheAge(r.date_naissance, new Date(), r.tranche_age_declaree);
   const domaineLibelle =
     nomenclatures.domaines.get(r.domaine_formation_code) ?? r.domaine_formation_code;
   const statutLibelle =

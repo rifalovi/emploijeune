@@ -14,6 +14,8 @@ export type BeneficiaireDetail = {
   nom: string;
   sexe: 'F' | 'M' | 'Autre';
   date_naissance: string | null;
+  /** Tranche déclarée dans la base OIF (import Excel). Null si saisie manuelle. */
+  tranche_age_declaree: 'Jeune' | 'Adulte' | null;
 
   projet_code: string;
   projet_libelle: string | null;
@@ -141,6 +143,8 @@ export type BeneficiaireListItem = {
   nom: string;
   sexe: 'F' | 'M' | 'Autre';
   date_naissance: string | null;
+  /** Tranche déclarée dans la base OIF (import Excel). Null si saisie manuelle. */
+  tranche_age_declaree: 'Jeune' | 'Adulte' | null;
   projet_code: string;
   pays_code: string;
   domaine_formation_code: string;

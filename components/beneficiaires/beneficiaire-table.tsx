@@ -121,7 +121,7 @@ function BeneficiaireRow({
       </TableCell>
       <TableCell>
         <LibelleCell href={`/beneficiaires/${row.id}`}>
-          {calculerTrancheAge(row.date_naissance)}
+          {calculerTrancheAge(row.date_naissance, new Date(), row.tranche_age_declaree)}
         </LibelleCell>
       </TableCell>
       <TableCell>

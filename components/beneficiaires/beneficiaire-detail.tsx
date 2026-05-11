@@ -75,7 +75,14 @@ export function BeneficiaireDetail({ beneficiaire, nomenclatures }: Beneficiaire
             <Champ label="Nom" valeur={beneficiaire.nom} />
             <Champ label="Sexe" valeur={SEXE_LIBELLES[beneficiaire.sexe as Sexe]} />
             <Champ label="Date de naissance" valeur={formatDateFR(beneficiaire.date_naissance)} />
-            <Champ label="Tranche d’âge" valeur={calculerTrancheAge(beneficiaire.date_naissance)} />
+            <Champ
+              label="Tranche d’âge"
+              valeur={calculerTrancheAge(
+                beneficiaire.date_naissance,
+                new Date(),
+                beneficiaire.tranche_age_declaree,
+              )}
+            />
           </CardContent>
         </Card>
 

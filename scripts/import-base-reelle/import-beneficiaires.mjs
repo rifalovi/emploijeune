@@ -39,6 +39,8 @@ import {
   dateDebutFormation,
   emailTechnique,
   texteOuNull,
+  trancheAgeDeclaree,
+  telephoneOuNull,
 } from './lib-mapping.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -140,6 +142,10 @@ for (const ligne of lignes) {
     prenom,
     nom,
     sexe,
+    // Tranche d'âge déclarée dans l'Excel (« Jeune » / « Adulte »).
+    // Stockée dans tranche_age_declaree car date_naissance est absente de la base OIF.
+    // La plateforme affiche cette valeur quand date_naissance est NULL.
+    tranche_age_declaree: trancheAgeDeclaree(ligne.age_groupe),
     projet_code: projetCode,
     pays_code: codePays,
     domaine_formation_code: DOMAINE_DEFAUT,
@@ -149,6 +155,8 @@ for (const ligne of lignes) {
     statut_code: STATUT_DEFAUT,
     fonction_actuelle: texteOuNull(ligne.fonction),
     partenaire_accompagnement: texteOuNull(ligne.organisation_accompagnement),
+    // Téléphone : colonne « contacts » dans le CSV (non mappée avant ce correctif)
+    telephone: telephoneOuNull(ligne.contacts),
     courriel,
     consentement_recueilli: true,
     consentement_date: dateDebut,
