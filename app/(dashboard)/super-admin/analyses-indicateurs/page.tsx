@@ -21,10 +21,21 @@ export const dynamic = 'force-dynamic';
 export default async function AnalysesIndicateursPage() {
   const analyses = await listerAnalysesAdmin();
 
-  // Indexer les analyses par code indicateur
-  const analyseParCode = new Map(
-    analyses.map((a) => [a.indicateur_code, a]),
-  );
+  // Indexer les analyses par code indicateur — on garde la PLUS RÉCENTE.
+  //
+  // Bug : `new Map(arr.map(...))` garde la DERNIÈRE valeur en cas de clé
+  // dupliquée. Or listerAnalysesAdmin renvoie un tri DESC sur updated_at,
+  // donc l'élément [0] est la plus récente. Avec la construction par tableau,
+  // si deux analyses existent pour A1 (ex: après une regénération), la Map
+  // gardait l'ancienne et l'UI affichait/publiait le mauvais brouillon.
+  // → Construction first-wins explicite : seul l'élément le plus récent
+  //   (premier dans l'ordre DESC) est retenu.
+  const analyseParCode = new Map<string, (typeof analyses)[number]>();
+  for (const a of analyses) {
+    if (!analyseParCode.has(a.indicateur_code)) {
+      analyseParCode.set(a.indicateur_code, a);
+    }
+  }
 
   // Compter les statuts
   const nbPubiliees = analyses.filter((a) => a.statut === 'publiee').length;

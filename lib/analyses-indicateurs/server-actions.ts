@@ -57,9 +57,14 @@ const INDICATEURS_CONNEXES: Record<string, string[]> = {
   A3: ['A2 (achèvement)', 'A5 (insertion post-formation)'],
   A4: ['A1', 'A2', 'A3'],
   A5: ['A1', 'A3', "B1 (création d'entreprise)", 'B3 (survie des entreprises)'],
-  B1: ['B2 (emplois créés)', 'B3 (survie)', 'B4 (financement)', 'A5 (insertion)'],
-  B2: ['B1', 'B3'],
-  B3: ['B1', 'B2', 'B4'],
+  B1: [
+    'B2 (taux de survie)',
+    'B3 (emplois créés ou maintenus)',
+    'B4 (emplois indirects)',
+    'A5 (insertion)',
+  ],
+  B2: ['B1 (activités économiques appuyées)', 'B3 (emplois créés ou maintenus)'],
+  B3: ['B1', 'B2 (taux de survie)', 'B4'],
   B4: ['B1', 'B3'],
   C1: ['C2 (mise en relation)', 'A5 (insertion)'],
   C2: ['C1', 'C3 (partenariats)'],
@@ -152,11 +157,17 @@ export async function genererAnalyseIndicateur(formData: FormData): Promise<void
 
   const tokens = response.usage.input_tokens + response.usage.output_tokens;
 
-  // Extraire un résumé (première ligne de texte non vide, entre 20 et 150 car.)
+  // Extraire un résumé = première ligne de prose (entre 20 et 150 car.).
+  //
+  // Bug initial : on retirait le préfixe `#` AVANT de filtrer la longueur,
+  // donc « ### Signification et importance » (26 car. utiles) passait le
+  // filtre et le résumé était un intitulé de section au lieu d'une vraie
+  // accroche. On filtre maintenant les lignes de titre EN AMONT.
   const resume =
     contenuBrut
       .split('\n')
-      .map((l) => l.replace(/^#+\s*/, '').trim())
+      .filter((l) => !l.trimStart().startsWith('#'))
+      .map((l) => l.trim())
       .find((l) => l.length > 20 && l.length < 150) ?? null;
 
   const supabase = await createSupabaseServerClient();

@@ -60,8 +60,10 @@ const INDICATEUR_TYPE: Record<string, TypeIndicateur> = {
   A4: 'score',
   A5: 'rate',
   B1: 'count',
-  B2: 'count',
-  B3: 'rate',
+  // B2 = Taux de survie à 12/24 mois (rate), B3 = Emplois créés ou maintenus
+  // (count). Source : lib/referentiels/indicateurs.ts. Précédemment inversés.
+  B2: 'rate',
+  B3: 'count',
   B4: 'amount',
   C1: 'count',
   C2: 'rate',
@@ -83,7 +85,10 @@ type DonneesCount = {
   pays: number;
 };
 const FICTIF_COUNT: Record<string, DonneesCount> = {
-  B2: { total: 198,  femmes: 112,  jeunes: 98,   adultes: 91,  pays: 9  },
+  // B3 = Emplois créés ou maintenus (effectifs). Avant ce fix, le bloc
+  // FICTIF_COUNT.B2 contenait des effectifs de "structures appuyées" qui
+  // ne correspondaient pas à B2 (rate) — déplacé sur B3 et enrichi.
+  B3: { total: 612, femmes: 294, jeunes: 457, adultes: 155, pays: 11 },
   C1: { total: 1240, femmes: 844,  jeunes: 744,  adultes: 446, pays: 16 },
   C3: { total: 87,   femmes: 0,    jeunes: 0,    adultes: 0,   pays: 13 }, // partenariats, pas de sexe
   D1: { total: 14,   femmes: 0,    jeunes: 0,    adultes: 0,   pays: 8  }, // politiques
@@ -129,12 +134,14 @@ const FICTIF_RATE: Record<string, DonneesRate> = {
     femmes: 1711,
     pays: 15,
   },
-  B3: {
+  // B2 = Taux de survie à 12/24 mois (cf. lib/referentiels/indicateurs.ts).
+  // Labels alignés sur la sémantique "structures appuyées encore actives".
+  B2: {
     taux: 71.2,
     numerateur: 141,
     denominateur: 198,
-    labelNumerateur: 'Entreprises actives à 12 mois',
-    labelDenominateur: 'Entreprises créées',
+    labelNumerateur: 'Structures actives à 12 mois',
+    labelDenominateur: 'Structures appuyées',
     femmes: 79,
     pays: 9,
   },

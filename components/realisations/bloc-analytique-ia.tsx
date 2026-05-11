@@ -144,7 +144,10 @@ function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string
   // Regex pré-compilées
   const ESTLISTE_RE = /^\s*[-*]\s+(.+)$/; // capture l'item sans le préfixe ni l'indentation
   const ESTHR_RE = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/;
-  const ESTH3_RE = /^#{2,3}\s+(.+)$/; // accepte H2 et H3, on rend les deux en H3
+  // Accepte H1 à H4 — Claude génère parfois un H1 unique en tête de
+  // réponse ; sans cette tolérance le `#` resterait visible en texte brut.
+  // Tous mappés sur H3 (le bloc parent porte déjà un H2).
+  const ESTH3_RE = /^#{1,4}\s+(.+)$/;
   const ESTBLOCKQUOTE_RE = /^\s*>\s?(.*)$/;
 
   for (let i = 0; i < lignes.length; i++) {
