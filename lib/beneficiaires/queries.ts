@@ -218,7 +218,7 @@ export async function listBeneficiaires(
   let query = supabase
     .from('beneficiaires')
     .select(
-      'id, prenom, nom, sexe, date_naissance, projet_code, pays_code, domaine_formation_code, annee_formation, statut_code, consentement_recueilli, created_by, organisation_id, updated_at',
+      'id, prenom, nom, sexe, date_naissance, tranche_age_declaree, projet_code, pays_code, domaine_formation_code, annee_formation, statut_code, consentement_recueilli, created_by, organisation_id, updated_at',
       { count: 'exact' },
     )
     .is('deleted_at', null);
