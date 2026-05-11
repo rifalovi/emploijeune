@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { BadgeProjet } from '@/components/shared/badge-projet';
+import { TrancheAgeDeclareesBadge } from '@/components/shared/tranche-age-badge';
 import type { SessionEnqueteListItem } from '@/lib/enquetes/queries';
 import type { ProgrammeStrategiqueCode } from '@/lib/schemas/nomenclatures';
 import { VAGUE_ENQUETE_LIBELLES, type VagueEnquete } from '@/lib/schemas/enquetes/nomenclatures';
@@ -36,6 +37,7 @@ export function EnqueteTable({ rows }: EnqueteTableProps) {
           <TableRow>
             <TableHead className="w-1" aria-hidden />
             <TableHead>Cible</TableHead>
+            <TableHead>Tranche</TableHead>
             <TableHead>Questionnaire</TableHead>
             <TableHead>Projet</TableHead>
             <TableHead>Vague</TableHead>
@@ -76,6 +78,16 @@ function EnqueteRow({ row }: { row: SessionEnqueteListItem }) {
       <TableCell className="font-medium">
         <LibelleCell href={href} title={row.cible_libelle ?? undefined}>
           <span className="block max-w-[16rem] truncate">{row.cible_libelle ?? '—'}</span>
+        </LibelleCell>
+      </TableCell>
+
+      <TableCell>
+        <LibelleCell href={href}>
+          {row.questionnaire === 'A' ? (
+            <TrancheAgeDeclareesBadge tranche={row.tranche_age_declaree} />
+          ) : (
+            <span className="text-muted-foreground text-[10px]">—</span>
+          )}
         </LibelleCell>
       </TableCell>
 

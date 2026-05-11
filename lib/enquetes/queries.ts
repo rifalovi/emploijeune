@@ -114,6 +114,8 @@ export type SessionEnqueteListItem = {
   date_collecte: string;
   nb_indicateurs: number;
   indicateurs: string[];
+  /** Tranche d'âge déclarée OIF du bénéficiaire (questionnaire A uniquement). NULL pour questionnaire B. */
+  tranche_age_declaree: 'Jeune' | 'Adulte' | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;

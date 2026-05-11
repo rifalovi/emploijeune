@@ -13,6 +13,7 @@ import { StatutBadge } from './statut-badge';
 import { BadgeProjet } from '@/components/shared/badge-projet';
 import { BeneficiaireRowActions } from './beneficiaire-row-actions';
 import { calculerTrancheAge } from './tranche-age';
+import { TrancheAgeCalculeeBadge } from '@/components/shared/tranche-age-badge';
 import type { BeneficiaireListItem } from '@/lib/beneficiaires/queries';
 import type { Nomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';
 import type {
@@ -121,7 +122,10 @@ function BeneficiaireRow({
       </TableCell>
       <TableCell>
         <LibelleCell href={`/beneficiaires/${row.id}`}>
-          {calculerTrancheAge(row.date_naissance, new Date(), row.tranche_age_declaree)}
+          <TrancheAgeCalculeeBadge
+            tranche={calculerTrancheAge(row.date_naissance, new Date(), row.tranche_age_declaree)}
+            estDeclaree={!row.date_naissance && !!row.tranche_age_declaree}
+          />
         </LibelleCell>
       </TableCell>
       <TableCell>
