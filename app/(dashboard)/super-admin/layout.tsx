@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ShieldAlert, Activity, Users, Building2, Package, BookOpen } from 'lucide-react';
+import { ShieldAlert, Activity, Users, Building2, Package, BookOpen, Sparkles } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 
 /**
@@ -28,6 +28,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     { href: '/super-admin/partenaires', label: 'Partenaires', icon: Building2 },
     { href: '/super-admin/modules', label: 'Modules', icon: Package },
     { href: '/super-admin/base-connaissance', label: 'Base de connaissance', icon: BookOpen },
+    { href: '/super-admin/analyses-indicateurs', label: 'Analyses IA', icon: Sparkles },
   ];
 
   return (

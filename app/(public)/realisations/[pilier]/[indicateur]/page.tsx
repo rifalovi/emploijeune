@@ -22,6 +22,8 @@ import { HeaderPublic } from '@/components/landing/header-public';
 import { getAuthUser } from '@/lib/supabase/auth';
 import { PILIERS, INDICATEURS, indicateurParCode, type CodePilier } from '@/lib/referentiels/indicateurs';
 import { getKpisPublics, getRepartitionTrancheAge } from '@/lib/landing/queries';
+import { getAnalysePubliee } from '@/lib/analyses-indicateurs/queries';
+import { BlocAnalytiqueIA } from '@/components/realisations/bloc-analytique-ia';
 
 type Props = { params: Promise<{ pilier: string; indicateur: string }> };
 
@@ -217,6 +219,9 @@ export default async function IndicateurRealisationPage({ params }: Props) {
 
   const fictif = !donneesReelles;
 
+  // Analyse IA publiée (si disponible)
+  const analyseIA = await getAnalysePubliee(ind.code);
+
   return (
     <div className="bg-background min-h-screen">
       <HeaderPublic isAuthenticated={Boolean(user)} />
@@ -346,6 +351,9 @@ export default async function IndicateurRealisationPage({ params }: Props) {
             ))}
           </div>
         </section>
+
+        {/* ── Bloc analytique IA ── */}
+        <BlocAnalytiqueIA analyse={analyseIA} couleur={pilierData.couleur} />
 
         {/* Collecte et calcul */}
         <section className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">

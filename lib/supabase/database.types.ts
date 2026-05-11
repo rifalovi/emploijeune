@@ -1554,6 +1554,57 @@ export type Database = {
           },
         ]
       }
+      analyses_indicateurs: {
+        Row: {
+          id: string
+          indicateur_code: string
+          statut: string
+          contenu: string
+          resume: string | null
+          genere_par_ia: boolean
+          modifie_par_sa: boolean
+          prompt_utilise: string | null
+          tokens_utilises: number | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+          published_at: string | null
+          published_by: string | null
+        }
+        Insert: {
+          id?: string
+          indicateur_code: string
+          statut?: string
+          contenu: string
+          resume?: string | null
+          genere_par_ia?: boolean
+          modifie_par_sa?: boolean
+          prompt_utilise?: string | null
+          tokens_utilises?: number | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          published_at?: string | null
+          published_by?: string | null
+        }
+        Update: {
+          id?: string
+          indicateur_code?: string
+          statut?: string
+          contenu?: string
+          resume?: string | null
+          genere_par_ia?: boolean
+          modifie_par_sa?: boolean
+          prompt_utilise?: string | null
+          tokens_utilises?: number | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          published_at?: string | null
+          published_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
