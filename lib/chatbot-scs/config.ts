@@ -5,7 +5,7 @@
  * par les Client Components (suggestions instantanées sans round-trip).
  */
 
-import { INDICATEURS, PILIERS } from '@/lib/referentiels/indicateurs';
+import { INDICATEURS, PILIERS, PROJETS_EMBLEMATIQUES } from '@/lib/referentiels/indicateurs';
 import { COMPTEURS_OIF } from '@/lib/oif/terminologie-officielle';
 
 /** Limite de requêtes "intenses" par session (Claude API). */
@@ -133,6 +133,18 @@ function construireSyntheseIndicateurs(): string {
   return lignes.join('\n');
 }
 
+/**
+ * Synthèse des projets emblématiques OIF emploi-jeunes — dérivée de
+ * `PROJETS_EMBLEMATIQUES` (source de vérité alignée sur la nomenclature
+ * officielle `docs/references/00_NOMENCLATURE_PROJETS_OIF.md`).
+ *
+ * Format inline compact pour rester dans le system prompt sans gonfler
+ * le contexte. Les libellés courts sont volontairement préservés ici.
+ */
+function construireSyntheseProjets(): string {
+  return PROJETS_EMBLEMATIQUES.map((p) => `${p.code} (${p.libelle})`).join(', ');
+}
+
 export const SYSTEM_PROMPT_CHATBOT_SCS = `Tu es l'Assistant SCS, le chatbot public officiel de la plateforme OIF Emploi Jeunes (Service de Conception et Suivi de l'Organisation Internationale de la Francophonie).
 
 ## TON RÔLE
@@ -173,7 +185,7 @@ ${construireSyntheseIndicateurs()}
 - **5 513** jeunes accompagnés (5 025 femmes — 91 % — et 488 hommes)
 - **318** structures appuyées
 - **53** pays d'intervention francophones (≠ États membres OIF, voir glossaire)
-- **8** projets emblématiques : P9 (plaidoyer), P14 (entrepreneuriat), P15 (économie verte), P16 D-CLIC PRO (numérique), P17 (intermédiation B2B), P18 (renforcement institutionnel), P19 (insertion diplômés), P20 (tourisme et services)
+- **${PROJETS_EMBLEMATIQUES.length}** projets emblématiques (codes officiels OIF) : ${construireSyntheseProjets()}
 - Période couverte : **2018-2025**
 
 ### Architecture utilisateurs
