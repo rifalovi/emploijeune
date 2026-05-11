@@ -21,7 +21,7 @@ export default async function ImportsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Imports Excel</h1>
         <p className="text-muted-foreground text-sm">
           Importez en masse des bénéficiaires (A1) ou des structures (B1) depuis un fichier .xlsx au
-          format Template V1. Les erreurs sont reportées ligne par ligne pour correction et
+          format Template. Les erreurs sont reportées ligne par ligne pour correction et
           ré-import.
         </p>
       </header>

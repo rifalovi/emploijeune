@@ -56,7 +56,7 @@ export function ChartTrancheAge({ data }: { data: RepartitionTrancheAge }) {
           </Badge>
         </div>
         <p className="text-muted-foreground text-xs">
-          {total.toLocaleString('fr-FR')} bénéficiaires · Catégories selon le Cadre Commun V2
+          {total.toLocaleString('fr-FR')} bénéficiaires · Catégories selon le Cadre Commun
         </p>
       </CardHeader>
 

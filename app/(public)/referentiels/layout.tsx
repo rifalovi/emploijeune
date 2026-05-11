@@ -30,7 +30,7 @@ function FooterMinimaliste() {
       <div className="mx-auto max-w-7xl px-4 text-center text-xs text-slate-500 sm:px-8">
         <p>
           © {new Date().getFullYear()} OIF · Service de Conception et Suivi · Référentiel basé sur
-          le Cadre Commun de mesure du rendement V2.
+          le Cadre Commun de mesure du rendement.
         </p>
       </div>
     </footer>

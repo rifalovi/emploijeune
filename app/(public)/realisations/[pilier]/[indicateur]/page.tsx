@@ -324,7 +324,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
               valeur={ind.projetsConcernes.length}
               couleur="#F5A623"
               fictif={false}
-              sousTitre="selon le CMR V2"
+              sousTitre="selon le CMR"
             />
           </div>
         </section>

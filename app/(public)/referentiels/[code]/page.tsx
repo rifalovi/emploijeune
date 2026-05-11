@@ -197,7 +197,7 @@ export default async function FicheIndicateurPage({ params }: Props) {
       {/* Lien vers documentation OIF */}
       <p className="text-muted-foreground border-t border-slate-200 pt-6 text-xs">
         <ArrowUpRight className="mr-1 inline size-3" aria-hidden />
-        Source officielle : <em>Cadre commun de mesure du rendement V2</em>, OIF – Service de
+        Source officielle : <em>Cadre commun de mesure du rendement</em>, OIF – Service de
         Conception et Suivi des projets.
       </p>
     </article>

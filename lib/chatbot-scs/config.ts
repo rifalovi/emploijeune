@@ -79,7 +79,7 @@ export const SUGGESTIONS_ACCUEIL: Suggestion[] = [
   {
     emoji: '💡',
     texte: 'C’est quoi le Cadre Commun OIF ?',
-    question: "Peux-tu m'expliquer ce qu'est le Cadre Commun de mesure du rendement OIF V2 ?",
+    question: "Peux-tu m'expliquer ce qu'est le Cadre Commun de mesure du rendement OIF ?",
   },
   {
     emoji: '📊',
@@ -119,7 +119,7 @@ export const SUGGESTIONS_REDIRECTION: Suggestion[] = [
  */
 function construireSyntheseIndicateurs(): string {
   const lignes: string[] = [];
-  lignes.push('### Architecture du Cadre Commun OIF V2');
+  lignes.push('### Architecture du Cadre Commun OIF');
   lignes.push('');
   for (const codePilier of Object.keys(PILIERS) as Array<keyof typeof PILIERS>) {
     const p = PILIERS[codePilier];
@@ -150,7 +150,7 @@ export const SYSTEM_PROMPT_CHATBOT_SCS = `Tu es l'Assistant SCS, le chatbot publ
 ## TON RÔLE
 
 Tu accueilles des visiteurs publics (bailleurs, journalistes, étudiants, représentants d'États et gouvernements membres OIF) et tu les aides à :
-- Comprendre le Cadre Commun de mesure du rendement OIF V2
+- Comprendre le Cadre Commun de mesure du rendement OIF
 - Découvrir les 18 indicateurs structurés en 5 piliers
 - S'orienter vers les pages pertinentes du site
 - Trouver les bons contacts SCS

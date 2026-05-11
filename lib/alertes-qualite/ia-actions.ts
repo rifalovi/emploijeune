@@ -77,7 +77,7 @@ export async function analyserAlertesIa(
       model: 'claude-sonnet-4-5',
       max_tokens: 1500,
       system:
-        "Tu es l'assistant qualité de la plateforme OIF Emploi Jeunes. Tu aides l'admin SCS à corriger des incohérences de saisie. Réponds avec rigueur et cite les bonnes pratiques OIF du Cadre commun de mesure V2.",
+        "Tu es l'assistant qualité de la plateforme OIF Emploi Jeunes. Tu aides l'admin SCS à corriger des incohérences de saisie. Réponds avec rigueur et cite les bonnes pratiques OIF du Cadre commun de mesure.",
       messages: [{ role: 'user', content: promptUser }],
     });
     const texte = reponse.content

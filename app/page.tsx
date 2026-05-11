@@ -411,7 +411,7 @@ function Methodologie() {
             variant="outline"
             style={{ color: COULEUR_ACCENT, borderColor: `${COULEUR_ACCENT}66` }}
           >
-            Note méthodologique V2
+            Note mÃ©thodologique
           </Badge>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
             Notre méthodologie de suivi-évaluation
@@ -527,7 +527,7 @@ function Pourquoi() {
     {
       icone: GraduationCap,
       titre: 'Cohérence méthodologique',
-      description: 'Aligné sur le Cadre Commun de mesure V2 et les questionnaires officiels SCS.',
+      description: 'Aligné sur le Cadre Commun de mesure et les questionnaires officiels SCS.',
     },
   ];
   return (
@@ -681,13 +681,13 @@ function Citations() {
     {
       texte:
         'Le suivi-évaluation rigoureux de nos projets emploi jeunes est la condition de leur impact mesurable et de leur soutenabilité dans la durée.',
-      auteur: 'Cadre commun de mesure du rendement V2',
+      auteur: 'Cadre commun de mesure du rendement',
       fonction: 'Document méthodologique OIF',
     },
     {
       texte:
         "L'apport du français à l'employabilité reste un marqueur transversal de toutes nos interventions : c'est notre signature francophone.",
-      auteur: 'Note méthodologique V2',
+      auteur: 'Note mÃ©thodologique',
       fonction: 'Service de Conception et Suivi (SCS)',
     },
     {

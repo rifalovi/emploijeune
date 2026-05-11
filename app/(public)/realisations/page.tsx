@@ -25,7 +25,7 @@ export default async function RealisationsPage() {
 
         <header className="space-y-2">
           <Badge variant="outline" className="text-xs" style={{ color: '#F5A623', borderColor: '#F5A62366' }}>
-            Réalisations · Cadre Commun OIF V2
+            Réalisations · Cadre Commun OIF
           </Badge>
           <h1 className="text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
             Résultats par catégorie d&apos;indicateurs
@@ -74,7 +74,7 @@ export default async function RealisationsPage() {
         <section className="mt-14 rounded-xl bg-[#0E4F88]/5 p-6 text-sm">
           <p className="font-semibold text-[#0E4F88]">Cadre méthodologique</p>
           <p className="text-muted-foreground mt-1 leading-relaxed">
-            Les indicateurs sont structurés selon le <em>Cadre Commun OIF V2</em>, validé par le SCS.
+            Les indicateurs sont structurés selon le <em>Cadre Commun OIF</em>, validé par le SCS.
             Données réelles disponibles pour A1 et B1. Les autres sont en cours d&apos;alimentation.
           </p>
         </section>

@@ -96,7 +96,7 @@ Mise en forme Markdown (rendue par react-markdown + remark-gfm côté client) :
 - Quand tu cites un code (PROJ_A14, A1, B4), utilise du code inline avec \`backticks\`.
 - Pour les comparaisons structurées, tu peux utiliser des tableaux Markdown (GFM).
 
-Indicateurs OIF du Cadre commun de mesure du rendement V2 :
+Indicateurs OIF du Cadre commun de mesure du rendement :
 - A1 – Jeunes formés
 - A4 – Gain de compétences (longitudinal D2)
 - B1 – Activités économiques appuyées
