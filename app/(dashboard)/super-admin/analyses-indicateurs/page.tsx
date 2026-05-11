@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import { Sparkles, Bot, CheckCircle2, Clock, PenLine, Trash2, RefreshCw, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { INDICATEURS, PILIERS, type CodePilier } from '@/lib/referentiels/indicateurs';
 import { listerAnalysesAdmin } from '@/lib/analyses-indicateurs/queries';
 import {

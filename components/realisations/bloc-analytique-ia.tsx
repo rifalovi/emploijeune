@@ -100,11 +100,25 @@ export function BlocAnalytiqueIA({ analyse, couleur }: Props) {
 
 // ─── Rendu Markdown minimal (sans dépendance externe) ────────────────────────
 /**
- * Concept pédagogique — Rendu Markdown sans bibliothèque :
- * On parse manuellement les constructions Markdown courantes
- * (titres H3, gras, italique, listes) pour éviter d'ajouter
- * une dépendance `react-markdown` ou `marked` au bundle.
- * Pour un usage plus riche, on utiliserait `react-markdown` + `remark-gfm`.
+ * Rendu Markdown sans bibliothèque pour garder le bundle minimal.
+ *
+ * Constructions gérées :
+ *   - `## Titre`, `### Titre`     → H3 stylé (les deux niveaux mappent H3
+ *     car la section parent du bloc est déjà un H2)
+ *   - `- item`, `* item`, `  - sub` → liste à puces plate (l'indentation
+ *     éventuelle d'une sous-puce est aplatie pour rester lisible dans le
+ *     bloc compact)
+ *   - `**gras**` et `*italique*`  → <strong>/<em> inline
+ *   - `> blockquote`              → paragraphe normal (préfixe `> ` retiré)
+ *
+ * Constructions ignorées (filtrées du rendu pour ne pas polluer l'UI) :
+ *   - `---` / `***` / `___`       → lignes horizontales (Claude peut en
+ *     insérer entre sections — on les supprime, la stylisation des H3
+ *     suffit à séparer visuellement)
+ *
+ * Pour un rendu plus riche (tableaux, code, liens cliquables), on
+ * basculerait sur `react-markdown` + `remark-gfm` (déjà dans deps pour
+ * le chatbot). Mais ici on veut un rendu volontairement contrôlé.
  */
 function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string }) {
   const lignes = contenu.split('\n');
@@ -114,7 +128,10 @@ function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string
   const viderListe = () => {
     if (iListe.length > 0) {
       elements.push(
-        <ul key={`ul-${elements.length}`} className="mb-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
+        <ul
+          key={`ul-${elements.length}`}
+          className="mb-3 list-disc space-y-1 pl-5 text-sm text-slate-700"
+        >
           {iListe.map((item, i) => (
             <li key={i} dangerouslySetInnerHTML={{ __html: formatInline(item) }} />
           ))}
@@ -124,52 +141,93 @@ function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string
     }
   };
 
-  for (let i = 0; i < lignes.length; i++) {
-    const ligne = lignes[i]!;
+  // Regex pré-compilées
+  const ESTLISTE_RE = /^\s*[-*]\s+(.+)$/; // capture l'item sans le préfixe ni l'indentation
+  const ESTHR_RE = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/;
+  const ESTH3_RE = /^#{2,3}\s+(.+)$/; // accepte H2 et H3, on rend les deux en H3
+  const ESTBLOCKQUOTE_RE = /^\s*>\s?(.*)$/;
 
-    if (ligne.startsWith('### ')) {
+  for (let i = 0; i < lignes.length; i++) {
+    const brute = lignes[i]!;
+    const ligne = brute.replace(/\s+$/, ''); // trim droite seulement
+
+    // 1. Lignes horizontales — ignorer entièrement (jamais affichées)
+    if (ESTHR_RE.test(ligne)) {
       viderListe();
-      const texte = ligne.slice(4);
+      continue;
+    }
+
+    // 2. Titres ## ou ### — rendus uniformément en H3
+    const matchTitre = ligne.match(ESTH3_RE);
+    if (matchTitre) {
+      viderListe();
       elements.push(
         <h3
           key={i}
           className="mb-2 mt-4 text-sm font-bold first:mt-0"
           style={{ color: couleur }}
         >
-          {texte}
+          {matchTitre[1]}
         </h3>,
       );
-    } else if (ligne.startsWith('## ')) {
-      viderListe();
-      const texte = ligne.slice(3);
-      elements.push(
-        <h3 key={i} className="mb-2 mt-4 text-sm font-bold first:mt-0" style={{ color: couleur }}>
-          {texte}
-        </h3>,
-      );
-    } else if (ligne.startsWith('- ') || ligne.startsWith('* ')) {
-      iListe.push(ligne.slice(2));
-    } else if (ligne.trim() === '') {
-      viderListe();
-    } else {
-      viderListe();
-      elements.push(
-        <p
-          key={i}
-          className="mb-3 text-sm leading-relaxed text-slate-700"
-          dangerouslySetInnerHTML={{ __html: formatInline(ligne) }}
-        />,
-      );
+      continue;
     }
+
+    // 3. Listes (avec ou sans indentation — aplaties)
+    const matchListe = ligne.match(ESTLISTE_RE);
+    if (matchListe) {
+      iListe.push(matchListe[1]!);
+      continue;
+    }
+
+    // 4. Blockquote — rendu comme paragraphe normal (préfixe retiré)
+    const matchBQ = ligne.match(ESTBLOCKQUOTE_RE);
+    if (matchBQ) {
+      viderListe();
+      const contenu = matchBQ[1]?.trim();
+      if (contenu) {
+        elements.push(
+          <p
+            key={i}
+            className="mb-3 text-sm leading-relaxed text-slate-700"
+            dangerouslySetInnerHTML={{ __html: formatInline(contenu) }}
+          />,
+        );
+      }
+      continue;
+    }
+
+    // 5. Ligne vide — sépare les blocs
+    if (ligne.trim() === '') {
+      viderListe();
+      continue;
+    }
+
+    // 6. Paragraphe par défaut
+    viderListe();
+    elements.push(
+      <p
+        key={i}
+        className="mb-3 text-sm leading-relaxed text-slate-700"
+        dangerouslySetInnerHTML={{ __html: formatInline(ligne) }}
+      />,
+    );
   }
   viderListe();
 
   return <>{elements}</>;
 }
 
-/** Formate le gras (**texte**) et l'italique (*texte*) inline. */
+/**
+ * Formate le gras (**texte**) et l'italique (*texte*) inline.
+ *
+ * Ordre des regex important : gras d'abord (\*\*…\*\*) pour ne pas que
+ * l'italique (\*…\*) ne capture la moitié d'un gras. Les regex sont
+ * non-gourmandes (.+?) pour gérer plusieurs gras/italiques sur la même
+ * ligne, et ancrées de telle sorte qu'un astérisque isolé reste tel quel.
+ */
 function formatInline(text: string): string {
   return text
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+    .replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
 }

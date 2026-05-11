@@ -34,6 +34,15 @@ export async function generateStaticParams() {
   }));
 }
 
+/**
+ * ISR : régénération automatique toutes les heures.
+ * La page reste statique (rapide) mais une analyse publiée après le build
+ * devient visible au prochain hit ≥ 1h après publication. Pour rendre une
+ * publication visible immédiatement, server-actions.ts:publierAnalyse
+ * appelle revalidatePath('/realisations').
+ */
+export const revalidate = 3600;
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { indicateur } = await params;
   const ind = indicateurParCode(indicateur);

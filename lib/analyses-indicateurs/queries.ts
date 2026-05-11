@@ -29,23 +29,39 @@ export type AnalyseIndicateurAdmin = AnalyseIndicateurPublique & {
 
 /**
  * Retourne l'analyse publiée la plus récente pour un indicateur donné.
- * Retourne `null` si aucune analyse publiée n'existe.
+ *
+ * Retourne `null` dans tous les cas non-bloquants :
+ *   - aucune analyse publiée pour cet indicateur
+ *   - table `analyses_indicateurs` absente (migration 028 pas encore appliquée
+ *     dans cet environnement — code Postgres `42P01`)
+ *   - erreur Supabase / réseau
+ *
+ * Cette tolérance évite qu'une page publique de réalisations crashe sur un
+ * environnement où la migration n'est pas encore appliquée (CI, preview, dev).
  */
 export async function getAnalysePubliee(
   indicateurCode: string,
 ): Promise<AnalyseIndicateurPublique | null> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('analyses_indicateurs')
-    .select('id, indicateur_code, resume, contenu, genere_par_ia, modifie_par_sa, published_at, updated_at')
-    .eq('indicateur_code', indicateurCode.toUpperCase())
-    .eq('statut', 'publiee')
-    .order('published_at', { ascending: false })
-    .limit(1)
-    .single();
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from('analyses_indicateurs')
+      .select(
+        'id, indicateur_code, resume, contenu, genere_par_ia, modifie_par_sa, published_at, updated_at',
+      )
+      .eq('indicateur_code', indicateurCode.toUpperCase())
+      .eq('statut', 'publiee')
+      .order('published_at', { ascending: false })
+      .limit(1)
+      .single();
 
-  if (error || !data) return null;
-  return data as AnalyseIndicateurPublique;
+    if (error || !data) return null;
+    return data as AnalyseIndicateurPublique;
+  } catch {
+    // Table absente ou erreur réseau : on dégrade silencieusement,
+    // le BlocAnalytiqueIA affichera son état "Analyse en préparation".
+    return null;
+  }
 }
 
 /**
