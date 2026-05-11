@@ -51,8 +51,12 @@ export function BlocAnalytiqueIA({ analyse, couleur }: Props) {
           className="rounded-xl border p-6"
           style={{ borderColor: `${couleur}30`, backgroundColor: `${couleur}05` }}
         >
-          {/* Résumé (accroche) */}
-          {analyse.resume && (
+          {/* Résumé (accroche) — guard ≥ 60 char :
+              Les anciennes analyses (avant fix du résumé) avaient parfois un
+              intitulé de section ("Signification et importance", ~26 char)
+              stocké comme résumé. On masque ces résumés trop courts pour ne
+              pas afficher en double avec le H3 qui suit dans le contenu. */}
+          {analyse.resume && analyse.resume.length >= 60 && (
             <p className="mb-4 text-sm font-medium leading-relaxed" style={{ color: couleur }}>
               {analyse.resume}
             </p>
@@ -143,7 +147,9 @@ function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string
 
   // Regex pré-compilées
   const ESTLISTE_RE = /^\s*[-*]\s+(.+)$/; // capture l'item sans le préfixe ni l'indentation
-  const ESTHR_RE = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/;
+  // Aussi `—+` (em-dash U+2014) qui apparaît parfois comme séparateur typo,
+  // pas seulement les --- ASCII / *** / ___.
+  const ESTHR_RE = /^\s*(?:-{3,}|\*{3,}|_{3,}|—+)\s*$/;
   // Accepte H1 à H4 — Claude génère parfois un H1 unique en tête de
   // réponse ; sans cette tolérance le `#` resterait visible en texte brut.
   // Tous mappés sur H3 (le bloc parent porte déjà un H2).

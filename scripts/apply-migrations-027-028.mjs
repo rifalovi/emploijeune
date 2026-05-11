@@ -69,4 +69,9 @@ await applyMigration(
   '20260511200001_fix_rls_analyses_indicateurs.sql',
 );
 
+await applyMigration(
+  'Migration 028-cleanup (résumés titres + séparateurs --- en base)',
+  '20260511300001_clean_resumes_analyses.sql',
+);
+
 console.log('\n🎉 Toutes les migrations ont été appliquées avec succès.');
