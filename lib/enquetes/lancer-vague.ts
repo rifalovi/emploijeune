@@ -28,7 +28,7 @@ import {
  *     log les échecs et l'admin relance manuellement les concernés.
  *   - Pas de webhook delivery confirmation (V1.5-E).
  *
- * Sécurité : seuls admin_scs / chef_projet / contributeur_partenaire
+ * Sécurité : seuls super_admin / admin_scs / chef_projet / contributeur_partenaire
  * peuvent lancer une vague. La RLS limite naturellement le périmètre.
  *
  * IMPORTANT : ce fichier doit n'exporter QUE des fonctions async (Next 14
@@ -46,7 +46,9 @@ export async function apercuVagueEnquete(
   const utilisateur = await getCurrentUtilisateur();
   if (
     !utilisateur ||
-    !['admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(utilisateur.role)
+    !['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(
+      utilisateur.role,
+    )
   ) {
     return { status: 'erreur', message: 'Réservé aux rôles autorisés.' };
   }
@@ -96,7 +98,9 @@ export async function lancerVagueEnquete(raw: unknown): Promise<LancerVagueResul
   const utilisateur = await getCurrentUtilisateur();
   if (
     !utilisateur ||
-    !['admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(utilisateur.role)
+    !['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(
+      utilisateur.role,
+    )
   ) {
     return { status: 'erreur_droits', message: 'Réservé aux rôles autorisés.' };
   }

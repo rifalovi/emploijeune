@@ -21,11 +21,15 @@ export const metadata: Metadata = {
  *   2. Définition de la strate (toutes / filtres / sélection manuelle)
  *   3. Paramètres d'envoi (plafond, email test, date)
  *
- * Réservé admin_scs / editeur_projet / contributeur_partenaire.
+ * Réservé super_admin / admin_scs / editeur_projet / contributeur_partenaire.
  */
 export default async function LancerCampagnePage() {
   const utilisateur = await requireUtilisateurValide();
-  if (!['admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(utilisateur.role)) {
+  if (
+    !['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(
+      utilisateur.role,
+    )
+  ) {
     notFound();
   }
 

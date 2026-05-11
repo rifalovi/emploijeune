@@ -126,14 +126,16 @@ export type GenererTokenInput = {
  * Génère un token d'enquête publique pour une cible et envoie l'email
  * d'invitation (MOCK V1, Resend en V1.5d).
  *
- * Garde-fou : seuls admin_scs / editeur_projet / contributeur_partenaire
+ * Garde-fou : seuls super_admin / admin_scs / editeur_projet / contributeur_partenaire
  * peuvent générer un token. RLS Supabase appliquée au INSERT.
  */
 export async function genererTokenEnquete(input: GenererTokenInput): Promise<GenererTokenResult> {
   const utilisateur = await getCurrentUtilisateur();
   if (
     !utilisateur ||
-    !['admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(utilisateur.role)
+    !['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(
+      utilisateur.role,
+    )
   ) {
     return { status: 'erreur_droits', message: 'Réservé aux rôles autorisés.' };
   }

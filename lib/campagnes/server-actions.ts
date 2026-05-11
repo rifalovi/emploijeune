@@ -19,7 +19,7 @@ import {
  * Schéma Zod et types vivent dans `lib/schemas/campagne.ts`.
  *
  * Sécurité :
- *   - Garde rôle (admin_scs / editeur_projet / contributeur_partenaire) sur
+ *   - Garde rôle (super_admin / admin_scs / editeur_projet / contributeur_partenaire) sur
  *     toutes les actions.
  *   - getCurrentUtilisateur() throw automatiquement en mode view-as
  *     (cf. v1.1.5) → impossible de créer/lancer une campagne en visualisation.
@@ -38,7 +38,9 @@ export async function compterStrate(
   const courant = await getCurrentUtilisateur();
   if (
     !courant ||
-    !['admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(courant.role)
+    !['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(
+      courant.role,
+    )
   ) {
     return { status: 'erreur', message: 'Réservé aux rôles autorisés.' };
   }
@@ -100,7 +102,9 @@ export async function listerStrate(
   const courant = await getCurrentUtilisateur();
   if (
     !courant ||
-    !['admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(courant.role)
+    !['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(
+      courant.role,
+    )
   ) {
     return { status: 'erreur', message: 'Réservé aux rôles autorisés.' };
   }
@@ -156,7 +160,9 @@ export async function listerStrateIds(
   const courant = await getCurrentUtilisateur();
   if (
     !courant ||
-    !['admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(courant.role)
+    !['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(
+      courant.role,
+    )
   ) {
     return { status: 'erreur', message: 'Réservé aux rôles autorisés.' };
   }
@@ -181,7 +187,9 @@ export async function creerCampagneBrouillon(raw: unknown): Promise<CreerCampagn
   const courant = await getCurrentUtilisateur();
   if (
     !courant ||
-    !['admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(courant.role)
+    !['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(
+      courant.role,
+    )
   ) {
     return { status: 'erreur_droits', message: 'Réservé aux rôles autorisés.' };
   }
@@ -237,7 +245,9 @@ export async function lancerCampagne(campagneId: string): Promise<LancerCampagne
   const courant = await getCurrentUtilisateur();
   if (
     !courant ||
-    !['admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(courant.role)
+    !['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire'].includes(
+      courant.role,
+    )
   ) {
     return { status: 'erreur_droits', message: 'Réservé aux rôles autorisés.' };
   }
