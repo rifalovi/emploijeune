@@ -87,6 +87,8 @@ export type ListerStrateLigne = {
   projet_code: string;
   annee: number;
   consentement: boolean;
+  /** Tranche d'âge OIF déclarée (questionnaire A seulement). */
+  tranche_age_declaree: 'Jeune' | 'Adulte' | null;
 };
 
 export async function listerStrate(

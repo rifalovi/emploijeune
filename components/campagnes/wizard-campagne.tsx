@@ -69,6 +69,7 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
   const [filtrePays, setFiltrePays] = useState<string[]>([]);
   const [filtreAnnees, setFiltreAnnees] = useState<number[]>([]);
   const [filtreSexe, setFiltreSexe] = useState<string>('');
+  const [filtreTrancheAge, setFiltreTrancheAge] = useState<string>('');
   const [consentementSeul, setConsentementSeul] = useState<boolean>(true);
 
   // Liste paginée des cibles (mode manuel + mode filtres avec révision)
@@ -101,8 +102,9 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
       obj[questionnaire === 'A' ? 'annees' : 'annees_appui'] = filtreAnnees;
     }
     if (questionnaire === 'A' && filtreSexe) obj.sexe = filtreSexe;
+    if (questionnaire === 'A' && filtreTrancheAge) obj.tranche_age = filtreTrancheAge;
     return obj;
-  }, [mode, filtreProjets, filtrePays, filtreAnnees, filtreSexe, consentementSeul, questionnaire]);
+  }, [mode, filtreProjets, filtrePays, filtreAnnees, filtreSexe, filtreTrancheAge, consentementSeul, questionnaire]);
 
   // ─── Reset à chaque changement de questionnaire ou de mode ────────────────
   useEffect(() => {
@@ -458,22 +460,40 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
                 onChange={(vals) => setFiltreAnnees(vals.map((v) => Number(v)))}
               />
               {questionnaire === 'A' && (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Sexe</Label>
-                    <Select
-                      value={filtreSexe || 'tous'}
-                      onValueChange={(v) => setFiltreSexe(v === 'tous' ? '' : (v ?? ''))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="tous">Tous</SelectItem>
-                        <SelectItem value="F">Femmes</SelectItem>
-                        <SelectItem value="M">Hommes</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Sexe</Label>
+                      <Select
+                        value={filtreSexe || 'tous'}
+                        onValueChange={(v) => setFiltreSexe(v === 'tous' ? '' : (v ?? ''))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="tous">Tous</SelectItem>
+                          <SelectItem value="F">Femmes</SelectItem>
+                          <SelectItem value="M">Hommes</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Tranche d&apos;âge OIF</Label>
+                      <Select
+                        value={filtreTrancheAge || 'toutes'}
+                        onValueChange={(v) => setFiltreTrancheAge(v === 'toutes' ? '' : (v ?? ''))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="toutes">Toutes</SelectItem>
+                          <SelectItem value="Jeune">Jeunes (18–34 ans)</SelectItem>
+                          <SelectItem value="Adulte">Adultes (35 ans et +)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <label className="flex items-center gap-2 text-sm">
                     <input

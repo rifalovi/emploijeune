@@ -22,11 +22,16 @@ import { VAGUES_ENQUETE_VALUES } from '@/lib/schemas/enquetes/nomenclatures';
  * Filtres de strate pour Questionnaire A (bénéficiaires).
  * Tous optionnels — un tableau vide ou absent = aucun filtre sur ce critère.
  */
+export const TRANCHE_AGE_VALUES = ['Jeune', 'Adulte'] as const;
+export type TrancheAgeFiltre = (typeof TRANCHE_AGE_VALUES)[number];
+
 export const filtresStrateASchema = z.object({
   projets: z.array(z.enum([...PROJETS_CODES] as [string, ...string[]])).optional(),
   pays: z.array(z.enum([...PAYS_CODES] as [string, ...string[]])).optional(),
   annees: z.array(z.number().int().min(2000).max(2100)).optional(),
   sexe: z.enum([...SEXE_VALUES] as [string, ...string[]]).optional(),
+  /** Tranche d'âge OIF : Jeune (18-34 ans) ou Adulte (35 ans et +). */
+  tranche_age: z.enum([...TRANCHE_AGE_VALUES] as [string, ...string[]]).optional(),
   statuts: z.array(z.string()).optional(),
   consentement_acquis_seul: z.boolean().optional().default(true),
 });

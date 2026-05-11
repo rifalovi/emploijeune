@@ -115,6 +115,7 @@ export function ListeCiblesRevue({
                 />
               </th>
               <th className="p-2 text-left">Cible</th>
+              <th className="p-2 text-left">Tranche</th>
               <th className="p-2 text-left">Projet</th>
               <th className="p-2 text-left">Pays</th>
               <th className="p-2 text-left">Email</th>
@@ -123,13 +124,13 @@ export function ListeCiblesRevue({
           <tbody>
             {pending ? (
               <tr>
-                <td colSpan={5} className="text-muted-foreground p-6 text-center text-xs">
+                <td colSpan={6} className="text-muted-foreground p-6 text-center text-xs">
                   <Loader2 className="inline size-4 animate-spin" /> Chargement…
                 </td>
               </tr>
             ) : lignes.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-muted-foreground p-6 text-center text-xs italic">
+                <td colSpan={6} className="text-muted-foreground p-6 text-center text-xs italic">
                   {recherche
                     ? `Aucune cible ne correspond à « ${recherche} ».`
                     : 'Aucune cible éligible.'}
@@ -151,6 +152,22 @@ export function ListeCiblesRevue({
                       />
                     </td>
                     <td className="p-2">{l.libelle}</td>
+                    <td className="p-2">
+                      {l.tranche_age_declaree ? (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px]"
+                          style={{
+                            color: l.tranche_age_declaree === 'Jeune' ? '#0198E9' : '#5D0073',
+                            borderColor: l.tranche_age_declaree === 'Jeune' ? '#0198E955' : '#5D007355',
+                          }}
+                        >
+                          {l.tranche_age_declaree === 'Jeune' ? 'Jeune 18–34' : 'Adulte 35+'}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-[10px] italic">—</span>
+                      )}
+                    </td>
                     <td className="p-2">
                       <Badge variant="outline" className="font-mono text-xs">
                         {l.projet_code}
