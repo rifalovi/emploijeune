@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { pilier } = await params;
   const code = pilier.toUpperCase() as CodePilier;
   const p = PILIERS[code];
-  if (\!p) return { title: 'Réalisations — OIF' };
+  if (!p) return { title: 'Réalisations — OIF' };
   return { title: `Catégorie ${code} — ${p.sousTitre} · Réalisations OIF` };
 }
 
@@ -26,7 +26,7 @@ export default async function PilierPage({ params }: Props) {
   const { pilier } = await params;
   const code = pilier.toUpperCase() as CodePilier;
   const pilierData = PILIERS[code];
-  if (\!pilierData) notFound();
+  if (!pilierData) notFound();
 
   const indicateurs = indicateursParPilier(code);
   const user = await getAuthUser();

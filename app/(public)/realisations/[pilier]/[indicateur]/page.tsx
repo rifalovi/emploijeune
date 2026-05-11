@@ -22,7 +22,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { indicateur } = await params;
   const ind = indicateurParCode(indicateur);
-  if (\!ind) return { title: 'Indicateur introuvable — OIF' };
+  if (!ind) return { title: 'Indicateur introuvable — OIF' };
   return { title: `${ind.code} — ${ind.intitule} · Réalisations OIF` };
 }
 
@@ -47,7 +47,7 @@ const DONNEES_FICTIVES: Record<string, { total: number; femmes: number; jeunes: 
 export default async function IndicateurRealisationPage({ params }: Props) {
   const { pilier, indicateur } = await params;
   const ind = indicateurParCode(indicateur);
-  if (\!ind) notFound();
+  if (!ind) notFound();
 
   const pilierData = PILIERS[ind.pilier as CodePilier];
   const user = await getAuthUser();
@@ -70,7 +70,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
   }
 
   // Données à afficher (réelles ou fictives)
-  const fictif = \!donneesReelles;
+  const fictif = !donneesReelles;
   const d = fictif
     ? DONNEES_FICTIVES[ind.code] ?? { total: 0, femmes: 0, jeunes: 0, adultes: 0, pays: 0, projets: 0 }
     : null;
@@ -144,7 +144,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
             />
 
             {/* Femmes */}
-            {ind.code \!== 'B1' && (
+            {ind.code !== 'B1' && (
               <KpiCard
                 icone={Heart}
                 label="Femmes"
@@ -156,7 +156,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
             )}
 
             {/* Jeunes 18-34 */}
-            {ind.code \!== 'B1' && (
+            {ind.code !== 'B1' && (
               <KpiCard
                 icone={Baby}
                 label="Jeunes (18-34 ans)"
@@ -168,7 +168,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
             )}
 
             {/* Adultes 35+ */}
-            {ind.code \!== 'B1' && (
+            {ind.code !== 'B1' && (
               <KpiCard
                 icone={UserCheck}
                 label="Adultes (35 ans et +)"
