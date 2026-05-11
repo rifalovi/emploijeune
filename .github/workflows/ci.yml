@@ -14,11 +14,14 @@ concurrency:
 env:
   NODE_VERSION: '20'
   # Valeurs factices pour permettre au build Next.js de résoudre les modules
-  # qui lisent process.env.* au build time. Aucune vraie clé n'est utilisée
-  # ici : les routes serveur n'exécutent pas leurs handlers en build.
-  NEXT_PUBLIC_SUPABASE_URL: https://ci.placeholder.supabase.co
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
-  SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+  # qui lisent process.env.* au build time. Le schéma Zod lib/supabase/env.ts
+  # exige >= 40 caractères sur les clés Supabase (cf. validation au prerender
+  # des pages publiques) — d'où les chaînes longues ci-dessous. Aucune vraie
+  # clé n'est utilisée : les routes serveur n'exécutent pas leurs handlers
+  # au build, seul le parse du schéma se déclenche.
+  NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
+  SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
   ANTHROPIC_API_KEY: ci-placeholder
   RESEND_API_KEY: ci-placeholder
   NEXT_PUBLIC_APP_URL: http://localhost:3000
