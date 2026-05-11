@@ -287,7 +287,7 @@ function KpiCard({ icone: Icone, label, valeur, couleur, fictif, sousTitre, unit
             <span className="text-[9px] font-medium text-slate-400 italic">fictif</span>
           )}
         </div>
-        <div className="mt-3 text-2xl font-bold tabular-nums" style={{ color }}>
+        <div className="mt-3 text-2xl font-bold tabular-nums" style={{ color: couleur }}>
           {valeur.toLocaleString('fr-FR')}
           {unite && <span className="ml-1 text-xs font-normal text-slate-400">{unite}</span>}
         </div>

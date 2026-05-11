@@ -65,7 +65,7 @@ export async function getBeneficiaireById(id: string): Promise<BeneficiaireDetai
     .select(
       `
       id,
-      prenom, nom, sexe, date_naissance,
+      prenom, nom, sexe, date_naissance, tranche_age_declaree,
       projet_code, pays_code,
       organisation_id, partenaire_accompagnement,
       domaine_formation_code, intitule_formation, modalite_formation_code,
@@ -96,6 +96,7 @@ export async function getBeneficiaireById(id: string): Promise<BeneficiaireDetai
     nom: data.nom,
     sexe: data.sexe as 'F' | 'M' | 'Autre',
     date_naissance: data.date_naissance,
+    tranche_age_declaree: (data.tranche_age_declaree as 'Jeune' | 'Adulte' | null) ?? null,
 
     projet_code: data.projet_code,
     projet_libelle: projet?.libelle ?? null,

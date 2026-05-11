@@ -244,6 +244,7 @@ export type Database = {
           source_import: Database["public"]["Enums"]["source_import"]
           statut_code: string
           telephone: string | null
+          tranche_age_declaree: string | null
           updated_at: string
         }
         Insert: {
@@ -283,6 +284,7 @@ export type Database = {
           source_import?: Database["public"]["Enums"]["source_import"]
           statut_code: string
           telephone?: string | null
+          tranche_age_declaree?: string | null
           updated_at?: string
         }
         Update: {
@@ -318,6 +320,7 @@ export type Database = {
           source_import?: Database["public"]["Enums"]["source_import"]
           statut_code?: string
           telephone?: string | null
+          tranche_age_declaree?: string | null
           updated_at?: string
         }
         Relationships: [
