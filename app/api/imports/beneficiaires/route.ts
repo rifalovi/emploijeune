@@ -30,12 +30,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const buffer = await fichier.arrayBuffer();
-  const result = await importerBeneficiairesExcel({
-    fichierBuffer: buffer,
-    fichierNom: fichier.name,
-    fichierTaille: fichier.size,
-  });
-
-  return NextResponse.json(result);
+  try {
+    const buffer = await fichier.arrayBuffer();
+    const result = await importerBeneficiairesExcel({
+      fichierBuffer: buffer,
+      fichierNom: fichier.name,
+      fichierTaille: fichier.size,
+    });
+    return NextResponse.json(result);
+  } catch (erreur) {
+    console.error('[api/imports/beneficiaires] échec import Excel', {
+      fichierNom: fichier.name,
+      fichierTaille: fichier.size,
+      erreur: erreur instanceof Error ? erreur.message : String(erreur),
+    });
+    return NextResponse.json(
+      {
+        erreur:
+          'Impossible de traiter le fichier Excel. Vérifiez le format et réessayez, ou contactez le support.',
+      },
+      { status: 500 },
+    );
+  }
 }
