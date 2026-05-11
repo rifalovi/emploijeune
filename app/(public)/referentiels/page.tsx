@@ -1,7 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, BookMarked } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import {
+  BookOpen,
+  BarChart2,
+  ClipboardList,
+  Calculator,
+  Database,
+  AlertTriangle,
+  Clock,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   PILIERS,
@@ -13,12 +21,147 @@ import {
 export const metadata: Metadata = {
   title: 'Référentiels — Cadre Commun OIF V2',
   description:
-    'Architecture du Cadre Commun de mesure du rendement OIF V2 : 5 catégories, 18 indicateurs pour le suivi-évaluation des projets emploi jeunes.',
+    'Fiches détaillées des 18 indicateurs du Cadre Commun de mesure du rendement OIF V2 pour le suivi-évaluation des projets emploi jeunes.',
 };
+
+function SectionLabel({
+  icon: Icon,
+  label,
+  couleur,
+}: {
+  icon: React.ElementType;
+  label: string;
+  couleur: string;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Icon className="size-3.5 shrink-0" style={{ color: couleur }} aria-hidden />
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function IndicateurFiche({
+  indicateur,
+  couleur,
+}: {
+  indicateur: (typeof INDICATEURS)[number];
+  couleur: string;
+}) {
+  return (
+    <Card
+      id={indicateur.code.toLowerCase()}
+      className="overflow-hidden border-l-4 scroll-mt-24"
+      style={{ borderLeftColor: couleur }}
+    >
+      <CardHeader className="pb-3 pt-5">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <span
+              className="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 font-mono text-sm font-bold text-white"
+              style={{ backgroundColor: couleur }}
+            >
+              {indicateur.code}
+            </span>
+            <h3 className="text-base font-semibold text-slate-900">{indicateur.intitule}</h3>
+          </div>
+          <Badge
+            variant="outline"
+            className="text-[10px]"
+            style={{ color: couleur, borderColor: `${couleur}55` }}
+          >
+            {indicateur.frequence}
+          </Badge>
+        </div>
+
+        {/* Définition */}
+        <div className="mt-3 flex items-start gap-2">
+          <BookOpen className="mt-0.5 size-3.5 shrink-0 text-slate-400" aria-hidden />
+          <p className="text-sm leading-relaxed text-slate-700">{indicateur.definition}</p>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4 pt-0">
+        {/* Variables */}
+        <div>
+          <SectionLabel icon={BarChart2} label="Variables" couleur={couleur} />
+          <ul className="mt-2 space-y-0.5">
+            {indicateur.variables.map((v) => (
+              <li key={v} className="flex items-start gap-2 text-xs text-slate-600">
+                <span
+                  className="mt-1.5 inline-block size-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: `${couleur}88` }}
+                />
+                {v}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Collecte + Calcul côte à côte */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-lg bg-slate-50 p-3">
+            <SectionLabel icon={ClipboardList} label="Méthode de collecte" couleur={couleur} />
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-600">{indicateur.collecte}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50 p-3">
+            <SectionLabel icon={Calculator} label="Mode de calcul" couleur={couleur} />
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-600">{indicateur.calcul}</p>
+          </div>
+        </div>
+
+        {/* Sources */}
+        <div>
+          <SectionLabel icon={Database} label="Sources de données" couleur={couleur} />
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {indicateur.sources.map((s) => (
+              <span
+                key={s}
+                className="rounded border px-2 py-0.5 text-[11px] text-slate-600"
+                style={{ borderColor: `${couleur}33`, backgroundColor: `${couleur}08` }}
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Précautions */}
+        {indicateur.precautions.length > 0 && (
+          <div>
+            <SectionLabel icon={AlertTriangle} label="Précautions" couleur={couleur} />
+            <ul className="mt-2 space-y-0.5">
+              {indicateur.precautions.map((p) => (
+                <li key={p} className="flex items-start gap-2 text-xs text-slate-600">
+                  <AlertTriangle className="mt-0.5 size-3 shrink-0 text-amber-400" aria-hidden />
+                  {p}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Lien vers les réalisations */}
+        <div className="flex justify-end border-t border-slate-100 pt-2">
+          <Link
+            href={`/realisations/${indicateur.pilier.toLowerCase()}/${indicateur.code.toLowerCase()}`}
+            className="inline-flex items-center gap-1 text-xs font-medium transition-colors hover:underline"
+            style={{ color: couleur }}
+          >
+            Voir les réalisations →
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function ReferentielsAccueil() {
   return (
-    <div className="space-y-12">
+    <div className="space-y-14">
+      {/* En-tête */}
       <section>
         <Badge
           variant="outline"
@@ -28,155 +171,95 @@ export default function ReferentielsAccueil() {
           Cadre Commun de mesure du rendement V2
         </Badge>
         <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-          Architecture du référentiel OIF
+          Référentiel OIF — Fiches indicateurs
         </h1>
         <p className="text-muted-foreground mt-4 max-w-3xl text-base">
-          Référentiel partagé pour le suivi, la mesure et la documentation des résultats des projets
-          OIF contribuant au renforcement de l&apos;emploi des jeunes —
-          <strong> 4 catégories thématiques</strong> + <strong>1 marqueur transversal</strong>, pour
-          un total de <strong>{INDICATEURS.length} indicateurs</strong> validés par le Service de
-          Conception et Suivi.
+          Définitions officielles issues de la{' '}
+          <em>
+            Note méthodologique du Cadre Commun pour le suivi et la documentation des résultats de
+            l&apos;emploi des jeunes
+          </em>{' '}
+          validée par le Service de Conception et Suivi (SCS) de l&apos;OIF. Aucune définition
+          n&apos;a été modifiée.
         </p>
       </section>
 
-      {/* Cards des 5 piliers */}
-      <section>
-        <h2 className="text-xl font-semibold text-[#0E4F88]">Les 5 piliers du Cadre Commun</h2>
-        <p className="text-muted-foreground mt-2 max-w-3xl text-sm">
-          Chaque pilier regroupe des indicateurs qui partagent une logique d&apos;observation
-          commune et permettent l&apos;agrégation des résultats à l&apos;échelle de tous les projets
-          OIF.
-        </p>
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-          {(Object.keys(PILIERS) as CodePilier[]).map((code) => {
-            const p = PILIERS[code];
-            const indicateurs = indicateursParPilier(code);
-            return (
-              <Card
-                key={code}
-                className="group overflow-hidden border-l-4 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-                style={{ borderLeftColor: p.couleur }}
+      {/* Sommaire rapide — ancres par pilier */}
+      <nav aria-label="Navigation par pilier" className="flex flex-wrap gap-2">
+        {(Object.keys(PILIERS) as CodePilier[]).map((code) => {
+          const p = PILIERS[code];
+          return (
+            <a
+              key={code}
+              href={`#pilier-${code.toLowerCase()}`}
+              className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors hover:bg-slate-50"
+              style={{ borderColor: `${p.couleur}55`, color: p.couleur }}
+            >
+              <span
+                className="inline-flex size-4 items-center justify-center rounded-sm font-bold text-white text-[10px]"
+                style={{ backgroundColor: p.couleur }}
               >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <span
-                      className="inline-flex size-10 items-center justify-center rounded-lg font-bold text-white"
-                      style={{ backgroundColor: p.couleur }}
-                    >
-                      {code}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] tabular-nums"
-                      style={{ borderColor: `${p.couleur}66`, color: p.couleur }}
-                    >
-                      {indicateurs.length} indicateur{indicateurs.length > 1 ? 's' : ''}
-                    </Badge>
-                  </div>
-                  <h3 className="mt-3 text-lg font-semibold" style={{ color: p.couleur }}>
-                    {p.titre}
-                  </h3>
-                  <p className="text-sm font-medium text-slate-900">{p.sousTitre}</p>
-                  <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-                    {p.description}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-1.5">
-                    {indicateurs.map((i) => (
-                      <Link
-                        key={i.code}
-                        href={`/referentiels/${i.code.toLowerCase()}`}
-                        className="inline-flex items-center rounded border px-2 py-0.5 font-mono text-[11px] font-semibold transition-colors hover:bg-slate-50"
-                        style={{ borderColor: `${p.couleur}55`, color: p.couleur }}
-                      >
-                        {i.code}
-                      </Link>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
+                {code}
+              </span>
+              {p.sousTitre}
+            </a>
+          );
+        })}
+      </nav>
 
-      {/* Tableau récap des 18 indicateurs */}
-      <section>
-        <h2 className="text-xl font-semibold text-[#0E4F88]">Liste exhaustive des indicateurs</h2>
-        <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs tracking-wide text-slate-500 uppercase">
-              <tr>
-                <th className="px-4 py-2 text-left">Code</th>
-                <th className="px-4 py-2 text-left">Pilier</th>
-                <th className="px-4 py-2 text-left">Intitulé</th>
-                <th className="px-4 py-2 text-left">Projets concernés</th>
-                <th className="w-12"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {INDICATEURS.map((i) => {
-                const p = PILIERS[i.pilier];
-                return (
-                  <tr key={i.code} className="border-t border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-2.5">
-                      <Badge
-                        variant="outline"
-                        className="font-mono text-xs"
-                        style={{ borderColor: `${p.couleur}66`, color: p.couleur }}
-                      >
-                        {i.code}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-slate-600">{p.sousTitre}</td>
-                    <td className="px-4 py-2.5 font-medium text-slate-900">{i.intitule}</td>
-                    <td className="px-4 py-2.5 text-xs text-slate-600">
-                      <div className="flex flex-wrap gap-1">
-                        {i.projetsConcernes.slice(0, 3).map((proj) => (
-                          <span
-                            key={proj}
-                            className="inline-block rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px]"
-                          >
-                            {proj}
-                          </span>
-                        ))}
-                        {i.projetsConcernes.length > 3 && (
-                          <span className="text-slate-400">+{i.projetsConcernes.length - 3}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <Link
-                        href={`/referentiels/${i.code.toLowerCase()}`}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-[#0E4F88] hover:underline"
-                      >
-                        Fiche
-                        <ArrowRight className="size-3" aria-hidden />
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {/* Fiches par pilier */}
+      {(Object.keys(PILIERS) as CodePilier[]).map((code) => {
+        const p = PILIERS[code];
+        const indicateurs = indicateursParPilier(code);
+        return (
+          <section key={code} id={`pilier-${code.toLowerCase()}`} className="scroll-mt-8 space-y-6">
+            {/* En-tête du pilier */}
+            <div
+              className="flex items-start gap-4 rounded-xl p-5"
+              style={{ backgroundColor: `${p.couleur}0d` }}
+            >
+              <span
+                className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-white"
+                style={{ backgroundColor: p.couleur }}
+              >
+                {code}
+              </span>
+              <div>
+                <h2 className="text-lg font-bold" style={{ color: p.couleur }}>
+                  {p.titre} — {p.sousTitre}
+                </h2>
+                <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                  {p.description}
+                </p>
+                <div className="mt-2 flex items-center gap-1 text-xs text-slate-400">
+                  <Clock className="size-3" aria-hidden />
+                  {indicateurs.length} indicateur{indicateurs.length > 1 ? 's' : ''}
+                </div>
+              </div>
+            </div>
+
+            {/* Fiches des indicateurs du pilier */}
+            <div className="space-y-4">
+              {indicateurs.map((ind) => (
+                <IndicateurFiche key={ind.code} indicateur={ind} couleur={p.couleur} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
 
       {/* Note méthodologique */}
       <section className="rounded-xl bg-[#0E4F88]/5 p-6">
         <div className="flex items-start gap-3">
-          <BookMarked className="size-5 shrink-0 text-[#0E4F88]" aria-hidden />
+          <BookOpen className="size-5 shrink-0 text-[#0E4F88]" aria-hidden />
           <div className="text-sm">
-            <p className="font-semibold text-[#0E4F88]">Source méthodologique</p>
+            <p className="font-semibold text-[#0E4F88]">Source officielle</p>
             <p className="text-muted-foreground mt-1 leading-relaxed">
-              Cette architecture est issue du document officiel{' '}
-              <em>
-                Cadre commun pour le suivi et la documentation des résultats de l&apos;emploi des
-                jeunes dans les projets — Note méthodologique V2
-              </em>
-              , validé par le Service de Conception et Suivi (SCS) de l&apos;Organisation
-              Internationale de la Francophonie. Aucune définition n&apos;a été modifiée : chaque
-              fiche reproduit fidèlement les variables, méthodes de calcul, sources et précautions
-              documentées par l&apos;OIF.
+              Ces fiches reproduisent fidèlement les variables, méthodes de collecte, modes de
+              calcul, sources et précautions documentées dans le{' '}
+              <em>Cadre commun pour le suivi et la documentation des résultats de l&apos;emploi des
+              jeunes dans les projets — Note méthodologique V2</em>, validé par le Service de
+              Conception et Suivi (SCS) de l&apos;Organisation Internationale de la Francophonie.
             </p>
           </div>
         </div>

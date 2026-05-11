@@ -10,6 +10,7 @@ import { KpiGridOif } from '@/components/dashboard/kpi-grid-oif';
 import { ChartProjetsBar } from '@/components/dashboard/chart-projets-bar';
 import { ChartPaysBar } from '@/components/dashboard/chart-pays-bar';
 import { ChartProgrammesPie } from '@/components/dashboard/chart-programmes-pie';
+import { ChartTrancheAge } from '@/components/dashboard/chart-tranche-age';
 import { ActiviteRecenteFeed } from '@/components/dashboard/activite-recente-feed';
 import { SelecteurPeriode } from '@/components/dashboard/selecteur-periode';
 import { ToggleDevise } from '@/components/dashboard/toggle-devise';
@@ -26,6 +27,7 @@ import {
   type Periode,
 } from '@/lib/kpis/indicateurs-oif';
 import { getActiviteRecente } from '@/lib/dashboard/activite-recente';
+import { getRepartitionTrancheAge } from '@/lib/landing/queries';
 
 export const metadata: Metadata = {
   title: 'Accueil — OIF Emploi Jeunes',
@@ -59,10 +61,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       })
     : supabase.rpc('get_indicateurs_oif_v1', { p_periode: periode });
 
-  const [{ data, error }, oifResp, activite] = await Promise.all([
+  const [{ data, error }, oifResp, activite, trancheAge] = await Promise.all([
     supabase.rpc('get_kpis_dashboard'),
     oifPromise,
     getActiviteRecente(periode),
+    getRepartitionTrancheAge(),
   ]);
 
   // Diagnostic dev-only : si la fonction OIF n'est pas encore appliquée sur Supabase
@@ -136,6 +139,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
               <ChartProgrammesPie data={oif.pie_programmes} />
             </div>
             <ChartPaysBar data={oif.bar_pays ?? []} />
+            {trancheAge && (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <ChartTrancheAge data={trancheAge} />
+              </div>
+            )}
             <ActiviteRecenteFeed evenements={activite} periodeLibelle={PERIODE_LIBELLES[periode]} />
           </>
         ) : (

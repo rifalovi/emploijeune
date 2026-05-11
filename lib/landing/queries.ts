@@ -32,10 +32,49 @@ export const kpisPublicsSchema = z.object({
 export type KpisPublics = z.infer<typeof kpisPublicsSchema>;
 
 export async function getKpisPublics(): Promise<KpisPublics | null> {
-  // Utilise le client serveur standard (anon key) — la fonction RPC est
-  // exposée au rôle `anon` via GRANT EXECUTE (migration 024).
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.rpc('get_kpis_publics_v1');
   const parse = kpisPublicsSchema.safeParse(data);
   return parse.success ? parse.data : null;
+}
+
+/**
+ * Répartition Jeune / Adulte depuis tranche_age_declaree.
+ * Agrégat anonymisé — aucune donnée nominative.
+ */
+export type RepartitionTrancheAge = {
+  jeunes: number;
+  adultes: number;
+  non_renseigne: number;
+  total: number;
+  jeunes_pct: number;
+  adultes_pct: number;
+};
+
+export async function getRepartitionTrancheAge(): Promise<RepartitionTrancheAge | null> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from('beneficiaires')
+      .select('tranche_age_declaree')
+      .is('deleted_at', null);
+
+    if (error || !data) return null;
+
+    const jeunes = data.filter((r) => r.tranche_age_declaree === 'Jeune').length;
+    const adultes = data.filter((r) => r.tranche_age_declaree === 'Adulte').length;
+    const non_renseigne = data.filter((r) => !r.tranche_age_declaree).length;
+    const total = data.length;
+
+    return {
+      jeunes,
+      adultes,
+      non_renseigne,
+      total,
+      jeunes_pct: total > 0 ? Math.round((jeunes / total) * 100) : 0,
+      adultes_pct: total > 0 ? Math.round((adultes / total) * 100) : 0,
+    };
+  } catch {
+    return null;
+  }
 }
