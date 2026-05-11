@@ -23,7 +23,6 @@ import {
   indicateurPrecedent,
   indicateurSuivant,
 } from '@/lib/referentiels/indicateurs';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 type Props = {
   params: Promise<{ code: string }>;
@@ -51,38 +50,6 @@ export default async function FicheIndicateurPage({ params }: Props) {
   const pilier = PILIERS[ind.pilier];
   const precedent = indicateurPrecedent(ind.code);
   const suivant = indicateurSuivant(ind.code);
-
-  // Donnée live optionnelle (KPI publics)
-  let donneeLive: {
-    valeur: number | null;
-    femmes?: number;
-    hommes?: number;
-    libelle: string;
-  } | null = null;
-
-  if (ind.donneeLiveCle) {
-    try {
-      const supabase = await createSupabaseServerClient();
-      const { data } = await supabase.rpc('get_indicateurs_oif_v1', { p_periode: 'all' });
-      const dataTyped = data as {
-        indicateurs?: Record<
-          string,
-          { valeur: number | null; libelle: string; femmes?: number; hommes?: number }
-        >;
-      } | null;
-      const ki = dataTyped?.indicateurs?.[ind.donneeLiveCle];
-      if (ki) {
-        donneeLive = {
-          valeur: ki.valeur ?? null,
-          femmes: ki.femmes,
-          hommes: ki.hommes,
-          libelle: ki.libelle,
-        };
-      }
-    } catch {
-      donneeLive = null;
-    }
-  }
 
   return (
     <article className="space-y-8">
@@ -113,49 +80,17 @@ export default async function FicheIndicateurPage({ params }: Props) {
         </div>
       </header>
 
-      {/* Donnée live (si disponible) */}
-      {donneeLive && donneeLive.valeur !== null && (
-        <Card className="border-l-4" style={{ borderLeftColor: pilier.couleur }}>
-          <CardContent className="p-6">
-            <p
-              className="text-xs font-semibold tracking-wide uppercase"
-              style={{ color: pilier.couleur }}
-            >
-              Donnée actuelle de la plateforme
-            </p>
-            <div className="mt-2 flex flex-wrap items-baseline gap-4">
-              <span className="text-4xl font-bold text-slate-900 tabular-nums">
-                {donneeLive.valeur.toLocaleString('fr-FR')}
-              </span>
-              {donneeLive.femmes !== undefined && donneeLive.hommes !== undefined && (
-                <span className="text-sm text-slate-600">
-                  <strong>{donneeLive.femmes.toLocaleString('fr-FR')}</strong> femmes ·{' '}
-                  <strong>{donneeLive.hommes.toLocaleString('fr-FR')}</strong> hommes
-                </span>
-              )}
-            </div>
-            <p className="text-muted-foreground mt-2 text-xs">
-              Donnée extraite en temps réel via la RPC{' '}
-              <code className="rounded bg-slate-100 px-1 text-xs">get_indicateurs_oif_v1</code>.
-              Mise à jour : {new Date().toLocaleDateString('fr-FR')}.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {!donneeLive && (
-        <Card className="border-l-4 border-slate-300 bg-slate-50/50">
-          <CardContent className="p-6">
-            <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-              Donnée actuelle de la plateforme
-            </p>
-            <p className="mt-2 text-sm text-slate-600 italic">
-              À venir — alimentation prévue par les questionnaires longitudinaux du pilote juin
-              2026.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Lien vers les réalisations chiffrées */}
+      <div className="flex items-center justify-end">
+        <Link
+          href={`/realisations/${ind.pilier.toLowerCase()}/${ind.code.toLowerCase()}`}
+          className="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-slate-50"
+          style={{ color: pilier.couleur, borderColor: `${pilier.couleur}44` }}
+        >
+          <ArrowUpRight className="size-4" aria-hidden />
+          Voir les réalisations chiffrées
+        </Link>
+      </div>
 
       {/* Définition */}
       <Section icon={BookOpen} titre="Définition">

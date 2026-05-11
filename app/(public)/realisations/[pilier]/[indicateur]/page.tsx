@@ -1,7 +1,21 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Users, Heart, TrendingUp, Globe2, Briefcase, AlertCircle, Baby, UserCheck } from 'lucide-react';
+import {
+  ArrowLeft,
+  Users,
+  Heart,
+  TrendingUp,
+  Globe2,
+  Briefcase,
+  AlertCircle,
+  Baby,
+  UserCheck,
+  Percent,
+  BarChart3,
+  Euro,
+  Target,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HeaderPublic } from '@/components/landing/header-public';
@@ -25,23 +39,155 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: `${ind.code} — ${ind.intitule} · Réalisations OIF` };
 }
 
-/** Données fictives réalistes pour les indicateurs sans données live. */
-const DONNEES_FICTIVES: Record<string, { total: number; femmes: number; jeunes: number; adultes: number; pays: number; projets: number }> = {
-  A2: { total: 4381, femmes: 2981, jeunes: 2628, adultes: 1621, pays: 18, projets: 4 },
-  A3: { total: 3654, femmes: 2485, jeunes: 2192, adultes: 1352, pays: 15, projets: 4 },
-  A4: { total: 2891, femmes: 1966, jeunes: 1735, adultes: 1040, pays: 14, projets: 5 },
-  A5: { total: 2103, femmes: 1430, jeunes: 1262, adultes: 757, pays: 12, projets: 4 },
-  B2: { total: 198,  femmes: 112,  jeunes: 98,  adultes: 91,  pays: 9,  projets: 3 },
-  B3: { total: 387,  femmes: 210,  jeunes: 178, adultes: 189, pays: 11, projets: 3 },
-  B4: { total: 523,  femmes: 298,  jeunes: 251, adultes: 243, pays: 13, projets: 4 },
-  C1: { total: 1240, femmes: 844,  jeunes: 744, adultes: 446, pays: 16, projets: 5 },
-  C2: { total: 876,  femmes: 596,  jeunes: 526, adultes: 315, pays: 11, projets: 4 },
-  C3: { total: 654,  femmes: 445,  jeunes: 392, adultes: 235, pays: 9,  projets: 3 },
-  D1: { total: 42,   femmes: 24,   jeunes: 18,  adultes: 24,  pays: 8,  projets: 4 },
-  D2: { total: 28,   femmes: 16,   jeunes: 11,  adultes: 17,  pays: 6,  projets: 3 },
-  D3: { total: 67,   femmes: 38,   jeunes: 28,  adultes: 39,  pays: 10, projets: 5 },
-  F1: { total: 3421, femmes: 2327, jeunes: 2052, adultes: 1231, pays: 15, projets: 6 },
+// ─── Types d'indicateurs ──────────────────────────────────────────────────────
+type TypeIndicateur = 'count' | 'rate' | 'score' | 'amount';
+
+const INDICATEUR_TYPE: Record<string, TypeIndicateur> = {
+  A1: 'count',
+  A2: 'rate',
+  A3: 'rate',
+  A4: 'score',
+  A5: 'rate',
+  B1: 'count',
+  B2: 'count',
+  B3: 'rate',
+  B4: 'amount',
+  C1: 'count',
+  C2: 'rate',
+  C3: 'count',
+  D1: 'count',
+  D2: 'count',
+  D3: 'rate',
+  F1: 'count',
 };
+
+// ─── Données fictives réalistes par type ─────────────────────────────────────
+
+/** Indicateurs de type COUNT (effectifs). */
+type DonneesCount = {
+  total: number;
+  femmes: number;
+  jeunes: number;
+  adultes: number;
+  pays: number;
+};
+const FICTIF_COUNT: Record<string, DonneesCount> = {
+  B2: { total: 198,  femmes: 112,  jeunes: 98,   adultes: 91,  pays: 9  },
+  C1: { total: 1240, femmes: 844,  jeunes: 744,  adultes: 446, pays: 16 },
+  C3: { total: 87,   femmes: 0,    jeunes: 0,    adultes: 0,   pays: 13 }, // partenariats, pas de sexe
+  D1: { total: 14,   femmes: 0,    jeunes: 0,    adultes: 0,   pays: 8  }, // politiques
+  D2: { total: 9,    femmes: 0,    jeunes: 0,    adultes: 0,   pays: 6  }, // réformes
+  F1: { total: 3421, femmes: 2327, jeunes: 2052, adultes: 1231, pays: 15 },
+};
+
+/** Indicateurs de type RATE (pourcentages). */
+type DonneesRate = {
+  taux: number;
+  numerateur: number;
+  denominateur: number;
+  labelNumerateur: string;
+  labelDenominateur: string;
+  femmes: number; // dans le numérateur
+  pays: number;
+};
+const FICTIF_RATE: Record<string, DonneesRate> = {
+  A2: {
+    taux: 87.3,
+    numerateur: 3825,
+    denominateur: 4381,
+    labelNumerateur: 'Ayant achevé la formation',
+    labelDenominateur: 'Inscrits au total',
+    femmes: 2604,
+    pays: 18,
+  },
+  A3: {
+    taux: 76.4,
+    numerateur: 3347,
+    denominateur: 4381,
+    labelNumerateur: 'Certifiés ou attestés',
+    labelDenominateur: 'Jeunes formés',
+    femmes: 2276,
+    pays: 18,
+  },
+  A5: {
+    taux: 68.7,
+    numerateur: 2515,
+    denominateur: 3661,
+    labelNumerateur: 'En emploi ou AGR à 6 mois',
+    labelDenominateur: 'Suivis post-formation',
+    femmes: 1711,
+    pays: 15,
+  },
+  B3: {
+    taux: 71.2,
+    numerateur: 141,
+    denominateur: 198,
+    labelNumerateur: 'Entreprises actives à 12 mois',
+    labelDenominateur: 'Entreprises créées',
+    femmes: 79,
+    pays: 9,
+  },
+  C2: {
+    taux: 63.8,
+    numerateur: 559,
+    denominateur: 876,
+    labelNumerateur: 'Mises en relation réussies',
+    labelDenominateur: 'Mises en relation initiées',
+    femmes: 380,
+    pays: 11,
+  },
+  D3: {
+    taux: 58.3,
+    numerateur: 39,
+    denominateur: 67,
+    labelNumerateur: 'Recommandations adoptées',
+    labelDenominateur: 'Recommandations émises',
+    femmes: 0,
+    pays: 10,
+  },
+};
+
+/** Indicateurs de type SCORE (gain / progression). */
+type DonneesScore = {
+  scoreMoyen: number;     // % ou points
+  labelScore: string;
+  participantsTotal: number;
+  ayantProgresse: number;
+  gainMoyen: number;      // points de progression moyens
+  femmes: number;
+  pays: number;
+};
+const FICTIF_SCORE: Record<string, DonneesScore> = {
+  A4: {
+    scoreMoyen: 78,
+    labelScore: '% ayant progressé significativement',
+    participantsTotal: 4381,
+    ayantProgresse: 3417,
+    gainMoyen: 23,
+    femmes: 2325,
+    pays: 18,
+  },
+};
+
+/** Indicateurs de type AMOUNT (volumes financiers). */
+type DonneesAmount = {
+  montant: number;       // en milliers €
+  montantLibelle: string;
+  sourcesPublic: number; // %
+  sourcesPrive: number;  // %
+  pays: number;
+};
+const FICTIF_AMOUNT: Record<string, DonneesAmount> = {
+  B4: {
+    montant: 3820,
+    montantLibelle: '3,8 M€',
+    sourcesPublic: 62,
+    sourcesPrive: 38,
+    pays: 11,
+  },
+};
+
+// ─── Page principale ──────────────────────────────────────────────────────────
 
 export default async function IndicateurRealisationPage({ params }: Props) {
   const { pilier, indicateur } = await params;
@@ -50,8 +196,9 @@ export default async function IndicateurRealisationPage({ params }: Props) {
 
   const pilierData = PILIERS[ind.pilier as CodePilier];
   const user = await getAuthUser();
+  const typeInd: TypeIndicateur = INDICATEUR_TYPE[ind.code] ?? 'count';
 
-  // Récupération des données réelles selon l'indicateur
+  // Données réelles pour A1 et B1 uniquement
   let kpisReels = null;
   let trancheAge = null;
   let topPays: { code: string; libelle: string | null; beneficiaires: number }[] = [];
@@ -68,30 +215,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
     donneesReelles = true;
   }
 
-  // Données à afficher (réelles ou fictives)
   const fictif = !donneesReelles;
-  const d = fictif
-    ? DONNEES_FICTIVES[ind.code] ?? { total: 0, femmes: 0, jeunes: 0, adultes: 0, pays: 0, projets: 0 }
-    : null;
-
-  const total = donneesReelles
-    ? (ind.code === 'B1' ? (kpisReels?.structures_total ?? 0) : (kpisReels?.beneficiaires_total ?? 0))
-    : (d?.total ?? 0);
-  const femmes = donneesReelles
-    ? (kpisReels?.beneficiaires_femmes ?? 0)
-    : (d?.femmes ?? 0);
-  const jeunes = donneesReelles
-    ? (trancheAge?.jeunes ?? 0)
-    : (d?.jeunes ?? 0);
-  const adultes = donneesReelles
-    ? (trancheAge?.adultes ?? 0)
-    : (d?.adultes ?? 0);
-  const paysCount = donneesReelles
-    ? (kpisReels?.pays_total ?? 0)
-    : (d?.pays ?? 0);
-
-  const femmesPct = total > 0 ? Math.round((femmes / total) * 100) : 0;
-  const jeunesPct = (jeunes + adultes) > 0 ? Math.round((jeunes / (jeunes + adultes)) * 100) : 0;
 
   return (
     <div className="bg-background min-h-screen">
@@ -127,67 +251,52 @@ export default async function IndicateurRealisationPage({ params }: Props) {
           </div>
         )}
 
-        {/* Grille KPI */}
+        {/* ── KPIs selon le type d'indicateur ── */}
         <section className="mt-8">
           <h2 className="mb-5 text-lg font-semibold text-[#0E4F88]">Chiffres clés</h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
 
-            {/* Total */}
-            <KpiCard
-              icone={ind.code === 'B1' ? Briefcase : Users}
-              label={ind.code === 'B1' ? 'Structures appuyées' : 'Bénéficiaires'}
-              valeur={total}
+          {/* TYPE : COUNT */}
+          {typeInd === 'count' && (
+            <KpisCount
+              ind={ind}
+              pilierData={pilierData}
+              kpisReels={kpisReels}
+              trancheAge={trancheAge}
+              fictifCount={FICTIF_COUNT[ind.code]}
+              fictif={fictif}
+            />
+          )}
+
+          {/* TYPE : RATE */}
+          {typeInd === 'rate' && FICTIF_RATE[ind.code] && (
+            <KpisRate
+              data={FICTIF_RATE[ind.code]!}
               couleur={pilierData.couleur}
               fictif={fictif}
-              unite="personnes"
+              afficherFemmes={ind.code !== 'D3'}
             />
+          )}
 
-            {/* Femmes */}
-            {ind.code !== 'B1' && (
-              <KpiCard
-                icone={Heart}
-                label="Femmes"
-                valeur={femmes}
-                couleur="#e91e8c"
-                fictif={fictif}
-                sousTitre={`${femmesPct}\u00a0% du total`}
-              />
-            )}
-
-            {/* Jeunes 18-34 */}
-            {ind.code !== 'B1' && (
-              <KpiCard
-                icone={Baby}
-                label="Jeunes (18-34 ans)"
-                valeur={jeunes}
-                couleur="#0198E9"
-                fictif={fictif}
-                sousTitre={`${jeunesPct}\u00a0% des jeunes+adultes`}
-              />
-            )}
-
-            {/* Adultes 35+ */}
-            {ind.code !== 'B1' && (
-              <KpiCard
-                icone={UserCheck}
-                label="Adultes (35 ans et +)"
-                valeur={adultes}
-                couleur="#5D0073"
-                fictif={fictif}
-                sousTitre={`${100 - jeunesPct}\u00a0% des jeunes+adultes`}
-              />
-            )}
-
-            {/* Pays */}
-            <KpiCard
-              icone={Globe2}
-              label="Pays couverts"
-              valeur={paysCount}
-              couleur="#7EB301"
+          {/* TYPE : SCORE */}
+          {typeInd === 'score' && FICTIF_SCORE[ind.code] && (
+            <KpisScore
+              data={FICTIF_SCORE[ind.code]!}
+              couleur={pilierData.couleur}
               fictif={fictif}
             />
+          )}
 
-            {/* Projets */}
+          {/* TYPE : AMOUNT */}
+          {typeInd === 'amount' && FICTIF_AMOUNT[ind.code] && (
+            <KpisAmount
+              data={FICTIF_AMOUNT[ind.code]!}
+              couleur={pilierData.couleur}
+              fictif={fictif}
+            />
+          )}
+
+          {/* Projets (commun à tous les types) */}
+          <div className="mt-4">
             <KpiCard
               icone={TrendingUp}
               label="Projets concernés"
@@ -199,7 +308,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
           </div>
         </section>
 
-        {/* Top pays si disponible */}
+        {/* Top pays si disponible (A1) */}
         {topPays.length > 0 && (
           <section className="mt-10">
             <h2 className="mb-4 text-lg font-semibold text-[#0E4F88]">Top pays</h2>
@@ -270,6 +379,167 @@ export default async function IndicateurRealisationPage({ params }: Props) {
     </div>
   );
 }
+
+// ─── Grilles KPI par type ─────────────────────────────────────────────────────
+
+function KpisCount({
+  ind, pilierData, kpisReels, trancheAge, fictifCount, fictif,
+}: {
+  ind: ReturnType<typeof indicateurParCode> & object;
+  pilierData: (typeof PILIERS)[CodePilier];
+  kpisReels: Awaited<ReturnType<typeof getKpisPublics>>;
+  trancheAge: Awaited<ReturnType<typeof getRepartitionTrancheAge>>;
+  fictifCount: DonneesCount | undefined;
+  fictif: boolean;
+}) {
+  const isB1 = ind.code === 'B1';
+  const total = fictif
+    ? (fictifCount?.total ?? 0)
+    : isB1 ? (kpisReels?.structures_total ?? 0) : (kpisReels?.beneficiaires_total ?? 0);
+  const femmes = fictif ? (fictifCount?.femmes ?? 0) : (kpisReels?.beneficiaires_femmes ?? 0);
+  const jeunes = fictif ? (fictifCount?.jeunes ?? 0) : (trancheAge?.jeunes ?? 0);
+  const adultes = fictif ? (fictifCount?.adultes ?? 0) : (trancheAge?.adultes ?? 0);
+  const paysCount = fictif ? (fictifCount?.pays ?? 0) : (kpisReels?.pays_total ?? 0);
+  const femmesPct = total > 0 ? Math.round((femmes / total) * 100) : 0;
+  const jeunesAdultes = jeunes + adultes;
+  const jeunesPct = jeunesAdultes > 0 ? Math.round((jeunes / jeunesAdultes) * 100) : 0;
+  const afficherSexeAge = !isB1 && (fictifCount?.femmes ?? 0) > 0;
+
+  return (
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+      <KpiCard icone={isB1 ? Briefcase : Users} label={isB1 ? 'Structures appuyées' : 'Bénéficiaires'} valeur={total} couleur={pilierData.couleur} fictif={fictif} unite={isB1 ? undefined : 'personnes'} />
+      {afficherSexeAge && (
+        <>
+          <KpiCard icone={Heart} label="Femmes" valeur={femmes} couleur="#e91e8c" fictif={fictif} sousTitre={`${femmesPct}\u00a0% du total`} />
+          <KpiCard icone={Baby} label="Jeunes (18-34 ans)" valeur={jeunes} couleur="#0198E9" fictif={fictif} sousTitre={`${jeunesPct}\u00a0% des jeunes+adultes`} />
+          <KpiCard icone={UserCheck} label="Adultes (35 ans et +)" valeur={adultes} couleur="#5D0073" fictif={fictif} sousTitre={`${100 - jeunesPct}\u00a0% des jeunes+adultes`} />
+        </>
+      )}
+      <KpiCard icone={Globe2} label="Pays couverts" valeur={paysCount} couleur="#7EB301" fictif={fictif} />
+    </div>
+  );
+}
+
+function KpisRate({ data, couleur, fictif, afficherFemmes }: { data: DonneesRate; couleur: string; fictif: boolean; afficherFemmes?: boolean }) {
+  const femmesPct = data.numerateur > 0 ? Math.round((data.femmes / data.numerateur) * 100) : 0;
+  return (
+    <div className="space-y-4">
+      {/* KPI principal — le taux en grand */}
+      <Card className="relative overflow-hidden border-2" style={{ borderColor: couleur }}>
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-5xl font-bold tabular-nums" style={{ color: couleur }}>
+                  {data.taux.toFixed(1).replace('.', ',')}
+                </span>
+                <span className="text-2xl font-bold" style={{ color: couleur }}>%</span>
+              </div>
+              <p className="mt-1 text-sm font-semibold text-slate-700">Taux</p>
+            </div>
+            <div className="flex size-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${couleur}1a` }}>
+              <Percent className="size-6" style={{ color: couleur }} aria-hidden />
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-4 border-t border-slate-100 pt-4 text-sm">
+            <span className="font-semibold text-slate-800">{data.numerateur.toLocaleString('fr-FR')}</span>
+            <span className="text-slate-500">{data.labelNumerateur}</span>
+            <span className="text-slate-400">sur</span>
+            <span className="font-semibold text-slate-800">{data.denominateur.toLocaleString('fr-FR')}</span>
+            <span className="text-slate-500">{data.labelDenominateur}</span>
+          </div>
+          {fictif && <span className="absolute top-3 right-3 text-[9px] italic text-slate-400">fictif</span>}
+        </CardContent>
+      </Card>
+      {/* KPIs secondaires */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        {afficherFemmes !== false && data.femmes > 0 && (
+          <KpiCard icone={Heart} label="Femmes (dans le numérateur)" valeur={data.femmes} couleur="#e91e8c" fictif={fictif} sousTitre={`${femmesPct}\u00a0% du groupe`} />
+        )}
+        <KpiCard icone={Globe2} label="Pays couverts" valeur={data.pays} couleur="#7EB301" fictif={fictif} />
+      </div>
+    </div>
+  );
+}
+
+function KpisScore({ data, couleur, fictif }: { data: DonneesScore; couleur: string; fictif: boolean }) {
+  const progressionPct = data.participantsTotal > 0 ? Math.round((data.ayantProgresse / data.participantsTotal) * 100) : 0;
+  const femmesPct = data.participantsTotal > 0 ? Math.round((data.femmes / data.participantsTotal) * 100) : 0;
+  return (
+    <div className="space-y-4">
+      <Card className="relative overflow-hidden border-2" style={{ borderColor: couleur }}>
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-5xl font-bold tabular-nums" style={{ color: couleur }}>
+                  {progressionPct}
+                </span>
+                <span className="text-2xl font-bold" style={{ color: couleur }}>%</span>
+              </div>
+              <p className="mt-1 text-sm font-semibold text-slate-700">{data.labelScore}</p>
+            </div>
+            <div className="flex size-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${couleur}1a` }}>
+              <BarChart3 className="size-6" style={{ color: couleur }} aria-hidden />
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-4 border-t border-slate-100 pt-4 text-sm">
+            <span>Gain moyen :</span>
+            <span className="font-bold" style={{ color: couleur }}>+{data.gainMoyen} points</span>
+            <span className="text-slate-400">·</span>
+            <span>{data.ayantProgresse.toLocaleString('fr-FR')} / {data.participantsTotal.toLocaleString('fr-FR')} participants</span>
+          </div>
+          {fictif && <span className="absolute top-3 right-3 text-[9px] italic text-slate-400">fictif</span>}
+        </CardContent>
+      </Card>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        <KpiCard icone={Heart} label="Femmes participantes" valeur={data.femmes} couleur="#e91e8c" fictif={fictif} sousTitre={`${femmesPct}\u00a0% du total`} />
+        <KpiCard icone={Globe2} label="Pays couverts" valeur={data.pays} couleur="#7EB301" fictif={fictif} />
+        <KpiCard icone={Target} label="Participants évalués" valeur={data.participantsTotal} couleur={couleur} fictif={fictif} />
+      </div>
+    </div>
+  );
+}
+
+function KpisAmount({ data, couleur, fictif }: { data: DonneesAmount; couleur: string; fictif: boolean }) {
+  return (
+    <div className="space-y-4">
+      <Card className="relative overflow-hidden border-2" style={{ borderColor: couleur }}>
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-5xl font-bold tabular-nums" style={{ color: couleur }}>
+                  {data.montantLibelle}
+                </span>
+              </div>
+              <p className="mt-1 text-sm font-semibold text-slate-700">Volume de financements mobilisés</p>
+            </div>
+            <div className="flex size-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${couleur}1a` }}>
+              <Euro className="size-6" style={{ color: couleur }} aria-hidden />
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-6 border-t border-slate-100 pt-4 text-sm">
+            <div>
+              <span className="font-bold text-slate-800">{data.sourcesPublic}%</span>
+              <span className="text-slate-500 ml-1">Fonds publics</span>
+            </div>
+            <div>
+              <span className="font-bold text-slate-800">{data.sourcesPrive}%</span>
+              <span className="text-slate-500 ml-1">Secteur privé</span>
+            </div>
+          </div>
+          {fictif && <span className="absolute top-3 right-3 text-[9px] italic text-slate-400">fictif</span>}
+        </CardContent>
+      </Card>
+      <div className="grid grid-cols-2 gap-4">
+        <KpiCard icone={Globe2} label="Pays couverts" valeur={data.pays} couleur="#7EB301" fictif={fictif} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Composant KPI générique ──────────────────────────────────────────────────
 
 function KpiCard({ icone: Icone, label, valeur, couleur, fictif, sousTitre, unite }: {
   icone: typeof Users; label: string; valeur: number; couleur: string;
