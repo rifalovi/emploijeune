@@ -27,6 +27,7 @@ dist/
 .cache/
 
 # TypeScript
+# Note : couvre aussi tsconfig.tsbuildinfo (cache incrémental Next/TS).
 *.tsbuildinfo
 next-env.d.ts
 
@@ -65,6 +66,14 @@ Thumbs.db
 /INSTRUCTION_CLAUDE_CODE.md
 /files/
 /files.zip
+
+# Fichiers temporaires Microsoft Office (lockfiles ouverts dans Word/Excel)
+~$*
+*~
+
+# PDF déposés ad-hoc à la racine du repo (les PDF légitimes dans docs/
+# restent versionnés grâce à la portée racine `/`).
+/*.pdf
 
 # Configuration locale Claude Code (sessions dev preview)
 /.claude/
