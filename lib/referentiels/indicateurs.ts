@@ -114,7 +114,7 @@ export const INDICATEURS: Indicateur[] = [
       'Utiliser un identifiant unique',
       'Définir ce qu’on entend par « effectivement participé »',
     ],
-    projetsConcernes: ['P16 D-CLIC', 'P20', 'P19', 'P15'],
+    projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
     donneeLiveCle: 'A1',
   },
   {
@@ -139,7 +139,7 @@ export const INDICATEURS: Indicateur[] = [
       'Appliquer la même règle à tous',
       'Distinguer abandon, absence et non-validation',
     ],
-    projetsConcernes: ['P16', 'P20', 'P19', 'P15'],
+    projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
   },
   {
     code: 'A3',
@@ -163,7 +163,7 @@ export const INDICATEURS: Indicateur[] = [
       'Vérifier l’existence de la preuve',
       'Ne pas compter les jeunes seulement présentés à l’examen',
     ],
-    projetsConcernes: ['P16', 'P20', 'P19', 'P15'],
+    projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
   },
   {
     code: 'A4',
@@ -187,7 +187,7 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer progression déclarée et progression objectivée',
       'Administrer T0 avant tout apprentissage',
     ],
-    projetsConcernes: ['P16', 'P20', 'P19', 'P15', 'P14'],
+    projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15', 'PROJ_A14'],
   },
   {
     code: 'A5',
@@ -214,7 +214,7 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer emploi durable, stage, mission ponctuelle et AGR',
       'Ne pas attribuer automatiquement l’insertion à la formation',
     ],
-    projetsConcernes: ['P16', 'P20', 'P19', 'P15'],
+    projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
   },
 
   // ─────────────────────────── CATÉGORIE B ───────────────────────────
@@ -239,7 +239,7 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer création, renforcement et relance',
       'Éviter de compter plusieurs fois une même structure',
     ],
-    projetsConcernes: ['P14', 'P15', 'P19', 'P20', 'P17'],
+    projetsConcernes: ['PROJ_A14', 'PROJ_A15', 'PROJ_A19', 'PROJ_A20', 'PROJ_A17'],
     donneeLiveCle: 'B1',
   },
   {
@@ -263,7 +263,7 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer activité ralentie, activité saisonnière et arrêt complet',
       'Vérifier les déclarations si possible',
     ],
-    projetsConcernes: ['P14', 'P15', 'P19', 'P20', 'P17'],
+    projetsConcernes: ['PROJ_A14', 'PROJ_A15', 'PROJ_A19', 'PROJ_A20', 'PROJ_A17'],
   },
   {
     code: 'B3',
@@ -287,7 +287,7 @@ export const INDICATEURS: Indicateur[] = [
       'Éviter de compter des appuis ponctuels comme des emplois',
       'Documenter la durée des postes',
     ],
-    projetsConcernes: ['P14', 'P15', 'P19', 'P20', 'P17'],
+    projetsConcernes: ['PROJ_A14', 'PROJ_A15', 'PROJ_A19', 'PROJ_A20', 'PROJ_A17'],
   },
   {
     code: 'B4',
@@ -309,7 +309,7 @@ export const INDICATEURS: Indicateur[] = [
       'Expliciter la méthode utilisée',
       'Ne pas agréger sans distinction aux emplois directs',
     ],
-    projetsConcernes: ['P17', 'P20', 'P19', 'P15'],
+    projetsConcernes: ['PROJ_A17', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
   },
 
   // ─────────────────────────── CATÉGORIE C ───────────────────────────
@@ -329,7 +329,7 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer contact, orientation et mise en relation aboutie',
       'Harmoniser les catégories',
     ],
-    projetsConcernes: ['P17', 'P16', 'P15', 'nouveau projet emploi jeunesse'],
+    projetsConcernes: ['PROJ_A17', 'PROJ_A16a', 'PROJ_A15', 'nouveau projet emploi jeunesse'],
   },
   {
     code: 'C2',
@@ -352,7 +352,7 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer opportunité proposée, acceptée et effectivement commencée',
       'Clarifier la notion de rémunération',
     ],
-    projetsConcernes: ['P17', 'P16', 'P15', 'nouveau projet emploi jeunesse'],
+    projetsConcernes: ['PROJ_A17', 'PROJ_A16a', 'PROJ_A15', 'nouveau projet emploi jeunesse'],
   },
   {
     code: 'C3',
@@ -376,7 +376,7 @@ export const INDICATEURS: Indicateur[] = [
       'Éviter les attributions abusives',
       'Préciser la durée de l’emploi ou du stage',
     ],
-    projetsConcernes: ['P16', 'P17', 'P15', 'nouveau projet emploi jeunesse'],
+    projetsConcernes: ['PROJ_A16a', 'PROJ_A17', 'PROJ_A15', 'nouveau projet emploi jeunesse'],
   },
   {
     code: 'C4',
@@ -393,7 +393,7 @@ export const INDICATEURS: Indicateur[] = [
       'Exclure les cas incomplets',
       'Envisager aussi la médiane si les écarts sont très importants',
     ],
-    projetsConcernes: ['P16', 'P17', 'nouveau projet emploi jeunesse'],
+    projetsConcernes: ['PROJ_A16a', 'PROJ_A17', 'nouveau projet emploi jeunesse'],
   },
   {
     code: 'C5',
@@ -415,7 +415,7 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer satisfaction générale et utilité effective',
       'Éviter les questions orientées',
     ],
-    projetsConcernes: ['P16', 'P17', 'P20', 'P15', 'P19', 'nouveau projet emploi jeunesse'],
+    projetsConcernes: ['PROJ_A16a', 'PROJ_A17', 'PROJ_A20', 'PROJ_A15', 'PROJ_A19', 'nouveau projet emploi jeunesse'],
   },
 
   // ─────────────────────────── CATÉGORIE D ───────────────────────────
@@ -440,7 +440,7 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer appui à l’élaboration, appui à la validation et adoption effective',
       'Conserver des traces formelles de la contribution OIF',
     ],
-    projetsConcernes: ['P9', 'P15', 'P17', 'P18', 'P20'],
+    projetsConcernes: ['PROJ_A15', 'PROJ_A17', 'PROJ_A18', 'PROJ_A20'],
   },
   {
     code: 'D2',
@@ -459,7 +459,7 @@ export const INDICATEURS: Indicateur[] = [
       'Ne pas se limiter à l’auto-déclaration',
       'Distinguer amélioration perçue et changement effectif',
     ],
-    projetsConcernes: ['P15', 'P17', 'P18', 'P20'],
+    projetsConcernes: ['PROJ_A15', 'PROJ_A17', 'PROJ_A18', 'PROJ_A20'],
   },
   {
     code: 'D3',
@@ -481,7 +481,7 @@ export const INDICATEURS: Indicateur[] = [
       'Ne pas généraliser abusivement',
       'Privilégier des changements concrets, vérifiables et bien décrits',
     ],
-    projetsConcernes: ['P9', 'P15', 'P17', 'P18', 'P19', 'P20'],
+    projetsConcernes: ['PROJ_A15', 'PROJ_A17', 'PROJ_A18', 'PROJ_A19', 'PROJ_A20'],
   },
 
   // ─────────────────────────── MARQUEUR F ────────────────────────────
@@ -534,11 +534,23 @@ export function indicateursParPilier(code: CodePilier): Indicateur[] {
 }
 
 /**
- * Projets emblématiques de l'OIF (V2.4 — placeholder enrichi à mesure
- * que des libellés complets sont ajoutés à `projets.libelle` en BDD).
+ * Projets emblématiques de l'OIF concernés par la thématique emploi-jeunes.
  *
- * Codes issus du Cadre Commun (P9, P14-P20) — projets actifs sur la
- * thématique emploi-jeunes.
+ * Source de vérité normative : `docs/references/00_NOMENCLATURE_PROJETS_OIF.md`
+ * (qui fait autorité sur tout autre document). Les 8 projets ci-dessous sont
+ * ceux flaggés « concerne_emploi_jeunes = Oui » dans la nomenclature officielle.
+ *
+ * Codes officiels `PROJ_A*` (et non plus les codes abrégés P9/P14-P20 utilisés
+ * pendant la phase initiale du projet — voir table de correspondance dans
+ * la nomenclature). Les codes doivent rester alignés avec
+ * `PROJETS_EMPLOI_JEUNES_CODES` dans `lib/schemas/nomenclatures.ts`.
+ *
+ * Pivot par pilier du Cadre de mesure V2 :
+ *   - PROJ_A16a → pivot A (formation)
+ *   - PROJ_A14  → pivot B (économie / micro-entreprises portées par des femmes)
+ *   - PROJ_A17  → pivot C (intermédiation)
+ *   - PROJ_A18  → pivot D (écosystèmes / politiques publiques)
+ *   - PROJ_A15, PROJ_A16b, PROJ_A19, PROJ_A20 → composantes secondaires.
  */
 export type ProjetEmblematique = {
   code: string;
@@ -550,67 +562,68 @@ export type ProjetEmblematique = {
 
 export const PROJETS_EMBLEMATIQUES: ProjetEmblematique[] = [
   {
-    code: 'P14',
-    libelle: 'Appui à l’entrepreneuriat des jeunes',
+    code: 'PROJ_A14',
+    libelle: 'La Francophonie avec Elles',
     description:
-      'Programme d’appui financier et technique aux jeunes porteurs de projets d’AGR et micro-entreprises.',
-    thematique: 'Entrepreneuriat',
+      'Initiative phare pour l’autonomisation économique des femmes francophones (AGR, micro-entreprises). Pivot du pilier B (économie).',
+    thematique: 'Égalité femmes-hommes / AGR',
     pilierPrincipal: 'B',
   },
   {
-    code: 'P15',
-    libelle: 'Innovations vertes et économie durable',
+    code: 'PROJ_A15',
+    libelle: 'Innovations et plaidoyers francophones',
     description:
-      'Projets d’insertion économique des jeunes dans les filières agriculture durable, énergies renouvelables et économie circulaire.',
-    thematique: 'Économie verte',
+      'Soutien aux innovations et au plaidoyer pour les politiques publiques jeunesse et emploi dans l’espace francophone.',
+    thematique: 'Innovation & plaidoyer',
+    pilierPrincipal: 'D',
+  },
+  {
+    code: 'PROJ_A16a',
+    libelle: 'D-CLIC : Formez-vous au numérique',
+    description:
+      'Programme phare de formation des jeunes francophones aux métiers du numérique. Pivot du pilier A (formation).',
+    thematique: 'Formation numérique',
     pilierPrincipal: 'A',
   },
   {
-    code: 'P16',
-    libelle: 'D-CLIC PRO — Formation aux métiers du numérique',
+    code: 'PROJ_A16b',
+    libelle: 'Gouvernance numérique',
     description:
-      'Programme phare de formation des jeunes francophones aux métiers du numérique, de l’innovation et de la création de contenus.',
-    thematique: 'Numérique',
-    pilierPrincipal: 'A',
+      'Appui à la gouvernance et à la régulation du numérique francophone (cadres institutionnels, capacités publiques).',
+    thematique: 'Gouvernance numérique',
+    pilierPrincipal: 'D',
   },
   {
-    code: 'P17',
-    libelle: 'Mises en relation économiques et commerciales',
+    code: 'PROJ_A17',
+    libelle: 'Promotion des échanges économiques et commerciaux francophones',
     description:
-      'Rencontres B2B, événements professionnels et plateformes d’intermédiation pour connecter jeunes francophones et opportunités.',
+      'Rencontres B2B, missions économiques et intermédiation entre acteurs francophones. Pivot du pilier C (intermédiation).',
     thematique: 'Intermédiation',
     pilierPrincipal: 'C',
   },
   {
-    code: 'P18',
-    libelle: 'Renforcement institutionnel emploi-jeunes',
+    code: 'PROJ_A18',
+    libelle:
+      'Accompagnement des transformations structurelles en matière d’environnement et de climat',
     description:
-      'Appui aux ministères et institutions publiques en charge des politiques emploi-jeunes des États membres.',
-    thematique: 'Gouvernance',
+      'Appui aux politiques publiques et aux écosystèmes pour la transition environnementale et climatique. Pivot du pilier D (écosystèmes).',
+    thematique: 'Environnement & climat',
     pilierPrincipal: 'D',
   },
   {
-    code: 'P19',
-    libelle: 'Insertion professionnelle des jeunes diplômés',
+    code: 'PROJ_A19',
+    libelle: 'Soutien aux initiatives environnementales dans le Bassin du Congo',
     description:
-      'Dispositifs d’accompagnement des jeunes diplômés sans emploi vers une insertion durable.',
-    thematique: 'Insertion',
-    pilierPrincipal: 'A',
-  },
-  {
-    code: 'P20',
-    libelle: 'Tourisme, accueil et services francophones',
-    description:
-      'Formation et insertion dans les métiers du tourisme, de l’accueil et des services dans l’espace francophone.',
-    thematique: 'Tourisme',
-    pilierPrincipal: 'A',
-  },
-  {
-    code: 'P9',
-    libelle: 'Plaidoyer politiques publiques jeunesse',
-    description:
-      'Soutien aux politiques publiques jeunesse et aux dialogues nationaux sur l’employabilité.',
-    thematique: 'Plaidoyer',
+      'Initiatives environnementales ciblées sur le Bassin du Congo, avec une composante emploi-jeunes selon le contexte.',
+    thematique: 'Environnement',
     pilierPrincipal: 'D',
+  },
+  {
+    code: 'PROJ_A20',
+    libelle: 'Promotion du tourisme durable',
+    description:
+      'Développement du tourisme durable francophone, avec formation et insertion des jeunes dans les filières associées.',
+    thematique: 'Tourisme durable',
+    pilierPrincipal: 'A',
   },
 ];
