@@ -47,10 +47,16 @@ export const HEADERS_A1_OBLIGATOIRES = [
  * Convertit une ligne Excel parsée en payload Zod-prêt.
  * Retourne `donneesParsees` ou la liste d'erreurs de mapping.
  */
-export function mapLigneVersBeneficiaire(donnees: Record<string, unknown>): {
+export function mapLigneVersBeneficiaire(donneesBrut: Record<string, unknown>): {
   donneesParsees: BeneficiaireInsertInput | null;
   erreursMapping: Array<{ colonne: string; valeur: string | null; message: string }>;
 } {
+  // Normalisation em-dash (—) → en-dash (–) dans clés et valeurs (cf. fix
+  // mapping-structures.ts). Évite que le libellé "Oui — consentement
+  // recueilli" (forme avant sprint typo bdb6891) ne match plus avec
+  // CONSENTEMENT_LIBELLES.true qui est maintenant "Oui – consentement
+  // recueilli".
+  const donnees = normaliserDashes(donneesBrut);
   const erreurs: Array<{ colonne: string; valeur: string | null; message: string }> = [];
 
   const projet = lireCodeOuLibelle(donnees['Code projet *'], PROJETS_CODES, {});
@@ -240,4 +246,18 @@ function lireConsentement(v: unknown): boolean | null {
   if (s === CONSENTEMENT_LIBELLES.true.toLowerCase()) return true;
   if (s === CONSENTEMENT_LIBELLES.false.toLowerCase()) return false;
   return null;
+}
+
+/**
+ * Normalise les tirets em-dash (U+2014) en en-dash (U+2013) dans les clés et
+ * les valeurs string d'un Record. Cf. mapping-structures.ts pour le rationale.
+ */
+function normaliserDashes(donnees: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(donnees)) {
+    const cleNormalisee = k.replace(/—/g, '–');
+    const valeurNormalisee = typeof v === 'string' ? v.replace(/—/g, '–') : v;
+    out[cleNormalisee] = valeurNormalisee;
+  }
+  return out;
 }

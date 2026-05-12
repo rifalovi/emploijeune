@@ -37,10 +37,15 @@ export const HEADERS_B1_OBLIGATOIRES = [
   'Porteur – sexe *',
 ] as const;
 
-export function mapLigneVersStructure(donnees: Record<string, unknown>): {
+export function mapLigneVersStructure(donneesBrut: Record<string, unknown>): {
   donneesParsees: StructureInsertInput | null;
   erreursMapping: Array<{ colonne: string; valeur: string | null; message: string }>;
 } {
+  // Normalisation des tirets em-dash (—) ↔ en-dash (–) dans les CLÉS ET
+  // les valeurs string. Évite que `donnees['Porteur – nom *']` retourne
+  // undefined quand le fichier a "Porteur — nom *" (ou inversement).
+  // Cohérent avec la philosophie "absorber le maximum" du sprint import.
+  const donnees = normaliserDashes(donneesBrut);
   const erreurs: Array<{ colonne: string; valeur: string | null; message: string }> = [];
 
   const projet = lireCodeOuLibelle(donnees['Code projet *'], PROJETS_CODES, {});
@@ -286,4 +291,20 @@ function lireConsentement(v: unknown): boolean | null {
   if (s.startsWith('oui')) return true;
   if (s.startsWith('non')) return false;
   return null;
+}
+
+/**
+ * Normalise les tirets em-dash (U+2014) en en-dash (U+2013) dans les clés et
+ * les valeurs string d'un Record. Utile pour absorber les fichiers Excel
+ * produits avant le sprint typo (em-dash → en-dash, commit bdb6891) qui
+ * contiennent encore l'ancienne forme.
+ */
+function normaliserDashes(donnees: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(donnees)) {
+    const cleNormalisee = k.replace(/—/g, '–');
+    const valeurNormalisee = typeof v === 'string' ? v.replace(/—/g, '–') : v;
+    out[cleNormalisee] = valeurNormalisee;
+  }
+  return out;
 }
