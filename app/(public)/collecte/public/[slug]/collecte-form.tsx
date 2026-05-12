@@ -113,11 +113,14 @@ type FormDataA = {
 
 type FormDataB = {
   nom_structure: string;
-  type_structure: string;
-  secteur_activite: string;
+  // Suffixes `_code` alignés sur les colonnes de `public.structures` :
+  // type_structure_code, secteur_activite_code, nature_appui_code.
+  // Côté actions.ts on lit donnees['type_structure_code'] etc.
+  type_structure_code: string;
+  secteur_activite_code: string;
   statut_creation: string;
   annee_appui: string;
-  nature_appui: string;
+  nature_appui_code: string;
   projet_code: string;
   pays_code: string;
   porteur_nom: string;
@@ -480,11 +483,11 @@ function FormulaireStructure({
   const soumettre = (data: FormDataB) => {
     onSubmit({
       nom_structure: data.nom_structure,
-      type_structure: data.type_structure,
-      secteur_activite: data.secteur_activite,
+      type_structure_code: data.type_structure_code,
+      secteur_activite_code: data.secteur_activite_code,
       statut_creation: data.statut_creation,
       annee_appui: Number(data.annee_appui),
-      nature_appui: data.nature_appui,
+      nature_appui_code: data.nature_appui_code,
       projet_code: data.projet_code || lien.projet_code,
       pays_code: data.pays_code,
       porteur_nom: data.porteur_nom,
@@ -518,8 +521,8 @@ function FormulaireStructure({
             <div className="space-y-1.5">
               <Label>Type de structure <span className="text-destructive">*</span></Label>
               <Select
-                onValueChange={(v: string | null) => setValue('type_structure', v ?? "")}
-                {...register('type_structure', { required: 'Le type est obligatoire' })}
+                onValueChange={(v: string | null) => setValue('type_structure_code', v ?? "")}
+                {...register('type_structure_code', { required: 'Le type est obligatoire' })}
               >
                 <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
                 <SelectContent>
@@ -528,14 +531,14 @@ function FormulaireStructure({
                   ))}
                 </SelectContent>
               </Select>
-              {errors.type_structure && <p className="text-destructive text-xs">{errors.type_structure.message}</p>}
+              {errors.type_structure_code && <p className="text-destructive text-xs">{errors.type_structure_code.message}</p>}
             </div>
 
             <div className="space-y-1.5">
-              <Label>Secteur d'activité <span className="text-destructive">*</span></Label>
+              <Label>Secteur d&apos;activité <span className="text-destructive">*</span></Label>
               <Select
-                onValueChange={(v: string | null) => setValue('secteur_activite', v ?? "")}
-                {...register('secteur_activite', { required: 'Le secteur est obligatoire' })}
+                onValueChange={(v: string | null) => setValue('secteur_activite_code', v ?? "")}
+                {...register('secteur_activite_code', { required: 'Le secteur est obligatoire' })}
               >
                 <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
                 <SelectContent className="max-h-56">
@@ -544,7 +547,7 @@ function FormulaireStructure({
                   ))}
                 </SelectContent>
               </Select>
-              {errors.secteur_activite && <p className="text-destructive text-xs">{errors.secteur_activite.message}</p>}
+              {errors.secteur_activite_code && <p className="text-destructive text-xs">{errors.secteur_activite_code.message}</p>}
             </div>
           </div>
 
@@ -566,10 +569,10 @@ function FormulaireStructure({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Nature de l'appui <span className="text-destructive">*</span></Label>
+              <Label>Nature de l&apos;appui <span className="text-destructive">*</span></Label>
               <Select
-                onValueChange={(v: string | null) => setValue('nature_appui', v ?? "")}
-                {...register('nature_appui', { required: "La nature de l'appui est obligatoire" })}
+                onValueChange={(v: string | null) => setValue('nature_appui_code', v ?? "")}
+                {...register('nature_appui_code', { required: "La nature de l'appui est obligatoire" })}
               >
                 <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
                 <SelectContent>
@@ -578,7 +581,7 @@ function FormulaireStructure({
                   ))}
                 </SelectContent>
               </Select>
-              {errors.nature_appui && <p className="text-destructive text-xs">{errors.nature_appui.message}</p>}
+              {errors.nature_appui_code && <p className="text-destructive text-xs">{errors.nature_appui_code.message}</p>}
             </div>
           </div>
 
