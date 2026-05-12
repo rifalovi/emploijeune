@@ -12,6 +12,10 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { GrapheIndicateurAnnuel } from './graphe-client';
 import { ToggleVisuClient } from './toggle-visu-client';
+import { SaisieValeursClient } from './saisie-valeurs-client';
+
+/** Indicateurs de type "taux" : nécessitent numérateur + dénominateur. */
+const INDICATEURS_TAUX = new Set(['A2', 'A3', 'A5', 'B2', 'C2', 'D3']);
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -31,15 +35,10 @@ export default async function IndicateurDetailPage({ params }: Props) {
   const ind = indicateurParCode(codeBrut);
   if (!ind) notFound();
 
-  const [payload, config] = await Promise.all([
-    getIndicateursAnnuels(),
-    getConfigIndicateurs(),
-  ]);
+  const [payload, config] = await Promise.all([getIndicateursAnnuels(), getConfigIndicateurs()]);
 
   if (!payload) {
-    return (
-      <p className="text-sm text-amber-700">Impossible de charger les indicateurs.</p>
-    );
+    return <p className="text-sm text-amber-700">Impossible de charger les indicateurs.</p>;
   }
 
   const valeurs: IndicateurAvecValeurs | undefined = payload.indicateurs.find(
@@ -100,6 +99,17 @@ export default async function IndicateurDetailPage({ params }: Props) {
         />
       )}
 
+      {/* Saisie manuelle des valeurs — admin_scs / super_admin */}
+      {(utilisateur.role === 'admin_scs' || isSuperAdmin) && (
+        <SaisieValeursClient
+          code={ind.code}
+          valeursExistantes={valeurs.valeurs_par_annee}
+          estTaux={INDICATEURS_TAUX.has(ind.code)}
+          anneeMin={payload.annee_min}
+          anneeMax={payload.annee_max}
+        />
+      )}
+
       {/* Graphique (si valeurs et visu activée) */}
       {valeurs.valeurs_par_annee.length > 0 && visuActive && (
         <section className="rounded-xl border bg-white p-4">
@@ -123,7 +133,7 @@ export default async function IndicateurDetailPage({ params }: Props) {
           </header>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[480px] text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <thead className="bg-slate-50 text-xs tracking-wide text-slate-500 uppercase">
                 <tr>
                   <th className="px-3 py-2 text-left">Année</th>
                   <th className="px-3 py-2 text-right">Valeur</th>
@@ -152,9 +162,7 @@ export default async function IndicateurDetailPage({ params }: Props) {
                       <td className="px-3 py-2 text-right tabular-nums">{v.numerateur ?? '—'}</td>
                     )}
                     {valeurs.valeurs_par_annee.some((x) => x.denominateur !== undefined) && (
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {v.denominateur ?? '—'}
-                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">{v.denominateur ?? '—'}</td>
                     )}
                     {valeurs.valeurs_par_annee.some((x) => x.femmes !== undefined) && (
                       <>
@@ -203,6 +211,11 @@ function CarteStatut({ valeurs }: { valeurs: IndicateurAvecValeurs }) {
       icone: <CheckCircle2 className="size-4" aria-hidden />,
       libelle: 'Calculé depuis BDD',
     },
+    saisie_manuelle: {
+      bg: 'bg-blue-50 border-blue-200 text-blue-700',
+      icone: <CheckCircle2 className="size-4" aria-hidden />,
+      libelle: 'Saisie manuelle',
+    },
     non_mesurable: {
       bg: 'bg-amber-50 border-amber-200 text-amber-700',
       icone: <Clock className="size-4" aria-hidden />,
@@ -217,7 +230,7 @@ function CarteStatut({ valeurs }: { valeurs: IndicateurAvecValeurs }) {
   const cfg = map[valeurs.statut_calcul];
   return (
     <div className={`rounded-lg border px-4 py-3 ${cfg.bg}`}>
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
+      <p className="flex items-center gap-2 text-xs font-semibold tracking-wide uppercase">
         {cfg.icone}
         Statut
       </p>
@@ -229,7 +242,7 @@ function CarteStatut({ valeurs }: { valeurs: IndicateurAvecValeurs }) {
 function CarteAnnees({ nbAnnees }: { nbAnnees: number }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700">
-      <p className="text-xs font-semibold uppercase tracking-wide">Années collectées</p>
+      <p className="text-xs font-semibold tracking-wide uppercase">Années collectées</p>
       <p className="mt-1 text-2xl font-bold tabular-nums">{nbAnnees}</p>
     </div>
   );
@@ -238,9 +251,9 @@ function CarteAnnees({ nbAnnees }: { nbAnnees: number }) {
 function CarteVisu({ actif, forcee }: { actif: boolean; forcee: boolean }) {
   return (
     <div
-      className={`rounded-lg border px-4 py-3 ${actif ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-slate-50 border-slate-200 text-slate-500'}`}
+      className={`rounded-lg border px-4 py-3 ${actif ? 'border-purple-200 bg-purple-50 text-purple-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}
     >
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
+      <p className="flex items-center gap-2 text-xs font-semibold tracking-wide uppercase">
         <BarChart3 className="size-4" aria-hidden />
         Visualisation
       </p>

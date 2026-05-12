@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 
+const anneeCourante = new Date().getFullYear();
+
 /**
  * Toggle l'activation de la visualisation graphique pour un indicateur donné.
  * Réservé super_admin (vérifié par la RPC `toggle_indicateur_visu` côté BDD
@@ -53,4 +55,105 @@ export async function toggleIndicateurVisu(
     code: parsed.data.code,
     visu_activee: result.visu_activee ?? parsed.data.valeur,
   };
+}
+
+// ─── Saisie manuelle de valeurs d'indicateur ─────────────────────────────────
+
+const saisieSchema = z.object({
+  code: z.string().min(1).max(4),
+  annee: z.coerce
+    .number()
+    .int()
+    .min(2020)
+    .max(anneeCourante + 1),
+  numerateur: z.coerce.number().int().nullable().optional(),
+  denominateur: z.coerce.number().int().positive().nullable().optional(),
+  valeur_directe: z.coerce.number().nullable().optional(),
+  note: z.string().max(500).nullable().optional(),
+});
+
+export type SaisieValeurResult =
+  | { status: 'succes'; code: string; annee: number }
+  | { status: 'erreur'; message: string };
+
+/**
+ * Enregistre ou met à jour une valeur saisie manuellement. Réservé
+ * admin_scs / super_admin (double-gardé en Server Action + RPC).
+ */
+export async function enregistrerSaisieValeur(
+  payload: z.infer<typeof saisieSchema>,
+): Promise<SaisieValeurResult> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
+    return { status: 'erreur', message: 'Réservé aux administrateurs SCS et super_admin.' };
+  }
+
+  const parsed = saisieSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { status: 'erreur', message: parsed.error.issues[0]?.message ?? 'Payload invalide.' };
+  }
+
+  // Au moins une des 3 valeurs doit être renseignée
+  if (parsed.data.numerateur === null || parsed.data.numerateur === undefined) {
+    if (parsed.data.denominateur === null || parsed.data.denominateur === undefined) {
+      if (parsed.data.valeur_directe === null || parsed.data.valeur_directe === undefined) {
+        return {
+          status: 'erreur',
+          message:
+            'Au moins une valeur (numérateur, dénominateur ou valeur directe) est obligatoire.',
+        };
+      }
+    }
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('enregistrer_valeur_indicateur_saisie', {
+    p_code: parsed.data.code,
+    p_annee: parsed.data.annee,
+    p_numerateur: parsed.data.numerateur ?? null,
+    p_denominateur: parsed.data.denominateur ?? null,
+    p_valeur_directe: parsed.data.valeur_directe ?? null,
+    p_note: parsed.data.note ?? null,
+  });
+
+  if (error) return { status: 'erreur', message: error.message };
+  const result = data as { erreur?: string; succes?: boolean };
+  if (result?.erreur) return { status: 'erreur', message: result.erreur };
+
+  revalidatePath('/indicateurs');
+  revalidatePath(`/indicateurs/${parsed.data.code.toLowerCase()}`);
+
+  return { status: 'succes', code: parsed.data.code, annee: parsed.data.annee };
+}
+
+const suppressionSchema = z.object({
+  code: z.string().min(1).max(4),
+  annee: z.coerce.number().int(),
+});
+
+export async function supprimerSaisieValeur(
+  payload: z.infer<typeof suppressionSchema>,
+): Promise<SaisieValeurResult> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
+    return { status: 'erreur', message: 'Réservé aux administrateurs SCS et super_admin.' };
+  }
+
+  const parsed = suppressionSchema.safeParse(payload);
+  if (!parsed.success) return { status: 'erreur', message: 'Payload invalide.' };
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('supprimer_valeur_indicateur_saisie', {
+    p_code: parsed.data.code,
+    p_annee: parsed.data.annee,
+  });
+
+  if (error) return { status: 'erreur', message: error.message };
+  const result = data as { erreur?: string };
+  if (result?.erreur) return { status: 'erreur', message: result.erreur };
+
+  revalidatePath('/indicateurs');
+  revalidatePath(`/indicateurs/${parsed.data.code.toLowerCase()}`);
+
+  return { status: 'succes', code: parsed.data.code, annee: parsed.data.annee };
 }

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 import type {
   RapportImport,
   RapportImportEnrichi,
@@ -18,7 +19,6 @@ import type {
 function estEnrichi(r: RapportImport | RapportImportEnrichi): r is RapportImportEnrichi {
   return 'nb_inserees' in r;
 }
-import { cn } from '@/lib/utils';
 
 export type ZoneUploadImportProps = {
   /** Endpoint POST qui accepte multipart/form-data avec champ `fichier`. */

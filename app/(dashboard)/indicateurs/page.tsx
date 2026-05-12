@@ -22,10 +22,7 @@ export const dynamic = 'force-dynamic';
 export default async function IndicateursPage() {
   await requireUtilisateurValide();
 
-  const [payload, config] = await Promise.all([
-    getIndicateursAnnuels(),
-    getConfigIndicateurs(),
-  ]);
+  const [payload, config] = await Promise.all([getIndicateursAnnuels(), getConfigIndicateurs()]);
 
   if (!payload) {
     return (
@@ -48,10 +45,16 @@ export default async function IndicateursPage() {
 
   // Compteurs synthétiques
   const nbCalcules = payload.indicateurs.filter((i) => i.statut_calcul === 'calcule').length;
-  const nbNonMesurables = payload.indicateurs.filter((i) => i.statut_calcul === 'non_mesurable').length;
+  const nbNonMesurables = payload.indicateurs.filter(
+    (i) => i.statut_calcul === 'non_mesurable',
+  ).length;
   const nbAvecVisu = payload.indicateurs.filter((i) => {
     const c = configParCode.get(i.code);
-    return doitAfficherVisualisation(i.nb_annees_avec_donnees, c?.visu_forcee ?? false, c?.visu_activee ?? false);
+    return doitAfficherVisualisation(
+      i.nb_annees_avec_donnees,
+      c?.visu_forcee ?? false,
+      c?.visu_activee ?? false,
+    );
   }).length;
 
   return (
@@ -60,9 +63,9 @@ export default async function IndicateursPage() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Tous les indicateurs CMR</h1>
         <p className="text-muted-foreground text-sm">
-          Inventaire des 18 indicateurs du Cadre Commun de mesure du rendement, avec leurs
-          valeurs annuelles (collectes {payload.annee_min} → {payload.annee_max}). Cliquez sur
-          un indicateur pour voir le détail (graphique, ventilation, méthode).
+          Inventaire des 18 indicateurs du Cadre Commun de mesure du rendement, avec leurs valeurs
+          annuelles (collectes {payload.annee_min} → {payload.annee_max}). Cliquez sur un indicateur
+          pour voir le détail (graphique, ventilation, méthode).
         </p>
       </header>
 
@@ -120,7 +123,7 @@ export default async function IndicateursPage() {
 
             <div className="overflow-x-auto rounded-xl border">
               <table className="w-full min-w-[720px] text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <thead className="bg-slate-50 text-xs tracking-wide text-slate-500 uppercase">
                   <tr>
                     <th className="px-3 py-2 text-left">Code</th>
                     <th className="px-3 py-2 text-left">Intitulé</th>
@@ -238,17 +241,29 @@ function CompteurCard({ n, label, classe }: { n: number; label: string; classe: 
   return (
     <div className={`rounded-lg border px-3 py-2 text-center ${classe}`}>
       <div className="text-2xl font-bold tabular-nums">{n}</div>
-      <div className="text-[10px] uppercase tracking-wide">{label}</div>
+      <div className="text-[10px] tracking-wide uppercase">{label}</div>
     </div>
   );
 }
 
-function BadgeStatut({ statut }: { statut: 'calcule' | 'non_mesurable' | 'pas_de_donnees' }) {
+function BadgeStatut({
+  statut,
+}: {
+  statut: 'calcule' | 'saisie_manuelle' | 'non_mesurable' | 'pas_de_donnees';
+}) {
   if (statut === 'calcule') {
     return (
       <Badge className="bg-emerald-50 text-[10px] text-emerald-700 hover:bg-emerald-50">
         <CheckCircle2 className="mr-1 size-3" aria-hidden />
         Calculé
+      </Badge>
+    );
+  }
+  if (statut === 'saisie_manuelle') {
+    return (
+      <Badge className="bg-blue-50 text-[10px] text-blue-700 hover:bg-blue-50">
+        <CheckCircle2 className="mr-1 size-3" aria-hidden />
+        Saisie
       </Badge>
     );
   }

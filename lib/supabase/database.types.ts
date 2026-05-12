@@ -1799,10 +1799,25 @@ export type Database = {
         }
         Returns: Json
       }
-      /** Phase Indicateurs annuels — migration 20260512200001. */
+      /** Phase Indicateurs annuels — migration 20260512200001 + 20260512300001. */
       lister_indicateurs_avec_valeurs_annuelles: { Args: never; Returns: Json }
       toggle_indicateur_visu: {
         Args: { p_code: string; p_visu_forcee: boolean; p_valeur: boolean }
+        Returns: Json
+      }
+      enregistrer_valeur_indicateur_saisie: {
+        Args: {
+          p_code: string
+          p_annee: number
+          p_numerateur?: number | null
+          p_denominateur?: number | null
+          p_valeur_directe?: number | null
+          p_note?: string | null
+        }
+        Returns: Json
+      }
+      supprimer_valeur_indicateur_saisie: {
+        Args: { p_code: string; p_annee: number }
         Returns: Json
       }
       notifications_admin_non_lues_count: { Args: never; Returns: number }

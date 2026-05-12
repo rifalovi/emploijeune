@@ -14,18 +14,21 @@ import { z } from 'zod';
 const valeurAnneeSchema = z.object({
   annee: z.number().int(),
   valeur: z.number().nullable(),
-  numerateur: z.number().int().optional(),
-  denominateur: z.number().int().optional(),
+  numerateur: z.number().int().nullable().optional(),
+  denominateur: z.number().int().nullable().optional(),
   femmes: z.number().int().optional(),
   hommes: z.number().int().optional(),
   creation: z.number().int().optional(),
   renforcement: z.number().int().optional(),
   nb_avec_montant: z.number().int().optional(),
+  /** Origine de la valeur — 'auto' (calcul BDD), 'saisie' (saisie manuelle),
+   *  'mixte' (BDD + complément saisi). */
+  source: z.enum(['auto', 'saisie', 'mixte']).optional(),
 });
 
 const indicateurSchema = z.object({
   code: z.string(),
-  statut_calcul: z.enum(['calcule', 'non_mesurable', 'pas_de_donnees']),
+  statut_calcul: z.enum(['calcule', 'non_mesurable', 'pas_de_donnees', 'saisie_manuelle']),
   mention: z.string().optional(),
   valeurs_par_annee: z.array(valeurAnneeSchema),
   nb_annees_avec_donnees: z.number().int(),
@@ -69,3 +72,14 @@ export function doitAfficherVisualisation(
   if (visuForcee) return visuActivee;
   return nbAnnees >= 2;
 }
+
+/** Types de graphique disponibles pour la page détail d'un indicateur. */
+export const TYPES_GRAPHIQUE = ['barres', 'ligne', 'aire', 'secteur'] as const;
+export type TypeGraphique = (typeof TYPES_GRAPHIQUE)[number];
+
+export const TYPE_GRAPHIQUE_LIBELLES: Record<TypeGraphique, string> = {
+  barres: 'Barres',
+  ligne: 'Ligne',
+  aire: 'Aire',
+  secteur: 'Secteur (camembert)',
+};
