@@ -653,3 +653,33 @@ export async function basculerStatutLien(
   revalidatePath('/collecte-publique');
   return { status: 'succes', nouveau_statut: nouveauStatut };
 }
+
+// =============================================================================
+// 8. Supprimer un lien (soft delete — réservé aux admins)
+// =============================================================================
+
+export type SupprimerLienResult =
+  | { status: 'succes' }
+  | { status: 'erreur_droits'; message: string }
+  | { status: 'erreur_inconnue'; message: string };
+
+export async function supprimerLienCollecte(lienId: string): Promise<SupprimerLienResult> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
+    return { status: 'erreur_droits', message: 'Réservé aux admins.' };
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
+    .from('liens_collecte_publique')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', lienId)
+    .is('deleted_at', null);
+
+  if (error) {
+    return { status: 'erreur_inconnue', message: error.message };
+  }
+
+  revalidatePath('/collecte-publique');
+  return { status: 'succes' };
+}

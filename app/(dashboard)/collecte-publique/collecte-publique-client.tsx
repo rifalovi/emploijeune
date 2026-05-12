@@ -22,6 +22,7 @@ import {
   AlertCircle,
   User,
   Building2,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +63,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   creerLienCollecte,
   basculerStatutLien,
+  supprimerLienCollecte,
   listerSoumissions,
   validerSoumission,
   rejeterSoumission,
@@ -104,6 +106,9 @@ export function CollectePubliqueClient({
   const [soumissionDetail, setSoumissionDetail] = useState<SoumissionCollecte | null>(null);
   const [dialogDetail, setDialogDetail] = useState(false);
   const [motifRejet, setMotifRejet] = useState('');
+
+  // Dialogue confirmation suppression lien
+  const [lienASupprimer, setLienASupprimer] = useState<LienCollecte | null>(null);
 
   const [isPending, startTransition] = useTransition();
   const [copie, setCopie] = useState<string | null>(null);
@@ -161,6 +166,16 @@ export function CollectePubliqueClient({
         );
         setDialogDetail(false);
       }
+    });
+  }
+
+  function handleSupprimer(lienId: string) {
+    startTransition(async () => {
+      const result = await supprimerLienCollecte(lienId);
+      if (result.status === 'succes') {
+        setLiens((prev) => prev.filter((l) => l.id !== lienId));
+      }
+      setLienASupprimer(null);
     });
   }
 
@@ -270,6 +285,7 @@ export function CollectePubliqueClient({
                   peutValider={peutValider}
                   onCopier={copierURL}
                   onBasculer={handleBasculer}
+                  onSupprimer={(l) => setLienASupprimer(l)}
                   onVoirSoumissions={(id) => {
                     setFiltreLien(id);
                     setFiltreStatut('tous');
@@ -504,6 +520,36 @@ export function CollectePubliqueClient({
           </DialogContent>
         </Dialog>
       )}
+
+      {/* ===== Dialog confirmation suppression lien ===== */}
+      <Dialog open={!!lienASupprimer} onOpenChange={(o) => { if (!o) setLienASupprimer(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="size-5" />
+              Supprimer ce lien ?
+            </DialogTitle>
+            <DialogDescription>
+              Le lien <strong>{lienASupprimer?.label || lienASupprimer?.slug}</strong> sera
+              définitivement supprimé. Les soumissions associées seront également retirées.
+              Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-row gap-2">
+            <Button variant="outline" onClick={() => setLienASupprimer(null)} disabled={isPending}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={isPending}
+              onClick={() => lienASupprimer && handleSupprimer(lienASupprimer.id)}
+            >
+              <Trash2 className="mr-2 size-4" />
+              {isPending ? 'Suppression…' : 'Supprimer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -519,6 +565,7 @@ function LienCard({
   peutValider,
   onCopier,
   onBasculer,
+  onSupprimer,
   onVoirSoumissions,
 }: {
   lien: LienCollecte;
@@ -527,6 +574,7 @@ function LienCard({
   peutValider: boolean;
   onCopier: (url: string, id: string) => void;
   onBasculer: (id: string, statut: string) => void;
+  onSupprimer: (lien: LienCollecte) => void;
   onVoirSoumissions: (id: string) => void;
 }) {
 
@@ -637,6 +685,18 @@ function LienCard({
               ) : (
                 <><ToggleLeft className="mr-1 size-4" /> Activer</>
               )}
+            </Button>
+          )}
+          {peutValider && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto text-destructive hover:bg-destructive/10 hover:text-destructive"
+              disabled={isPending}
+              onClick={() => onSupprimer(lien)}
+            >
+              <Trash2 className="mr-1 size-4" />
+              Supprimer
             </Button>
           )}
         </div>
