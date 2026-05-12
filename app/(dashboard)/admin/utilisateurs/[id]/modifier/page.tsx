@@ -17,6 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { FormulaireModifierUtilisateur } from '@/components/admin/formulaire-modifier-utilisateur';
 import { AuditUtilisateurCard } from '@/components/admin/audit-utilisateur-card';
 import { CardRattachementProjets } from '@/components/admin/card-rattachement-projets';
+import { ZoneSuperAdminUtilisateur } from '@/components/admin/zone-super-admin-utilisateur';
 
 export const metadata: Metadata = {
   title: 'Modifier utilisateur – OIF Emploi Jeunes',
@@ -97,13 +98,15 @@ export default async function ModifierUtilisateurPage({ params }: PageProps) {
         </p>
       </header>
 
-      <Card>
-        <CardContent className="bg-muted/30 p-3 text-xs">
-          <strong>Email non modifiable</strong> – le changement d’email impacte l’authentification
-          (auth.users) et la cohérence des sessions actives. Pour modifier un email, supprimez le
-          compte et créez-en un nouveau (ou attendez V1.5).
-        </CardContent>
-      </Card>
+      {utilisateurCourant.role !== 'super_admin' && (
+        <Card>
+          <CardContent className="bg-muted/30 p-3 text-xs">
+            <strong>Email non modifiable</strong> – le changement d’email impacte
+            l’authentification (auth.users). Seul le super_admin peut modifier un email ou
+            supprimer un compte (voir bloc dédié plus bas en mode super_admin).
+          </CardContent>
+        </Card>
+      )}
 
       <FormulaireModifierUtilisateur
         utilisateurId={utilisateur.id}
@@ -132,6 +135,15 @@ export default async function ModifierUtilisateurPage({ params }: PageProps) {
       />
 
       <AuditUtilisateurCard lignes={audit} />
+
+      {utilisateurCourant.role === 'super_admin' && (
+        <ZoneSuperAdminUtilisateur
+          userId={utilisateur.user_id}
+          emailActuel={utilisateur.email ?? null}
+          nomComplet={utilisateur.nom_complet}
+          estLuiMeme={estLuiMeme}
+        />
+      )}
     </div>
   );
 }

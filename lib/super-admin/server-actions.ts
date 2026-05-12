@@ -290,3 +290,176 @@ export async function changerRoleUtilisateur(
   revalidatePath('/super-admin/utilisateurs');
   return { status: 'succes' };
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Modification de l'email d'un utilisateur (super_admin uniquement)
+// ─────────────────────────────────────────────────────────────────────────
+
+const changerEmailSchema = z.object({
+  user_id: z.string().uuid(),
+  nouvel_email: z.string().trim().email(),
+});
+
+/**
+ * Met à jour l'email d'un compte (auth.users + table utilisateurs).
+ * Réservé super_admin. Carlos peut modifier l'email d'un autre user
+ * mais pas le sien (auto-modification interdite : risque lockout).
+ */
+export async function changerEmailUtilisateur(
+  payload: z.infer<typeof changerEmailSchema>,
+): Promise<Resultat> {
+  const garde = await exigerSuperAdmin();
+  if ('erreur' in garde) return { status: 'erreur', message: garde.erreur };
+
+  const parsed = changerEmailSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { status: 'erreur', message: parsed.error.issues[0]?.message ?? 'payload_invalide' };
+  }
+
+  if (parsed.data.user_id === garde.utilisateur.user_id) {
+    return { status: 'erreur', message: 'auto_modification_interdite' };
+  }
+
+  const admin = createSupabaseAdminClient();
+
+  // 1. Met à jour auth.users (source de vérité unique pour l'email — la
+  //    table public.utilisateurs ne stocke PAS l'email). Si l'email est
+  //    déjà utilisé par un autre compte, Supabase renvoie une erreur
+  //    "User already registered" qu'on remappe.
+  const { error: authErr } = await admin.auth.admin.updateUserById(parsed.data.user_id, {
+    email: parsed.data.nouvel_email,
+    email_confirm: true, // changement admin : pas de mail de confirmation
+  });
+  if (authErr) {
+    const msg = authErr.message.toLowerCase();
+    if (msg.includes('already') && msg.includes('registered')) {
+      return { status: 'erreur', message: 'email_deja_utilise' };
+    }
+    return { status: 'erreur', message: `auth_update: ${authErr.message}` };
+  }
+
+  // 2. Bump updated_at sur la table utilisateurs (l'email n'est pas stocké
+  //    ici mais on garde un timestamp à jour pour l'audit).
+  await admin
+    .from('utilisateurs')
+    .update({ updated_at: new Date().toISOString() } as never)
+    .eq('user_id', parsed.data.user_id);
+
+  // 3. Audit log (best-effort)
+  await admin
+    .from('journaux_audit')
+    .insert({
+      action: 'utilisateur.changer_email',
+      acteur_user_id: garde.utilisateur.user_id,
+      cible_type: 'utilisateur',
+      cible_id: parsed.data.user_id,
+      diff: { nouvel_email: parsed.data.nouvel_email } as never,
+    } as never)
+    .then(
+      () => undefined,
+      () => undefined,
+    );
+
+  revalidatePath('/super-admin/utilisateurs');
+  revalidatePath('/admin/utilisateurs');
+  revalidatePath(`/admin/utilisateurs/${parsed.data.user_id}/modifier`);
+  return { status: 'succes' };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Suppression définitive d'un compte (super_admin uniquement)
+// ─────────────────────────────────────────────────────────────────────────
+
+const supprimerCompteSchema = z.object({
+  user_id: z.string().uuid(),
+  // L'UI demande à l'admin de retaper l'email à supprimer — protection
+  // anti-clic accidentel.
+  confirmation_email: z.string().trim().email(),
+});
+
+/**
+ * Suppression définitive d'un compte :
+ *   - Soft-delete dans `public.utilisateurs` (`deleted_at` + `actif=false`)
+ *     pour préserver l'historique d'audit.
+ *   - Hard-delete dans `auth.users` (révoque sessions + libère l'email).
+ *
+ * Carlos ne peut pas se supprimer lui-même. Un autre super_admin ne peut
+ * pas être supprimé (rôle protégé).
+ */
+export async function supprimerCompteUtilisateur(
+  payload: z.infer<typeof supprimerCompteSchema>,
+): Promise<Resultat> {
+  const garde = await exigerSuperAdmin();
+  if ('erreur' in garde) return { status: 'erreur', message: garde.erreur };
+
+  const parsed = supprimerCompteSchema.safeParse(payload);
+  if (!parsed.success) return { status: 'erreur', message: 'payload_invalide' };
+
+  if (parsed.data.user_id === garde.utilisateur.user_id) {
+    return { status: 'erreur', message: 'auto_suppression_interdite' };
+  }
+
+  const admin = createSupabaseAdminClient();
+
+  // 1a. Lecture du profil cible — rôle et nom (pour l'audit + garde
+  //     anti-super_admin). L'email vit dans auth.users, on le lit séparément.
+  const { data: cible, error: lookupErr } = await admin
+    .from('utilisateurs')
+    .select('role, nom_complet')
+    .eq('user_id', parsed.data.user_id)
+    .maybeSingle();
+  if (lookupErr || !cible) return { status: 'erreur', message: 'utilisateur_introuvable' };
+  if (cible.role === 'super_admin') {
+    return { status: 'erreur', message: 'super_admin_non_supprimable' };
+  }
+
+  // 1b. Email réel depuis auth.users (source de vérité)
+  const { data: authUser } = await admin.auth.admin.getUserById(parsed.data.user_id);
+  const emailCible = authUser?.user?.email ?? null;
+  if (!emailCible) {
+    return { status: 'erreur', message: 'auth_user_introuvable' };
+  }
+  if (emailCible !== parsed.data.confirmation_email) {
+    return { status: 'erreur', message: 'confirmation_email_invalide' };
+  }
+
+  // 2. Soft-delete table utilisateurs (préserve l'historique pour l'audit)
+  const now = new Date().toISOString();
+  const { error: softErr } = await admin
+    .from('utilisateurs')
+    .update({ deleted_at: now, actif: false, updated_at: now } as never)
+    .eq('user_id', parsed.data.user_id);
+  if (softErr) return { status: 'erreur', message: `soft_delete: ${softErr.message}` };
+
+  // 3. Hard-delete auth.users (révoque sessions + libère l'email).
+  //    Best-effort : si ça échoue, le soft-delete bloque déjà l'accès.
+  const { error: authErr } = await admin.auth.admin.deleteUser(parsed.data.user_id);
+  if (authErr) {
+    // eslint-disable-next-line no-console
+    console.error('[supprimerCompte] auth.admin.deleteUser échoué', authErr.message);
+  }
+
+  // 4. Audit log
+  await admin
+    .from('journaux_audit')
+    .insert({
+      action: 'utilisateur.supprimer',
+      acteur_user_id: garde.utilisateur.user_id,
+      cible_type: 'utilisateur',
+      cible_id: parsed.data.user_id,
+      diff: {
+        email_supprime: emailCible,
+        nom_complet: cible.nom_complet,
+        role: cible.role,
+        auth_delete_ok: !authErr,
+      } as never,
+    } as never)
+    .then(
+      () => undefined,
+      () => undefined,
+    );
+
+  revalidatePath('/super-admin/utilisateurs');
+  revalidatePath('/admin/utilisateurs');
+  return { status: 'succes' };
+}
