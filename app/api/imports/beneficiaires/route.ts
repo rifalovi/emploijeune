@@ -34,16 +34,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Vérification du type MIME côté serveur (en plus de l'extension)
+  // Vérification du type MIME côté serveur (en plus de l'extension).
+  // Normalisation en minuscules : certains navigateurs/OS envoient
+  // "macroenabled" (tout minuscule) au lieu de "macroEnabled" — la
+  // comparaison doit être insensible à la casse.
   const MIME_TYPES_ACCEPTES = [
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-    'application/vnd.ms-excel.sheet.macroEnabled.12', // .xlsm
-    'application/vnd.ms-excel.sheet.binary.macroEnabled.12', // .xlsb
+    'application/vnd.ms-excel.sheet.macroenabled.12', // .xlsm (minuscules — Chrome/macOS)
+    'application/vnd.ms-excel.sheet.macroenabled.12'.replace('macroenabled', 'macroEnabled'), // .xlsm (casse mixte — spec officielle)
+    'application/vnd.ms-excel.sheet.binary.macroenabled.12', // .xlsb
+    'application/vnd.ms-excel.sheet.binary.macroEnabled.12', // .xlsb (casse mixte)
     'application/octet-stream', // certains navigateurs/OS envoient ce type générique
     'application/zip', // xlsx/xlsm sont des zips — accepté comme fallback
     '', // type vide (certains OS)
   ];
-  if (fichier.type && !MIME_TYPES_ACCEPTES.includes(fichier.type)) {
+  const mimeNormalise = fichier.type.toLowerCase();
+  if (fichier.type && !MIME_TYPES_ACCEPTES.map((m) => m.toLowerCase()).includes(mimeNormalise)) {
     return NextResponse.json(
       {
         erreur: `Type MIME non accepté : ${fichier.type}. Utilisez un fichier .xlsx ou .xlsm valide.`,

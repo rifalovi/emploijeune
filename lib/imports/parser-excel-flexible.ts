@@ -90,18 +90,33 @@ export async function parseExcelFlexible(
   }
 
   // 1. Détecter la ligne d'en-tête : celle avec le plus de cellules non-vides
-  //    dans les 15 premières lignes. Heuristique simple mais robuste face aux
-  //    fichiers avec bandeau de titre, instructions, lignes de séparation.
+  //    dans les 15 premières lignes. Heuristique robuste face aux fichiers avec
+  //    bandeau de titre, textes légaux, lignes de séparation.
+  //
+  //    Cas particulier — cellules fusionnées (merged cells) :
+  //    ExcelJS réplique la valeur d'une cellule fusionnée dans CHAQUE colonne
+  //    de la plage. Un titre sur une seule cellule fusionnée sur 14 colonnes
+  //    apparaît donc avec un score de 14 — identique à la vraie ligne d'en-têtes.
+  //    Correction : on disqualifie les lignes où toutes les cellules non-vides
+  //    ont la MÊME valeur (signature d'une cellule fusionnée / titre répété).
   const horizonMax = Math.min(HORIZON_LIGNE_ENTETE, ws.rowCount);
   let meilleureLigne = 1;
   let meilleurScore = 0;
   for (let r = 1; r <= horizonMax; r++) {
     const row = ws.getRow(r);
     let cellulesNonVides = 0;
+    const valeursUniques = new Set<string>();
     row.eachCell({ includeEmpty: false }, (cell) => {
-      const v = cell.value;
-      if (v !== null && v !== undefined && String(v).trim() !== '') cellulesNonVides++;
+      // Utiliser extraireValeurCellule pour gérer richText / objets ExcelJS
+      const v = extraireValeurCellule(cell);
+      const s = v !== null && v !== undefined ? String(v).trim() : '';
+      if (s !== '') {
+        cellulesNonVides++;
+        valeursUniques.add(s);
+      }
     });
+    // Ligne fusionnée (toutes les cellules ont la même valeur) → ignorer
+    if (cellulesNonVides > 1 && valeursUniques.size === 1) continue;
     if (cellulesNonVides > meilleurScore) {
       meilleurScore = cellulesNonVides;
       meilleureLigne = r;
@@ -109,11 +124,16 @@ export async function parseExcelFlexible(
   }
 
   // 2. Lire les en-têtes de la ligne détectée
+  //    ExcelJS peut retourner une valeur en format richText
+  //    ({ richText: [{text:'...'}] }) pour les cellules avec mise en forme
+  //    mixte (ex. une partie en gras). `String(v)` donnerait "[object Object]"
+  //    au lieu du texte réel — on utilise extraireValeurCellule() qui gère
+  //    richText, text et les autres formats ExcelJS.
   const headerRow = ws.getRow(meilleureLigne);
   const headersLus: Array<string | null> = [];
   headerRow.eachCell({ includeEmpty: true }, (cell) => {
-    const v = cell.value;
-    headersLus.push(typeof v === 'string' ? v.trim() : v ? String(v).trim() : null);
+    const v = extraireValeurCellule(cell);
+    headersLus.push(typeof v === 'string' && v.trim() ? v.trim() : v !== null ? String(v).trim() || null : null);
   });
 
   // 3. Appliquer le mapping flou
