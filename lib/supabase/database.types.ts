@@ -472,6 +472,31 @@ export type Database = {
        * Sessions d'import en masse — phase 4 rollback
        * (migration 20260512100001_import_sessions_rollback.sql).
        */
+      /** Configuration toggle visualisation par indicateur — migration 20260512200001. */
+      indicateurs_config: {
+        Row: {
+          indicateur_code: string
+          visu_activee: boolean
+          visu_forcee: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          indicateur_code: string
+          visu_activee?: boolean
+          visu_forcee?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          indicateur_code?: string
+          visu_activee?: boolean
+          visu_forcee?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       import_sessions: {
         Row: {
           id: string
@@ -1772,6 +1797,12 @@ export type Database = {
           p_role_cible: Database["public"]["Enums"]["role_utilisateur"]
           p_active: boolean
         }
+        Returns: Json
+      }
+      /** Phase Indicateurs annuels — migration 20260512200001. */
+      lister_indicateurs_avec_valeurs_annuelles: { Args: never; Returns: Json }
+      toggle_indicateur_visu: {
+        Args: { p_code: string; p_visu_forcee: boolean; p_valeur: boolean }
         Returns: Json
       }
       notifications_admin_non_lues_count: { Args: never; Returns: number }

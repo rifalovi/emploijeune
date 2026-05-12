@@ -7,6 +7,7 @@ import {
   Settings,
   ShieldAlert,
   Sparkles,
+  BarChart3,
   type LucideIcon,
 } from 'lucide-react';
 import type { RoleUtilisateur } from '@/lib/supabase/auth';
@@ -44,6 +45,12 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/enquetes',
     label: 'Enquêtes',
     icon: ClipboardList,
+    roles: ['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire', 'lecteur'],
+  },
+  {
+    href: '/indicateurs',
+    label: 'Indicateurs',
+    icon: BarChart3,
     roles: ['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire', 'lecteur'],
   },
   {
