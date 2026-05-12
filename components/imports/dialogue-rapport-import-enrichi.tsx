@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  RotateCcw,
 } from 'lucide-react';
 
 import {
@@ -20,7 +21,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { annulerImportSession } from '@/lib/imports/import-beneficiaires';
 import type {
   LigneRapportImport,
   RapportImportEnrichi,
@@ -47,7 +60,38 @@ export function DialogueRapportImportEnrichi({
   rapport,
   onClose,
 }: DialogueRapportImportEnrichiProps) {
+  const [rollbackEnCours, setRollbackEnCours] = useState(false);
+  const [rollbackMessage, setRollbackMessage] = useState<string | null>(null);
+  const [rollbackFait, setRollbackFait] = useState(false);
+
   if (!rapport) return null;
+
+  const peutRollback =
+    !rollbackFait &&
+    !!rapport.import_session_id &&
+    !!rapport.rollback_expire_at &&
+    new Date(rapport.rollback_expire_at) > new Date();
+
+  const handleRollback = async () => {
+    if (!rapport.import_session_id) return;
+    setRollbackEnCours(true);
+    setRollbackMessage(null);
+    try {
+      const result = await annulerImportSession(rapport.import_session_id);
+      if (result.status === 'succes') {
+        setRollbackFait(true);
+        setRollbackMessage(
+          `Import annulé avec succès — ${result.nb_annules} bénéficiaire${result.nb_annules > 1 ? 's' : ''} supprimé${result.nb_annules > 1 ? 's' : ''}.`,
+        );
+      } else {
+        setRollbackMessage(result.message);
+      }
+    } catch {
+      setRollbackMessage('Erreur inattendue lors du rollback. Réessayez ou contactez le support.');
+    } finally {
+      setRollbackEnCours(false);
+    }
+  };
 
   return (
     <Dialog open={!!rapport} onOpenChange={(o) => !o && onClose()}>
@@ -62,6 +106,80 @@ export function DialogueRapportImportEnrichi({
             {rapport.nb_lignes_total > 1 ? 's' : ''}. Détail par statut ci-dessous.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Bloc rollback */}
+        {rapport.import_session_id && (
+          <div
+            className={`rounded-lg border px-4 py-3 text-xs ${rollbackFait ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="font-medium">Session d&apos;import :</span>{' '}
+                <code className="font-mono text-[10px]">{rapport.import_session_id}</code>
+                {rapport.rollback_expire_at && !rollbackFait && (
+                  <span className="ml-2 text-amber-600">
+                    Rollback disponible jusqu&apos;au{' '}
+                    {new Date(rapport.rollback_expire_at).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </span>
+                )}
+                {rollbackMessage && (
+                  <p
+                    className={`mt-1 font-medium ${rollbackFait ? 'text-emerald-700' : 'text-red-600'}`}
+                  >
+                    {rollbackMessage}
+                  </p>
+                )}
+              </div>
+              {peutRollback && (
+                <AlertDialog>
+                  <AlertDialogTrigger
+                    render={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        disabled={rollbackEnCours}
+                      >
+                        <RotateCcw className="mr-1.5 size-3.5" aria-hidden />
+                        {rollbackEnCours ? 'Annulation…' : 'Annuler cet import'}
+                      </Button>
+                    }
+                  />
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmer l&apos;annulation de l&apos;import</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action va supprimer (soft-delete) les{' '}
+                        <strong>
+                          {rapport.nb_inserees + rapport.nb_incompletes} bénéficiaire
+                          {rapport.nb_inserees + rapport.nb_incompletes > 1 ? 's' : ''}
+                        </strong>{' '}
+                        insérés lors de cet import. Les doublons enrichis ne sont pas affectés.
+                        <br />
+                        <br />
+                        Cette action est <strong>irréversible</strong> (les bénéficiaires seront
+                        archivés mais non effacés définitivement).
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-red-600 hover:bg-red-700"
+                        onClick={handleRollback}
+                      >
+                        Confirmer l&apos;annulation
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Compteurs principaux */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">

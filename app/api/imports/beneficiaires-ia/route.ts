@@ -43,6 +43,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Limite taille : 10 MB max pour les imports IA (parsing + envoi Claude)
+  const MAX_SIZE_IA = 10 * 1024 * 1024;
+  if (fichier.size > MAX_SIZE_IA) {
+    return NextResponse.json(
+      { erreur: 'Fichier trop volumineux (max 10 MB). Scindez le document et réimportez.' },
+      { status: 400 },
+    );
+  }
+
   try {
     const buffer = await fichier.arrayBuffer();
     const result = await importerBeneficiairesDepuisIA({

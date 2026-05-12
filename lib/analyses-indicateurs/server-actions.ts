@@ -125,6 +125,22 @@ const genererSchema = z.object({
 export async function genererAnalyseIndicateur(formData: FormData): Promise<void> {
   const utilisateur = await exigerSuperAdmin();
 
+  // ── Rate-limit : max 10 générations par heure et par super_admin ────────────
+  // Protège contre les abus de coût API (chaque génération ≈ 1 500 tokens Claude Opus).
+  const supabaseRl = await createSupabaseServerClient();
+  const { count: generationsRecentes } = await supabaseRl
+    .from('analyses_indicateurs')
+    .select('*', { count: 'exact', head: true })
+    .eq('created_by', utilisateur.user_id)
+    .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+
+  if ((generationsRecentes ?? 0) >= 10) {
+    throw new Error(
+      'Limite atteinte : 10 générations IA par heure. Réessayez dans quelques minutes.',
+    );
+  }
+  // ────────────────────────────────────────────────────────────────────────────
+
   const parsed = genererSchema.safeParse({
     indicateur_code: (formData.get('indicateur_code') as string | null)?.toUpperCase(),
   });

@@ -88,6 +88,8 @@ export async function importerBeneficiairesDepuisIA(
         headers_non_reconnus: [],
         lignes: [],
         import_id: null,
+        import_session_id: null,
+        rollback_expire_at: null,
         execute_a: new Date().toISOString(),
       },
     };
@@ -175,6 +177,8 @@ export async function importerBeneficiairesDepuisIA(
     headers_non_reconnus: [],
     lignes: lignesRapport,
     import_id: importId,
+    import_session_id: null,
+    rollback_expire_at: null,
     execute_a: new Date().toISOString(),
   };
 

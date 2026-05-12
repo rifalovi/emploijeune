@@ -237,9 +237,23 @@ function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string
  * l'italique (\*…\*) ne capture la moitié d'un gras. Les regex sont
  * non-gourmandes (.+?) pour gérer plusieurs gras/italiques sur la même
  * ligne, et ancrées de telle sorte qu'un astérisque isolé reste tel quel.
+ *
+ * Sécurité : le texte brut est échappé (< > & " ') AVANT l'application
+ * des balises HTML pour éviter toute injection XSS si le contenu stocké
+ * en BDD contenait des caractères spéciaux.
  */
-function formatInline(text: string): string {
+function escapeHtml(text: string): string {
   return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatInline(text: string): string {
+  const escaped = escapeHtml(text);
+  return escaped
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
 }

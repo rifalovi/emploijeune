@@ -8,8 +8,11 @@ import { updateSupabaseSession } from '@/lib/supabase/middleware';
  * En V1.5/V2 multi-instance, remplacer par Upstash Ratelimit ou Cloudflare.
  *
  * Buckets V1 :
- *   - 'enquete-public' : 5 req/min/IP sur /enquetes/public/* (Étape 6.5c)
- *   - 'demande-acces'  : 5 POST/heure/IP sur /demande-acces (V1-Enrichie-A)
+ *   - 'enquete-public'   : 5 req/min/IP sur /enquetes/public/* (Étape 6.5c)
+ *   - 'demande-acces'    : 5 POST/heure/IP sur /demande-acces (V1-Enrichie-A)
+ *   - 'import-excel'     : 10 imports/heure/IP sur /api/imports/beneficiaires
+ *   - 'import-ia'        : 5 imports/heure/IP sur /api/imports/beneficiaires-ia
+ *   - 'generate-analyse' : 10 générations/heure/IP sur /super-admin/analyses-indicateurs (POST)
  *
  * Pas de protection complète (rotation d'IP contourne), mais bloque les
  * abus naïfs (scraping, brute-force token, spam de demandes).
@@ -97,6 +100,27 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/demande-acces') {
     // Page publique : pas de garde auth, pas de session Supabase à rafraîchir
     return NextResponse.next();
+  }
+
+  // Rate-limit sur les API d'import (protection contre les abus de coût / DoS)
+  if (pathname === '/api/imports/beneficiaires' && request.method === 'POST') {
+    const rl = checkRateLimit('import-excel', getIp(request), 60 * 60_000, 10);
+    if (!rl.allowed) return tooManyRequestsResponse(rl.resetAt);
+  }
+
+  if (pathname === '/api/imports/beneficiaires-ia' && request.method === 'POST') {
+    const rl = checkRateLimit('import-ia', getIp(request), 60 * 60_000, 5);
+    if (!rl.allowed) return tooManyRequestsResponse(rl.resetAt);
+  }
+
+  // Rate-limit sur la génération IA d'analyses (coût API Anthropic)
+  // Les Server Actions POST sur la page super-admin/analyses-indicateurs.
+  if (
+    pathname.startsWith('/super-admin/analyses-indicateurs') &&
+    request.method === 'POST'
+  ) {
+    const rl = checkRateLimit('generate-analyse', getIp(request), 60 * 60_000, 10);
+    if (!rl.allowed) return tooManyRequestsResponse(rl.resetAt);
   }
 
   const { response, supabase } = await updateSupabaseSession(request);

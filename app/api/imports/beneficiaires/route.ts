@@ -23,9 +23,40 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
-  if (!fichier.name.toLowerCase().endsWith('.xlsx')) {
+  // Accepter .xlsx ET .xlsm (macro-enabled Excel — format envoyé par les
+  // coordonnateurs OIF, ex. « Base de sondage P6 »). Les deux formats sont
+  // identiques structurellement (ZIP + XML) et lus par openpyxl / exceljs.
+  const extFichier = fichier.name.toLowerCase().split('.').pop() ?? '';
+  if (!['xlsx', 'xlsm', 'xlsb'].includes(extFichier)) {
     return NextResponse.json(
-      { erreur: 'Seuls les fichiers .xlsx sont acceptés.' },
+      { erreur: 'Seuls les fichiers .xlsx et .xlsm sont acceptés.' },
+      { status: 400 },
+    );
+  }
+
+  // Vérification du type MIME côté serveur (en plus de l'extension)
+  const MIME_TYPES_ACCEPTES = [
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+    'application/vnd.ms-excel.sheet.macroEnabled.12', // .xlsm
+    'application/vnd.ms-excel.sheet.binary.macroEnabled.12', // .xlsb
+    'application/octet-stream', // certains navigateurs/OS envoient ce type générique
+    'application/zip', // xlsx/xlsm sont des zips — accepté comme fallback
+    '', // type vide (certains OS)
+  ];
+  if (fichier.type && !MIME_TYPES_ACCEPTES.includes(fichier.type)) {
+    return NextResponse.json(
+      {
+        erreur: `Type MIME non accepté : ${fichier.type}. Utilisez un fichier .xlsx ou .xlsm valide.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  // Limite taille côté API (double vérification — aussi dans la Server Action)
+  const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+  if (fichier.size > MAX_SIZE) {
+    return NextResponse.json(
+      { erreur: 'Fichier trop volumineux (max 10 MB).' },
       { status: 400 },
     );
   }

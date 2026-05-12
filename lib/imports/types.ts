@@ -100,6 +100,10 @@ export type RapportImportEnrichi = {
   lignes: LigneRapportImport[];
   /** ID de la ligne `imports_excel` créée pour audit (null si pas encore tracé). */
   import_id: string | null;
+  /** ID de la session d'import (pour rollback). */
+  import_session_id: string | null;
+  /** Date limite de rollback (ISO). Null si rollback non disponible. */
+  rollback_expire_at: string | null;
   execute_a: string;
 };
 
@@ -108,3 +112,13 @@ export type ResultatImportEnrichi =
   | { status: 'erreur_droits'; message: string }
   | { status: 'erreur_fichier'; message: string }
   | { status: 'erreur_inconnue'; message: string };
+
+// =============================================================================
+// Rollback d'une session d'import
+// =============================================================================
+
+export type ResultatRollbackImport =
+  | { status: 'succes'; nb_annules: number; session_id: string }
+  | { status: 'erreur_droits'; message: string }
+  | { status: 'erreur_session'; message: string }
+  | { status: 'rollback_expire'; message: string };

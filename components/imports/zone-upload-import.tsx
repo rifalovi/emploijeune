@@ -66,14 +66,15 @@ export function ZoneUploadImport({
 
   const validerFichier = (f: File): string | null => {
     const nom = f.name.toLowerCase();
-    const estExcel = nom.endsWith('.xlsx');
+    // Accepter .xlsx ET .xlsm (format envoyé par les coordonnateurs OIF)
+    const estExcel = nom.endsWith('.xlsx') || nom.endsWith('.xlsm') || nom.endsWith('.xlsb');
     const estIA = estFichierIA(f);
 
     if (!estExcel && !estIA) {
       if (iaActivable) {
-        return 'Format attendu : .xlsx (Excel) ou .pdf / .docx / .txt (analyse IA).';
+        return 'Format attendu : .xlsx ou .xlsm (Excel) ou .pdf / .docx / .txt (analyse IA).';
       }
-      return 'Format attendu : .xlsx (Excel).';
+      return 'Format attendu : .xlsx ou .xlsm (Excel).';
     }
     if (estIA && !iaActivable) {
       return 'Le format détecté requiert l\'analyse IA, désactivée pour votre rôle. Demandez l\'activation au super_admin.';
@@ -200,8 +201,8 @@ export function ZoneUploadImport({
             type="file"
             accept={
               iaActivable
-                ? '.xlsx,.pdf,.docx,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                : '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                ? '.xlsx,.xlsm,.pdf,.docx,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12'
+                : '.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12'
             }
             className="hidden"
             onChange={(e) => {
@@ -224,7 +225,7 @@ export function ZoneUploadImport({
             <div className="flex flex-col items-center gap-2">
               <Upload className="text-muted-foreground size-8" aria-hidden />
               <p className="text-sm">
-                Glissez votre fichier {iaActivable ? '(.xlsx, .pdf, .docx, .txt) ' : '.xlsx '}
+                Glissez votre fichier {iaActivable ? '(.xlsx, .xlsm, .pdf, .docx, .txt) ' : '.xlsx ou .xlsm '}
                 ici ou cliquez pour parcourir
               </p>
               <p className="text-muted-foreground text-xs">Maximum {MAX_TAILLE_MO} MB</p>
