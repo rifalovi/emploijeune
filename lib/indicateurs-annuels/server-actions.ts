@@ -157,3 +157,41 @@ export async function supprimerSaisieValeur(
 
   return { status: 'succes', code: parsed.data.code, annee: parsed.data.annee };
 }
+
+const publicationSchema = z.object({
+  code: z.string().min(1).max(4),
+  annee: z.coerce.number().int(),
+  publie: z.boolean(),
+});
+
+/**
+ * Bascule l'état brouillon ↔ publié d'une saisie. Réservé admin_scs /
+ * super_admin (double-gardé en Server Action + RPC).
+ */
+export async function basculerPubliSaisieValeur(
+  payload: z.infer<typeof publicationSchema>,
+): Promise<SaisieValeurResult> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
+    return { status: 'erreur', message: 'Réservé aux administrateurs SCS et super_admin.' };
+  }
+
+  const parsed = publicationSchema.safeParse(payload);
+  if (!parsed.success) return { status: 'erreur', message: 'Payload invalide.' };
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('basculer_publi_saisie_valeur', {
+    p_code: parsed.data.code,
+    p_annee: parsed.data.annee,
+    p_publie: parsed.data.publie,
+  });
+
+  if (error) return { status: 'erreur', message: error.message };
+  const result = data as { erreur?: string };
+  if (result?.erreur) return { status: 'erreur', message: result.erreur };
+
+  revalidatePath('/indicateurs');
+  revalidatePath(`/indicateurs/${parsed.data.code.toLowerCase()}`);
+
+  return { status: 'succes', code: parsed.data.code, annee: parsed.data.annee };
+}

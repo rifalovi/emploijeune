@@ -1820,6 +1820,10 @@ export type Database = {
         Args: { p_code: string; p_annee: number }
         Returns: Json
       }
+      basculer_publi_saisie_valeur: {
+        Args: { p_code: string; p_annee: number; p_publie: boolean }
+        Returns: Json
+      }
       notifications_admin_non_lues_count: { Args: never; Returns: number }
       rechercher_beneficiaires: {
         Args: { search_text: string; seuil_similarite?: number }

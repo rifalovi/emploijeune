@@ -2,11 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, Save, Loader2, Pencil } from 'lucide-react';
+import { Plus, Trash2, Save, Loader2, Pencil, EyeOff, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   enregistrerSaisieValeur,
   supprimerSaisieValeur,
+  basculerPubliSaisieValeur,
 } from '@/lib/indicateurs-annuels/server-actions';
 import type { ValeurAnnee } from '@/lib/indicateurs-annuels/types';
 
@@ -91,6 +92,25 @@ export function SaisieValeursClient({
     });
   };
 
+  const handleTogglePubli = (anneeABasculer: number, nouvelEtat: boolean) => {
+    startTransition(async () => {
+      const res = await basculerPubliSaisieValeur({
+        code,
+        annee: anneeABasculer,
+        publie: nouvelEtat,
+      });
+      if (res.status === 'erreur') {
+        toast.error(`Échec : ${res.message}`);
+        return;
+      }
+      toast.success(
+        nouvelEtat
+          ? `Saisie ${code} ${anneeABasculer} publiée.`
+          : `Saisie ${code} ${anneeABasculer} dépubliée (brouillon).`,
+      );
+    });
+  };
+
   // Pre-fill quand on change d'année si une saisie existe pour cette année
   const handleAnneeChange = (a: number) => {
     setAnnee(a);
@@ -160,6 +180,7 @@ export function SaisieValeursClient({
                 <th className="px-2 py-1.5 text-right">D</th>
                 <th className="px-2 py-1.5 text-right">Valeur</th>
                 <th className="px-2 py-1.5 text-center">Source</th>
+                <th className="px-2 py-1.5 text-center">Publication</th>
                 <th className="px-2 py-1.5"></th>
               </tr>
             </thead>
@@ -182,6 +203,33 @@ export function SaisieValeursClient({
                     >
                       {v.source}
                     </span>
+                  </td>
+                  <td className="px-2 py-1.5 text-center">
+                    <button
+                      type="button"
+                      onClick={() => handleTogglePubli(v.annee, !v.publie)}
+                      disabled={pending}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-50 ${
+                        v.publie
+                          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                      aria-label={
+                        v.publie ? `Dépublier la saisie ${v.annee}` : `Publier la saisie ${v.annee}`
+                      }
+                    >
+                      {v.publie ? (
+                        <>
+                          <CheckCircle2 className="size-3" aria-hidden />
+                          Publiée
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="size-3" aria-hidden />
+                          Brouillon
+                        </>
+                      )}
+                    </button>
                   </td>
                   <td className="px-2 py-1.5 text-right">
                     <button

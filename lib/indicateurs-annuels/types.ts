@@ -24,6 +24,8 @@ const valeurAnneeSchema = z.object({
   /** Origine de la valeur — 'auto' (calcul BDD), 'saisie' (saisie manuelle),
    *  'mixte' (BDD + complément saisi). */
   source: z.enum(['auto', 'saisie', 'mixte']).optional(),
+  /** État de publication — uniquement renvoyé pour les saisies manuelles. */
+  publie: z.boolean().optional(),
 });
 
 const indicateurSchema = z.object({
