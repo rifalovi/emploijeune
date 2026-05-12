@@ -17,14 +17,22 @@
 import {
   DOMAINES_FORMATION_CODES,
   MODALITES_FORMATION_CODES,
+  NATURES_APPUI_CODES,
   PAYS_CODES,
   PROJETS_CODES,
+  SECTEURS_ACTIVITE_CODES,
   STATUTS_BENEFICIAIRE_CODES,
+  STATUTS_STRUCTURE_VALUES,
+  TYPES_STRUCTURE_CODES,
   type DomaineFormationCode,
   type ModaliteFormationCode,
+  type NatureAppuiCode,
   type PaysCode,
   type ProjetCode,
+  type SecteurActiviteCode,
   type StatutBeneficiaireCode,
+  type StatutStructure,
+  type TypeStructureCode,
 } from '@/lib/schemas/nomenclatures';
 
 // =============================================================================
@@ -566,7 +574,12 @@ export function normaliserDomaineFormation(v: unknown): DomaineFormationCode | n
   }
   // 2. Alias texte libre
   const norme = normaliserPourComparaison(s);
-  return DOMAINE_ALIASES[norme] ?? null;
+  const alias = DOMAINE_ALIASES[norme];
+  if (alias) return alias;
+  // 3. Fallback : valeur présente mais non reconnue → 'AUTRE'
+  //    (domaine_formation_code est NOT NULL en base — ne jamais retourner null
+  //     si une valeur a été fournie, même non identifiable)
+  return 'AUTRE';
 }
 
 export function normaliserModalite(v: unknown): ModaliteFormationCode | null {
@@ -589,6 +602,278 @@ export function normaliserStatut(v: unknown): StatutBeneficiaireCode | null {
   }
   const norme = normaliserPourComparaison(s);
   return STATUT_ALIASES[norme] ?? null;
+}
+
+// =============================================================================
+// Normalizers B1 — structures (utilisés par l'extracteur IA B1)
+// =============================================================================
+
+const TYPE_STRUCTURE_ALIASES: Record<string, TypeStructureCode> = {
+  // AGR
+  agr: 'AGR',
+  agriculture: 'AGR',
+  agricole: 'AGR',
+  elevage: 'AGR',
+  peche: 'AGR',
+  'groupement agricole': 'AGR',
+  'groupe agricole': 'AGR',
+  pisciculture: 'AGR',
+  // MICRO_ENTR
+  micro_entr: 'MICRO_ENTR',
+  micro: 'MICRO_ENTR',
+  'micro entreprise': 'MICRO_ENTR',
+  'micro-entreprise': 'MICRO_ENTR',
+  microentreprise: 'MICRO_ENTR',
+  tpe: 'MICRO_ENTR',
+  'tres petite entreprise': 'MICRO_ENTR',
+  // PETITE_ENTR
+  petite_entr: 'PETITE_ENTR',
+  pme: 'PETITE_ENTR',
+  'petite entreprise': 'PETITE_ENTR',
+  'small business': 'PETITE_ENTR',
+  sme: 'PETITE_ENTR',
+  // COOP
+  coop: 'COOP',
+  cooperative: 'COOP',
+  'coopérative': 'COOP',
+  'cooperative agricole': 'COOP',
+  // ASSOC
+  assoc: 'ASSOC',
+  association: 'ASSOC',
+  ong: 'ASSOC',
+  ngo: 'ASSOC',
+  'organisation non gouvernementale': 'ASSOC',
+  // GIE
+  gie: 'GIE',
+  'groupement interet economique': 'GIE',
+  "groupement d interet economique": 'GIE',
+  "groupement d'interet economique": 'GIE',
+  // AUTRE
+  autre: 'AUTRE',
+  other: 'AUTRE',
+  divers: 'AUTRE',
+};
+
+export function normaliserTypeStructure(v: unknown): TypeStructureCode | null {
+  const s = toStringNonVide(v);
+  if (!s) return null;
+  const upper = s.toUpperCase().replace(/\s+/g, '_');
+  if ((TYPES_STRUCTURE_CODES as readonly string[]).includes(upper)) {
+    return upper as TypeStructureCode;
+  }
+  const norme = normaliserPourComparaison(s);
+  return TYPE_STRUCTURE_ALIASES[norme] ?? 'AUTRE';
+}
+
+const SECTEUR_ACTIVITE_ALIASES: Record<string, SecteurActiviteCode> = {
+  // AGR_SYL_PCH
+  'agriculture sylviculture peche': 'AGR_SYL_PCH',
+  agriculture: 'AGR_SYL_PCH',
+  sylviculture: 'AGR_SYL_PCH',
+  agr: 'AGR_SYL_PCH',
+  'agr syl pch': 'AGR_SYL_PCH',
+  agricole: 'AGR_SYL_PCH',
+  peche: 'AGR_SYL_PCH',
+  elevage: 'AGR_SYL_PCH',
+  // AGROALIM
+  agroalimentaire: 'AGROALIM',
+  'agro alimentaire': 'AGROALIM',
+  alimentaire: 'AGROALIM',
+  food: 'AGROALIM',
+  agroalim: 'AGROALIM',
+  // ARTISANAT
+  artisanat: 'ARTISANAT',
+  artisan: 'ARTISANAT',
+  craft: 'ARTISANAT',
+  artisanal: 'ARTISANAT',
+  // COMMERCE
+  commerce: 'COMMERCE',
+  commercial: 'COMMERCE',
+  trade: 'COMMERCE',
+  negoce: 'COMMERCE',
+  vente: 'COMMERCE',
+  // BTP
+  btp: 'BTP',
+  construction: 'BTP',
+  batiment: 'BTP',
+  'travaux publics': 'BTP',
+  'batiment travaux publics': 'BTP',
+  immobilier: 'BTP',
+  // CULTURE
+  culture: 'CULTURE',
+  arts: 'CULTURE',
+  cultural: 'CULTURE',
+  art: 'CULTURE',
+  // EDUC
+  education: 'EDUC',
+  formation: 'EDUC',
+  enseignement: 'EDUC',
+  'education formation': 'EDUC',
+  educ: 'EDUC',
+  scolaire: 'EDUC',
+  // ENERGIE_ENV
+  energie: 'ENERGIE_ENV',
+  environnement: 'ENERGIE_ENV',
+  energy: 'ENERGIE_ENV',
+  ecologie: 'ENERGIE_ENV',
+  'energie environnement': 'ENERGIE_ENV',
+  'energies renouvelables': 'ENERGIE_ENV',
+  // TOURISME
+  tourisme: 'TOURISME',
+  hotellerie: 'TOURISME',
+  restauration: 'TOURISME',
+  hotel: 'TOURISME',
+  'tourisme hotellerie restauration': 'TOURISME',
+  // INDUSTRIE
+  industrie: 'INDUSTRIE',
+  manufacturing: 'INDUSTRIE',
+  'industrie manufacturiere': 'INDUSTRIE',
+  // SANTE_SOCIAL
+  sante: 'SANTE_SOCIAL',
+  social: 'SANTE_SOCIAL',
+  healthcare: 'SANTE_SOCIAL',
+  medical: 'SANTE_SOCIAL',
+  'sante social': 'SANTE_SOCIAL',
+  // SERV_ENTR
+  'services aux entreprises': 'SERV_ENTR',
+  conseil: 'SERV_ENTR',
+  consulting: 'SERV_ENTR',
+  'serv entr': 'SERV_ENTR',
+  // SERV_FIN
+  'services financiers': 'SERV_FIN',
+  finance: 'SERV_FIN',
+  microfinance: 'SERV_FIN',
+  fintech: 'SERV_FIN',
+  'serv fin': 'SERV_FIN',
+  banque: 'SERV_FIN',
+  // SPORT_LOISIRS
+  sport: 'SPORT_LOISIRS',
+  loisirs: 'SPORT_LOISIRS',
+  recreation: 'SPORT_LOISIRS',
+  'sport loisirs': 'SPORT_LOISIRS',
+  // TIC
+  tic: 'TIC',
+  informatique: 'TIC',
+  numerique: 'TIC',
+  digital: 'TIC',
+  tech: 'TIC',
+  it: 'TIC',
+  ntic: 'TIC',
+  technologie: 'TIC',
+  // TRANSPORT
+  transport: 'TRANSPORT',
+  logistique: 'TRANSPORT',
+  logistics: 'TRANSPORT',
+  // AUTRE
+  autre: 'AUTRE',
+  other: 'AUTRE',
+  divers: 'AUTRE',
+};
+
+export function normaliserSecteurActivite(v: unknown): SecteurActiviteCode | null {
+  const s = toStringNonVide(v);
+  if (!s) return null;
+  const upper = s.toUpperCase().replace(/\s+/g, '_');
+  if ((SECTEURS_ACTIVITE_CODES as readonly string[]).includes(upper)) {
+    return upper as SecteurActiviteCode;
+  }
+  const norme = normaliserPourComparaison(s);
+  return SECTEUR_ACTIVITE_ALIASES[norme] ?? 'AUTRE';
+}
+
+const STATUT_CREATION_ALIASES: Record<string, StatutStructure> = {
+  // creation
+  creation: 'creation',
+  'création': 'creation',
+  create: 'creation',
+  nouveau: 'creation',
+  nouvelle: 'creation',
+  new: 'creation',
+  'nouvelle structure': 'creation',
+  'newly created': 'creation',
+  // renforcement
+  renforcement: 'renforcement',
+  renforcer: 'renforcement',
+  strengthen: 'renforcement',
+  strengthening: 'renforcement',
+  appui: 'renforcement',
+  soutien: 'renforcement',
+  'appui renforcement': 'renforcement',
+  // relance
+  relance: 'relance',
+  relancer: 'relance',
+  relaunch: 'relance',
+  revival: 'relance',
+  redemarrage: 'relance',
+  'redémarrage': 'relance',
+  'remise en activite': 'relance',
+};
+
+export function normaliserStatutCreation(v: unknown): StatutStructure | null {
+  const s = toStringNonVide(v);
+  if (!s) return null;
+  const lower = s.toLowerCase().trim();
+  if ((STATUTS_STRUCTURE_VALUES as readonly string[]).includes(lower)) {
+    return lower as StatutStructure;
+  }
+  const norme = normaliserPourComparaison(s);
+  return STATUT_CREATION_ALIASES[norme] ?? null;
+}
+
+const NATURE_APPUI_ALIASES: Record<string, NatureAppuiCode> = {
+  // SUBVENTION
+  subvention: 'SUBVENTION',
+  grant: 'SUBVENTION',
+  'subvention financiere': 'SUBVENTION',
+  financement: 'SUBVENTION',
+  'aide financiere': 'SUBVENTION',
+  // MATERIEL
+  materiel: 'MATERIEL',
+  equipment: 'MATERIEL',
+  equipement: 'MATERIEL',
+  'don materiel': 'MATERIEL',
+  'appui materiel': 'MATERIEL',
+  // FORMATION
+  formation: 'FORMATION',
+  training: 'FORMATION',
+  'appui formation': 'FORMATION',
+  renforcement: 'FORMATION',
+  'renforcement de capacites': 'FORMATION',
+  capacites: 'FORMATION',
+  // MENTORAT
+  mentorat: 'MENTORAT',
+  mentoring: 'MENTORAT',
+  coaching: 'MENTORAT',
+  accompagnement: 'MENTORAT',
+  'appui technique': 'MENTORAT',
+  // MISE_RELATION
+  'mise en relation': 'MISE_RELATION',
+  networking: 'MISE_RELATION',
+  'mise relation': 'MISE_RELATION',
+  'mise_en_relation': 'MISE_RELATION',
+  reseautage: 'MISE_RELATION',
+  // APPUI_MIXTE
+  'appui mixte': 'APPUI_MIXTE',
+  'mixed support': 'APPUI_MIXTE',
+  combine: 'APPUI_MIXTE',
+  mixte: 'APPUI_MIXTE',
+  'appui_mixte': 'APPUI_MIXTE',
+  pluriel: 'APPUI_MIXTE',
+  // AUTRE
+  autre: 'AUTRE',
+  other: 'AUTRE',
+  divers: 'AUTRE',
+};
+
+export function normaliserNatureAppui(v: unknown): NatureAppuiCode | null {
+  const s = toStringNonVide(v);
+  if (!s) return null;
+  const upper = s.toUpperCase().replace(/\s+/g, '_');
+  if ((NATURES_APPUI_CODES as readonly string[]).includes(upper)) {
+    return upper as NatureAppuiCode;
+  }
+  const norme = normaliserPourComparaison(s);
+  return NATURE_APPUI_ALIASES[norme] ?? 'AUTRE';
 }
 
 export function normaliserConsentement(v: unknown): boolean | null {

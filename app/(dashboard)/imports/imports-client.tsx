@@ -47,8 +47,10 @@ export function ImportsPageClient({ importIaActif }: Props) {
         />
         <ZoneUploadImport
           endpoint="/api/imports/structures"
+          endpointIA="/api/imports/structures-ia"
+          iaDispo={importIaActif}
           titre="Importer des structures (B1)"
-          description="Format attendu : Template – feuille « Structures B1 » avec les 37 colonnes du modèle (Code projet, Nom structure, Type, Secteur, Porteur, etc.)."
+          description="Format attendu : Template – feuille « Structures B1 » avec les 37 colonnes du modèle (Code projet, Nom structure, Type, Secteur, Porteur, etc.). Avec l'IA, importez aussi depuis des rapports PDF, Word ou texte."
           templateLabel="Modèle"
           onRapport={handleRapport(setRapportEnrichi, setRapportClassique)}
         />

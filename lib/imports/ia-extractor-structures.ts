@@ -8,73 +8,64 @@ import { importIaActifPourCourant } from './ia-mapper';
 import {
   normaliserCodePays,
   normaliserCodeProjet,
-  normaliserDomaineFormation,
+  normaliserNatureAppui,
+  normaliserSecteurActivite,
   normaliserSexe,
-  normaliserTrancheAge,
+  normaliserStatutCreation,
+  normaliserTypeStructure,
 } from './smart-mapper';
 
 /**
- * Phase 2 du sprint Import IA — extraction de bénéficiaires depuis des
- * documents non-structurés (PDF, DOCX, TXT).
+ * Extracteur IA B1 — structures depuis documents non-structurés (PDF/DOCX/TXT).
  *
- * Cible : les coordinateurs de projet qui envoient parfois des listes au
- * format Word ou des rapports PDF au lieu du Template Excel officiel.
- * L'IA tente d'extraire les bénéficiaires mentionnés et de les structurer
- * pour pouvoir les passer dans le pipeline d'import classique.
+ * Miroir exact de `ia-extractor.ts` (bénéficiaires A1), adapté aux champs
+ * des structures partenaires B1 :
+ *   nom_structure, type_structure, secteur_activite, statut_creation,
+ *   annee_appui, nature_appui, montant_appui, devise, porteur_nom/prénom/sexe,
+ *   projet, pays.
  *
- * Modèle : Claude Haiku 4.5 — la tâche est extraction structurée, pas
- * raisonnement complexe.
+ * Modèle : Claude Haiku 4.5 — extraction structurée, pas de raisonnement complexe.
  *
- * Limites :
- *   - Pas d'OCR sur les images scannées (PDF avec scans = texte vide).
- *   - Max 100 lignes extraites par appel (sinon erreur explicite).
- *   - Max 50 KB de texte source envoyé à Claude (évite les coûts massifs).
+ * Limites identiques à l'extracteur A1 :
+ *   - Pas d'OCR sur PDFs scannés.
+ *   - Max 100 structures extraites par appel.
+ *   - Max 50 KB de texte source.
  *   - Timeout 30s.
- *   - Le module `import_ia` doit être actif pour le rôle de l'utilisateur.
- *
- * Sécurité PII :
- *   Cette fonction envoie OBLIGATOIREMENT le texte source à Claude — le
- *   document peut contenir des PII (noms, courriels). C'est l'usage cible
- *   du module. Le DPA Anthropic couvre ces transmissions. Aucun stockage
- *   local du texte source au-delà de la durée de l'appel. À documenter
- *   dans la CGU de la plateforme.
+ *   - Feature flag `import_ia` requis.
  */
 
 const TIMEOUT_MS = 30_000;
-const MAX_TEXTE_SOURCE = 50_000; // ~12k tokens, raisonnable pour Haiku
+const MAX_TEXTE_SOURCE = 50_000;
 const MAX_LIGNES_EXTRAITES = 100;
 
 export type FormatFichier = 'pdf' | 'docx' | 'txt' | 'xlsx';
 
-export type LigneExtraite = {
-  /** Données déjà passées dans le smart-mapper (codes normalisés). */
+export type LigneExtraiteStructure = {
+  /** Données normalisées prêtes pour le pipeline mapLigneVersStructure. */
   donnees: Record<string, unknown>;
-  /** Score de confiance par ligne 0..100. */
+  /** Score de confiance 0..100. */
   confiance: number;
 };
 
-export type ExtraireResult =
+export type ExtraireResultStructures =
   | { status: 'desactive'; message: string }
   | { status: 'erreur'; message: string }
   | {
       status: 'succes';
-      lignesExtraites: LigneExtraite[];
-      /** Score de confiance global agrégé (0..100). */
+      lignesExtraites: LigneExtraiteStructure[];
       confiance: number;
-      /** Note explicative de ce que l'IA a fait. */
       notes: string;
-      /** Nombre total de tokens consommés (audit). */
       tokens_utilises: number;
     };
 
 /**
- * Extrait les bénéficiaires d'un document non-structuré.
+ * Extrait les structures partenaires d'un document non-structuré.
  */
-export async function extraireAvecIA(
+export async function extraireStructuresAvecIA(
   fichierBuffer: Buffer | ArrayBuffer,
   fichierNom: string,
   fichierType: FormatFichier,
-): Promise<ExtraireResult> {
+): Promise<ExtraireResultStructures> {
   // 0. Garde feature flag
   if (!(await importIaActifPourCourant())) {
     return {
@@ -84,7 +75,7 @@ export async function extraireAvecIA(
     };
   }
 
-  // 1. Convertir le buffer en texte selon le format
+  // 1. Extraire le texte selon le format
   let texteSource: string;
   try {
     texteSource = await extraireTexteFichier(fichierBuffer, fichierType);
@@ -111,7 +102,7 @@ export async function extraireAvecIA(
     };
   }
 
-  // 2. Préparer l'appel Claude
+  // 2. Appel Claude
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return { status: 'erreur', message: 'Clé API Anthropic non configurée.' };
@@ -167,7 +158,7 @@ export async function extraireAvecIA(
       status: 'succes',
       lignesExtraites: [],
       confiance: 0,
-      notes: "Aucun bénéficiaire détecté dans le document.",
+      notes: 'Aucune structure partenaire détectée dans le document.',
       tokens_utilises: response.usage.input_tokens + response.usage.output_tokens,
     };
   }
@@ -175,14 +166,14 @@ export async function extraireAvecIA(
   if (lignesBrutes.length > MAX_LIGNES_EXTRAITES) {
     return {
       status: 'erreur',
-      message: `Trop de bénéficiaires détectés (${lignesBrutes.length} > ${MAX_LIGNES_EXTRAITES}). Scindez le document.`,
+      message: `Trop de structures détectées (${lignesBrutes.length} > ${MAX_LIGNES_EXTRAITES}). Scindez le document.`,
     };
   }
 
   // 4. Normaliser les valeurs via smart-mapper
   const lignesNormalisees = lignesBrutes.map(normaliserLigneExtraite);
 
-  // 5. Calculer le score de confiance global
+  // 5. Score de confiance global
   const confiance = calculerConfianceGlobale(lignesNormalisees);
 
   return {
@@ -217,7 +208,6 @@ async function extraireTexteFichier(
     }
 
     case 'pdf': {
-      // unpdf : extraction texte sans OCR (PDFs scannés non supportés)
       const uint8 = new Uint8Array(buf);
       const pdf = await getDocumentProxy(uint8);
       const { text } = await extractText(pdf, { mergePages: true });
@@ -225,9 +215,6 @@ async function extraireTexteFichier(
     }
 
     case 'xlsx': {
-      // ExcelJS : conversion en texte tabulaire lisible par Claude.
-      // Chaque feuille est rendue avec les en-têtes en première ligne,
-      // puis les données séparées par des tabulations.
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buf as unknown as Parameters<typeof workbook.xlsx.load>[0]);
       const lignes: string[] = [];
@@ -235,7 +222,7 @@ async function extraireTexteFichier(
         lignes.push(`=== Feuille : ${worksheet.name} ===`);
         worksheet.eachRow({ includeEmpty: false }, (row) => {
           const valeurs = (row.values as (ExcelJS.CellValue | null)[])
-            .slice(1) // ExcelJS commence à l'index 1
+            .slice(1)
             .map((v) => {
               if (v === null || v === undefined) return '';
               if (typeof v === 'object' && 'text' in v) return String((v as { text: string }).text);
@@ -251,28 +238,34 @@ async function extraireTexteFichier(
 }
 
 function construirePrompt(texteSource: string, fichierNom: string): string {
-  return `Tu es un expert en extraction de données de bénéficiaires pour l'OIF (Organisation Internationale de la Francophonie).
+  return `Tu es un expert en extraction de données de structures partenaires pour l'OIF (Organisation Internationale de la Francophonie).
 
-Analyse le document ci-dessous et extrais les données de chaque bénéficiaire mentionné.
+Analyse le document ci-dessous et extrais les données de chaque structure partenaire ou bénéficiaire institutionnel mentionné.
 
-Pour chaque bénéficiaire, retourne un objet JSON avec ces champs (utilise null si une information est absente, ne devine pas) :
-  - "projet"       : code ou nom du projet OIF (ex. "P14", "PROJ_A14", "La Francophonie avec Elles")
-  - "pays"         : pays de provenance (libellé français ou code ISO-3)
-  - "prenom"       : prénom (string, conservé tel que dans le document)
-  - "nom"          : nom de famille
-  - "sexe"         : "M", "F" ou "Autre"
-  - "tranche_age"  : "Jeune" (18-34 ans) ou "Adulte" (35+)
-  - "domaine_formation" : domaine ou type de formation suivi (ex. "Numérique", "Agriculture")
-  - "annee_formation"   : année (nombre entier)
-  - "courriel"     : adresse email si présente
-  - "telephone"    : numéro téléphone avec indicatif
-  - "organisation" : structure d'accompagnement
+Pour chaque structure, retourne un objet JSON avec ces champs (utilise null si une information est absente, ne devine pas) :
+  - "projet"           : code ou nom du projet OIF (ex. "P19", "PROJ_A19", "La Francophonie avec Elles")
+  - "pays"             : pays de la structure (libellé français ou code ISO-3)
+  - "nom_structure"    : nom complet de la structure ou organisation
+  - "type_structure"   : type parmi : Association, Coopérative, GIE, Micro-entreprise, Petite entreprise, Agriculture/Élevage/Pêche, Autre
+  - "secteur_activite" : secteur d'activité principal (ex. "Agriculture", "Commerce", "Numérique", "Education", "Santé")
+  - "statut_creation"  : "Création" (nouvelle structure), "Renforcement" (existante renforcée) ou "Relance" (relancée)
+  - "annee_appui"      : année de l'appui (nombre entier, ex. 2026)
+  - "nature_appui"     : type d'appui parmi : Subvention, Matériel, Formation, Mentorat, Mise en relation, Appui mixte, Autre
+  - "montant_appui"    : montant numérique si mentionné (ex. 5000.00)
+  - "devise"           : devise (ex. "EUR", "USD", "XOF") — null si non mentionné
+  - "porteur_nom"      : nom de famille du porteur / responsable principal
+  - "porteur_prenom"   : prénom du porteur
+  - "porteur_sexe"     : "F", "M" ou "Autre"
+  - "telephone"        : numéro téléphone avec indicatif (porteur)
+  - "courriel"         : adresse email (porteur ou structure)
+  - "intitule_initiative" : intitulé du projet ou de l'initiative portée par la structure
 
 Règles strictes :
   - Réponds UNIQUEMENT par un tableau JSON valide, sans préambule, sans markdown, sans commentaires.
-  - Si AUCUN bénéficiaire n'est détecté, retourne [] (tableau vide).
-  - Ne devine pas : si une info n'est pas explicite, mets null.
-  - Maximum ${MAX_LIGNES_EXTRAITES} bénéficiaires par réponse.
+  - Si AUCUNE structure n'est détectée, retourne [] (tableau vide).
+  - Ne devine pas : si une info n'est pas explicite dans le texte, mets null.
+  - Maximum ${MAX_LIGNES_EXTRAITES} structures par réponse.
+  - Les noms de colonnes dans le JSON doivent être exactement ceux listés ci-dessus.
 
 Document source (fichier : ${fichierNom}) :
 ---
@@ -283,15 +276,20 @@ ${texteSource}
 type LigneBrute = {
   projet?: string | null;
   pays?: string | null;
-  prenom?: string | null;
-  nom?: string | null;
-  sexe?: string | null;
-  tranche_age?: string | null;
-  domaine_formation?: string | null;
-  annee_formation?: number | null;
-  courriel?: string | null;
+  nom_structure?: string | null;
+  type_structure?: string | null;
+  secteur_activite?: string | null;
+  statut_creation?: string | null;
+  annee_appui?: number | null;
+  nature_appui?: string | null;
+  montant_appui?: number | null;
+  devise?: string | null;
+  porteur_nom?: string | null;
+  porteur_prenom?: string | null;
+  porteur_sexe?: string | null;
   telephone?: string | null;
-  organisation?: string | null;
+  courriel?: string | null;
+  intitule_initiative?: string | null;
 };
 
 function parserReponseClaude(texte: string): LigneBrute[] | null {
@@ -307,69 +305,72 @@ function parserReponseClaude(texte: string): LigneBrute[] | null {
   return parsed.filter((item) => item && typeof item === 'object') as LigneBrute[];
 }
 
-function normaliserLigneExtraite(brute: LigneBrute): LigneExtraite {
-  // Normalisation via smart-mapper réutilisé (Phase 1)
+function normaliserLigneExtraite(brute: LigneBrute): LigneExtraiteStructure {
+  // Normalisation via smart-mapper
   const projet = normaliserCodeProjet(brute.projet);
   const pays = normaliserCodePays(brute.pays);
-  const sexe = normaliserSexe(brute.sexe);
-  const tranche = normaliserTrancheAge(brute.tranche_age);
-  const domaine = normaliserDomaineFormation(brute.domaine_formation);
+  const typeStructure = normaliserTypeStructure(brute.type_structure);
+  const secteur = normaliserSecteurActivite(brute.secteur_activite);
+  const statut = normaliserStatutCreation(brute.statut_creation);
+  const nature = normaliserNatureAppui(brute.nature_appui);
+  const sexePorteur = normaliserSexe(brute.porteur_sexe);
 
-  // Mapping vers les en-têtes du Template (pour passage direct au pipeline
-  // d'import classique sans transformation supplémentaire)
+  // Mapping vers les en-têtes officiels du Template B1
+  // (passés tels quels dans mapLigneVersStructure)
   const donnees: Record<string, unknown> = {
     'Code projet *': projet ?? brute.projet ?? null,
-    'Code pays bénéficiaire *': pays ?? brute.pays ?? null,
-    'Prénom *': brute.prenom ?? null,
-    'Nom *': brute.nom ?? null,
-    'Sexe *': sexe ?? brute.sexe ?? null,
-    "Tranche d'âge déclarée": tranche,
-    'Domaine de formation *': domaine ?? null,
-    'Année de la formation *': brute.annee_formation ?? null,
-    Courriel: brute.courriel ?? null,
+    'Code pays *': pays ?? brute.pays ?? null,
+    'Nom structure *': brute.nom_structure ?? null,
+    'Type structure *': typeStructure ?? brute.type_structure ?? null,
+    'Secteur activité *': secteur ?? brute.secteur_activite ?? null,
+    'Statut création *': statut ?? brute.statut_creation ?? null,
+    'Année appui *': brute.annee_appui ?? null,
+    'Nature appui *': nature ?? brute.nature_appui ?? null,
+    'Montant appui': brute.montant_appui ?? null,
+    'Devise': brute.devise ?? null,
+    'Porteur – nom *': brute.porteur_nom ?? null,
+    'Porteur – prénom': brute.porteur_prenom ?? null,
+    'Porteur – sexe *': sexePorteur ?? brute.porteur_sexe ?? null,
     'Téléphone (avec indicatif)': brute.telephone ?? null,
-    "Partenaire d'accompagnement": brute.organisation ?? null,
+    'Courriel porteur': brute.courriel ?? null,
+    'Intitulé initiative': brute.intitule_initiative ?? null,
+    'Consentement *': null, // Non extractible depuis un document — à saisir manuellement
   };
 
-  // Confiance par ligne : compte des champs cruciaux bien normalisés
+  // Score de confiance : champs cruciaux du modèle B1
   let score = 0;
-  let total = 0;
-  if (projet) score += 25;
-  total += 25;
-  if (pays) score += 25;
-  total += 25;
-  if (brute.prenom) score += 10;
-  total += 10;
-  if (brute.nom) score += 10;
-  total += 10;
-  if (sexe) score += 10;
-  total += 10;
-  if (domaine || tranche) score += 10;
-  total += 10;
-  if (brute.annee_formation) score += 10;
-  total += 10;
+  if (projet) score += 20;          // code projet reconnu
+  if (pays) score += 20;            // code pays reconnu
+  if (brute.nom_structure) score += 20; // nom obligatoire
+  if (typeStructure) score += 10;   // type normalisé
+  if (secteur) score += 10;         // secteur normalisé
+  if (brute.porteur_nom) score += 10; // porteur obligatoire
+  if (sexePorteur) score += 10;     // sexe porteur normalisé
 
-  return {
-    donnees,
-    confiance: total > 0 ? Math.round((score / total) * 100) : 0,
-  };
+  return { donnees, confiance: score };
 }
 
-function calculerConfianceGlobale(lignes: LigneExtraite[]): number {
+function calculerConfianceGlobale(lignes: LigneExtraiteStructure[]): number {
   if (lignes.length === 0) return 0;
-  const moyenne =
-    lignes.reduce((acc, l) => acc + l.confiance, 0) / lignes.length;
+  const moyenne = lignes.reduce((acc, l) => acc + l.confiance, 0) / lignes.length;
   return Math.round(moyenne);
 }
 
-function construireNotes(lignes: LigneExtraite[], format: FormatFichier): string {
+function construireNotes(lignes: LigneExtraiteStructure[], format: FormatFichier): string {
   const formatLabel =
     format === 'pdf' ? 'PDF' :
     format === 'docx' ? 'Word (DOCX)' :
     format === 'xlsx' ? 'Excel (analyse IA)' :
     'texte brut';
   const nbProjetsReconnus = lignes.filter((l) => l.donnees['Code projet *']).length;
-  const nbPaysReconnus = lignes.filter((l) => l.donnees['Code pays bénéficiaire *']).length;
+  const nbPaysReconnus = lignes.filter((l) => l.donnees['Code pays *']).length;
+  const nbNomsReconnus = lignes.filter((l) => l.donnees['Nom structure *']).length;
 
-  return `Extrait ${lignes.length} bénéficiaire(s) depuis le fichier ${formatLabel}. Codes projets reconnus : ${nbProjetsReconnus}/${lignes.length}. Pays reconnus : ${nbPaysReconnus}/${lignes.length}. Les valeurs non reconnues restent en texte libre — l'utilisateur peut les corriger avant insertion.`;
+  return (
+    `Extrait ${lignes.length} structure(s) depuis le fichier ${formatLabel}. ` +
+    `Codes projets reconnus : ${nbProjetsReconnus}/${lignes.length}. ` +
+    `Pays reconnus : ${nbPaysReconnus}/${lignes.length}. ` +
+    `Noms de structures : ${nbNomsReconnus}/${lignes.length}. ` +
+    `Note : le champ Consentement n'est pas extractible automatiquement — les lignes apparaîtront comme "incomplètes" jusqu'à correction manuelle.`
+  );
 }

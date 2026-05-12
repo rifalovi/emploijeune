@@ -107,8 +107,16 @@ describe('normaliserDomaineFormation', () => {
     expect(normaliserDomaineFormation('entrepreneuriat')).toBe('ENTREPR_GEST');
     expect(normaliserDomaineFormation('tourisme')).toBe('TOURISME');
   });
-  it('null pour les inconnus', () => {
-    expect(normaliserDomaineFormation('xyz')).toBeNull();
+  it('fallback AUTRE pour les inconnus (contrainte NOT NULL en base)', () => {
+    // Comportement aligné sur domaine_formation_code NOT NULL en base : on ne
+    // peut pas renvoyer null si une valeur a été fournie, même non
+    // identifiable — on aiguille vers AUTRE et le SCS peut requalifier après.
+    expect(normaliserDomaineFormation('xyz')).toBe('AUTRE');
+  });
+  it('null pour valeur vide ou absente', () => {
+    expect(normaliserDomaineFormation('')).toBeNull();
+    expect(normaliserDomaineFormation(null)).toBeNull();
+    expect(normaliserDomaineFormation(undefined)).toBeNull();
   });
 });
 

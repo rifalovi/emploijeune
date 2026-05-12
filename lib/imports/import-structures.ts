@@ -24,7 +24,7 @@ export async function importerStructuresExcel(
   input: ImporterStructuresInput,
 ): Promise<ResultatImport> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || !['admin_scs', 'editeur_projet'].includes(utilisateur.role)) {
+  if (!utilisateur || !['super_admin', 'admin_scs', 'editeur_projet'].includes(utilisateur.role)) {
     return {
       status: 'erreur_droits',
       message: 'Réservé aux administrateurs SCS et coordonnateurs de projet.',

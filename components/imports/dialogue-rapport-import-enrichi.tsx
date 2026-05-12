@@ -11,6 +11,8 @@ import {
   ChevronUp,
   Sparkles,
   RotateCcw,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 import {
@@ -63,6 +65,59 @@ export function DialogueRapportImportEnrichi({
   const [rollbackEnCours, setRollbackEnCours] = useState(false);
   const [rollbackMessage, setRollbackMessage] = useState<string | null>(null);
   const [rollbackFait, setRollbackFait] = useState(false);
+  const [copie, setCopie] = useState(false);
+
+  const handleCopier = () => {
+    if (!rapport) return;
+    const lignes: string[] = [
+      `Rapport d'import — ${rapport.fichier_nom}`,
+      `${rapport.nb_lignes_total} ligne${rapport.nb_lignes_total > 1 ? 's' : ''} traitée${rapport.nb_lignes_total > 1 ? 's' : ''}`,
+      ``,
+      `Insérées      : ${rapport.nb_inserees}`,
+      `Enrichies     : ${rapport.nb_enrichies}`,
+      `Doublons ign. : ${rapport.nb_doublons_identiques}`,
+      `Incomplètes   : ${rapport.nb_incompletes}`,
+      `Rejetées      : ${rapport.nb_rejetees}`,
+    ];
+    if (rapport.import_session_id) {
+      lignes.push(``, `Session : ${rapport.import_session_id}`);
+    }
+    if (rapport.rollback_expire_at) {
+      lignes.push(
+        `Rollback disponible jusqu'au ${new Date(rapport.rollback_expire_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+      );
+    }
+    if (Object.keys(rapport.headers_mappes_auto).length > 0) {
+      lignes.push(``, `Mappages automatiques :`);
+      for (const [lu, cible] of Object.entries(rapport.headers_mappes_auto)) {
+        lignes.push(`  « ${lu} » → « ${cible} »`);
+      }
+    }
+    if (rapport.headers_non_reconnus.length > 0) {
+      lignes.push(``, `Colonnes non reconnues : ${rapport.headers_non_reconnus.join(', ')}`);
+    }
+    // Lignes rejetées
+    const rejetees = rapport.lignes.filter((l) => l.statut === 'rejetee');
+    if (rejetees.length > 0) {
+      lignes.push(``, `Lignes rejetées (${rejetees.length}) :`);
+      for (const l of rejetees) {
+        const errMsg = l.erreurs.map((e) => (e.colonne ? `${e.colonne}: ${e.message}` : e.message)).join(' | ');
+        lignes.push(`  L${l.numero_ligne} — ${errMsg || 'erreur inconnue'}`);
+      }
+    }
+    // Lignes incomplètes
+    const incompletes = rapport.lignes.filter((l) => l.statut === 'incomplete');
+    if (incompletes.length > 0) {
+      lignes.push(``, `Lignes incomplètes (${incompletes.length}) :`);
+      for (const l of incompletes) {
+        lignes.push(`  L${l.numero_ligne} — Manquant : ${l.champs_manquants.join(', ')}`);
+      }
+    }
+    navigator.clipboard.writeText(lignes.join('\n')).then(() => {
+      setCopie(true);
+      setTimeout(() => setCopie(false), 2000);
+    });
+  };
 
   if (!rapport) return null;
 
@@ -95,7 +150,7 @@ export function DialogueRapportImportEnrichi({
 
   return (
     <Dialog open={!!rapport} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="size-5 text-[#0E4F88]" aria-hidden />
@@ -285,7 +340,21 @@ export function DialogueRapportImportEnrichi({
           intro="Lignes non importées (champ vraiment bloquant absent ou invalide)."
         />
 
-        <DialogFooter>
+        <DialogFooter className="flex flex-row items-center justify-between gap-2 sm:flex-row">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopier}
+            className="gap-1.5"
+            title="Copier le résumé dans le presse-papiers"
+          >
+            {copie ? (
+              <Check className="size-4 text-emerald-600" aria-hidden />
+            ) : (
+              <Copy className="size-4" aria-hidden />
+            )}
+            {copie ? 'Copié !' : 'Copier le résumé'}
+          </Button>
           <Button variant="outline" onClick={onClose}>
             Fermer
           </Button>

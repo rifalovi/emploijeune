@@ -1,14 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
-import { importerBeneficiairesDepuisIA } from '@/lib/imports/import-beneficiaires-ia';
-import type { FormatFichier } from '@/lib/imports/ia-extractor';
+import { importerStructuresDepuisIA } from '@/lib/imports/import-structures-ia';
+import type { FormatFichier } from '@/lib/imports/ia-extractor-structures';
 
 /**
- * Route Handler d'import bénéficiaires depuis un document non-structuré
- * (PDF / DOCX / TXT) — Phase 4 du sprint Import IA.
+ * Route Handler d'import structures B1 depuis un document non-structuré
+ * (PDF / DOCX / TXT) — miroir de `/api/imports/beneficiaires-ia`.
  *
- * Détection du format via l'extension. Le pipeline d'extraction IA
- * (claude-haiku-4-5) est gardé par le feature flag `import_ia` côté serveur.
+ * Le pipeline d'extraction IA (claude-haiku-4-5) est gardé par le feature
+ * flag `import_ia` côté serveur dans `extraireStructuresAvecIA()`.
  */
 
 export const runtime = 'nodejs';
@@ -19,7 +19,7 @@ const FORMATS_AUTORISES: Record<string, FormatFichier> = {
   docx: 'docx',
   txt: 'txt',
   xlsx: 'xlsx',
-  xlsm: 'xlsx', // macro-enabled — même traitement
+  xlsm: 'xlsx',
   xlsb: 'xlsx',
 };
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Limite taille : 10 MB max pour les imports IA (parsing + envoi Claude)
+  // Limite taille : 10 MB max pour les imports IA
   const MAX_SIZE_IA = 10 * 1024 * 1024;
   if (fichier.size > MAX_SIZE_IA) {
     return NextResponse.json(
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const buffer = await fichier.arrayBuffer();
-    const result = await importerBeneficiairesDepuisIA({
+    const result = await importerStructuresDepuisIA({
       fichierBuffer: buffer,
       fichierNom: fichier.name,
       fichierTaille: fichier.size,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json(result);
   } catch (erreur) {
-    console.error('[api/imports/beneficiaires-ia] échec extraction IA', {
+    console.error('[api/imports/structures-ia] échec extraction IA', {
       fichierNom: fichier.name,
       fichierTaille: fichier.size,
       fichierType,
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         erreur:
-          'Impossible de traiter le fichier avec l\'analyse IA. Réessayez ou utilisez le format Excel standard.',
+          "Impossible de traiter le fichier avec l'analyse IA. Réessayez ou utilisez le format Excel standard.",
       },
       { status: 500 },
     );
