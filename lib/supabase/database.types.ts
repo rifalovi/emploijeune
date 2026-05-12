@@ -229,6 +229,7 @@ export type Database = {
           import_batch: string | null
           import_batch_id: string | null
           import_index: number | null
+          import_session_id: string | null
           import_source: string | null
           intitule_formation: string | null
           localite_residence: string | null
@@ -269,6 +270,7 @@ export type Database = {
           import_batch?: string | null
           import_batch_id?: string | null
           import_index?: number | null
+          import_session_id?: string | null
           import_source?: string | null
           intitule_formation?: string | null
           localite_residence?: string | null
@@ -296,6 +298,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date_debut_formation?: string | null
+          /** Phase 4 rollback (migration 20260512100001). */
+          import_session_id?: string | null
           date_fin_formation?: string | null
           date_naissance?: string | null
           deleted_at?: string | null
@@ -461,6 +465,61 @@ export type Database = {
           code?: string
           libelle?: string
           ordre_affichage?: number
+        }
+        Relationships: []
+      }
+      /**
+       * Sessions d'import en masse — phase 4 rollback
+       * (migration 20260512100001_import_sessions_rollback.sql).
+       */
+      import_sessions: {
+        Row: {
+          id: string
+          fichier_nom: string
+          fichier_hash: string | null
+          projet_code: string | null
+          nb_inserees: number
+          nb_enrichies: number
+          nb_incompletes: number
+          nb_doublons: number
+          nb_rejetees: number
+          statut: string
+          peut_rollback: boolean
+          rollback_expire_at: string | null
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          fichier_nom: string
+          fichier_hash?: string | null
+          projet_code?: string | null
+          nb_inserees?: number
+          nb_enrichies?: number
+          nb_incompletes?: number
+          nb_doublons?: number
+          nb_rejetees?: number
+          statut?: string
+          peut_rollback?: boolean
+          rollback_expire_at?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          fichier_nom?: string
+          fichier_hash?: string | null
+          projet_code?: string | null
+          nb_inserees?: number
+          nb_enrichies?: number
+          nb_incompletes?: number
+          nb_doublons?: number
+          nb_rejetees?: number
+          statut?: string
+          peut_rollback?: boolean
+          rollback_expire_at?: string | null
+          created_at?: string
+          created_by?: string | null
         }
         Relationships: []
       }

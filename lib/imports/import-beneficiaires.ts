@@ -21,6 +21,7 @@ import type {
   LigneRapportImport,
   RapportImportEnrichi,
   ResultatImportEnrichi,
+  ResultatRollbackImport,
 } from './types';
 
 /**
@@ -49,6 +50,8 @@ export type ImporterBeneficiairesInput = {
   fichierBuffer: ArrayBuffer | Buffer;
   fichierNom: string;
   fichierTaille: number;
+  /** SHA-256 hex du fichier (optionnel, pour détecter les re-imports). */
+  fichierHash?: string;
 };
 
 /** Headers attendus (alignés sur Template OIF, étendus avec tranche_age_declaree). */
@@ -126,6 +129,30 @@ export async function importerBeneficiairesExcel(
   const supabase = await createSupabaseServerClient();
   const adminClient = createSupabaseAdminClient();
 
+  // 1b. Créer la session d'import (best-effort).
+  // La migration 20260512100001 a été appliquée — types Supabase à jour,
+  // plus besoin de cast `as any`.
+  let importSessionId: string | null = null;
+  const rollbackExpireAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const { data: session } = await adminClient
+      .from('import_sessions')
+      .insert({
+        fichier_nom: input.fichierNom,
+        fichier_hash: input.fichierHash ?? null,
+        statut: 'en_cours',
+        peut_rollback: true,
+        rollback_expire_at: rollbackExpireAt,
+        created_by: utilisateur.user_id,
+      })
+      .select('id')
+      .single();
+    importSessionId = session?.id ?? null;
+  } catch {
+    // import_sessions absent du schéma (cas dev/staging non migré)
+    // → fonctionnement dégradé sans rollback
+  }
+
   let nbInserees = 0;
   let nbEnrichies = 0;
   let nbDoublonsIdentiques = 0;
@@ -138,6 +165,7 @@ export async function importerBeneficiairesExcel(
       donnees,
       adminClient,
       createdBy: utilisateur.user_id,
+      importSessionId,
     });
     lignesRapport.push(ligneInfo);
 
@@ -160,7 +188,26 @@ export async function importerBeneficiairesExcel(
     }
   }
 
-  // 2. Audit dans imports_excel (best-effort, n'interrompt pas le retour)
+  // 2. Mettre à jour la session (statut + compteurs)
+  if (importSessionId) {
+    try {
+      await adminClient
+        .from('import_sessions')
+        .update({
+          statut: 'complete',
+          nb_inserees: nbInserees,
+          nb_enrichies: nbEnrichies,
+          nb_incompletes: nbIncompletes,
+          nb_doublons: nbDoublonsIdentiques,
+          nb_rejetees: nbRejetees,
+        })
+        .eq('id', importSessionId);
+    } catch {
+      // best-effort
+    }
+  }
+
+  // 3. Audit dans imports_excel (best-effort, n'interrompt pas le retour)
   let importId: string | null = null;
   try {
     const { data: imp } = await supabase
@@ -200,6 +247,8 @@ export async function importerBeneficiairesExcel(
     headers_non_reconnus: parse.headersNonReconnus,
     lignes: lignesRapport,
     import_id: importId,
+    import_session_id: importSessionId,
+    rollback_expire_at: importSessionId ? rollbackExpireAt : null,
     execute_a: new Date().toISOString(),
   };
 
@@ -227,6 +276,8 @@ export async function traiterLigneImport(args: {
   extraitParIA?: boolean;
   /** Score 0..100 de confiance d'extraction IA (utilisé si extraitParIA). */
   confianceIA?: number;
+  /** ID de la session d'import pour rollback. */
+  importSessionId?: string | null;
 }): Promise<LigneRapportImport> {
   const result = await traiterLigne(args);
   if (args.extraitParIA) {
@@ -244,8 +295,9 @@ async function traiterLigne(args: {
   donnees: Record<string, unknown>;
   adminClient: AdminClient;
   createdBy: string;
+  importSessionId?: string | null;
 }): Promise<LigneRapportImport> {
-  const { numLigne, donnees, adminClient, createdBy } = args;
+  const { numLigne, donnees, adminClient, createdBy, importSessionId } = args;
   const mappagesAuto: string[] = [];
   const champsManquants: string[] = [];
   const champsMisAJour: string[] = [];
@@ -519,6 +571,7 @@ async function traiterLigne(args: {
     ...parseRes.data,
     source_import: 'excel_v1',
     created_by: createdBy,
+    ...(importSessionId ? { import_session_id: importSessionId } : {}),
   } as never);
 
   if (insertError) {
@@ -646,4 +699,114 @@ async function detecterDoublon(
   }
 
   return null;
+}
+
+// =============================================================================
+// Server Action : annuler (rollback) une session d'import
+// =============================================================================
+
+/**
+ * Annule un import en masse via son `import_session_id`.
+ *
+ * Conditions :
+ *   - L'utilisateur doit être le créateur OU admin_scs/super_admin
+ *   - `peut_rollback = true` sur la session
+ *   - `rollback_expire_at > now()` (fenêtre de 30 jours)
+ *
+ * Effet : soft-delete de tous les bénéficiaires liés (`deleted_at = now()`)
+ *         + statut session → 'annule'.
+ *
+ * Les bénéficiaires "enrichis" (doublon existant mis à jour) ne sont PAS
+ * revertés automatiquement pour éviter la perte de données antérieures —
+ * ils sont uniquement marqués supprimés si leur created_at correspond à
+ * cette session (i.e. ils ont été créés par cet import).
+ */
+export async function annulerImportSession(
+  sessionId: string,
+): Promise<ResultatRollbackImport> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (
+    !utilisateur ||
+    !['super_admin', 'admin_scs', 'editeur_projet'].includes(utilisateur.role)
+  ) {
+    return {
+      status: 'erreur_droits',
+      message: 'Réservé aux administrateurs SCS, super_admin et coordonnateurs de projet.',
+    };
+  }
+
+  const adminClient = createSupabaseAdminClient();
+
+  // Vérifier que la session existe et est éligible au rollback
+  const { data: session, error: sessionError } = await adminClient
+    .from('import_sessions')
+    .select('id, statut, peut_rollback, rollback_expire_at, created_by')
+    .eq('id', sessionId)
+    .maybeSingle();
+
+  if (sessionError || !session) {
+    return { status: 'erreur_session', message: 'Session introuvable.' };
+  }
+
+  // Vérification des droits : créateur ou admin
+  const isAdmin = ['super_admin', 'admin_scs'].includes(utilisateur.role);
+  if (!isAdmin && session.created_by !== utilisateur.user_id) {
+    return {
+      status: 'erreur_droits',
+      message: 'Vous ne pouvez annuler que vos propres imports.',
+    };
+  }
+
+  if (!session.peut_rollback) {
+    return {
+      status: 'erreur_session',
+      message: 'Le rollback a été désactivé pour cette session.',
+    };
+  }
+
+  const expireAt = session.rollback_expire_at;
+  if (!expireAt || new Date(expireAt) <= new Date()) {
+    return {
+      status: 'rollback_expire',
+      message: `La fenêtre de rollback a expiré${expireAt ? ` (était valide jusqu'au ${new Date(expireAt).toLocaleDateString('fr-FR')})` : ''}.`,
+    };
+  }
+
+  if (session.statut === 'annule') {
+    return {
+      status: 'erreur_session',
+      message: 'Cette session a déjà été annulée.',
+    };
+  }
+
+  // Soft-delete des bénéficiaires de cette session
+  const { data: updated, error: deleteError } = await adminClient
+    .from('beneficiaires')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('import_session_id', sessionId)
+    .is('deleted_at', null)
+    .select('id');
+
+  if (deleteError) {
+    return {
+      status: 'erreur_session',
+      message: `Erreur lors du rollback : ${deleteError.message}`,
+    };
+  }
+
+  const nbAnnules = Array.isArray(updated) ? updated.length : 0;
+
+  // Mettre à jour le statut de la session
+  await adminClient
+    .from('import_sessions')
+    .update({
+      statut: 'annule',
+      peut_rollback: false,
+    })
+    .eq('id', sessionId);
+
+  revalidatePath('/beneficiaires');
+  revalidatePath('/imports');
+
+  return { status: 'succes', nb_annules: nbAnnules, session_id: sessionId };
 }
