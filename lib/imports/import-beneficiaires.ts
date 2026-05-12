@@ -212,6 +212,33 @@ export async function importerBeneficiairesExcel(
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
+/**
+ * Wrapper public pour traiterLigne — réutilisé par
+ * importerBeneficiairesDepuisIA (Phase 4). Permet de marquer une ligne
+ * comme `extrait_par_ia` sans dupliquer la logique de normalisation
+ * + détection doublons + insertion.
+ */
+export async function traiterLigneImport(args: {
+  numLigne: number;
+  donnees: Record<string, unknown>;
+  adminClient: AdminClient;
+  createdBy: string;
+  /** Si true, marque la ligne comme `extrait_par_ia` dans le rapport. */
+  extraitParIA?: boolean;
+  /** Score 0..100 de confiance d'extraction IA (utilisé si extraitParIA). */
+  confianceIA?: number;
+}): Promise<LigneRapportImport> {
+  const result = await traiterLigne(args);
+  if (args.extraitParIA) {
+    return {
+      ...result,
+      extrait_par_ia: true,
+      confiance_ia: args.confianceIA,
+    };
+  }
+  return result;
+}
+
 async function traiterLigne(args: {
   numLigne: number;
   donnees: Record<string, unknown>;

@@ -243,6 +243,13 @@ function SectionStatut({
               <li key={l.numero_ligne} className="rounded bg-white p-2 shadow-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono font-bold text-slate-500">L{l.numero_ligne}</span>
+                  {l.extrait_par_ia && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700">
+                      <Sparkles className="size-2.5" aria-hidden />
+                      Extrait par IA
+                      {typeof l.confiance_ia === 'number' ? ` (${l.confiance_ia}%)` : ''}
+                    </span>
+                  )}
                   {l.donnees_importees?.projet && (
                     <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px]">
                       {l.donnees_importees.projet}

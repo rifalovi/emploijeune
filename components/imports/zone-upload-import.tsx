@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useRef, useTransition } from 'react';
-import { Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import type {
   RapportImport,
   RapportImportEnrichi,
@@ -28,9 +29,18 @@ export type ZoneUploadImportProps = {
   templateLabel?: string;
   /** Callback quand un import réussit (avec rapport). */
   onRapport: (rapport: RapportImport | RapportImportEnrichi) => void;
+  /**
+   * Endpoint IA optionnel — si fourni, accepte les formats PDF/DOCX/TXT
+   * en plus de XLSX. Un toggle « Analyser avec IA » apparaît quand un
+   * fichier non-Excel est sélectionné.
+   */
+  endpointIA?: string;
+  /** Si true, signale que le module Import IA est activé pour l'utilisateur courant. */
+  iaDispo?: boolean;
 };
 
 const MAX_TAILLE_MO = 5;
+const EXTENSIONS_IA = ['.pdf', '.docx', '.txt'];
 
 export function ZoneUploadImport({
   endpoint,
@@ -38,14 +48,36 @@ export function ZoneUploadImport({
   description,
   templateLabel,
   onRapport,
+  endpointIA,
+  iaDispo,
 }: ZoneUploadImportProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fichier, setFichier] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [analyserAvecIA, setAnalyserAvecIA] = useState(false);
+
+  const iaActivable = Boolean(endpointIA) && Boolean(iaDispo);
+
+  const estFichierIA = (f: File): boolean => {
+    const nom = f.name.toLowerCase();
+    return EXTENSIONS_IA.some((ext) => nom.endsWith(ext));
+  };
 
   const validerFichier = (f: File): string | null => {
-    if (!f.name.toLowerCase().endsWith('.xlsx')) return 'Format attendu : .xlsx (Excel).';
+    const nom = f.name.toLowerCase();
+    const estExcel = nom.endsWith('.xlsx');
+    const estIA = estFichierIA(f);
+
+    if (!estExcel && !estIA) {
+      if (iaActivable) {
+        return 'Format attendu : .xlsx (Excel) ou .pdf / .docx / .txt (analyse IA).';
+      }
+      return 'Format attendu : .xlsx (Excel).';
+    }
+    if (estIA && !iaActivable) {
+      return 'Le format détecté requiert l\'analyse IA, désactivée pour votre rôle. Demandez l\'activation au super_admin.';
+    }
     if (f.size > MAX_TAILLE_MO * 1024 * 1024) {
       return `Fichier trop volumineux (max ${MAX_TAILLE_MO} MB).`;
     }
@@ -59,6 +91,12 @@ export function ZoneUploadImport({
       return;
     }
     setFichier(f);
+    // Active automatiquement l'IA si fichier non-Excel (PDF/DOCX/TXT)
+    if (estFichierIA(f) && iaActivable) {
+      setAnalyserAvecIA(true);
+    } else {
+      setAnalyserAvecIA(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -70,12 +108,15 @@ export function ZoneUploadImport({
 
   const handleLancerImport = () => {
     if (!fichier) return;
+    // Endpoint = endpointIA si toggle activé et un endpointIA est dispo,
+    // sinon l'endpoint Excel classique.
+    const endpointEffectif = analyserAvecIA && endpointIA ? endpointIA : endpoint;
     startTransition(async () => {
       const formData = new FormData();
       formData.append('fichier', fichier);
 
       try {
-        const response = await fetch(endpoint, {
+        const response = await fetch(endpointEffectif, {
           method: 'POST',
           body: formData,
           credentials: 'same-origin',
@@ -157,7 +198,11 @@ export function ZoneUploadImport({
           <input
             ref={inputRef}
             type="file"
-            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            accept={
+              iaActivable
+                ? '.xlsx,.pdf,.docx,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                : '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            }
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -167,18 +212,54 @@ export function ZoneUploadImport({
           />
           {fichier ? (
             <div className="flex flex-col items-center gap-2">
-              <FileSpreadsheet className="text-primary size-8" aria-hidden />
+              {estFichierIA(fichier) ? (
+                <Sparkles className="size-8 text-[#5D0073]" aria-hidden />
+              ) : (
+                <FileSpreadsheet className="text-primary size-8" aria-hidden />
+              )}
               <p className="text-sm font-medium">{fichier.name}</p>
               <p className="text-muted-foreground text-xs">{(fichier.size / 1024).toFixed(1)} KB</p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
               <Upload className="text-muted-foreground size-8" aria-hidden />
-              <p className="text-sm">Glissez votre fichier .xlsx ici ou cliquez pour parcourir</p>
+              <p className="text-sm">
+                Glissez votre fichier {iaActivable ? '(.xlsx, .pdf, .docx, .txt) ' : '.xlsx '}
+                ici ou cliquez pour parcourir
+              </p>
               <p className="text-muted-foreground text-xs">Maximum {MAX_TAILLE_MO} MB</p>
             </div>
           )}
         </div>
+
+        {/* Toggle IA — visible uniquement si un fichier non-Excel est sélectionné
+            et que l'utilisateur a le module Import IA activé. */}
+        {fichier && estFichierIA(fichier) && iaActivable && (
+          <div className="rounded-lg border border-purple-200 bg-purple-50 p-3">
+            <label
+              htmlFor={`ia-toggle-${endpoint}`}
+              className="flex cursor-pointer items-start justify-between gap-3"
+            >
+              <span className="flex-1">
+                <span className="flex items-center gap-2 text-sm font-medium text-purple-900">
+                  <Sparkles className="size-4" aria-hidden />
+                  Analyser avec IA
+                </span>
+                <span className="mt-1 block text-xs text-purple-700">
+                  Claude Haiku 4.5 extrait les bénéficiaires du document et les structure
+                  automatiquement. ~200 tokens estimés. Le rapport indique le score de
+                  confiance par ligne.
+                </span>
+              </span>
+              <Switch
+                id={`ia-toggle-${endpoint}`}
+                checked={analyserAvecIA}
+                onCheckedChange={setAnalyserAvecIA}
+                disabled={pending}
+              />
+            </label>
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-2">
           {templateLabel && (

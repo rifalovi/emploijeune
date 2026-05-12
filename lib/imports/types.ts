@@ -78,6 +78,10 @@ export type LigneRapportImport = {
     projet?: string | null;
     annee?: number | null;
   };
+  /** True si la ligne a été extraite par le module IA (Phase 4). */
+  extrait_par_ia?: boolean;
+  /** Score de confiance IA 0..100 (uniquement si extrait_par_ia). */
+  confiance_ia?: number;
 };
 
 export type RapportImportEnrichi = {
