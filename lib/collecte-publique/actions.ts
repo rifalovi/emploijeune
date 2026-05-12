@@ -87,7 +87,13 @@ function genererSlug(longueur = 10): string {
 }
 
 function baseUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  // 1. Domaine explicitement configuré (variable custom — priorité max)
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  // 2. URL automatique injectée par Vercel (preview + production)
+  //    VERCEL_URL est de la forme "myapp-git-main-xxx.vercel.app" (sans https://)
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  // 3. Développement local
+  return 'http://localhost:3000';
 }
 
 function urlLien(slug: string): string {
