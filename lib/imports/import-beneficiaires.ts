@@ -21,7 +21,6 @@ import type {
   LigneRapportImport,
   RapportImportEnrichi,
   ResultatImportEnrichi,
-  StatutLigneImport,
 } from './types';
 
 /**
@@ -296,8 +295,11 @@ async function traiterLigne(args: {
     };
   }
 
-  // Projet : fallback PROJ_A06 si projet inconnu, mais alerte
-  let projetFinal = projet;
+  // Projet : rejet si projet inconnu (le brief autorisait un fallback
+  // PROJ_A06 mais on préfère échouer explicitement pour signaler le
+  // problème à l'utilisateur — un fallback aveugle masquerait des
+  // mauvaises saisies en prod).
+  const projetFinal = projet;
   if (!projetFinal) {
     if (projetBrut) {
       return {
