@@ -1,12 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { z } from 'zod';
 import Anthropic from '@anthropic-ai/sdk';
 import {
   SYSTEM_PROMPT_CHATBOT_SCS,
   HORS_SUJET_KEYWORDS,
   SUGGESTIONS_REDIRECTION,
-  TAILLE_MAX_MESSAGE,
 } from '@/lib/chatbot-scs/config';
+import { requestSchema } from '@/lib/chatbot-scs/schema';
 
 /**
  * Endpoint chatbot SCS public — V2.5.0.
@@ -53,15 +52,6 @@ function checkRateLimit(ip: string): { allowed: boolean; resetAt: number; remain
   entry.count++;
   return { allowed: true, resetAt: entry.resetAt, remaining: RATE_MAX - entry.count };
 }
-
-const messageSchema = z.object({
-  role: z.enum(['user', 'assistant']),
-  content: z.string().min(1).max(TAILLE_MAX_MESSAGE),
-});
-
-const requestSchema = z.object({
-  messages: z.array(messageSchema).min(1).max(20),
-});
 
 export type SuggestionPayload = { emoji?: string; texte: string; question: string };
 
@@ -148,7 +138,14 @@ export async function POST(
   }
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ erreur: 'Format de requête invalide.' }, { status: 400 });
+    const premiereIssue = parsed.error.issues[0];
+    const detail = premiereIssue
+      ? `${premiereIssue.path.join('.')}: ${premiereIssue.message}`
+      : 'payload non conforme';
+    return NextResponse.json(
+      { erreur: `Format de requête invalide (${detail}).` },
+      { status: 400 },
+    );
   }
 
   const dernierMessage = parsed.data.messages[parsed.data.messages.length - 1];
