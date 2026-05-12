@@ -1694,6 +1694,7 @@ export type Database = {
       is_super_admin: { Args: never; Returns: boolean }
       is_user_suspended: { Args: { p_user_id: string }; Returns: boolean }
       is_organisation_archived: { Args: { p_organisation_id: string }; Returns: boolean }
+      module_actif_pour_courant: { Args: { p_module: string }; Returns: boolean }
       module_ia_actif_pour_courant: { Args: never; Returns: boolean }
       creer_conversation_ia: { Args: { p_titre?: string | null }; Returns: string }
       rechercher_base_connaissance: {

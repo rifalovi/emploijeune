@@ -42,7 +42,7 @@ async function exigerSuperAdmin(): Promise<
 // ─────────────────────────────────────────────────────────────────────────
 
 const toggleModuleSchema = z.object({
-  module: z.enum(['assistant_ia']),
+  module: z.enum(['assistant_ia', 'import_ia']),
   role_cible: z.enum([
     'super_admin',
     'admin_scs',

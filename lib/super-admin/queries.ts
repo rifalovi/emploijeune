@@ -19,11 +19,22 @@ export type ActivationModuleRow = {
 };
 
 export async function listerActivationsIa(): Promise<ActivationModuleRow[]> {
+  return listerActivationsParModule('assistant_ia');
+}
+
+/**
+ * Lit les activations d'un module donné pour tous les rôles. Utilisé par la
+ * page /super-admin/modules pour afficher plusieurs modules toggleables
+ * (assistant_ia, import_ia, etc.) dans des cards distinctes.
+ */
+export async function listerActivationsParModule(
+  module: 'assistant_ia' | 'import_ia',
+): Promise<ActivationModuleRow[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('activation_modules')
     .select('module, role_cible, active, activated_at, updated_at, activated_by')
-    .eq('module', 'assistant_ia');
+    .eq('module', module);
 
   if (error) return [];
   return (data ?? []) as ActivationModuleRow[];
