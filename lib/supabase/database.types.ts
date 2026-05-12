@@ -1689,9 +1689,114 @@ export type Database = {
         }
         Relationships: []
       }
+      liens_collecte_publique: {
+        Row: {
+          id: string
+          slug: string
+          type: 'A' | 'B'
+          label: string
+          projet_code: string | null
+          statut: 'actif' | 'inactif' | 'expire'
+          expire_at: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          slug: string
+          type: 'A' | 'B'
+          label?: string
+          projet_code?: string | null
+          statut?: 'actif' | 'inactif' | 'expire'
+          expire_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          slug?: string
+          type?: 'A' | 'B'
+          label?: string
+          projet_code?: string | null
+          statut?: 'actif' | 'inactif' | 'expire'
+          expire_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: []
+      }
+      soumissions_collecte: {
+        Row: {
+          id: string
+          lien_id: string
+          type: 'A' | 'B'
+          donnees: Json
+          statut: 'en_attente' | 'valide' | 'rejete'
+          motif_rejet: string | null
+          valide_par: string | null
+          valide_at: string | null
+          entite_creee_id: string | null
+          ip_address: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          lien_id: string
+          type: 'A' | 'B'
+          donnees?: Json
+          statut?: 'en_attente' | 'valide' | 'rejete'
+          motif_rejet?: string | null
+          valide_par?: string | null
+          valide_at?: string | null
+          entite_creee_id?: string | null
+          ip_address?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          lien_id?: string
+          type?: 'A' | 'B'
+          donnees?: Json
+          statut?: 'en_attente' | 'valide' | 'rejete'
+          motif_rejet?: string | null
+          valide_par?: string | null
+          valide_at?: string | null
+          entite_creee_id?: string | null
+          ip_address?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      v_liens_collecte_stats: {
+        Row: {
+          id: string
+          slug: string
+          type: 'A' | 'B'
+          label: string
+          projet_code: string | null
+          statut: 'actif' | 'inactif' | 'expire'
+          expire_at: string | null
+          created_at: string
+          created_by: string | null
+          nb_total: number
+          nb_en_attente: number
+          nb_valide: number
+          nb_rejete: number
+          derniere_soumission_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_read_beneficiaire: { Args: { p_id: string }; Returns: boolean }

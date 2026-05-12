@@ -9,6 +9,7 @@ import {
   Sparkles,
   BarChart3,
   BookOpen,
+  Link2,
   type LucideIcon,
 } from 'lucide-react';
 import type { RoleUtilisateur } from '@/lib/supabase/auth';
@@ -58,6 +59,12 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/imports',
     label: 'Imports',
     icon: Upload,
+    roles: ['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire'],
+  },
+  {
+    href: '/collecte-publique',
+    label: 'Collecte publique',
+    icon: Link2,
     roles: ['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire'],
   },
   {

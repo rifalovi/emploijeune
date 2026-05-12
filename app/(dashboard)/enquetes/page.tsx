@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Plus, Mail } from 'lucide-react';
+import { Plus, Mail, Link2 } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { enqueteFiltersSchema } from '@/lib/schemas/enquetes/schemas';
 import { listSessionsEnquete } from '@/lib/enquetes/queries';
@@ -85,6 +85,15 @@ export default async function EnquetesPage({ searchParams }: PageProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {peutExporter && <BoutonExporterEnquetes totalDisponible={result.total} />}
+          {peutCreer && (
+            <Link
+              href="/collecte-publique"
+              className={cn(buttonVariants({ variant: 'outline' }), 'gap-2')}
+            >
+              <Link2 aria-hidden className="size-4" />
+              Liens publics
+            </Link>
+          )}
           {peutCreer && (
             <Link
               href="/enquetes/lancer"

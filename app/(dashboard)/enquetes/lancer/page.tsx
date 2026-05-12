@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Link2 } from 'lucide-react';
 
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { WizardCampagne } from '@/components/campagnes/wizard-campagne';
+import { Card, CardContent } from '@/components/ui/card';
 
 export const metadata: Metadata = {
   title: 'Lancer une campagne de collecte – OIF Emploi Jeunes',
@@ -68,6 +69,31 @@ export default async function LancerCampagnePage() {
       </header>
 
       <WizardCampagne projets={projets} pays={pays} />
+
+      {/* CTA collecte publique — pour les cas sans email ni référence connue */}
+      <Card className="border-dashed border-[#5D0073]/30 bg-[#5D0073]/5">
+        <CardContent className="flex items-start gap-4 py-5">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#5D0073]/10">
+            <Link2 className="size-5 text-[#5D0073]" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium">
+              Ni adresse email ni référence connue ?
+            </p>
+            <p className="text-muted-foreground mt-0.5 text-sm">
+              Générez un <strong>lien public réutilisable</strong> (Type A bénéficiaires ou Type B structures)
+              à partager par WhatsApp, affiche ou QR code. Les participants s'enregistrent sans compte
+              et vous validez leurs soumissions avant intégration en base.
+            </p>
+          </div>
+          <Link
+            href="/collecte-publique"
+            className="shrink-0 rounded-md bg-[#5D0073] px-4 py-2 text-sm font-medium text-white hover:bg-[#4a005c] transition-colors"
+          >
+            Gérer les liens publics
+          </Link>
+        </CardContent>
+      </Card>
     </div>
   );
 }
