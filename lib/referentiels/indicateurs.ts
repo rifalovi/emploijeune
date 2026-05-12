@@ -83,6 +83,25 @@ export type Indicateur = {
   projetsConcernes: string[];
   /** Donnée live disponible dans la plateforme V1, sinon null. */
   donneeLiveCle?: 'A1' | 'B1' | null;
+  /**
+   * Label affiché sous la métrique principale sur /realisations/[pilier]/[code]
+   * (ex. « Structures appuyées » pour B1). Si absent → fallback « Bénéficiaires ».
+   * Concerne uniquement les indicateurs de type COUNT (effectifs ou volumes
+   * non monétaires) ; les taux, scores et montants ont leur propre rendu.
+   */
+  labelMetrique?: string;
+  /**
+   * Unité affichée en suffixe du nombre (ex. « dispositifs », « emplois »,
+   * « jours »). Permet de qualifier la métrique sans modifier le label.
+   */
+  unitePrincipale?: string;
+  /**
+   * Si false : masque les sous-cartes « Femmes », « Jeunes », « Adultes »
+   * dans le bloc « Chiffres clés ». Utile pour les indicateurs qui ne
+   * comptent PAS des personnes (structures, dispositifs, emplois, délais).
+   * Défaut : true (rétro-compatible avec A1 et F1).
+   */
+  afficherVentilateurPersonne?: boolean;
 };
 
 export const INDICATEURS: Indicateur[] = [
@@ -116,6 +135,9 @@ export const INDICATEURS: Indicateur[] = [
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
     donneeLiveCle: 'A1',
+    labelMetrique: 'Jeunes formés',
+    unitePrincipale: 'personnes',
+    afficherVentilateurPersonne: true,
   },
   {
     code: 'A2',
@@ -241,6 +263,9 @@ export const INDICATEURS: Indicateur[] = [
     ],
     projetsConcernes: ['PROJ_A14', 'PROJ_A15', 'PROJ_A19', 'PROJ_A20', 'PROJ_A17'],
     donneeLiveCle: 'B1',
+    labelMetrique: 'Structures appuyées',
+    unitePrincipale: 'structures',
+    afficherVentilateurPersonne: false,
   },
   {
     code: 'B2',
@@ -288,6 +313,9 @@ export const INDICATEURS: Indicateur[] = [
       'Documenter la durée des postes',
     ],
     projetsConcernes: ['PROJ_A14', 'PROJ_A15', 'PROJ_A19', 'PROJ_A20', 'PROJ_A17'],
+    labelMetrique: 'Emplois créés ou maintenus',
+    unitePrincipale: 'emplois',
+    afficherVentilateurPersonne: false,
   },
   {
     code: 'B4',
@@ -330,6 +358,9 @@ export const INDICATEURS: Indicateur[] = [
       'Harmoniser les catégories',
     ],
     projetsConcernes: ['PROJ_A17', 'PROJ_A16a', 'PROJ_A15', 'nouveau projet emploi jeunesse'],
+    labelMetrique: 'Mises en relation effectives',
+    unitePrincipale: 'mises en relation',
+    afficherVentilateurPersonne: false,
   },
   {
     code: 'C2',
@@ -377,6 +408,9 @@ export const INDICATEURS: Indicateur[] = [
       'Préciser la durée de l’emploi ou du stage',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A17', 'PROJ_A15', 'nouveau projet emploi jeunesse'],
+    labelMetrique: 'Emplois ou stages obtenus',
+    unitePrincipale: 'emplois/stages',
+    afficherVentilateurPersonne: false,
   },
   {
     code: 'C4',
@@ -394,6 +428,9 @@ export const INDICATEURS: Indicateur[] = [
       'Envisager aussi la médiane si les écarts sont très importants',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A17', 'nouveau projet emploi jeunesse'],
+    labelMetrique: 'Délai moyen d’accès',
+    unitePrincipale: 'jours',
+    afficherVentilateurPersonne: false,
   },
   {
     code: 'C5',
@@ -448,6 +485,9 @@ export const INDICATEURS: Indicateur[] = [
       'Conserver des traces formelles de la contribution OIF',
     ],
     projetsConcernes: ['PROJ_A15', 'PROJ_A17', 'PROJ_A18', 'PROJ_A20'],
+    labelMetrique: 'Cadres/dispositifs appuyés',
+    unitePrincipale: 'dispositifs',
+    afficherVentilateurPersonne: false,
   },
   {
     code: 'D2',
@@ -467,6 +507,9 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer amélioration perçue et changement effectif',
     ],
     projetsConcernes: ['PROJ_A15', 'PROJ_A17', 'PROJ_A18', 'PROJ_A20'],
+    labelMetrique: 'Acteurs institutionnels formés',
+    unitePrincipale: 'acteurs',
+    afficherVentilateurPersonne: true,
   },
   {
     code: 'D3',
@@ -515,6 +558,9 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer amélioration linguistique et usage réel dans le travail',
     ],
     projetsConcernes: ['Tous les projets'],
+    labelMetrique: 'Bénéficiaires francophones',
+    unitePrincipale: 'personnes',
+    afficherVentilateurPersonne: true,
   },
 ];
 
