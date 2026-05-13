@@ -55,8 +55,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'OIF – Suivi Emploi Jeunes',
-    description:
-      "Plateforme de gestion et de suivi des projets emploi-jeunes de l'OIF.",
+    description: "Plateforme de gestion et de suivi des projets emploi-jeunes de l'OIF.",
   },
 };
 
