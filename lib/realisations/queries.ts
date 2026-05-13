@@ -4,6 +4,7 @@
  * Lit uniquement les saisies avec publie = TRUE (client admin pour contourner
  * les RLS, mais filtre strict sur publie).
  */
+import 'server-only';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export type ValeurPubliee = {
@@ -53,4 +54,35 @@ export function agregerTaux(
 export function agregerTotal(vals: ValeurPubliee[]): number | null {
   const total = vals.reduce((s, v) => s + (v.valeur_directe ?? v.numerateur ?? 0), 0);
   return total > 0 ? total : null;
+}
+
+// ─── KPIs contextuels (champs secondaires de présentation) ───────────────────
+
+export type KpisContexte = {
+  indicateur_code: string;
+  pays_count: number | null;
+  femmes_count: number | null;
+  nb_jeunes: number | null;
+  nb_adultes: number | null;
+  participants_count: number | null;
+  ayant_progresse: number | null;
+  gain_moyen: number | null;
+  sources_public_pct: number | null;
+  sources_prive_pct: number | null;
+  note: string | null;
+};
+
+/**
+ * Lit la ligne de KPIs contextuels pour un indicateur.
+ * Utilise le client admin pour garantir la lecture même sur les pages publiques.
+ * Retourne null si aucune donnée encore saisie.
+ */
+export async function getKpisContexte(code: string): Promise<KpisContexte | null> {
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from('kpis_contexte_indicateurs')
+    .select('*')
+    .eq('indicateur_code', code)
+    .maybeSingle();
+  return (data as KpisContexte | null) ?? null;
 }

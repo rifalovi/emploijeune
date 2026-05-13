@@ -195,3 +195,62 @@ export async function basculerPubliSaisieValeur(
 
   return { status: 'succes', code: parsed.data.code, annee: parsed.data.annee };
 }
+
+// ─── KPIs contextuels (champs secondaires pour la page publique Réalisations) ─
+
+const kpisContexteSchema = z.object({
+  code: z.string().min(1).max(4),
+  pays_count: z.coerce.number().int().min(0).nullable().optional(),
+  femmes_count: z.coerce.number().int().min(0).nullable().optional(),
+  nb_jeunes: z.coerce.number().int().min(0).nullable().optional(),
+  nb_adultes: z.coerce.number().int().min(0).nullable().optional(),
+  participants_count: z.coerce.number().int().min(0).nullable().optional(),
+  ayant_progresse: z.coerce.number().int().min(0).nullable().optional(),
+  gain_moyen: z.coerce.number().int().min(0).nullable().optional(),
+  sources_public_pct: z.coerce.number().int().min(0).max(100).nullable().optional(),
+  sources_prive_pct: z.coerce.number().int().min(0).max(100).nullable().optional(),
+  note: z.string().max(500).nullable().optional(),
+});
+
+export type KpisContexteResult =
+  | { status: 'succes'; code: string }
+  | { status: 'erreur'; message: string };
+
+/**
+ * Crée ou met à jour les KPIs contextuels d'un indicateur.
+ * Réservé admin_scs / super_admin.
+ */
+export async function enregistrerKpisContexte(
+  payload: z.infer<typeof kpisContexteSchema>,
+): Promise<KpisContexteResult> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
+    return { status: 'erreur', message: 'Réservé aux administrateurs SCS et super_admin.' };
+  }
+
+  const parsed = kpisContexteSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { status: 'erreur', message: parsed.error.issues[0]?.message ?? 'Payload invalide.' };
+  }
+
+  const { code, ...champs } = parsed.data;
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from('kpis_contexte_indicateurs')
+    .upsert(
+      {
+        indicateur_code: code,
+        ...champs,
+        updated_at: new Date().toISOString(),
+        updated_by: utilisateur.id,
+      },
+      { onConflict: 'indicateur_code' },
+    );
+
+  if (error) return { status: 'erreur', message: error.message };
+
+  revalidatePath(`/indicateurs/${code.toLowerCase()}`);
+  revalidatePath(`/realisations/${code[0]?.toLowerCase() ?? 'a'}/${code.toLowerCase()}`);
+
+  return { status: 'succes', code };
+}

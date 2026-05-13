@@ -9,6 +9,7 @@ import {
   getConfigIndicateurs,
   getSaisiesIndicateur,
 } from '@/lib/indicateurs-annuels/queries';
+import { getKpisContexte } from '@/lib/realisations/queries';
 import {
   doitAfficherVisualisation,
   type IndicateurAvecValeurs,
@@ -17,9 +18,17 @@ import { Badge } from '@/components/ui/badge';
 import { GrapheIndicateurAnnuel } from './graphe-client';
 import { ToggleVisuClient } from './toggle-visu-client';
 import { SaisieValeursClient } from './saisie-valeurs-client';
+import { SaisieContexteKpisClient } from './saisie-contexte-kpis-client';
 
 /** Indicateurs de type "taux" : nécessitent numérateur + dénominateur. */
 const INDICATEURS_TAUX = new Set(['A2', 'A3', 'A5', 'B2', 'C2', 'D3']);
+
+const INDICATEUR_TYPE_MAP: Record<string, 'count' | 'rate' | 'score' | 'amount'> = {
+  A1: 'count', A2: 'rate', A3: 'rate', A4: 'score', A5: 'rate',
+  B1: 'count', B2: 'rate', B3: 'count', B4: 'amount',
+  C1: 'count', C2: 'rate', C3: 'count', C4: 'count',
+  D1: 'count', D2: 'count', D3: 'rate', F1: 'count',
+};
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -39,10 +48,11 @@ export default async function IndicateurDetailPage({ params }: Props) {
   const ind = indicateurParCode(codeBrut);
   if (!ind) notFound();
 
-  const [payload, config, saisiesBrutes] = await Promise.all([
+  const [payload, config, saisiesBrutes, kpisContexte] = await Promise.all([
     getIndicateursAnnuels(),
     getConfigIndicateurs(),
     getSaisiesIndicateur(ind.code),
+    getKpisContexte(ind.code),
   ]);
 
   if (!payload) {
@@ -160,6 +170,16 @@ export default async function IndicateurDetailPage({ params }: Props) {
           estTaux={INDICATEURS_TAUX.has(ind.code)}
           anneeMin={payload.annee_min}
           anneeMax={payload.annee_max}
+        />
+      )}
+
+      {/* KPIs contextuels pour la page publique Réalisations — admin_scs / super_admin */}
+      {(utilisateur.role === 'admin_scs' || isSuperAdmin) && (
+        <SaisieContexteKpisClient
+          code={ind.code}
+          typeInd={INDICATEUR_TYPE_MAP[ind.code] ?? 'count'}
+          afficherVentilateur={ind.afficherVentilateurPersonne ?? true}
+          kpisInit={kpisContexte}
         />
       )}
 

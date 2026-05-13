@@ -30,9 +30,11 @@ import { getKpisPublics, getRepartitionTrancheAge } from '@/lib/landing/queries'
 import { getAnalysePubliee } from '@/lib/analyses-indicateurs/queries';
 import {
   getValeursPubliees,
+  getKpisContexte,
   agregerTaux,
   agregerTotal,
   type ValeurPubliee,
+  type KpisContexte,
 } from '@/lib/realisations/queries';
 import { BlocAnalytiqueIA } from '@/components/realisations/bloc-analytique-ia';
 
@@ -243,6 +245,9 @@ export default async function IndicateurRealisationPage({ params }: Props) {
   let donneesReelles = false;
   let valeursPubliees: ValeurPubliee[] = [];
 
+  // KPIs contextuels (pays, femmes, etc.) saisis manuellement dans l'admin
+  let kpisContexte: KpisContexte | null = null;
+
   if (ind.code === 'A1') {
     const [kpis, ta] = await Promise.all([getKpisPublics(), getRepartitionTrancheAge()]);
     kpisReels = kpis;
@@ -253,8 +258,11 @@ export default async function IndicateurRealisationPage({ params }: Props) {
     kpisReels = await getKpisPublics();
     donneesReelles = true;
   } else {
-    // Lit les saisies publiées pour tous les autres indicateurs
-    valeursPubliees = await getValeursPubliees(ind.code);
+    // Lit les saisies publiées + KPIs contextuels en parallèle
+    [valeursPubliees, kpisContexte] = await Promise.all([
+      getValeursPubliees(ind.code),
+      getKpisContexte(ind.code),
+    ]);
     donneesReelles = valeursPubliees.length > 0;
   }
 
@@ -273,8 +281,8 @@ export default async function IndicateurRealisationPage({ params }: Props) {
             denominateur: m.denominateur,
             labelNumerateur: base?.labelNumerateur ?? 'Réalisés',
             labelDenominateur: base?.labelDenominateur ?? 'Prévus',
-            femmes: 0,
-            pays: 0,
+            femmes: kpisContexte?.femmes_count ?? 0,
+            pays: kpisContexte?.pays_count ?? 0,
           };
         })()
       : undefined;
@@ -283,7 +291,15 @@ export default async function IndicateurRealisationPage({ params }: Props) {
     typeInd === 'count' && valeursPubliees.length > 0
       ? (() => {
           const total = agregerTotal(valeursPubliees);
-          return total !== null ? { total, femmes: 0, jeunes: 0, adultes: 0, pays: 0 } : undefined;
+          return total !== null
+            ? {
+                total,
+                femmes: kpisContexte?.femmes_count ?? 0,
+                jeunes: kpisContexte?.nb_jeunes ?? 0,
+                adultes: kpisContexte?.nb_adultes ?? 0,
+                pays: kpisContexte?.pays_count ?? 0,
+              }
+            : undefined;
         })()
       : undefined;
 
@@ -296,7 +312,33 @@ export default async function IndicateurRealisationPage({ params }: Props) {
             montant >= 1000
               ? `${(montant / 1000).toFixed(1).replace('.', ',')} M€`
               : `${montant.toLocaleString('fr-FR')} €`;
-          return { montant, montantLibelle, sourcesPublic: 0, sourcesPrive: 0, pays: 0 };
+          return {
+            montant,
+            montantLibelle,
+            sourcesPublic: kpisContexte?.sources_public_pct ?? 0,
+            sourcesPrive: kpisContexte?.sources_prive_pct ?? 0,
+            pays: kpisContexte?.pays_count ?? 0,
+          };
+        })()
+      : undefined;
+
+  // Pour A4 (score) : score depuis la dernière saisie publiée, contexte depuis kpisContexte
+  const fictifScoreReel: DonneesScore | undefined =
+    typeInd === 'score' && valeursPubliees.length > 0
+      ? (() => {
+          const derniere = valeursPubliees[valeursPubliees.length - 1];
+          const scoreMoyen = derniere?.valeur_directe ?? null;
+          if (scoreMoyen === null) return undefined;
+          const base = FICTIF_SCORE[ind.code]!;
+          return {
+            scoreMoyen,
+            labelScore: base.labelScore,
+            participantsTotal: kpisContexte?.participants_count ?? 0,
+            ayantProgresse: kpisContexte?.ayant_progresse ?? 0,
+            gainMoyen: kpisContexte?.gain_moyen ?? 0,
+            femmes: kpisContexte?.femmes_count ?? 0,
+            pays: kpisContexte?.pays_count ?? 0,
+          };
         })()
       : undefined;
 
@@ -372,14 +414,18 @@ export default async function IndicateurRealisationPage({ params }: Props) {
               data={(dataRateReelle ?? FICTIF_RATE[ind.code])!}
               couleur={pilierData.couleur}
               fictif={fictif}
-              afficherFemmes={fictif ? ind.code !== 'D3' : false}
+              afficherFemmes={
+                fictif
+                  ? ind.code !== 'D3'
+                  : (dataRateReelle?.femmes ?? 0) > 0
+              }
             />
           )}
 
           {/* TYPE : SCORE */}
-          {typeInd === 'score' && FICTIF_SCORE[ind.code] && (
+          {typeInd === 'score' && (fictifScoreReel ?? FICTIF_SCORE[ind.code]) && (
             <KpisScore
-              data={FICTIF_SCORE[ind.code]!}
+              data={(fictifScoreReel ?? FICTIF_SCORE[ind.code])!}
               couleur={pilierData.couleur}
               fictif={fictif}
             />
