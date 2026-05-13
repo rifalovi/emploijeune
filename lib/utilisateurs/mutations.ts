@@ -8,6 +8,7 @@ import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { creerCompteUtilisateurSchema, rolesCreablesPar } from '@/lib/schemas/utilisateur';
 import { envoyerEmail } from '@/lib/email/envoyer';
 import { templateInvitationCompte, templateResetMotPasse } from '@/lib/email/templates';
+import { getBaseUrl } from '@/lib/utils/base-url';
 import { ROLE_CREABLE_LIBELLES } from '@/lib/schemas/utilisateur';
 
 export type CreerCompteResult =
@@ -139,7 +140,7 @@ export async function creerCompteUtilisateur(raw: unknown): Promise<CreerCompteR
   // fragment du redirect Supabase ne reach pas le serveur). On utilise
   // `hashed_token` pour pointer le lien vers notre callback avec
   // token_hash + type=recovery en query string.
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const origin = getBaseUrl();
   const redirectInterne = '/motpasse/changer?premier_login=1';
   const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent(redirectInterne)}`;
 
@@ -244,7 +245,7 @@ export async function reinitialiserMotPasseUtilisateur(
   if (!email) return { status: 'erreur_inconnue', message: 'Email introuvable côté Auth' };
 
   // Hotfix v2.0.1.2 : usage de hashed_token + lien direct vers notre callback
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const origin = getBaseUrl();
   const redirectInterne = '/motpasse/changer?reset=1';
   const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent(redirectInterne)}`;
 

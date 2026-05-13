@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { envoyerEmail } from '@/lib/email/envoyer';
 import { templateResetMotPasse } from '@/lib/email/templates';
 import { demanderResetSchema, type DemanderResetInput } from '@/lib/schemas/auth';
+import { getBaseUrl } from '@/lib/utils/base-url';
 
 /**
  * Server Action — Envoi d'un lien de réinitialisation de mot de passe.
@@ -73,7 +74,7 @@ export async function envoyerResetMotPasse(
   // Le callback appelle alors `verifyOtp({type, token_hash})` côté serveur,
   // ce qui pose le cookie de session et permet la redirection server-side
   // vers /motpasse/changer.
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const origin = getBaseUrl();
   const redirectInterne = '/motpasse/changer?reset=1';
   const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent(redirectInterne)}`;
 

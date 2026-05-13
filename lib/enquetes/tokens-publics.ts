@@ -7,6 +7,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { envoyerEmail } from '@/lib/email/envoyer';
 import { templateInvitationEnquete } from '@/lib/email/templates';
+import { getBaseUrl } from '@/lib/utils/base-url';
 import type { Json } from '@/lib/supabase/database.types';
 import {
   soumissionQuestionnaireASchema,
@@ -210,7 +211,7 @@ export async function genererTokenEnquete(input: GenererTokenInput): Promise<Gen
     return { status: 'erreur_inconnue', message: `INSERT token : ${error.message}` };
   }
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const origin = getBaseUrl();
   const url = `${origin}/enquetes/public/${token}`;
 
   // Envoi email destinataire si on a son adresse + consentement RGPD

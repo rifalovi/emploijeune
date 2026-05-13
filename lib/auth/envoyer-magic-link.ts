@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { envoyerEmail } from '@/lib/email/envoyer';
 import { templateMagicLink } from '@/lib/email/templates';
 import { connexionMagicLinkSchema, type ConnexionMagicLinkInput } from '@/lib/schemas/auth';
+import { getBaseUrl } from '@/lib/utils/base-url';
 
 /**
  * Server Action — Envoi d'un magic link de connexion (admin SCS).
@@ -81,7 +82,7 @@ export async function envoyerMagicLink(
   // /auth/v1/verify redirige avec un hash fragment qui ne reach jamais le
   // serveur. On construit un lien direct vers notre callback avec
   // `token_hash` + `type=magiclink` en query string.
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const origin = getBaseUrl();
   const redirectInterne = '/dashboard';
   const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent(redirectInterne)}`;
 

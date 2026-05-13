@@ -6,6 +6,7 @@ import { randomBytes } from 'crypto';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
+import { getBaseUrl } from '@/lib/utils/base-url';
 import { envoyerEmail } from '@/lib/email/envoyer';
 import {
   templateConfirmationDemande,
@@ -130,7 +131,7 @@ export async function creerDemandeAcces(raw: unknown): Promise<CreerDemandeAcces
   }).catch(() => {});
 
   // Email notification SCS (best-effort)
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const origin = getBaseUrl();
   const lienAdmin = `${origin}/admin/demandes-acces`;
   const adminEmail = await resoudreEmailAdminScs();
   if (adminEmail) {
@@ -227,7 +228,7 @@ export async function approuverDemandeAcces(demandeId: string): Promise<Approuve
   }
 
   // Lien d'activation
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const origin = getBaseUrl();
   const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent('/motpasse/changer?premier_login=1')}`;
   const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: 'recovery',
