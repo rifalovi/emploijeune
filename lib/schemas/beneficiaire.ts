@@ -88,10 +88,9 @@ const baseBeneficiaireSchema = z.object({
     message: 'Sexe invalide',
   }),
 
-  date_naissance: optionalDate.refine(
-    (d) => !d || (d >= new Date('1900-01-01') && d <= new Date()),
-    'Date de naissance hors plage (1900 – aujourd’hui)',
-  ),
+  /** date_naissance retiré du formulaire de saisie (donnée sensible) —
+   *  conservé uniquement pour les imports. Utiliser tranche_age_declaree. */
+  tranche_age_declaree: z.union([z.enum(['Jeune', 'Adulte']), z.null(), z.undefined()]).optional(),
 
   // === 2. Rattachement ===
   projet_code: z.enum([...PROJETS_CODES] as [string, ...string[]], {
@@ -291,8 +290,9 @@ export const beneficiaireImportSchema = baseBeneficiaireSchema
       ])
       .transform((v) => (v === '' || v === null ? undefined : v))
       .optional(),
-    /** Tranche d'âge OIF déclarée (import sans date_naissance). Voir
-     *  migration 20260511000001_tranche_age_declaree.sql. */
+    /** date_naissance accepté dans les imports Excel (non collecté via formulaire). */
+    date_naissance: optionalDate.optional().nullable(),
+    /** Tranche d'âge OIF déclarée. */
     tranche_age_declaree: z
       .union([z.enum(['Jeune', 'Adulte']), z.null(), z.undefined()])
       .optional(),

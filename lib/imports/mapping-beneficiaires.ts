@@ -9,7 +9,7 @@ import {
   PROJETS_CODES,
   PAYS_CODES,
 } from '@/lib/schemas/nomenclatures';
-import type { BeneficiaireInsertInput } from '@/lib/schemas/beneficiaire';
+import type { BeneficiaireImportInput } from '@/lib/schemas/beneficiaire';
 
 /**
  * Mapping Excel → champs métier bénéficiaires (Étape 7).
@@ -48,7 +48,7 @@ export const HEADERS_A1_OBLIGATOIRES = [
  * Retourne `donneesParsees` ou la liste d'erreurs de mapping.
  */
 export function mapLigneVersBeneficiaire(donneesBrut: Record<string, unknown>): {
-  donneesParsees: BeneficiaireInsertInput | null;
+  donneesParsees: BeneficiaireImportInput | null;
   erreursMapping: Array<{ colonne: string; valeur: string | null; message: string }>;
 } {
   // Normalisation em-dash (—) → en-dash (–) dans clés et valeurs (cf. fix
@@ -154,7 +154,7 @@ export function mapLigneVersBeneficiaire(donneesBrut: Record<string, unknown>): 
     return { donneesParsees: null, erreursMapping: erreurs };
   }
 
-  const payload: BeneficiaireInsertInput = {
+  const payload: BeneficiaireImportInput = {
     prenom: lireTexte(donnees['Prénom *']) ?? '',
     nom: lireTexte(donnees['Nom *']) ?? '',
     sexe,

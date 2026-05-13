@@ -156,7 +156,7 @@ export function BeneficiaireForm({
       prenom: initialValues?.prenom ?? '',
       nom: initialValues?.nom ?? '',
       sexe: initialValues?.sexe ?? undefined,
-      date_naissance: initialValues?.date_naissance ?? undefined,
+      tranche_age_declaree: initialValues?.tranche_age_declaree ?? undefined,
       projet_code: initialValues?.projet_code ?? cohorte.projet ?? undefined,
       pays_code: initialValues?.pays_code ?? cohorte.pays ?? undefined,
       partenaire_accompagnement:
@@ -381,6 +381,57 @@ export function BeneficiaireForm({
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* Tranche d'âge déclarée — remplace date_naissance (donnée sensible) */}
+              <FormField
+                control={form.control}
+                name="tranche_age_declaree"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel>Tranche d&apos;âge</FormLabel>
+                    <FormControl>
+                      <div className="flex gap-2">
+                        {(
+                          [
+                            { valeur: 'Jeune', libelle: 'Jeune (18–34 ans)' },
+                            { valeur: 'Adulte', libelle: 'Adulte (35 ans et +)' },
+                          ] as const
+                        ).map(({ valeur, libelle }) => (
+                          <button
+                            key={valeur}
+                            type="button"
+                            onClick={() =>
+                              field.onChange(field.value === valeur ? undefined : valeur)
+                            }
+                            className={[
+                              'rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
+                              field.value === valeur
+                                ? valeur === 'Jeune'
+                                  ? 'border-[#0198E9] bg-[#0198E91a] text-[#0198E9]'
+                                  : 'border-[#5D0073] bg-[#5D00731a] text-[#5D0073]'
+                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
+                            ].join(' ')}
+                          >
+                            {libelle}
+                          </button>
+                        ))}
+                        {field.value && (
+                          <button
+                            type="button"
+                            onClick={() => field.onChange(undefined)}
+                            className="text-muted-foreground ml-1 text-xs underline"
+                          >
+                            Effacer
+                          </button>
+                        )}
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      Sélectionnez la tranche d&apos;âge déclarée par le bénéficiaire.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -58,32 +58,9 @@ export async function creerBeneficiaire(raw: unknown): Promise<CreerBeneficiaire
 
   const supabase = await createSupabaseServerClient();
 
-  // 2. Détection doublon bloquante (Q7) ---------------------------------------
-  // La fonction SQL respecte la RLS : si l'utilisateur ne peut pas voir une
-  // fiche existante hors périmètre, on ne la détectera pas ici. L'INSERT
-  // échouera alors au niveau de la contrainte unique avec code 23505 et on
-  // tombera dans le bloc d'erreur plus bas.
-  if (data.date_naissance) {
-    const { data: doublons } = await supabase.rpc('find_beneficiaire_doublon', {
-      p_prenom: data.prenom,
-      p_nom: data.nom,
-      p_date_naissance: data.date_naissance.toISOString().slice(0, 10),
-      p_projet_code: data.projet_code,
-    });
-    const d = doublons?.[0];
-    if (d) {
-      return {
-        status: 'doublon',
-        ficheExistante: {
-          id: d.id,
-          prenom: d.prenom,
-          nom: d.nom,
-          date_naissance: d.date_naissance,
-          projet_code: d.projet_code,
-        },
-      };
-    }
-  }
+  // 2. Détection doublon — désactivée (date_naissance retiré du formulaire,
+  //    donnée sensible non collectée via saisie manuelle). Un doublon éventuel
+  //    sera bloqué par la contrainte unique en BDD (code 23505 ci-dessous).
 
   // 3. INSERT -----------------------------------------------------------------
   const utilisateur = await getCurrentUtilisateur();
@@ -92,7 +69,8 @@ export async function creerBeneficiaire(raw: unknown): Promise<CreerBeneficiaire
     prenom: data.prenom,
     nom: data.nom,
     sexe: data.sexe as 'F' | 'M' | 'Autre',
-    date_naissance: data.date_naissance ? data.date_naissance.toISOString().slice(0, 10) : null,
+    date_naissance: null,
+    tranche_age_declaree: data.tranche_age_declaree ?? null,
     projet_code: data.projet_code,
     pays_code: data.pays_code,
     organisation_id: data.organisation_id ?? utilisateur?.organisation_id ?? null,
@@ -209,35 +187,13 @@ export async function modifierBeneficiaire(raw: unknown): Promise<ModifierBenefi
 
   const supabase = await createSupabaseServerClient();
 
-  // Détection doublon excluant la fiche courante
-  if (data.date_naissance) {
-    const { data: doublons } = await supabase.rpc('find_beneficiaire_doublon', {
-      p_prenom: data.prenom,
-      p_nom: data.nom,
-      p_date_naissance: data.date_naissance.toISOString().slice(0, 10),
-      p_projet_code: data.projet_code,
-      p_exclude_id: data.id,
-    });
-    const d = doublons?.[0];
-    if (d) {
-      return {
-        status: 'doublon',
-        ficheExistante: {
-          id: d.id,
-          prenom: d.prenom,
-          nom: d.nom,
-          date_naissance: d.date_naissance,
-          projet_code: d.projet_code,
-        },
-      };
-    }
-  }
+  // Détection doublon désactivée (date_naissance non collectée via formulaire).
 
   const updatePayload = {
     prenom: data.prenom,
     nom: data.nom,
     sexe: data.sexe as 'F' | 'M' | 'Autre',
-    date_naissance: data.date_naissance ? data.date_naissance.toISOString().slice(0, 10) : null,
+    tranche_age_declaree: data.tranche_age_declaree ?? null,
     projet_code: data.projet_code,
     pays_code: data.pays_code,
     partenaire_accompagnement: data.partenaire_accompagnement ?? null,

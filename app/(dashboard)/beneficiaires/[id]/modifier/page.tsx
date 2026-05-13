@@ -91,8 +91,9 @@ export default async function ModifierBeneficiairePage({ params }: PageProps) {
           prenom: fiche.prenom,
           nom: fiche.nom,
           sexe: fiche.sexe,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          date_naissance: (fiche.date_naissance as any) ?? undefined,
+          ...(fiche.tranche_age_declaree === 'Jeune' || fiche.tranche_age_declaree === 'Adulte'
+            ? { tranche_age_declaree: fiche.tranche_age_declaree as 'Jeune' | 'Adulte' }
+            : {}),
           projet_code: fiche.projet_code,
           pays_code: fiche.pays_code,
           organisation_id: fiche.organisation_id ?? undefined,
