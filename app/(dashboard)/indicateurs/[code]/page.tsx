@@ -63,6 +63,50 @@ export default async function IndicateurDetailPage({ params }: Props) {
   );
   const isSuperAdmin = utilisateur.role === 'super_admin';
 
+  /**
+   * Pour les indicateurs calculés depuis la BDD (ex. A2), les saisies manuelles
+   * priment sur les valeurs auto dans le graphique et le tableau récapitulatif.
+   * Pour les indicateurs « saisie_manuelle » (A3, A5…), valeurs_par_annee
+   * provient déjà des saisies — on laisse tel quel.
+   */
+  const valeursFinales: typeof valeurs.valeurs_par_annee = (() => {
+    if (valeurs.statut_calcul !== 'calcule' || saisiesBrutes.length === 0) {
+      return valeurs.valeurs_par_annee;
+    }
+    const saisiesMap = new Map(saisiesBrutes.map((s) => [s.annee, s]));
+    const merged = valeurs.valeurs_par_annee.map((v) => {
+      const s = saisiesMap.get(v.annee);
+      if (!s) return v;
+      const valeurCalculee =
+        s.numerateur !== null && s.denominateur !== null && s.denominateur !== 0
+          ? Math.round((s.numerateur / s.denominateur) * 1000) / 10
+          : (s.valeur_directe ?? v.valeur);
+      return {
+        ...v,
+        valeur: valeurCalculee,
+        numerateur: s.numerateur ?? v.numerateur,
+        denominateur: s.denominateur ?? v.denominateur,
+        source: 'saisie' as const,
+      };
+    });
+    // Ajouter les années présentes uniquement en saisie (pas encore en BDD)
+    const anneesAuto = new Set(valeurs.valeurs_par_annee.map((v) => v.annee));
+    const extra = saisiesBrutes
+      .filter((s) => !anneesAuto.has(s.annee))
+      .map((s) => ({
+        annee: s.annee,
+        valeur:
+          s.numerateur !== null && s.denominateur !== null && s.denominateur !== 0
+            ? Math.round((s.numerateur / s.denominateur) * 1000) / 10
+            : s.valeur_directe,
+        numerateur: s.numerateur,
+        denominateur: s.denominateur,
+        source: 'saisie' as const,
+        publie: s.publie,
+      }));
+    return [...merged, ...extra].sort((a, b) => a.annee - b.annee);
+  })();
+
   return (
     <div className="space-y-6">
       <Link
@@ -120,22 +164,22 @@ export default async function IndicateurDetailPage({ params }: Props) {
       )}
 
       {/* Graphique (si valeurs et visu activée) */}
-      {valeurs.valeurs_par_annee.length > 0 && visuActive && (
+      {valeursFinales.length > 0 && visuActive && (
         <section className="rounded-xl border bg-white p-4">
           <h2 className="text-sm font-semibold text-[#0E4F88]">Évolution annuelle</h2>
           <p className="text-muted-foreground mt-1 text-xs">
-            Visualisation des {valeurs.nb_annees_avec_donnees} années de collecte disponibles.
+            Visualisation des {valeursFinales.length} années de collecte disponibles.
           </p>
           <GrapheIndicateurAnnuel
             code={ind.code}
-            valeurs={valeurs.valeurs_par_annee}
+            valeurs={valeursFinales}
             couleur={pilier.couleur}
           />
         </section>
       )}
 
       {/* Tableau valeurs par année */}
-      {valeurs.valeurs_par_annee.length > 0 && (
+      {valeursFinales.length > 0 && (
         <section className="rounded-xl border bg-white">
           <header className="border-b px-4 py-2.5">
             <h2 className="text-sm font-semibold text-[#0E4F88]">Valeurs par année</h2>
@@ -146,13 +190,13 @@ export default async function IndicateurDetailPage({ params }: Props) {
                 <tr>
                   <th className="px-3 py-2 text-left">Année</th>
                   <th className="px-3 py-2 text-right">Valeur</th>
-                  {valeurs.valeurs_par_annee.some((v) => v.numerateur !== undefined) && (
+                  {valeursFinales.some((v) => v.numerateur !== undefined) && (
                     <th className="px-3 py-2 text-right">Numérateur</th>
                   )}
-                  {valeurs.valeurs_par_annee.some((v) => v.denominateur !== undefined) && (
+                  {valeursFinales.some((v) => v.denominateur !== undefined) && (
                     <th className="px-3 py-2 text-right">Dénominateur</th>
                   )}
-                  {valeurs.valeurs_par_annee.some((v) => v.femmes !== undefined) && (
+                  {valeursFinales.some((v) => v.femmes !== undefined) && (
                     <>
                       <th className="px-3 py-2 text-right">Femmes</th>
                       <th className="px-3 py-2 text-right">Hommes</th>
@@ -161,19 +205,19 @@ export default async function IndicateurDetailPage({ params }: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {valeurs.valeurs_par_annee.map((v) => (
+                {valeursFinales.map((v) => (
                   <tr key={v.annee}>
                     <td className="px-3 py-2 font-mono text-xs tabular-nums">{v.annee}</td>
                     <td className="px-3 py-2 text-right font-semibold tabular-nums">
                       {formaterValeur(v.valeur, ind.code)}
                     </td>
-                    {valeurs.valeurs_par_annee.some((x) => x.numerateur !== undefined) && (
+                    {valeursFinales.some((x) => x.numerateur !== undefined) && (
                       <td className="px-3 py-2 text-right tabular-nums">{v.numerateur ?? '—'}</td>
                     )}
-                    {valeurs.valeurs_par_annee.some((x) => x.denominateur !== undefined) && (
+                    {valeursFinales.some((x) => x.denominateur !== undefined) && (
                       <td className="px-3 py-2 text-right tabular-nums">{v.denominateur ?? '—'}</td>
                     )}
-                    {valeurs.valeurs_par_annee.some((x) => x.femmes !== undefined) && (
+                    {valeursFinales.some((x) => x.femmes !== undefined) && (
                       <>
                         <td className="px-3 py-2 text-right tabular-nums">{v.femmes ?? '—'}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{v.hommes ?? '—'}</td>

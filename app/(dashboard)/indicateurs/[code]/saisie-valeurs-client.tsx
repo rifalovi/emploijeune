@@ -352,17 +352,15 @@ export function SaisieValeursClient({
           </label>
         </div>
 
-        {/* Avertissement : année déjà couverte par le calcul automatique */}
+        {/* Info : la saisie manuelle remplace les données auto dans le graphique */}
         {anneeSelectionneeEstAuto && (
-          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
-            <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" aria-hidden />
+          <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs text-blue-900">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-blue-500" aria-hidden />
             <span>
-              <strong>Année {annee} — données auto disponibles.</strong> Le calcul automatique
-              (depuis la base bénéficiaires) est prioritaire pour cette année. Votre saisie sera
-              enregistrée mais <strong>n&apos;affectera pas le graphique</strong> tant que des
-              données auto existent. Pour remplacer les chiffres visibles, modifiez les données
-              sources (bénéficiaires) ou choisissez une année sans données auto (
-              {annees.filter((a) => !anneesAvecAuto.has(a)).join(', ') || 'aucune disponible'}).
+              <strong>Année {annee} — données auto disponibles.</strong> Une saisie manuelle
+              existera <strong>en priorité</strong> sur le calcul BDD dans le graphique et le
+              tableau récapitulatif. Supprimez la saisie pour revenir aux valeurs calculées
+              automatiquement.
             </span>
           </div>
         )}
