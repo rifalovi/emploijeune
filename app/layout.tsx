@@ -4,6 +4,7 @@ import localFont from 'next/font/local';
 import { Toaster } from '@/components/ui/sonner';
 import { ChatbotScs } from '@/components/chatbot-scs/chatbot-scs';
 import { cn } from '@/lib/utils';
+import { getBaseUrl } from '@/lib/utils/base-url';
 import './globals.css';
 
 /**
@@ -26,6 +27,10 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
+  // metadataBase : résout les URLs relatives (images OG/Twitter) en URLs
+  // absolues. Utilise getBaseUrl() qui gère VERCEL_URL en prod et le
+  // garde-fou anti-localhost.
+  metadataBase: new URL(getBaseUrl()),
   title: 'OIF – Suivi Emploi Jeunes',
   description:
     "Plateforme de gestion et de suivi des données du Service de Conception et Suivi de projet de l'OIF – thématique emploi des jeunes.",
