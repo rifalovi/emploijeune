@@ -432,17 +432,11 @@ export async function supprimerCompteUtilisateur(
   if (softErr) return { status: 'erreur', message: `soft_delete: ${softErr.message}` };
 
   // 3. Hard-delete auth.users (révoque sessions + libère l'email).
-  //    Obligatoire : si ça échoue, on annule le soft-delete pour rester cohérent.
+  //    Best-effort : si ça échoue, le soft-delete bloque déjà l'accès.
   const { error: authErr } = await admin.auth.admin.deleteUser(parsed.data.user_id);
   if (authErr) {
     // eslint-disable-next-line no-console
-    console.error('[supprimerCompte] auth.admin.deleteUser échoué — rollback soft-delete', authErr.message);
-    // Rollback : remettre le profil en état actif pour éviter un orphelin
-    await admin
-      .from('utilisateurs')
-      .update({ deleted_at: null, actif: true, updated_at: new Date().toISOString() } as never)
-      .eq('user_id', parsed.data.user_id);
-    return { status: 'erreur', message: `auth_delete_echoue: ${authErr.message}` };
+    console.error('[supprimerCompte] auth.admin.deleteUser échoué', authErr.message);
   }
 
   // 4. Audit log
@@ -457,7 +451,7 @@ export async function supprimerCompteUtilisateur(
         email_supprime: emailCible,
         nom_complet: cible.nom_complet,
         role: cible.role,
-        auth_delete_ok: true,
+        auth_delete_ok: !authErr,
       } as never,
     } as never)
     .then(
