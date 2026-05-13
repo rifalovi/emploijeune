@@ -224,7 +224,17 @@ export function CollecteForm({ lien }: { lien: InfoLienPublic }) {
   const [formKey, setFormKey] = useState(0);
   const [confirmationNouveau, setConfirmationNouveau] = useState(false);
 
-  if (etat === 'succes') return <SuccesMessage type={lien.type} />;
+  if (etat === 'succes')
+    return (
+      <SuccesMessage
+        type={lien.type}
+        onNouveau={() => {
+          setEtat('formulaire');
+          setErreurMessage('');
+          setFormKey((k) => k + 1);
+        }}
+      />
+    );
 
   const handleSubmit = (donnees: Record<string, unknown>) => {
     startTransition(async () => {
@@ -1111,7 +1121,7 @@ function FormulaireStructure({
 // Écran de succès
 // =============================================================================
 
-function SuccesMessage({ type }: { type: 'A' | 'B' }) {
+function SuccesMessage({ type, onNouveau }: { type: 'A' | 'B'; onNouveau: () => void }) {
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
@@ -1125,10 +1135,11 @@ function SuccesMessage({ type }: { type: 'A' | 'B' }) {
               ? "Votre inscription a bien été soumise. Elle sera examinée par un coordinateur OIF avant d'être intégrée dans la plateforme."
               : 'Les informations sur votre structure ont bien été transmises. Un coordinateur OIF les examinera avant de les intégrer dans la plateforme.'}
           </p>
-          <p className="text-muted-foreground text-xs">
-            Aucune autre action n&apos;est requise de votre part.
-          </p>
         </div>
+        <Button type="button" variant="outline" onClick={onNouveau} className="mt-2">
+          <PlusCircle className="mr-2 size-4" aria-hidden />
+          {type === 'A' ? 'Saisir un nouvel enregistrement' : 'Enregistrer une autre structure'}
+        </Button>
       </CardContent>
     </Card>
   );
