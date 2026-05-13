@@ -1,2 +1,45 @@
+# Plateforme OIF Emploi Jeunes — phase pilote
+#
+# Politique d'indexation :
+#   - Non-indexation par Google / Bing / DuckDuckGo en phase dev/pilote.
+#   - MAIS on autorise les scrapers d'aperçus (Open Graph / Twitter Card)
+#     pour que les liens partagés sur WhatsApp, LinkedIn, Facebook,
+#     Twitter/X, Slack, Discord, Telegram affichent correctement le
+#     logo OIF + le titre + la description.
+
+# ───────────────────────── Scrapers OG / Card ─────────────────────────
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Facebot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+User-agent: Slackbot-LinkExpanding
+Allow: /
+
+User-agent: Discordbot
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# ───────────────────────── Moteurs de recherche ───────────────────────
+# Bloqué tant que la plateforme est en phase pilote. À lever en production
+# officielle (modifier ce fichier OU supprimer le bloc ci-dessous).
 User-agent: *
 Disallow: /
