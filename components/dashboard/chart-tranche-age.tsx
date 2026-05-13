@@ -99,7 +99,7 @@ export function ChartTrancheAge({ data }: { data: RepartitionTrancheAge }) {
                     {seg.valeur.toLocaleString('fr-FR')}
                   </span>
                   <span className="text-muted-foreground mb-0.5 text-xs tabular-nums">
-                    {seg.pct}\u00a0%
+                    {`${seg.pct}\u00a0%`}
                   </span>
                 </div>
               </div>
