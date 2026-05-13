@@ -36,7 +36,9 @@ import {
 } from '@/lib/schemas/nomenclatures';
 
 // =============================================================================
-// Liste des États et gouvernements membres de l'OIF (2025)
+// États et gouvernements membres de l'OIF — liste complète (~90 entrées, 2025)
+// Source : https://www.francophonie.org/les-membres-de-loif-28
+// Inclut : membres de plein droit, membres associés, observateurs, gouvernements
 // =============================================================================
 const PAYS_OIF: Array<{ code: string; label: string }> = [
   // Afrique de l'Ouest
@@ -72,6 +74,7 @@ const PAYS_OIF: Array<{ code: string; label: string }> = [
   { code: 'MOZ', label: 'Mozambique' },
   { code: 'RWA', label: 'Rwanda' },
   { code: 'SYC', label: 'Seychelles' },
+  { code: 'TLS', label: 'Timor-Leste' },
   // Afrique du Nord
   { code: 'DZA', label: 'Algérie' },
   { code: 'EGY', label: 'Égypte' },
@@ -79,38 +82,62 @@ const PAYS_OIF: Array<{ code: string; label: string }> = [
   { code: 'TUN', label: 'Tunisie' },
   // Moyen-Orient
   { code: 'LBN', label: 'Liban' },
-  // Asie / Océanie
+  { code: 'ARE', label: 'Émirats arabes unis' },
+  // Asie / Océanie / Pacifique
   { code: 'KHM', label: 'Cambodge' },
   { code: 'LAO', label: 'Laos' },
+  { code: 'THA', label: 'Thaïlande' },
   { code: 'VNM', label: 'Vietnam' },
   { code: 'VUT', label: 'Vanuatu' },
   // Caraïbes / Amériques
+  { code: 'ARG', label: 'Argentine' },
   { code: 'CAN', label: 'Canada' },
   { code: 'DMA', label: 'Dominique' },
   { code: 'HTI', label: 'Haïti' },
+  { code: 'MEX', label: 'Mexique' },
+  { code: 'LOU', label: 'Louisiane (gouvernement)' },
   { code: 'NBR', label: 'Nouveau-Brunswick (gouvernement)' },
+  { code: 'ONT', label: 'Ontario (gouvernement)' },
   { code: 'QUE', label: 'Québec (gouvernement)' },
   { code: 'STE', label: 'Sainte-Lucie' },
+  { code: 'URY', label: 'Uruguay' },
   // Europe de l'Ouest
   { code: 'AND', label: 'Andorre' },
+  { code: 'AUT', label: 'Autriche' },
   { code: 'BEL', label: 'Belgique' },
   { code: 'FRA', label: 'France' },
   { code: 'FWB', label: 'Fédération Wallonie-Bruxelles (gouvernement)' },
   { code: 'LUX', label: 'Luxembourg' },
   { code: 'MCO', label: 'Monaco' },
   { code: 'CHE', label: 'Suisse' },
-  // Europe de l'Est / Balkans
+  { code: 'VAO', label: "Val d'Aoste (gouvernement)" },
+  // Europe centrale et orientale
   { code: 'ALB', label: 'Albanie' },
   { code: 'ARM', label: 'Arménie' },
+  { code: 'BIH', label: 'Bosnie-Herzégovine' },
   { code: 'BGR', label: 'Bulgarie' },
+  { code: 'HRV', label: 'Croatie' },
   { code: 'CYP', label: 'Chypre' },
+  { code: 'CZE', label: 'République tchèque' },
+  { code: 'EST', label: 'Estonie' },
+  { code: 'GEO', label: 'Géorgie' },
   { code: 'GRC', label: 'Grèce' },
+  { code: 'HUN', label: 'Hongrie' },
   { code: 'XKX', label: 'Kosovo' },
+  { code: 'LVA', label: 'Lettonie' },
+  { code: 'LTU', label: 'Lituanie' },
   { code: 'MKD', label: 'Macédoine du Nord' },
   { code: 'MLT', label: 'Malte' },
   { code: 'MDA', label: 'Moldavie' },
+  { code: 'MNE', label: 'Monténégro' },
+  { code: 'POL', label: 'Pologne' },
   { code: 'ROU', label: 'Roumanie' },
+  { code: 'SRB', label: 'Serbie' },
+  { code: 'SVK', label: 'Slovaquie' },
+  { code: 'SVN', label: 'Slovénie' },
   { code: 'UKR', label: 'Ukraine' },
+  // Asie orientale
+  { code: 'KOR', label: 'Corée du Sud' },
   // Option générique
   { code: 'AUTRE', label: 'Autre (à préciser)' },
 ];
