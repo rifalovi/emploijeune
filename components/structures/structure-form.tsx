@@ -217,10 +217,10 @@ export function StructureForm({
   const paysLibelles = Object.fromEntries(paysOptions.map((o) => [o.code, o.libelle]));
 
   // Watches pour les comportements dynamiques
-  const typeStructureCode  = form.watch('type_structure_code');
+  const typeStructureCode = form.watch('type_structure_code');
   const secteurActiviteCode = form.watch('secteur_activite_code');
-  const natureAppuiCode    = form.watch('nature_appui_code');
-  const consentement       = form.watch('consentement_recueilli') as boolean | undefined;
+  const natureAppuiCode = form.watch('nature_appui_code');
+  const consentement = form.watch('consentement_recueilli') as boolean | undefined;
 
   const onSubmit = form.handleSubmit(async (values) => {
     setDoublon(null);
@@ -255,7 +255,7 @@ export function StructureForm({
     // Si pas de consentement, vider les coordonnées (contrainte DB)
     if (!values.consentement_recueilli) {
       values.telephone_porteur = '';
-      values.courriel_porteur  = '';
+      values.courriel_porteur = '';
     }
 
     startTransition(async () => {
@@ -806,9 +806,7 @@ export function StructureForm({
                 name="telephone_porteur"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      Téléphone du responsable{consentement ? ' *' : ''}
-                    </FormLabel>
+                    <FormLabel>Téléphone du responsable{consentement ? ' *' : ''}</FormLabel>
                     <FormControl>
                       <Input
                         type="tel"
@@ -827,9 +825,7 @@ export function StructureForm({
                 name="courriel_porteur"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      Courriel du responsable{consentement ? ' *' : ''}
-                    </FormLabel>
+                    <FormLabel>Courriel du responsable{consentement ? ' *' : ''}</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
@@ -1194,7 +1190,7 @@ export function StructureForm({
                       />
                     </FormControl>
                     <div className="space-y-1">
-                      <FormLabel className="text-sm font-medium leading-none cursor-pointer">
+                      <FormLabel className="cursor-pointer text-sm leading-none font-medium">
                         Consentement RGPD recueilli *
                       </FormLabel>
                       <FormDescription>

@@ -527,9 +527,7 @@ export function BeneficiaireForm({
                       />
                     </FormControl>
                     {domaineCode === 'AUTRE' && (
-                      <FormDescription>
-                        Obligatoire quand le domaine est « Autre ».
-                      </FormDescription>
+                      <FormDescription>Obligatoire quand le domaine est « Autre ».</FormDescription>
                     )}
                     <FormMessage />
                   </FormItem>
@@ -742,9 +740,7 @@ export function BeneficiaireForm({
                 name="courriel"
                 render={({ field }) => (
                   <FormItem className="sm:col-span-2">
-                    <FormLabel>
-                      Courriel{consentement ? ' *' : ''}
-                    </FormLabel>
+                    <FormLabel>Courriel{consentement ? ' *' : ''}</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
@@ -821,12 +817,12 @@ export function BeneficiaireForm({
                       />
                     </FormControl>
                     <div className="space-y-1">
-                      <FormLabel className="text-sm font-medium leading-none cursor-pointer">
+                      <FormLabel className="cursor-pointer text-sm leading-none font-medium">
                         Consentement RGPD recueilli *
                       </FormLabel>
                       <FormDescription>
-                        Le bénéficiaire a consenti à ce que ses coordonnées soient
-                        conservées et utilisées à des fins de suivi.
+                        Le bénéficiaire a consenti à ce que ses coordonnées soient conservées et
+                        utilisées à des fins de suivi.
                         {consentement
                           ? ' Au moins un moyen de contact (téléphone ou courriel) est requis.'
                           : ' Sans consentement, le formulaire peut être enregistré sans coordonnées.'}

@@ -436,7 +436,10 @@ export async function supprimerCompteUtilisateur(
   const { error: authErr } = await admin.auth.admin.deleteUser(parsed.data.user_id);
   if (authErr) {
     // eslint-disable-next-line no-console
-    console.error('[supprimerCompte] auth.admin.deleteUser échoué — rollback soft-delete', authErr.message);
+    console.error(
+      '[supprimerCompte] auth.admin.deleteUser échoué — rollback soft-delete',
+      authErr.message,
+    );
     // Rollback : remettre le profil en état actif pour éviter un orphelin
     await admin
       .from('utilisateurs')
