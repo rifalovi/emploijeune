@@ -746,56 +746,183 @@ function StatutBadge({ statut }: { statut: string }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Mappings lisibles pour les codes stockés en base
+// ---------------------------------------------------------------------------
+const SEXE_LIBELLES: Record<string, string> = {
+  F: 'Féminin',
+  M: 'Masculin',
+  Autre: 'Autre / Non précisé',
+};
+const TRANCHE_AGE_LIBELLES: Record<string, string> = {
+  jeune: 'Jeune (18–34 ans)',
+  adulte: 'Adulte (35 ans et +)',
+};
+const DOMAINE_LIBELLES: Record<string, string> = {
+  AGR_ELV_PCH: 'Agriculture / Élevage / Pêche',
+  AGROALIM: 'Agroalimentaire',
+  ARTISANAT: 'Artisanat',
+  COMMERCE: 'Commerce',
+  DEV_PERS: 'Développement personnel',
+  ENTREPR_GEST: 'Entrepreneuriat / Gestion',
+  ENV_ECO_VERTE: 'Environnement / Éco-verte',
+  FP_TECH: 'Formation professionnelle technique',
+  GEST_FIN_COMPTA: 'Gestion / Finance / Comptabilité',
+  LANGUES_COM: 'Langues / Communication',
+  NUM_INFO: 'Numérique / Informatique',
+  SANTE_SERV_PERS: 'Santé / Services à la personne',
+  SERV_FIN_INCLUSION: 'Services financiers / Inclusion',
+  TOURISME: 'Tourisme',
+  TRANSPORT: 'Transport',
+  AUTRE: 'Autre',
+};
+const TYPE_STRUCTURE_LIBELLES: Record<string, string> = {
+  AGR: 'Agriculture / Élevage / Pêche',
+  MICRO_ENTR: 'Micro-entreprise',
+  PETITE_ENTR: 'Petite entreprise',
+  COOP: 'Coopérative',
+  ASSOC: 'Association',
+  GIE: 'GIE',
+  AUTRE: 'Autre',
+};
+const SECTEUR_LIBELLES: Record<string, string> = {
+  AGR_SYL_PCH: 'Agriculture / Sylviculture / Pêche',
+  AGROALIM: 'Agroalimentaire',
+  ARTISANAT: 'Artisanat',
+  COMMERCE: 'Commerce',
+  BTP: 'BTP',
+  CULTURE: 'Culture',
+  EDUC: 'Éducation / Formation',
+  ENERGIE_ENV: 'Énergie / Environnement',
+  TOURISME: 'Tourisme',
+  INDUSTRIE: 'Industrie',
+  SANTE_SOCIAL: 'Santé / Social',
+  SERV_ENTR: 'Services aux entreprises',
+  SERV_FIN: 'Services financiers',
+  SPORT_LOISIRS: 'Sport / Loisirs',
+  TIC: 'TIC / Numérique',
+  TRANSPORT: 'Transport',
+  AUTRE: 'Autre',
+};
+const NATURE_APPUI_LIBELLES: Record<string, string> = {
+  SUBVENTION: 'Subvention',
+  MATERIEL: 'Matériel',
+  FORMATION: 'Formation',
+  MENTORAT: 'Mentorat',
+  MISE_RELATION: 'Mise en relation',
+  APPUI_MIXTE: 'Appui mixte',
+  AUTRE: 'Autre',
+};
+const STATUT_CREATION_LIBELLES: Record<string, string> = {
+  creation: 'Création (nouvelle structure)',
+  renforcement: 'Renforcement (structure existante)',
+  relance: 'Relance',
+};
+// Pays OIF — codes → labels (extrait des 90 membres)
+const PAYS_LIBELLES: Record<string, string> = {
+  BEN: 'Bénin', BFA: 'Burkina Faso', CPV: 'Cap-Vert', CIV: "Côte d'Ivoire",
+  GMB: 'Gambie', GHA: 'Ghana', GIN: 'Guinée', GNB: 'Guinée-Bissau',
+  MLI: 'Mali', MRT: 'Mauritanie', NER: 'Niger', SEN: 'Sénégal',
+  SLE: 'Sierra Leone', TGO: 'Togo', CMR: 'Cameroun', CAF: 'Centrafrique',
+  COM: 'Comores', COD: 'Congo (RDC)', COG: 'Congo (Rép.)', GAB: 'Gabon',
+  GNQ: 'Guinée équatoriale', STP: 'São Tomé-et-Príncipe', TCD: 'Tchad',
+  BDI: 'Burundi', DJI: 'Djibouti', MDG: 'Madagascar', MUS: 'Maurice',
+  MOZ: 'Mozambique', RWA: 'Rwanda', SYC: 'Seychelles', TLS: 'Timor-Leste',
+  DZA: 'Algérie', EGY: 'Égypte', MAR: 'Maroc', TUN: 'Tunisie',
+  LBN: 'Liban', ARE: 'Émirats arabes unis', KHM: 'Cambodge', LAO: 'Laos',
+  THA: 'Thaïlande', VNM: 'Vietnam', VUT: 'Vanuatu', ARG: 'Argentine',
+  CAN: 'Canada', DMA: 'Dominique', HTI: 'Haïti', MEX: 'Mexique',
+  LOU: 'Louisiane', NBR: 'Nouveau-Brunswick', ONT: 'Ontario', QUE: 'Québec',
+  STE: 'Sainte-Lucie', URY: 'Uruguay', AND: 'Andorre', AUT: 'Autriche',
+  BEL: 'Belgique', FRA: 'France', FWB: 'Fédération Wallonie-Bruxelles',
+  LUX: 'Luxembourg', MCO: 'Monaco', CHE: 'Suisse', VAO: "Val d'Aoste",
+  ALB: 'Albanie', ARM: 'Arménie', BIH: 'Bosnie-Herzégovine', BGR: 'Bulgarie',
+  HRV: 'Croatie', CYP: 'Chypre', CZE: 'République tchèque', EST: 'Estonie',
+  GEO: 'Géorgie', GRC: 'Grèce', HUN: 'Hongrie', XKX: 'Kosovo',
+  LVA: 'Lettonie', LTU: 'Lituanie', MKD: 'Macédoine du Nord', MLT: 'Malte',
+  MDA: 'Moldavie', MNE: 'Monténégro', POL: 'Pologne', ROU: 'Roumanie',
+  SRB: 'Serbie', SVK: 'Slovaquie', SVN: 'Slovénie', UKR: 'Ukraine',
+  KOR: 'Corée du Sud', AUTRE: 'Autre',
+};
+
+function resoudreCode(clef: string, valeur: unknown): string {
+  if (valeur === null || valeur === undefined) return '–';
+  if (typeof valeur === 'boolean') return valeur ? 'Oui' : 'Non';
+  const v = String(valeur);
+  switch (clef) {
+    case 'sexe':
+    case 'porteur_sexe':
+      return SEXE_LIBELLES[v] ?? v;
+    case 'tranche_age_declaree':
+      return TRANCHE_AGE_LIBELLES[v] ?? v;
+    case 'pays_code':
+      return PAYS_LIBELLES[v] ? `${PAYS_LIBELLES[v]} (${v})` : v;
+    case 'domaine_formation_code':
+      return DOMAINE_LIBELLES[v] ?? v;
+    case 'type_structure_code':
+      return TYPE_STRUCTURE_LIBELLES[v] ?? v;
+    case 'secteur_activite_code':
+      return SECTEUR_LIBELLES[v] ?? v;
+    case 'nature_appui_code':
+      return NATURE_APPUI_LIBELLES[v] ?? v;
+    case 'statut_creation':
+      return STATUT_CREATION_LIBELLES[v] ?? v;
+    default:
+      return v;
+  }
+}
+
 function DonneesGrid({ donnees, type }: { donnees: Record<string, unknown>; type: TypeCollecte }) {
-  const champsA = [
+  const champsA: [string, string][] = [
     ['Prénom', 'prenom'],
     ['Nom', 'nom'],
     ['Sexe', 'sexe'],
-    ['Tranche âge', 'tranche_age_declaree'],
+    ['Tranche d\'âge', 'tranche_age_declaree'],
     ['Pays', 'pays_code'],
-    ['Projet', 'projet_code'],
-    ['Domaine formation', 'domaine_formation_code'],
-    ['Année formation', 'annee_formation'],
+    ['Projet OIF', 'projet_code'],
+    ['Domaine de formation', 'domaine_formation_code'],
+    ['Année de formation', 'annee_formation'],
     ['Téléphone', 'telephone'],
     ['Courriel', 'courriel'],
-    ['Consentement', 'consentement_recueilli'],
-  ] as [string, string][];
+    ['Consentement RGPD', 'consentement_recueilli'],
+  ];
 
-  const champsB = [
-    ['Nom structure', 'nom_structure'],
-    ['Type', 'type_structure'],
-    ['Secteur', 'secteur_activite'],
+  // Fix v2.7.1 : clés corrigées avec suffixe _code (alignées sur le formulaire)
+  const champsB: [string, string][] = [
+    ['Nom de la structure', 'nom_structure'],
+    ['Type de structure', 'type_structure_code'],
+    ['Secteur d\'activité', 'secteur_activite_code'],
     ['Statut', 'statut_creation'],
-    ['Année appui', 'annee_appui'],
-    ['Nature appui', 'nature_appui'],
-    ['Projet', 'projet_code'],
+    ['Année d\'appui', 'annee_appui'],
+    ['Nature de l\'appui', 'nature_appui_code'],
+    ['Projet OIF', 'projet_code'],
     ['Pays', 'pays_code'],
+    ['Initiative', 'intitule_initiative'],
     ['Porteur – nom', 'porteur_nom'],
     ['Porteur – prénom', 'porteur_prenom'],
     ['Porteur – sexe', 'porteur_sexe'],
     ['Téléphone', 'telephone'],
     ['Courriel', 'courriel'],
-    ['Initiative', 'intitule_initiative'],
-    ['Consentement', 'consentement_recueilli'],
-  ] as [string, string][];
+    ['Consentement RGPD', 'consentement_recueilli'],
+  ];
 
   const champs = type === 'A' ? champsA : champsB;
+  const champsAvecValeur = champs.filter(([, clef]) => {
+    const v = donnees[clef];
+    return v !== null && v !== undefined && v !== '';
+  });
 
   return (
-    <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-      {champs.map(([label, clef]) => {
-        const valeur = donnees[clef];
-        if (valeur === null || valeur === undefined || valeur === '') return null;
-        return (
-          <div key={clef} className="flex gap-2">
-            <span className="text-muted-foreground min-w-[120px] shrink-0">{label}</span>
-            <span className="font-medium">
-              {typeof valeur === 'boolean' ? (valeur ? 'Oui' : 'Non') : String(valeur)}
-            </span>
-          </div>
-        );
-      })}
-    </div>
+    <dl className="divide-y divide-border/50 text-sm">
+      {champsAvecValeur.map(([label, clef]) => (
+        <div key={clef} className="flex items-baseline gap-3 py-1.5">
+          <dt className="text-muted-foreground w-44 shrink-0 text-xs">{label}</dt>
+          <dd className="min-w-0 flex-1 break-words font-medium">
+            {resoudreCode(clef, donnees[clef])}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
