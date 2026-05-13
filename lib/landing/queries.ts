@@ -39,8 +39,14 @@ export async function getKpisPublics(): Promise<KpisPublics | null> {
 }
 
 /**
- * Répartition Jeune / Adulte depuis tranche_age_declaree.
- * Agrégat anonymisé — aucune donnée nominative.
+ * Répartition Jeune / Adulte.
+ *
+ * Double source, par ordre de priorité :
+ *   1. `tranche_age_declaree` ('Jeune' | 'Adulte') — valeur déclarée à l'import OIF.
+ *   2. `date_naissance` — calcul automatique si la tranche n'est pas renseignée :
+ *      18-34 ans → Jeune, 35 ans et + → Adulte.
+ *
+ * Agrégat anonymisé — aucune donnée nominative retournée.
  */
 export type RepartitionTrancheAge = {
   jeunes: number;
@@ -51,20 +57,52 @@ export type RepartitionTrancheAge = {
   adultes_pct: number;
 };
 
+function classifierTrancheAge(
+  tranche_age_declaree: string | null | undefined,
+  date_naissance: string | null | undefined,
+): 'Jeune' | 'Adulte' | null {
+  // Priorité 1 : tranche déclarée lors de l'import
+  if (tranche_age_declaree === 'Jeune' || tranche_age_declaree === 'Adulte') {
+    return tranche_age_declaree;
+  }
+  // Priorité 2 : calcul depuis la date de naissance
+  if (date_naissance) {
+    const naissance = new Date(date_naissance);
+    if (isNaN(naissance.getTime())) return null;
+    const aujourd_hui = new Date();
+    const age =
+      aujourd_hui.getFullYear() -
+      naissance.getFullYear() -
+      (aujourd_hui < new Date(aujourd_hui.getFullYear(), naissance.getMonth(), naissance.getDate())
+        ? 1
+        : 0);
+    if (age >= 18 && age <= 34) return 'Jeune';
+    if (age >= 35) return 'Adulte';
+  }
+  return null;
+}
+
 export async function getRepartitionTrancheAge(): Promise<RepartitionTrancheAge | null> {
   try {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
       .from('beneficiaires')
-      .select('tranche_age_declaree')
+      .select('tranche_age_declaree, date_naissance')
       .is('deleted_at', null);
 
     if (error || !data) return null;
 
-    const jeunes = data.filter((r) => r.tranche_age_declaree === 'Jeune').length;
-    const adultes = data.filter((r) => r.tranche_age_declaree === 'Adulte').length;
-    const non_renseigne = data.filter((r) => !r.tranche_age_declaree).length;
+    let jeunes = 0;
+    let adultes = 0;
+    let non_renseigne = 0;
     const total = data.length;
+
+    for (const r of data) {
+      const tranche = classifierTrancheAge(r.tranche_age_declaree, r.date_naissance);
+      if (tranche === 'Jeune') jeunes++;
+      else if (tranche === 'Adulte') adultes++;
+      else non_renseigne++;
+    }
 
     return {
       jeunes,
