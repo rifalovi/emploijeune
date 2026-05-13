@@ -58,7 +58,7 @@ export function BlocAnalytiqueIA({ analyse, couleur }: Props) {
               pas afficher en double avec le H3 qui suit dans le contenu. */}
           {analyse.resume && analyse.resume.length >= 60 && (
             <p
-              className="mb-4 text-sm font-medium leading-relaxed text-justify hyphens-auto"
+              className="mb-4 text-justify text-sm leading-relaxed font-medium hyphens-auto"
               style={{ color: couleur }}
             >
               {analyse.resume}
@@ -86,8 +86,7 @@ export function BlocAnalytiqueIA({ analyse, couleur }: Props) {
             )}
             <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-slate-400">
               <Clock className="size-3" aria-hidden />
-              Mis à jour{' '}
-              {format(new Date(analyse.updated_at), 'd MMM yyyy', { locale: fr })}
+              Mis à jour {format(new Date(analyse.updated_at), 'd MMM yyyy', { locale: fr })}
             </span>
           </div>
         </div>
@@ -174,11 +173,7 @@ function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string
     if (matchTitre) {
       viderListe();
       elements.push(
-        <h3
-          key={i}
-          className="mb-2 mt-4 text-sm font-bold first:mt-0"
-          style={{ color: couleur }}
-        >
+        <h3 key={i} className="mt-4 mb-2 text-sm font-bold first:mt-0" style={{ color: couleur }}>
           {matchTitre[1]}
         </h3>,
       );
@@ -201,7 +196,7 @@ function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string
         elements.push(
           <p
             key={i}
-            className="mb-3 text-sm leading-relaxed text-slate-700 text-justify hyphens-auto"
+            className="mb-3 text-justify text-sm leading-relaxed hyphens-auto text-slate-700"
             dangerouslySetInnerHTML={{ __html: formatInline(contenu) }}
           />,
         );
@@ -220,7 +215,7 @@ function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string
     elements.push(
       <p
         key={i}
-        className="mb-3 text-sm leading-relaxed text-slate-700 text-justify hyphens-auto"
+        className="mb-3 text-justify text-sm leading-relaxed hyphens-auto text-slate-700"
         dangerouslySetInnerHTML={{ __html: formatInline(ligne) }}
       />,
     );

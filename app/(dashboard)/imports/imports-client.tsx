@@ -25,13 +25,12 @@ export function ImportsPageClient({ importIaActif }: Props) {
   const [rapportClassique, setRapportClassique] = useState<RapportImport | null>(null);
   const [rapportEnrichi, setRapportEnrichi] = useState<RapportImportEnrichi | null>(null);
 
-  const handleRapport = (
-    setEnrichi: typeof setRapportEnrichi,
-    setClassique: typeof setRapportClassique,
-  ) => (r: RapportImport | RapportImportEnrichi) => {
-    if ('nb_inserees' in r) setEnrichi(r);
-    else setClassique(r);
-  };
+  const handleRapport =
+    (setEnrichi: typeof setRapportEnrichi, setClassique: typeof setRapportClassique) =>
+    (r: RapportImport | RapportImportEnrichi) => {
+      if ('nb_inserees' in r) setEnrichi(r);
+      else setClassique(r);
+    };
 
   return (
     <>
@@ -56,10 +55,7 @@ export function ImportsPageClient({ importIaActif }: Props) {
         />
       </div>
 
-      <DialogueRapportImport
-        rapport={rapportClassique}
-        onClose={() => setRapportClassique(null)}
-      />
+      <DialogueRapportImport rapport={rapportClassique} onClose={() => setRapportClassique(null)} />
       <DialogueRapportImportEnrichi
         rapport={rapportEnrichi}
         onClose={() => setRapportEnrichi(null)}

@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         erreur:
-          'Impossible de traiter le fichier avec l\'analyse IA. Réessayez ou utilisez le format Excel standard.',
+          "Impossible de traiter le fichier avec l'analyse IA. Réessayez ou utilisez le format Excel standard.",
       },
       { status: 500 },
     );

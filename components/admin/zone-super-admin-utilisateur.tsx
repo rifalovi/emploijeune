@@ -140,7 +140,9 @@ export function ZoneSuperAdminUtilisateur({ userId, emailActuel, nomComplet, est
               variant="default"
               size="sm"
               onClick={onChangerEmail}
-              disabled={pending || estLuiMeme || !nouvelEmail.trim() || nouvelEmail.trim() === emailActuel}
+              disabled={
+                pending || estLuiMeme || !nouvelEmail.trim() || nouvelEmail.trim() === emailActuel
+              }
             >
               {pending ? (
                 <Loader2 className="mr-2 size-3 animate-spin" aria-hidden />

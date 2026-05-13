@@ -213,10 +213,7 @@ describe('detecterEnTetesFlexibles', () => {
       'Type de formation suivi',
       'Année durant laquelle la formation a été suivie',
     ];
-    const { mapping, headersNonReconnus } = detecterEnTetesFlexibles(
-      headersP6,
-      headersOfficiels,
-    );
+    const { mapping, headersNonReconnus } = detecterEnTetesFlexibles(headersP6, headersOfficiels);
     expect(mapping.get('Projet')).toBe('Code projet *');
     expect(mapping.get('Prénoms*')).toBe('Prénom *');
     expect(mapping.get('Nom*')).toBe('Nom *');
@@ -270,7 +267,7 @@ describe('fusionnerBeneficiaires', () => {
     courriel?: string | null;
   };
 
-  it("ne remplace pas un champ existant non vide", () => {
+  it('ne remplace pas un champ existant non vide', () => {
     const existant: Fixture = { prenom: 'Alice', nom: 'Dupont', courriel: null };
     const nouveau: Partial<Fixture> = { prenom: 'Bob', courriel: 'a@b.com' };
     const { fusionne, champsMisAJour } = fusionnerBeneficiaires(existant, nouveau);

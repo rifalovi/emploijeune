@@ -159,7 +159,8 @@ export function ListeCiblesRevue({
                           className="text-[10px]"
                           style={{
                             color: l.tranche_age_declaree === 'Jeune' ? '#0198E9' : '#5D0073',
-                            borderColor: l.tranche_age_declaree === 'Jeune' ? '#0198E955' : '#5D007355',
+                            borderColor:
+                              l.tranche_age_declaree === 'Jeune' ? '#0198E955' : '#5D007355',
                           }}
                         >
                           {l.tranche_age_declaree === 'Jeune' ? 'Jeune 18–34' : 'Adulte 35+'}

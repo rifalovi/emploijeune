@@ -28,13 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -96,7 +90,9 @@ export function CollectePubliqueClient({
   const [liens, setLiens] = useState(liensInitiaux);
   const [soumissions, setSoumissions] = useState(soumissionsInitiales);
   const [onglet, setOnglet] = useState<'liens' | 'soumissions'>('liens');
-  const [filtreStatut, setFiltreStatut] = useState<'tous' | 'en_attente' | 'valide' | 'rejete'>('en_attente');
+  const [filtreStatut, setFiltreStatut] = useState<'tous' | 'en_attente' | 'valide' | 'rejete'>(
+    'en_attente',
+  );
   const [filtreLien, setFiltreLien] = useState<string>('tous');
 
   // Dialogue création lien
@@ -148,7 +144,9 @@ export function CollectePubliqueClient({
       const result = await validerSoumission(id);
       if (result.status === 'succes') {
         setSoumissions((prev) =>
-          prev.map((s) => (s.id === id ? { ...s, statut: 'valide', entite_creee_id: result.entite_id } : s)),
+          prev.map((s) =>
+            s.id === id ? { ...s, statut: 'valide', entite_creee_id: result.entite_id } : s,
+          ),
         );
         setDialogDetail(false);
         router.refresh();
@@ -198,7 +196,8 @@ export function CollectePubliqueClient({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Collecte publique</h1>
           <p className="text-muted-foreground text-sm">
-            Liens réutilisables pour l'enregistrement sans compte — Type A (bénéficiaires) ou Type B (structures)
+            Liens réutilisables pour l'enregistrement sans compte — Type A (bénéficiaires) ou Type B
+            (structures)
           </p>
         </div>
         {peutCreer && (
@@ -316,22 +315,26 @@ export function CollectePubliqueClient({
               </SelectContent>
             </Select>
 
-            <Select
-              value={filtreLien}
-              onValueChange={(v) => setFiltreLien(v ?? '')}
-            >
+            <Select value={filtreLien} onValueChange={(v) => setFiltreLien(v ?? '')}>
               <SelectTrigger className="w-64">
                 <SelectValue placeholder="Tous les liens" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="tous">Tous les liens</SelectItem>
                 {liens.map((l) => (
-                  <SelectItem key={l.id} value={l.id}>{l.label || l.slug}</SelectItem>
+                  <SelectItem key={l.id} value={l.id}>
+                    {l.label || l.slug}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            <Button variant="outline" size="sm" onClick={rafraichirSoumissions} disabled={isPending}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={rafraichirSoumissions}
+              disabled={isPending}
+            >
               Actualiser
             </Button>
           </div>
@@ -359,11 +362,18 @@ export function CollectePubliqueClient({
                   {soumissionsFiltrees.map((s) => (
                     <TableRow key={s.id}>
                       <TableCell>
-                        <Badge variant={s.type === 'A' ? 'default' : 'secondary'} className="font-mono">
+                        <Badge
+                          variant={s.type === 'A' ? 'default' : 'secondary'}
+                          className="font-mono"
+                        >
                           {s.type === 'A' ? (
-                            <><User className="mr-1 size-3" /> Bénéf.</>
+                            <>
+                              <User className="mr-1 size-3" /> Bénéf.
+                            </>
                           ) : (
-                            <><Building2 className="mr-1 size-3" /> Structure</>
+                            <>
+                              <Building2 className="mr-1 size-3" /> Structure
+                            </>
                           )}
                         </Badge>
                       </TableCell>
@@ -374,7 +384,7 @@ export function CollectePubliqueClient({
                         <p className="truncate text-sm font-medium">
                           {s.type === 'A'
                             ? `${s.donnees['prenom'] ?? ''} ${s.donnees['nom'] ?? ''}`
-                            : (s.donnees['nom_structure'] as string) ?? '–'}
+                            : ((s.donnees['nom_structure'] as string) ?? '–')}
                         </p>
                         <p className="text-muted-foreground truncate text-xs">
                           {(s.donnees['pays_code'] as string) ?? ''}
@@ -392,11 +402,7 @@ export function CollectePubliqueClient({
                         <StatutBadge statut={s.statut} />
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => ouvrirDetail(s)}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => ouvrirDetail(s)}>
                           <Eye className="mr-1 size-4" />
                           Détail
                         </Button>
@@ -423,7 +429,7 @@ export function CollectePubliqueClient({
       {/* ===== Dialog détail soumission ===== */}
       {soumissionDetail && (
         <Dialog open={dialogDetail} onOpenChange={setDialogDetail}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {soumissionDetail.type === 'A' ? (
@@ -443,21 +449,26 @@ export function CollectePubliqueClient({
               <div className="flex items-center gap-3 text-sm">
                 <StatutBadge statut={soumissionDetail.statut} />
                 <span className="text-muted-foreground">
-                  Reçu le {new Date(soumissionDetail.created_at).toLocaleDateString('fr-FR', {
-                    day: '2-digit', month: 'long', year: 'numeric',
+                  Reçu le{' '}
+                  {new Date(soumissionDetail.created_at).toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
                   })}
                 </span>
-                <span className="text-muted-foreground">· Lien : {soumissionDetail.lien_label || soumissionDetail.lien_slug}</span>
+                <span className="text-muted-foreground">
+                  · Lien : {soumissionDetail.lien_label || soumissionDetail.lien_slug}
+                </span>
               </div>
 
               {/* Données */}
-              <div className="rounded-lg border bg-muted/30 p-4">
+              <div className="bg-muted/30 rounded-lg border p-4">
                 <h3 className="mb-3 text-sm font-semibold">Données soumises</h3>
                 <DonneesGrid donnees={soumissionDetail.donnees} type={soumissionDetail.type} />
               </div>
 
               {soumissionDetail.motif_rejet && (
-                <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-3 text-sm">
                   <AlertCircle className="mt-0.5 size-4 shrink-0" />
                   <div>
                     <p className="font-medium">Motif de rejet :</p>
@@ -469,7 +480,8 @@ export function CollectePubliqueClient({
               {soumissionDetail.entite_creee_id && (
                 <div className="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-800">
                   <CheckCircle2 className="size-4" />
-                  Intégré en base — ID : <code className="font-mono text-xs">{soumissionDetail.entite_creee_id}</code>
+                  Intégré en base — ID :{' '}
+                  <code className="font-mono text-xs">{soumissionDetail.entite_creee_id}</code>
                 </div>
               )}
 
@@ -522,17 +534,22 @@ export function CollectePubliqueClient({
       )}
 
       {/* ===== Dialog confirmation suppression lien ===== */}
-      <Dialog open={!!lienASupprimer} onOpenChange={(o) => { if (!o) setLienASupprimer(null); }}>
+      <Dialog
+        open={!!lienASupprimer}
+        onOpenChange={(o) => {
+          if (!o) setLienASupprimer(null);
+        }}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
+            <DialogTitle className="text-destructive flex items-center gap-2">
               <Trash2 className="size-5" />
               Supprimer ce lien ?
             </DialogTitle>
             <DialogDescription>
               Le lien <strong>{lienASupprimer?.label || lienASupprimer?.slug}</strong> sera
-              définitivement supprimé. Les soumissions associées seront également retirées.
-              Cette action est irréversible.
+              définitivement supprimé. Les soumissions associées seront également retirées. Cette
+              action est irréversible.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row gap-2">
@@ -577,12 +594,11 @@ function LienCard({
   onSupprimer: (lien: LienCollecte) => void;
   onVoirSoumissions: (id: string) => void;
 }) {
-
   return (
     <Card className={lien.statut === 'inactif' ? 'opacity-60' : ''}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex min-w-0 items-center gap-3">
             <Badge variant={lien.type === 'A' ? 'default' : 'secondary'} className="shrink-0">
               {lien.type === 'A' ? 'Type A – Bénéf.' : 'Type B – Structure'}
             </Badge>
@@ -600,7 +616,12 @@ function LienCard({
             {lien.statut === 'expire' ? (
               <Badge variant="destructive">Expiré</Badge>
             ) : (
-              <Badge variant={lien.statut === 'actif' ? 'default' : 'outline'} className={lien.statut === 'actif' ? 'bg-green-100 text-green-800 border-green-300' : ''}>
+              <Badge
+                variant={lien.statut === 'actif' ? 'default' : 'outline'}
+                className={
+                  lien.statut === 'actif' ? 'border-green-300 bg-green-100 text-green-800' : ''
+                }
+              >
                 {lien.statut === 'actif' ? 'Actif' : 'Inactif'}
               </Badge>
             )}
@@ -610,12 +631,12 @@ function LienCard({
 
       <CardContent className="space-y-3">
         {/* URL + Copier */}
-        <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
-          <code className="flex-1 truncate text-xs text-muted-foreground">{lien.url}</code>
+        <div className="bg-muted/50 flex items-center gap-2 rounded-md px-3 py-2">
+          <code className="text-muted-foreground flex-1 truncate text-xs">{lien.url}</code>
           <Button
             variant="ghost"
             size="sm"
-            className="shrink-0 h-7 px-2"
+            className="h-7 shrink-0 px-2"
             onClick={() => onCopier(lien.url, lien.id)}
           >
             {copie === lien.id ? (
@@ -624,7 +645,7 @@ function LienCard({
               <Copy className="size-4" />
             )}
           </Button>
-          <Button variant="ghost" size="sm" className="shrink-0 h-7 px-2" asChild>
+          <Button variant="ghost" size="sm" className="h-7 shrink-0 px-2" asChild>
             <a href={lien.url} target="_blank" rel="noreferrer">
               <ExternalLink className="size-4" />
             </a>
@@ -664,11 +685,7 @@ function LienCard({
         {/* Actions */}
         <div className="flex gap-2">
           {lien.nb_total > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onVoirSoumissions(lien.id)}
-            >
+            <Button variant="outline" size="sm" onClick={() => onVoirSoumissions(lien.id)}>
               <Eye className="mr-1 size-4" />
               Voir les soumissions
             </Button>
@@ -681,9 +698,13 @@ function LienCard({
               onClick={() => onBasculer(lien.id, lien.statut)}
             >
               {lien.statut === 'actif' ? (
-                <><ToggleRight className="mr-1 size-4 text-green-600" /> Désactiver</>
+                <>
+                  <ToggleRight className="mr-1 size-4 text-green-600" /> Désactiver
+                </>
               ) : (
-                <><ToggleLeft className="mr-1 size-4" /> Activer</>
+                <>
+                  <ToggleLeft className="mr-1 size-4" /> Activer
+                </>
               )}
             </Button>
           )}
@@ -691,7 +712,7 @@ function LienCard({
             <Button
               variant="ghost"
               size="sm"
-              className="ml-auto text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive ml-auto"
               disabled={isPending}
               onClick={() => onSupprimer(lien)}
             >
@@ -706,16 +727,18 @@ function LienCard({
 }
 
 function StatutBadge({ statut }: { statut: string }) {
-  if (statut === 'en_attente') return (
-    <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700">
-      <Clock className="mr-1 size-3" /> En attente
-    </Badge>
-  );
-  if (statut === 'valide') return (
-    <Badge variant="outline" className="border-green-300 bg-green-50 text-green-700">
-      <CheckCircle2 className="mr-1 size-3" /> Validée
-    </Badge>
-  );
+  if (statut === 'en_attente')
+    return (
+      <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700">
+        <Clock className="mr-1 size-3" /> En attente
+      </Badge>
+    );
+  if (statut === 'valide')
+    return (
+      <Badge variant="outline" className="border-green-300 bg-green-50 text-green-700">
+        <CheckCircle2 className="mr-1 size-3" /> Validée
+      </Badge>
+    );
   return (
     <Badge variant="outline" className="border-destructive/30 bg-destructive/5 text-destructive">
       <XCircle className="mr-1 size-3" /> Rejetée
@@ -723,29 +746,36 @@ function StatutBadge({ statut }: { statut: string }) {
   );
 }
 
-function DonneesGrid({
-  donnees,
-  type,
-}: {
-  donnees: Record<string, unknown>;
-  type: TypeCollecte;
-}) {
+function DonneesGrid({ donnees, type }: { donnees: Record<string, unknown>; type: TypeCollecte }) {
   const champsA = [
-    ['Prénom', 'prenom'], ['Nom', 'nom'], ['Sexe', 'sexe'],
-    ['Tranche âge', 'tranche_age_declaree'], ['Pays', 'pays_code'],
-    ['Projet', 'projet_code'], ['Domaine formation', 'domaine_formation_code'],
-    ['Année formation', 'annee_formation'], ['Téléphone', 'telephone'],
-    ['Courriel', 'courriel'], ['Consentement', 'consentement_recueilli'],
+    ['Prénom', 'prenom'],
+    ['Nom', 'nom'],
+    ['Sexe', 'sexe'],
+    ['Tranche âge', 'tranche_age_declaree'],
+    ['Pays', 'pays_code'],
+    ['Projet', 'projet_code'],
+    ['Domaine formation', 'domaine_formation_code'],
+    ['Année formation', 'annee_formation'],
+    ['Téléphone', 'telephone'],
+    ['Courriel', 'courriel'],
+    ['Consentement', 'consentement_recueilli'],
   ] as [string, string][];
 
   const champsB = [
-    ['Nom structure', 'nom_structure'], ['Type', 'type_structure'],
-    ['Secteur', 'secteur_activite'], ['Statut', 'statut_creation'],
-    ['Année appui', 'annee_appui'], ['Nature appui', 'nature_appui'],
-    ['Projet', 'projet_code'], ['Pays', 'pays_code'],
-    ['Porteur – nom', 'porteur_nom'], ['Porteur – prénom', 'porteur_prenom'],
-    ['Porteur – sexe', 'porteur_sexe'], ['Téléphone', 'telephone'],
-    ['Courriel', 'courriel'], ['Initiative', 'intitule_initiative'],
+    ['Nom structure', 'nom_structure'],
+    ['Type', 'type_structure'],
+    ['Secteur', 'secteur_activite'],
+    ['Statut', 'statut_creation'],
+    ['Année appui', 'annee_appui'],
+    ['Nature appui', 'nature_appui'],
+    ['Projet', 'projet_code'],
+    ['Pays', 'pays_code'],
+    ['Porteur – nom', 'porteur_nom'],
+    ['Porteur – prénom', 'porteur_prenom'],
+    ['Porteur – sexe', 'porteur_sexe'],
+    ['Téléphone', 'telephone'],
+    ['Courriel', 'courriel'],
+    ['Initiative', 'intitule_initiative'],
     ['Consentement', 'consentement_recueilli'],
   ] as [string, string][];
 
@@ -818,13 +848,16 @@ function DialogCreerLien({
         <DialogHeader>
           <DialogTitle>Nouveau lien de collecte publique</DialogTitle>
           <DialogDescription>
-            Générez un lien réutilisable à partager (WhatsApp, affiche, QR code…) pour permettre l'enregistrement sans compte.
+            Générez un lien réutilisable à partager (WhatsApp, affiche, QR code…) pour permettre
+            l'enregistrement sans compte.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Type de collecte <span className="text-destructive">*</span></Label>
+            <Label>
+              Type de collecte <span className="text-destructive">*</span>
+            </Label>
             <Select value={type} onValueChange={(v) => setType(v as TypeCollecte)}>
               <SelectTrigger>
                 <SelectValue />
@@ -847,7 +880,9 @@ function DialogCreerLien({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="label">Libellé du lien <span className="text-destructive">*</span></Label>
+            <Label htmlFor="label">
+              Libellé du lien <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="label"
               value={label}
@@ -862,14 +897,19 @@ function DialogCreerLien({
 
           <div className="space-y-1.5">
             <Label>Projet OIF associé</Label>
-            <Select value={projetCode || '_aucun'} onValueChange={(v) => setProjetCode(v === '_aucun' || v === null ? '' : v)}>
+            <Select
+              value={projetCode || '_aucun'}
+              onValueChange={(v) => setProjetCode(v === '_aucun' || v === null ? '' : v)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Optionnel — pré-remplit le formulaire" />
               </SelectTrigger>
               <SelectContent className="max-h-56">
                 <SelectItem value="_aucun">Aucun (à renseigner par le participant)</SelectItem>
                 {PROJETS_CODES.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -889,7 +929,7 @@ function DialogCreerLien({
           </div>
 
           {erreur && (
-            <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+            <div className="bg-destructive/10 text-destructive flex items-center gap-2 rounded-lg p-3 text-sm">
               <AlertCircle className="size-4 shrink-0" />
               {erreur}
             </div>

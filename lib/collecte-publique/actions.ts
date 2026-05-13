@@ -222,10 +222,7 @@ export async function validerLienSlug(slug: string): Promise<ValiderSlugResult> 
 
   if (data.expire_at && new Date(data.expire_at).getTime() < Date.now()) {
     // Auto-marquer comme expiré
-    await admin
-      .from('liens_collecte_publique')
-      .update({ statut: 'expire' })
-      .eq('slug', slug);
+    await admin.from('liens_collecte_publique').update({ statut: 'expire' }).eq('slug', slug);
     return { status: 'expire' };
   }
 
@@ -447,9 +444,7 @@ export type ValiderSoumissionResult =
   | { status: 'erreur_inconnue'; message: string }
   | { status: 'deja_traitee'; message: string };
 
-export async function validerSoumission(
-  soumissionId: string,
-): Promise<ValiderSoumissionResult> {
+export async function validerSoumission(soumissionId: string): Promise<ValiderSoumissionResult> {
   const utilisateur = await getCurrentUtilisateur();
   if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
     return { status: 'erreur_droits', message: 'Réservé aux admins.' };
@@ -474,9 +469,10 @@ export async function validerSoumission(
 
   const donnees = soumission.donnees as Record<string, unknown>;
   const lienRaw = Array.isArray(soumission.lien) ? soumission.lien[0] : soumission.lien;
-  const projetCode = (lienRaw as { projet_code: string | null } | null)?.projet_code
-    ?? (donnees['_projet_code'] as string | null)
-    ?? null;
+  const projetCode =
+    (lienRaw as { projet_code: string | null } | null)?.projet_code ??
+    (donnees['_projet_code'] as string | null) ??
+    null;
 
   // Insertion selon le type
   let entiteId: string | null = null;
@@ -521,7 +517,8 @@ export async function validerSoumission(
       nom_structure: (donnees['nom_structure'] as string) ?? '',
       type_structure_code: (donnees['type_structure_code'] as string) ?? 'AUTRE',
       secteur_activite_code: (donnees['secteur_activite_code'] as string) ?? 'AUTRE',
-      statut_creation: (donnees['statut_creation'] as 'creation' | 'renforcement' | 'relance') ?? 'creation',
+      statut_creation:
+        (donnees['statut_creation'] as 'creation' | 'renforcement' | 'relance') ?? 'creation',
       annee_appui: Number(donnees['annee_appui'] ?? new Date().getFullYear()),
       nature_appui_code: (donnees['nature_appui_code'] as string) ?? 'AUTRE',
       projet_code: projetCode ?? (donnees['projet_code'] as string) ?? '',

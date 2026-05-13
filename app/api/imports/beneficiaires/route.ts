@@ -61,10 +61,7 @@ export async function POST(request: NextRequest) {
   // Limite taille côté API (double vérification — aussi dans la Server Action)
   const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
   if (fichier.size > MAX_SIZE) {
-    return NextResponse.json(
-      { erreur: 'Fichier trop volumineux (max 10 MB).' },
-      { status: 400 },
-    );
+    return NextResponse.json({ erreur: 'Fichier trop volumineux (max 10 MB).' }, { status: 400 });
   }
 
   try {

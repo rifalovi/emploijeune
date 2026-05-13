@@ -192,7 +192,6 @@ export function BeneficiaireForm({
   });
 
   // Watches pour les comportements dynamiques
-  const consentement = form.watch('consentement_recueilli');
   const dateNaissance = form.watch('date_naissance');
   const statut = form.watch('statut_code');
   const dateFinFormation = form.watch('date_fin_formation');
@@ -739,7 +738,6 @@ export function BeneficiaireForm({
                     <FormControl>
                       <Input
                         type="date"
-
                         value={
                           field.value instanceof Date
                             ? field.value.toISOString().slice(0, 10)
@@ -775,7 +773,6 @@ export function BeneficiaireForm({
                       <Input
                         type="tel"
                         inputMode="tel"
-
                         placeholder="+22676123456"
                         {...field}
                         value={field.value ?? ''}
@@ -799,7 +796,6 @@ export function BeneficiaireForm({
                       <Input
                         type="email"
                         autoComplete="email"
-
                         placeholder="prenom.nom@example.org"
                         {...field}
                         value={field.value ?? ''}

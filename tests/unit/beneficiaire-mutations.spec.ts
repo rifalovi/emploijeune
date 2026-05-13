@@ -67,9 +67,8 @@ vi.mock('@/lib/supabase/auth', () => ({
 }));
 
 // Import du module sous test APRÈS les mocks.
-const { modifierBeneficiaire, setBeneficiaireDeleted } = await import(
-  '@/lib/beneficiaires/mutations'
-);
+const { modifierBeneficiaire, setBeneficiaireDeleted } =
+  await import('@/lib/beneficiaires/mutations');
 
 // =============================================================================
 // Fixtures

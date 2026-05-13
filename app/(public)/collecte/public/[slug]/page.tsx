@@ -6,8 +6,7 @@ import { CollecteForm } from './collecte-form';
 
 export const metadata: Metadata = {
   title: 'Enregistrement – OIF Emploi Jeunes',
-  description:
-    "Formulaire d'enregistrement pour les bénéficiaires et structures partenaires OIF.",
+  description: "Formulaire d'enregistrement pour les bénéficiaires et structures partenaires OIF.",
 };
 
 export const dynamic = 'force-dynamic';
@@ -37,11 +36,9 @@ export default async function CollectePubliquePage({ params }: PageProps) {
             size="lg"
             withProtectedSpace
             priority
-            ariaLabel="Logo officiel de l&apos;Organisation Internationale de la Francophonie"
+            ariaLabel="Logo officiel de l'Organisation Internationale de la Francophonie"
           />
-          <h1 className="mt-4 text-2xl font-semibold tracking-tight">
-            OIF – Emploi Jeunes
-          </h1>
+          <h1 className="mt-4 text-2xl font-semibold tracking-tight">OIF – Emploi Jeunes</h1>
           <p className="text-muted-foreground mt-1 text-sm">{typeLabel}</p>
           {validation.status === 'valide' && validation.lien.label && (
             <p className="mt-1 text-xs font-medium text-[#5D0073]">{validation.lien.label}</p>
@@ -69,11 +66,7 @@ export default async function CollectePubliquePage({ params }: PageProps) {
   );
 }
 
-function ErreurLien({
-  status,
-}: {
-  status: 'introuvable' | 'inactif' | 'expire';
-}) {
+function ErreurLien({ status }: { status: 'introuvable' | 'inactif' | 'expire' }) {
   const config = {
     introuvable: {
       titre: 'Lien introuvable',

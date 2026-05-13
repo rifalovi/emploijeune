@@ -77,18 +77,17 @@ export default async function LancerCampagnePage() {
             <Link2 className="size-5 text-[#5D0073]" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium">
-              Ni adresse email ni référence connue ?
-            </p>
+            <p className="text-sm font-medium">Ni adresse email ni référence connue ?</p>
             <p className="text-muted-foreground mt-0.5 text-sm">
-              Générez un <strong>lien public réutilisable</strong> (Type A bénéficiaires ou Type B structures)
-              à partager par WhatsApp, affiche ou QR code. Les participants s'enregistrent sans compte
-              et vous validez leurs soumissions avant intégration en base.
+              Générez un <strong>lien public réutilisable</strong> (Type A bénéficiaires ou Type B
+              structures) à partager par WhatsApp, affiche ou QR code. Les participants
+              s'enregistrent sans compte et vous validez leurs soumissions avant intégration en
+              base.
             </p>
           </div>
           <Link
             href="/collecte-publique"
-            className="shrink-0 rounded-md bg-[#5D0073] px-4 py-2 text-sm font-medium text-white hover:bg-[#4a005c] transition-colors"
+            className="shrink-0 rounded-md bg-[#5D0073] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#4a005c]"
           >
             Gérer les liens publics
           </Link>

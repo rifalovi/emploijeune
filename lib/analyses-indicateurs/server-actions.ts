@@ -52,7 +52,7 @@ async function exigerSuperAdmin() {
  *   - Marqueur F1 (français) : transverse — relie A1/B1/C1
  */
 const INDICATEURS_CONNEXES: Record<string, string[]> = {
-  A1: ["A2 (taux d'achèvement)", 'A3 (taux de certification)', "A5 (insertion professionnelle)"],
+  A1: ["A2 (taux d'achèvement)", 'A3 (taux de certification)', 'A5 (insertion professionnelle)'],
   A2: ['A1 (nombre de bénéficiaires)', 'A3 (certification)', 'A4 (progression des compétences)'],
   A3: ['A2 (achèvement)', 'A5 (insertion post-formation)'],
   A4: ['A1', 'A2', 'A3'],

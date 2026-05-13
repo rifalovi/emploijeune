@@ -78,11 +78,13 @@ export async function suggererMappageDomaines(
     return {
       status: 'desactive',
       message:
-        'Module Import IA désactivé pour votre rôle. Demandez au super_admin de l\'activer dans /super-admin/modules.',
+        "Module Import IA désactivé pour votre rôle. Demandez au super_admin de l'activer dans /super-admin/modules.",
     };
   }
 
-  const valeursUniques = Array.from(new Set(valeursNonReconnues.map((v) => v.trim()).filter((v) => v.length > 0)));
+  const valeursUniques = Array.from(
+    new Set(valeursNonReconnues.map((v) => v.trim()).filter((v) => v.length > 0)),
+  );
   if (valeursUniques.length === 0) {
     return { status: 'succes', suggestions: [] };
   }
@@ -128,7 +130,7 @@ export async function suggererMappageDomaines(
     if (err instanceof Error && err.name === 'AbortError') {
       return {
         status: 'erreur',
-        message: 'Analyse IA expirée (>30s). L\'import classique reste disponible.',
+        message: "Analyse IA expirée (>30s). L'import classique reste disponible.",
       };
     }
     return {

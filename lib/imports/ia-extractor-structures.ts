@@ -194,9 +194,7 @@ async function extraireTexteFichier(
   fichierType: FormatFichier,
 ): Promise<string> {
   const buf =
-    fichierBuffer instanceof Buffer
-      ? fichierBuffer
-      : Buffer.from(new Uint8Array(fichierBuffer));
+    fichierBuffer instanceof Buffer ? fichierBuffer : Buffer.from(new Uint8Array(fichierBuffer));
 
   switch (fichierType) {
     case 'txt':
@@ -221,14 +219,13 @@ async function extraireTexteFichier(
       workbook.eachSheet((worksheet) => {
         lignes.push(`=== Feuille : ${worksheet.name} ===`);
         worksheet.eachRow({ includeEmpty: false }, (row) => {
-          const valeurs = (row.values as (ExcelJS.CellValue | null)[])
-            .slice(1)
-            .map((v) => {
-              if (v === null || v === undefined) return '';
-              if (typeof v === 'object' && 'text' in v) return String((v as { text: string }).text);
-              if (typeof v === 'object' && 'result' in v) return String((v as { result: unknown }).result ?? '');
-              return String(v);
-            });
+          const valeurs = (row.values as (ExcelJS.CellValue | null)[]).slice(1).map((v) => {
+            if (v === null || v === undefined) return '';
+            if (typeof v === 'object' && 'text' in v) return String((v as { text: string }).text);
+            if (typeof v === 'object' && 'result' in v)
+              return String((v as { result: unknown }).result ?? '');
+            return String(v);
+          });
           lignes.push(valeurs.join('\t'));
         });
       });
@@ -327,7 +324,7 @@ function normaliserLigneExtraite(brute: LigneBrute): LigneExtraiteStructure {
     'Année appui *': brute.annee_appui ?? null,
     'Nature appui *': nature ?? brute.nature_appui ?? null,
     'Montant appui': brute.montant_appui ?? null,
-    'Devise': brute.devise ?? null,
+    Devise: brute.devise ?? null,
     'Porteur – nom *': brute.porteur_nom ?? null,
     'Porteur – prénom': brute.porteur_prenom ?? null,
     'Porteur – sexe *': sexePorteur ?? brute.porteur_sexe ?? null,
@@ -339,13 +336,13 @@ function normaliserLigneExtraite(brute: LigneBrute): LigneExtraiteStructure {
 
   // Score de confiance : champs cruciaux du modèle B1
   let score = 0;
-  if (projet) score += 20;          // code projet reconnu
-  if (pays) score += 20;            // code pays reconnu
+  if (projet) score += 20; // code projet reconnu
+  if (pays) score += 20; // code pays reconnu
   if (brute.nom_structure) score += 20; // nom obligatoire
-  if (typeStructure) score += 10;   // type normalisé
-  if (secteur) score += 10;         // secteur normalisé
+  if (typeStructure) score += 10; // type normalisé
+  if (secteur) score += 10; // secteur normalisé
   if (brute.porteur_nom) score += 10; // porteur obligatoire
-  if (sexePorteur) score += 10;     // sexe porteur normalisé
+  if (sexePorteur) score += 10; // sexe porteur normalisé
 
   return { donnees, confiance: score };
 }
@@ -358,10 +355,13 @@ function calculerConfianceGlobale(lignes: LigneExtraiteStructure[]): number {
 
 function construireNotes(lignes: LigneExtraiteStructure[], format: FormatFichier): string {
   const formatLabel =
-    format === 'pdf' ? 'PDF' :
-    format === 'docx' ? 'Word (DOCX)' :
-    format === 'xlsx' ? 'Excel (analyse IA)' :
-    'texte brut';
+    format === 'pdf'
+      ? 'PDF'
+      : format === 'docx'
+        ? 'Word (DOCX)'
+        : format === 'xlsx'
+          ? 'Excel (analyse IA)'
+          : 'texte brut';
   const nbProjetsReconnus = lignes.filter((l) => l.donnees['Code projet *']).length;
   const nbPaysReconnus = lignes.filter((l) => l.donnees['Code pays *']).length;
   const nbNomsReconnus = lignes.filter((l) => l.donnees['Nom structure *']).length;

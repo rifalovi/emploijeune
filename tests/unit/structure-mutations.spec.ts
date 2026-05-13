@@ -57,9 +57,8 @@ vi.mock('@/lib/supabase/auth', () => ({
   getCurrentUtilisateur: vi.fn(async () => utilisateurCourant),
 }));
 
-const { creerStructure, modifierStructure, setStructureDeleted } = await import(
-  '@/lib/structures/mutations'
-);
+const { creerStructure, modifierStructure, setStructureDeleted } =
+  await import('@/lib/structures/mutations');
 
 const payloadValide = {
   nom_structure: 'COOPAGRO',

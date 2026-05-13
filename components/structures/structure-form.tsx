@@ -216,8 +216,6 @@ export function StructureForm({
     } as unknown as FormValues,
   });
 
-  const consentement = form.watch('consentement_recueilli');
-
   // Maps code→libellé dérivés des options serveur (pour les SelectValue).
   const projetsLibelles = Object.fromEntries(projetsOptions.map((o) => [o.code, o.libelle]));
   const paysLibelles = Object.fromEntries(paysOptions.map((o) => [o.code, o.libelle]));
@@ -751,7 +749,6 @@ export function StructureForm({
                     <FormControl>
                       <Input
                         type="date"
-
                         value={
                           field.value instanceof Date
                             ? field.value.toISOString().slice(0, 10)
@@ -774,7 +771,6 @@ export function StructureForm({
                       <Input
                         type="tel"
                         inputMode="tel"
-
                         placeholder="+22676123456"
                         {...field}
                         value={field.value ?? ''}
@@ -794,7 +790,6 @@ export function StructureForm({
                       <Input
                         type="email"
                         autoComplete="email"
-
                         placeholder="contact@structure.org"
                         {...field}
                         value={field.value ?? ''}

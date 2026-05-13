@@ -101,9 +101,9 @@ export default async function ModifierUtilisateurPage({ params }: PageProps) {
       {utilisateurCourant.role !== 'super_admin' && (
         <Card>
           <CardContent className="bg-muted/30 p-3 text-xs">
-            <strong>Email non modifiable</strong> – le changement d’email impacte
-            l’authentification (auth.users). Seul le super_admin peut modifier un email ou
-            supprimer un compte (voir bloc dédié plus bas en mode super_admin).
+            <strong>Email non modifiable</strong> – le changement d’email impacte l’authentification
+            (auth.users). Seul le super_admin peut modifier un email ou supprimer un compte (voir
+            bloc dédié plus bas en mode super_admin).
           </CardContent>
         </Card>
       )}

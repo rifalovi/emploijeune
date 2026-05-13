@@ -59,9 +59,7 @@ export default function GlobalError({
           >
             !
           </div>
-          <h1 style={{ fontSize: 24, margin: '0 0 0.5rem 0', fontWeight: 600 }}>
-            Erreur critique
-          </h1>
+          <h1 style={{ fontSize: 24, margin: '0 0 0.5rem 0', fontWeight: 600 }}>Erreur critique</h1>
           <p style={{ color: '#475569', lineHeight: 1.6, marginBottom: 8 }}>
             L&apos;application a rencontré un problème inattendu. Rechargez la page ou contactez le
             SCS.

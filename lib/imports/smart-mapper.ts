@@ -123,7 +123,7 @@ const HEADER_SYNONYMES: Record<string, string> = {
 
   // → "Partenaire d'accompagnement"
   organisation: "Partenaire d'accompagnement",
-  "organisation qui vous a accompagne": "Partenaire d'accompagnement",
+  'organisation qui vous a accompagne': "Partenaire d'accompagnement",
   partenaire: "Partenaire d'accompagnement",
   structure: "Partenaire d'accompagnement",
 
@@ -133,14 +133,14 @@ const HEADER_SYNONYMES: Record<string, string> = {
   'fonction actuelle': 'Fonction / Statut actuel',
 
   // → "Tranche d'âge déclarée"
-  "tranche age": "Tranche d'âge déclarée",
+  'tranche age': "Tranche d'âge déclarée",
   "tranche d'age": "Tranche d'âge déclarée",
   age: "Tranche d'âge déclarée",
-  "categorie age": "Tranche d'âge déclarée",
+  'categorie age': "Tranche d'âge déclarée",
   jeune: "Tranche d'âge déclarée",
-  "jeune (18-34 ans)": "Tranche d'âge déclarée",
-  "adulte (35 ans et +)": "Tranche d'âge déclarée",
-  "jeune (18-34 ans)/*adulte (35 ans et +)1": "Tranche d'âge déclarée",
+  'jeune (18-34 ans)': "Tranche d'âge déclarée",
+  'adulte (35 ans et +)': "Tranche d'âge déclarée",
+  'jeune (18-34 ans)/*adulte (35 ans et +)1': "Tranche d'âge déclarée",
 };
 
 /**
@@ -335,11 +335,11 @@ const PAYS_PAR_LIBELLE: Record<string, PaysCode> = {
   comores: 'COM',
   congo: 'COG',
   'congo brazzaville': 'COG',
-  "republique democratique du congo": 'COD',
+  'republique democratique du congo': 'COD',
   'congo rd': 'COD',
   'congo kinshasa': 'COD',
   rdc: 'COD',
-  "cote d ivoire": 'CIV',
+  'cote d ivoire': 'CIV',
   djibouti: 'DJI',
   dominicaine: 'DOM',
   'republique dominicaine': 'DOM',
@@ -635,7 +635,7 @@ const TYPE_STRUCTURE_ALIASES: Record<string, TypeStructureCode> = {
   // COOP
   coop: 'COOP',
   cooperative: 'COOP',
-  'coopérative': 'COOP',
+  coopérative: 'COOP',
   'cooperative agricole': 'COOP',
   // ASSOC
   assoc: 'ASSOC',
@@ -646,7 +646,7 @@ const TYPE_STRUCTURE_ALIASES: Record<string, TypeStructureCode> = {
   // GIE
   gie: 'GIE',
   'groupement interet economique': 'GIE',
-  "groupement d interet economique": 'GIE',
+  'groupement d interet economique': 'GIE',
   "groupement d'interet economique": 'GIE',
   // AUTRE
   autre: 'AUTRE',
@@ -784,7 +784,7 @@ export function normaliserSecteurActivite(v: unknown): SecteurActiviteCode | nul
 const STATUT_CREATION_ALIASES: Record<string, StatutStructure> = {
   // creation
   creation: 'creation',
-  'création': 'creation',
+  création: 'creation',
   create: 'creation',
   nouveau: 'creation',
   nouvelle: 'creation',
@@ -805,7 +805,7 @@ const STATUT_CREATION_ALIASES: Record<string, StatutStructure> = {
   relaunch: 'relance',
   revival: 'relance',
   redemarrage: 'relance',
-  'redémarrage': 'relance',
+  redémarrage: 'relance',
   'remise en activite': 'relance',
 };
 
@@ -850,14 +850,14 @@ const NATURE_APPUI_ALIASES: Record<string, NatureAppuiCode> = {
   'mise en relation': 'MISE_RELATION',
   networking: 'MISE_RELATION',
   'mise relation': 'MISE_RELATION',
-  'mise_en_relation': 'MISE_RELATION',
+  mise_en_relation: 'MISE_RELATION',
   reseautage: 'MISE_RELATION',
   // APPUI_MIXTE
   'appui mixte': 'APPUI_MIXTE',
   'mixed support': 'APPUI_MIXTE',
   combine: 'APPUI_MIXTE',
   mixte: 'APPUI_MIXTE',
-  'appui_mixte': 'APPUI_MIXTE',
+  appui_mixte: 'APPUI_MIXTE',
   pluriel: 'APPUI_MIXTE',
   // AUTRE
   autre: 'AUTRE',
@@ -939,7 +939,8 @@ export function fusionnerBeneficiaires<T extends Record<string, unknown>>(
   for (const [champ, valNouvelle] of Object.entries(nouveau)) {
     const valActuelle = (existant as Record<string, unknown>)[champ];
     const actuelleVide = valActuelle === null || valActuelle === undefined || valActuelle === '';
-    const nouvelleRenseignee = valNouvelle !== null && valNouvelle !== undefined && valNouvelle !== '';
+    const nouvelleRenseignee =
+      valNouvelle !== null && valNouvelle !== undefined && valNouvelle !== '';
     if (actuelleVide && nouvelleRenseignee) {
       (fusionne as Record<string, unknown>)[champ] = valNouvelle;
       champsMisAJour.push(champ);

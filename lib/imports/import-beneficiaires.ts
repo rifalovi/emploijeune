@@ -99,10 +99,7 @@ export async function importerBeneficiairesExcel(
 ): Promise<ResultatImportEnrichi> {
   // 0. Vérification droits (super_admin élargi à l'admin SCS / coordinateur)
   const utilisateur = await getCurrentUtilisateur();
-  if (
-    !utilisateur ||
-    !['super_admin', 'admin_scs', 'editeur_projet'].includes(utilisateur.role)
-  ) {
+  if (!utilisateur || !['super_admin', 'admin_scs', 'editeur_projet'].includes(utilisateur.role)) {
     return {
       status: 'erreur_droits',
       message: 'Réservé aux administrateurs SCS, super_admin et coordonnateurs de projet.',
@@ -595,10 +592,7 @@ async function traiterLigne(args: {
 
   // INSERT OK : décider entre 'inseree' (complète) et 'incomplete' (manque qqch d'important)
   const estIncomplete =
-    champsManquants.length > 0 ||
-    !record.prenom ||
-    !record.nom ||
-    !record.domaine_formation_code;
+    champsManquants.length > 0 || !record.prenom || !record.nom || !record.domaine_formation_code;
 
   return {
     numero_ligne: numLigne,
@@ -721,14 +715,9 @@ async function detecterDoublon(
  * ils sont uniquement marqués supprimés si leur created_at correspond à
  * cette session (i.e. ils ont été créés par cet import).
  */
-export async function annulerImportSession(
-  sessionId: string,
-): Promise<ResultatRollbackImport> {
+export async function annulerImportSession(sessionId: string): Promise<ResultatRollbackImport> {
   const utilisateur = await getCurrentUtilisateur();
-  if (
-    !utilisateur ||
-    !['super_admin', 'admin_scs', 'editeur_projet'].includes(utilisateur.role)
-  ) {
+  if (!utilisateur || !['super_admin', 'admin_scs', 'editeur_projet'].includes(utilisateur.role)) {
     return {
       status: 'erreur_droits',
       message: 'Réservé aux administrateurs SCS, super_admin et coordonnateurs de projet.',

@@ -98,7 +98,7 @@ describe('creerCompteUtilisateurSchema', () => {
     ).toBe(true);
   });
 
-  it("accepte admin_scs au niveau Zod (v2.0.1) — la hiérarchie est appliquée par la Server Action via rolesCreablesPar", () => {
+  it('accepte admin_scs au niveau Zod (v2.0.1) — la hiérarchie est appliquée par la Server Action via rolesCreablesPar', () => {
     // Le schéma Zod accepte tous les rôles ; le filtrage hiérarchique est fait
     // côté Server Action (cf. rolesCreablesPar dans @/lib/schemas/utilisateur).
     expect(
@@ -148,13 +148,13 @@ describe('rolesCreablesPar — hiérarchie v2.0.1', () => {
     expect(roles).toHaveLength(5);
   });
 
-  it("admin_scs peut créer uniquement editeur_projet, contributeur_partenaire, lecteur", async () => {
+  it('admin_scs peut créer uniquement editeur_projet, contributeur_partenaire, lecteur', async () => {
     const { rolesCreablesPar } = await import('@/lib/schemas/utilisateur');
     const roles = rolesCreablesPar('admin_scs');
     expect(roles).toEqual(['editeur_projet', 'contributeur_partenaire', 'lecteur']);
   });
 
-  it("les autres rôles ne peuvent rien créer", async () => {
+  it('les autres rôles ne peuvent rien créer', async () => {
     const { rolesCreablesPar } = await import('@/lib/schemas/utilisateur');
     expect(rolesCreablesPar('editeur_projet')).toEqual([]);
     expect(rolesCreablesPar('contributeur_partenaire')).toEqual([]);

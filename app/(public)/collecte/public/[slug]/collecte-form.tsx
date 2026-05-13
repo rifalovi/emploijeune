@@ -271,7 +271,12 @@ type FormDataA = {
 };
 
 function FormulaireBeneficiaire({
-  lien, isPending, erreur, onSubmit, onSubmitEtNouveau, confirmationNouveau,
+  lien,
+  isPending,
+  erreur,
+  onSubmit,
+  onSubmitEtNouveau,
+  confirmationNouveau,
 }: {
   lien: InfoLienPublic;
   isPending: boolean;
@@ -280,7 +285,14 @@ function FormulaireBeneficiaire({
   onSubmitEtNouveau: (d: Record<string, unknown>) => void;
   confirmationNouveau: boolean;
 }) {
-  const { register, handleSubmit, watch, control, setValue, formState: { errors } } = useForm<FormDataA>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    control,
+    setValue,
+    formState: { errors },
+  } = useForm<FormDataA>({
     defaultValues: {
       projet_code: lien.projet_code ?? '',
       annee_formation: String(new Date().getFullYear()),
@@ -312,34 +324,57 @@ function FormulaireBeneficiaire({
 
   return (
     <form onSubmit={handleSubmit(soumettre)} className="space-y-6" noValidate>
-
       {/* Informations personnelles */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Vos informations personnelles</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Vos informations personnelles</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="prenom">Prénom <span className="text-destructive">*</span></Label>
-              <Input id="prenom" placeholder="Votre prénom" {...register('prenom', { required: 'Le prénom est obligatoire' })} />
+              <Label htmlFor="prenom">
+                Prénom <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="prenom"
+                placeholder="Votre prénom"
+                {...register('prenom', { required: 'Le prénom est obligatoire' })}
+              />
               {errors.prenom && <p className="text-destructive text-xs">{errors.prenom.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="nom">Nom <span className="text-destructive">*</span></Label>
-              <Input id="nom" placeholder="Votre nom" {...register('nom', { required: 'Le nom est obligatoire' })} />
+              <Label htmlFor="nom">
+                Nom <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="nom"
+                placeholder="Votre nom"
+                {...register('nom', { required: 'Le nom est obligatoire' })}
+              />
               {errors.nom && <p className="text-destructive text-xs">{errors.nom.message}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Sexe <span className="text-destructive">*</span></Label>
-              <Controller name="sexe" control={control} rules={{ required: 'Le sexe est obligatoire' }}
+              <Label>
+                Sexe <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="sexe"
+                control={control}
+                rules={{ required: 'Le sexe est obligatoire' }}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                    <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner…" />
+                    </SelectTrigger>
                     <SelectContent>
-                      {SEXE_VALUES.map((s) => <SelectItem key={s} value={s}>{SEXE_LIBELLES[s]}</SelectItem>)}
+                      {SEXE_VALUES.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {SEXE_LIBELLES[s]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 )}
@@ -349,10 +384,14 @@ function FormulaireBeneficiaire({
 
             <div className="space-y-1.5">
               <Label>Tranche d&apos;âge</Label>
-              <Controller name="tranche_age_declaree" control={control}
+              <Controller
+                name="tranche_age_declaree"
+                control={control}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                    <SelectTrigger><SelectValue placeholder="Facultatif…" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Facultatif…" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="jeune">Jeune (18–34 ans)</SelectItem>
                       <SelectItem value="adulte">Adulte (35 ans et +)</SelectItem>
@@ -364,18 +403,31 @@ function FormulaireBeneficiaire({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Pays <span className="text-destructive">*</span></Label>
-            <Controller name="pays_code" control={control} rules={{ required: 'Le pays est obligatoire' }}
+            <Label>
+              Pays <span className="text-destructive">*</span>
+            </Label>
+            <Controller
+              name="pays_code"
+              control={control}
+              rules={{ required: 'Le pays est obligatoire' }}
               render={({ field }) => (
                 <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                  <SelectTrigger><SelectValue placeholder="Votre pays…" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Votre pays…" />
+                  </SelectTrigger>
                   <SelectContent className="max-h-56">
-                    {PAYS_OIF.map((p) => <SelectItem key={p.code} value={p.code}>{p.label}</SelectItem>)}
+                    {PAYS_OIF.map((p) => (
+                      <SelectItem key={p.code} value={p.code}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.pays_code && <p className="text-destructive text-xs">{errors.pays_code.message}</p>}
+            {errors.pays_code && (
+              <p className="text-destructive text-xs">{errors.pays_code.message}</p>
+            )}
             {paysCode === 'AUTRE' && (
               <Input
                 className="mt-2"
@@ -383,34 +435,51 @@ function FormulaireBeneficiaire({
                 {...register('pays_autre', { required: 'Veuillez préciser votre pays' })}
               />
             )}
-            {errors.pays_autre && <p className="text-destructive text-xs">{errors.pays_autre.message}</p>}
+            {errors.pays_autre && (
+              <p className="text-destructive text-xs">{errors.pays_autre.message}</p>
+            )}
           </div>
-
         </CardContent>
       </Card>
 
       {/* Formation */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Formation suivie</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Formation suivie</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
-
           <div className="space-y-1.5">
-            <Label>Domaine de formation <span className="text-destructive">*</span></Label>
-            <Controller name="domaine_formation_code" control={control} rules={{ required: 'Le domaine est obligatoire' }}
+            <Label>
+              Domaine de formation <span className="text-destructive">*</span>
+            </Label>
+            <Controller
+              name="domaine_formation_code"
+              control={control}
+              rules={{ required: 'Le domaine est obligatoire' }}
               render={({ field }) => (
                 <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                  <SelectTrigger><SelectValue placeholder="Choisir un domaine…" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisir un domaine…" />
+                  </SelectTrigger>
                   <SelectContent className="max-h-56">
-                    {DOMAINES_FORMATION_CODES.map((c) => <SelectItem key={c} value={c}>{DOMAINE_LIBELLES[c] ?? c}</SelectItem>)}
+                    {DOMAINES_FORMATION_CODES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {DOMAINE_LIBELLES[c] ?? c}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.domaine_formation_code && <p className="text-destructive text-xs">{errors.domaine_formation_code.message}</p>}
+            {errors.domaine_formation_code && (
+              <p className="text-destructive text-xs">{errors.domaine_formation_code.message}</p>
+            )}
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="annee_formation">Année de formation <span className="text-destructive">*</span></Label>
+            <Label htmlFor="annee_formation">
+              Année de formation <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="annee_formation"
               type="number"
@@ -423,26 +492,40 @@ function FormulaireBeneficiaire({
                 max: { value: 2030, message: 'Maximum 2030' },
               })}
             />
-            {errors.annee_formation && <p className="text-destructive text-xs">{errors.annee_formation.message}</p>}
+            {errors.annee_formation && (
+              <p className="text-destructive text-xs">{errors.annee_formation.message}</p>
+            )}
           </div>
 
           {!lien.projet_code && (
             <div className="space-y-1.5">
-              <Label>Projet OIF <span className="text-destructive">*</span></Label>
-              <Controller name="projet_code" control={control} rules={{ required: 'Le code projet est obligatoire' }}
+              <Label>
+                Projet OIF <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="projet_code"
+                control={control}
+                rules={{ required: 'Le code projet est obligatoire' }}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                    <SelectTrigger><SelectValue placeholder="Code projet…" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Code projet…" />
+                    </SelectTrigger>
                     <SelectContent className="max-h-56">
-                      {PROJETS_CODES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {PROJETS_CODES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 )}
               />
-              {errors.projet_code && <p className="text-destructive text-xs">{errors.projet_code.message}</p>}
+              {errors.projet_code && (
+                <p className="text-destructive text-xs">{errors.projet_code.message}</p>
+              )}
             </div>
           )}
-
         </CardContent>
       </Card>
 
@@ -450,7 +533,7 @@ function FormulaireBeneficiaire({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            Contact <span className="text-muted-foreground font-normal text-xs">(facultatif)</span>
+            Contact <span className="text-muted-foreground text-xs font-normal">(facultatif)</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -461,7 +544,12 @@ function FormulaireBeneficiaire({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="courriel">Courriel</Label>
-              <Input id="courriel" type="email" placeholder="votre@email.com" {...register('courriel')} />
+              <Input
+                id="courriel"
+                type="email"
+                placeholder="votre@email.com"
+                {...register('courriel')}
+              />
             </div>
           </div>
           <div className="flex items-start gap-3 rounded-lg border p-4">
@@ -486,17 +574,29 @@ function FormulaireBeneficiaire({
       )}
 
       {erreur && (
-        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <div className="border-destructive/30 bg-destructive/10 text-destructive flex items-center gap-2 rounded-lg border p-4 text-sm">
           <AlertCircle className="size-4 shrink-0" />
           {erreur}
         </div>
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button type="submit" disabled={isPending} className="flex-1 bg-[#5D0073] hover:bg-[#4a005c]">
-          {isPending
-            ? <><Loader2 className="mr-2 size-4 animate-spin" />Envoi en cours…</>
-            : <><Send className="mr-2 size-4" />Soumettre</>}
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="flex-1 bg-[#5D0073] hover:bg-[#4a005c]"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 size-4 animate-spin" />
+              Envoi en cours…
+            </>
+          ) : (
+            <>
+              <Send className="mr-2 size-4" />
+              Soumettre
+            </>
+          )}
         </Button>
         <Button
           type="button"
@@ -505,9 +605,17 @@ function FormulaireBeneficiaire({
           onClick={handleSubmit(soumettreEtNouveau)}
           className="flex-1"
         >
-          {isPending
-            ? <><Loader2 className="mr-2 size-4 animate-spin" />Envoi en cours…</>
-            : <><PlusCircle className="mr-2 size-4" />Soumettre et ajouter un nouvel enregistrement</>}
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 size-4 animate-spin" />
+              Envoi en cours…
+            </>
+          ) : (
+            <>
+              <PlusCircle className="mr-2 size-4" />
+              Soumettre et ajouter un nouvel enregistrement
+            </>
+          )}
         </Button>
       </div>
     </form>
@@ -538,7 +646,12 @@ type FormDataB = {
 };
 
 function FormulaireStructure({
-  lien, isPending, erreur, onSubmit, onSubmitEtNouveau, confirmationNouveau,
+  lien,
+  isPending,
+  erreur,
+  onSubmit,
+  onSubmitEtNouveau,
+  confirmationNouveau,
 }: {
   lien: InfoLienPublic;
   isPending: boolean;
@@ -547,7 +660,14 @@ function FormulaireStructure({
   onSubmitEtNouveau: (d: Record<string, unknown>) => void;
   confirmationNouveau: boolean;
 }) {
-  const { register, handleSubmit, watch, control, setValue, formState: { errors } } = useForm<FormDataB>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    control,
+    setValue,
+    formState: { errors },
+  } = useForm<FormDataB>({
     defaultValues: {
       projet_code: lien.projet_code ?? '',
       annee_appui: String(new Date().getFullYear()),
@@ -583,105 +703,185 @@ function FormulaireStructure({
 
   return (
     <form onSubmit={handleSubmit(soumettre)} className="space-y-6" noValidate>
-
       {/* Structure */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Informations sur la structure</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Informations sur la structure</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
-
           <div className="space-y-1.5">
-            <Label htmlFor="nom_structure">Nom de la structure <span className="text-destructive">*</span></Label>
-            <Input id="nom_structure" placeholder="Nom complet de la structure" {...register('nom_structure', { required: 'Le nom est obligatoire' })} />
-            {errors.nom_structure && <p className="text-destructive text-xs">{errors.nom_structure.message}</p>}
+            <Label htmlFor="nom_structure">
+              Nom de la structure <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="nom_structure"
+              placeholder="Nom complet de la structure"
+              {...register('nom_structure', { required: 'Le nom est obligatoire' })}
+            />
+            {errors.nom_structure && (
+              <p className="text-destructive text-xs">{errors.nom_structure.message}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Type de structure <span className="text-destructive">*</span></Label>
-              <Controller name="type_structure_code" control={control} rules={{ required: 'Le type est obligatoire' }}
+              <Label>
+                Type de structure <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="type_structure_code"
+                control={control}
+                rules={{ required: 'Le type est obligatoire' }}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                    <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choisir…" />
+                    </SelectTrigger>
                     <SelectContent>
-                      {TYPES_STRUCTURE_CODES.map((c) => <SelectItem key={c} value={c}>{TYPE_STRUCTURE_LIBELLES[c] ?? c}</SelectItem>)}
+                      {TYPES_STRUCTURE_CODES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {TYPE_STRUCTURE_LIBELLES[c] ?? c}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 )}
               />
-              {errors.type_structure_code && <p className="text-destructive text-xs">{errors.type_structure_code.message}</p>}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Secteur d&apos;activité <span className="text-destructive">*</span></Label>
-              <Controller name="secteur_activite_code" control={control} rules={{ required: 'Le secteur est obligatoire' }}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                    <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
-                    <SelectContent className="max-h-56">
-                      {SECTEURS_ACTIVITE_CODES.map((c) => <SelectItem key={c} value={c}>{SECTEUR_LIBELLES[c] ?? c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.secteur_activite_code && <p className="text-destructive text-xs">{errors.secteur_activite_code.message}</p>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Statut <span className="text-destructive">*</span></Label>
-              <Controller name="statut_creation" control={control} rules={{ required: 'Le statut est obligatoire' }}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                    <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
-                    <SelectContent>
-                      {STATUT_CREATION_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.statut_creation && <p className="text-destructive text-xs">{errors.statut_creation.message}</p>}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Nature de l&apos;appui <span className="text-destructive">*</span></Label>
-              <Controller name="nature_appui_code" control={control} rules={{ required: "La nature de l'appui est obligatoire" }}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                    <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
-                    <SelectContent>
-                      {NATURES_APPUI_CODES.map((c) => <SelectItem key={c} value={c}>{NATURE_APPUI_LIBELLES[c] ?? c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.nature_appui_code && <p className="text-destructive text-xs">{errors.nature_appui_code.message}</p>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Pays <span className="text-destructive">*</span></Label>
-              <Controller name="pays_code" control={control} rules={{ required: 'Le pays est obligatoire' }}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                    <SelectTrigger><SelectValue placeholder="Pays…" /></SelectTrigger>
-                    <SelectContent className="max-h-56">
-                      {PAYS_OIF.map((p) => <SelectItem key={p.code} value={p.code}>{p.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.pays_code && <p className="text-destructive text-xs">{errors.pays_code.message}</p>}
-              {paysCode === 'AUTRE' && (
-                <Input className="mt-2" placeholder="Précisez le pays…"
-                  {...register('pays_autre', { required: 'Veuillez préciser le pays' })} />
+              {errors.type_structure_code && (
+                <p className="text-destructive text-xs">{errors.type_structure_code.message}</p>
               )}
-              {errors.pays_autre && <p className="text-destructive text-xs">{errors.pays_autre.message}</p>}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="annee_appui">Année d&apos;appui <span className="text-destructive">*</span></Label>
+              <Label>
+                Secteur d&apos;activité <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="secteur_activite_code"
+                control={control}
+                rules={{ required: 'Le secteur est obligatoire' }}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choisir…" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-56">
+                      {SECTEURS_ACTIVITE_CODES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {SECTEUR_LIBELLES[c] ?? c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.secteur_activite_code && (
+                <p className="text-destructive text-xs">{errors.secteur_activite_code.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>
+                Statut <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="statut_creation"
+                control={control}
+                rules={{ required: 'Le statut est obligatoire' }}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choisir…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUT_CREATION_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.statut_creation && (
+                <p className="text-destructive text-xs">{errors.statut_creation.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>
+                Nature de l&apos;appui <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="nature_appui_code"
+                control={control}
+                rules={{ required: "La nature de l'appui est obligatoire" }}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choisir…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NATURES_APPUI_CODES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {NATURE_APPUI_LIBELLES[c] ?? c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.nature_appui_code && (
+                <p className="text-destructive text-xs">{errors.nature_appui_code.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>
+                Pays <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="pays_code"
+                control={control}
+                rules={{ required: 'Le pays est obligatoire' }}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pays…" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-56">
+                      {PAYS_OIF.map((p) => (
+                        <SelectItem key={p.code} value={p.code}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.pays_code && (
+                <p className="text-destructive text-xs">{errors.pays_code.message}</p>
+              )}
+              {paysCode === 'AUTRE' && (
+                <Input
+                  className="mt-2"
+                  placeholder="Précisez le pays…"
+                  {...register('pays_autre', { required: 'Veuillez préciser le pays' })}
+                />
+              )}
+              {errors.pays_autre && (
+                <p className="text-destructive text-xs">{errors.pays_autre.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="annee_appui">
+                Année d&apos;appui <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="annee_appui"
                 type="number"
@@ -693,45 +893,72 @@ function FormulaireStructure({
                   max: { value: 2030, message: 'Maximum 2030' },
                 })}
               />
-              {errors.annee_appui && <p className="text-destructive text-xs">{errors.annee_appui.message}</p>}
+              {errors.annee_appui && (
+                <p className="text-destructive text-xs">{errors.annee_appui.message}</p>
+              )}
             </div>
           </div>
 
           {!lien.projet_code && (
             <div className="space-y-1.5">
-              <Label>Projet OIF <span className="text-destructive">*</span></Label>
-              <Controller name="projet_code" control={control} rules={{ required: 'Le code projet est obligatoire' }}
+              <Label>
+                Projet OIF <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="projet_code"
+                control={control}
+                rules={{ required: 'Le code projet est obligatoire' }}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                    <SelectTrigger><SelectValue placeholder="Code projet…" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Code projet…" />
+                    </SelectTrigger>
                     <SelectContent className="max-h-56">
-                      {PROJETS_CODES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {PROJETS_CODES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 )}
               />
-              {errors.projet_code && <p className="text-destructive text-xs">{errors.projet_code.message}</p>}
+              {errors.projet_code && (
+                <p className="text-destructive text-xs">{errors.projet_code.message}</p>
+              )}
             </div>
           )}
 
           <div className="space-y-1.5">
             <Label htmlFor="intitule_initiative">Intitulé de l&apos;initiative</Label>
-            <Input id="intitule_initiative" placeholder="Nom du projet / de l'initiative portée" {...register('intitule_initiative')} />
+            <Input
+              id="intitule_initiative"
+              placeholder="Nom du projet / de l'initiative portée"
+              {...register('intitule_initiative')}
+            />
           </div>
-
         </CardContent>
       </Card>
 
       {/* Porteur / Responsable */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Responsable / Porteur</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Responsable / Porteur</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="porteur_nom">Nom <span className="text-destructive">*</span></Label>
-              <Input id="porteur_nom" placeholder="Nom de famille" {...register('porteur_nom', { required: 'Le nom du porteur est obligatoire' })} />
-              {errors.porteur_nom && <p className="text-destructive text-xs">{errors.porteur_nom.message}</p>}
+              <Label htmlFor="porteur_nom">
+                Nom <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="porteur_nom"
+                placeholder="Nom de famille"
+                {...register('porteur_nom', { required: 'Le nom du porteur est obligatoire' })}
+              />
+              {errors.porteur_nom && (
+                <p className="text-destructive text-xs">{errors.porteur_nom.message}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="porteur_prenom">Prénom</Label>
@@ -740,18 +967,31 @@ function FormulaireStructure({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Sexe du porteur <span className="text-destructive">*</span></Label>
-            <Controller name="porteur_sexe" control={control} rules={{ required: 'Le sexe est obligatoire' }}
+            <Label>
+              Sexe du porteur <span className="text-destructive">*</span>
+            </Label>
+            <Controller
+              name="porteur_sexe"
+              control={control}
+              rules={{ required: 'Le sexe est obligatoire' }}
               render={({ field }) => (
                 <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner…" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {SEXE_VALUES.map((s) => <SelectItem key={s} value={s}>{SEXE_LIBELLES[s]}</SelectItem>)}
+                    {SEXE_VALUES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {SEXE_LIBELLES[s]}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.porteur_sexe && <p className="text-destructive text-xs">{errors.porteur_sexe.message}</p>}
+            {errors.porteur_sexe && (
+              <p className="text-destructive text-xs">{errors.porteur_sexe.message}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -761,7 +1001,12 @@ function FormulaireStructure({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="courriel_b">Courriel</Label>
-              <Input id="courriel_b" type="email" placeholder="porteur@structure.org" {...register('courriel')} />
+              <Input
+                id="courriel_b"
+                type="email"
+                placeholder="porteur@structure.org"
+                {...register('courriel')}
+              />
             </div>
           </div>
 
@@ -776,7 +1021,6 @@ function FormulaireStructure({
               par l&apos;OIF aux fins de suivi du projet et ne soient pas transmises à des tiers.
             </Label>
           </div>
-
         </CardContent>
       </Card>
 
@@ -788,17 +1032,29 @@ function FormulaireStructure({
       )}
 
       {erreur && (
-        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <div className="border-destructive/30 bg-destructive/10 text-destructive flex items-center gap-2 rounded-lg border p-4 text-sm">
           <AlertCircle className="size-4 shrink-0" />
           {erreur}
         </div>
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button type="submit" disabled={isPending} className="flex-1 bg-[#5D0073] hover:bg-[#4a005c]">
-          {isPending
-            ? <><Loader2 className="mr-2 size-4 animate-spin" />Envoi en cours…</>
-            : <><Send className="mr-2 size-4" />Soumettre</>}
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="flex-1 bg-[#5D0073] hover:bg-[#4a005c]"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 size-4 animate-spin" />
+              Envoi en cours…
+            </>
+          ) : (
+            <>
+              <Send className="mr-2 size-4" />
+              Soumettre
+            </>
+          )}
         </Button>
         <Button
           type="button"
@@ -807,9 +1063,17 @@ function FormulaireStructure({
           onClick={handleSubmit(soumettreEtNouveau)}
           className="flex-1"
         >
-          {isPending
-            ? <><Loader2 className="mr-2 size-4 animate-spin" />Envoi en cours…</>
-            : <><PlusCircle className="mr-2 size-4" />Soumettre et ajouter un nouvel enregistrement</>}
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 size-4 animate-spin" />
+              Envoi en cours…
+            </>
+          ) : (
+            <>
+              <PlusCircle className="mr-2 size-4" />
+              Soumettre et ajouter un nouvel enregistrement
+            </>
+          )}
         </Button>
       </div>
     </form>
@@ -832,7 +1096,7 @@ function SuccesMessage({ type }: { type: 'A' | 'B' }) {
           <p className="text-muted-foreground text-sm">
             {type === 'A'
               ? "Votre inscription a bien été soumise. Elle sera examinée par un coordinateur OIF avant d'être intégrée dans la plateforme."
-              : "Les informations sur votre structure ont bien été transmises. Un coordinateur OIF les examinera avant de les intégrer dans la plateforme."}
+              : 'Les informations sur votre structure ont bien été transmises. Un coordinateur OIF les examinera avant de les intégrer dans la plateforme.'}
           </p>
           <p className="text-muted-foreground text-xs">
             Aucune autre action n&apos;est requise de votre part.

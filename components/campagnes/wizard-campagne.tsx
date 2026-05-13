@@ -104,7 +104,16 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
     if (questionnaire === 'A' && filtreSexe) obj.sexe = filtreSexe;
     if (questionnaire === 'A' && filtreTrancheAge) obj.tranche_age = filtreTrancheAge;
     return obj;
-  }, [mode, filtreProjets, filtrePays, filtreAnnees, filtreSexe, filtreTrancheAge, consentementSeul, questionnaire]);
+  }, [
+    mode,
+    filtreProjets,
+    filtrePays,
+    filtreAnnees,
+    filtreSexe,
+    filtreTrancheAge,
+    consentementSeul,
+    questionnaire,
+  ]);
 
   // ─── Reset à chaque changement de questionnaire ou de mode ────────────────
   useEffect(() => {

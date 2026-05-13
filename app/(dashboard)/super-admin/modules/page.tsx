@@ -163,8 +163,8 @@ export default async function ModulesPage() {
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
                 Seules les <strong>métadonnées sans PII</strong> (codes, libellés de domaine,
-                valeurs énumérées) sont envoyées à Claude — jamais les prénoms, noms, courriels
-                ou téléphones.
+                valeurs énumérées) sont envoyées à Claude — jamais les prénoms, noms, courriels ou
+                téléphones.
               </li>
               <li>
                 L&apos;IA propose des suggestions de mapping (ex. « Compétences techniques » →
@@ -172,8 +172,8 @@ export default async function ModulesPage() {
                 résultats sont indicatifs et validés par l&apos;utilisateur avant insertion.
               </li>
               <li>
-                Modèle utilisé : <strong>Claude Haiku 4.5</strong> (rapide, peu coûteux — la
-                tâche est extraction/mapping, pas analyse).
+                Modèle utilisé : <strong>Claude Haiku 4.5</strong> (rapide, peu coûteux — la tâche
+                est extraction/mapping, pas analyse).
               </li>
               <li>
                 Quand vous désactivez pour un rôle, les utilisateurs concernés voient le rapport

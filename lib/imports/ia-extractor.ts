@@ -167,7 +167,7 @@ export async function extraireAvecIA(
       status: 'succes',
       lignesExtraites: [],
       confiance: 0,
-      notes: "Aucun bénéficiaire détecté dans le document.",
+      notes: 'Aucun bénéficiaire détecté dans le document.',
       tokens_utilises: response.usage.input_tokens + response.usage.output_tokens,
     };
   }
@@ -203,9 +203,7 @@ async function extraireTexteFichier(
   fichierType: FormatFichier,
 ): Promise<string> {
   const buf =
-    fichierBuffer instanceof Buffer
-      ? fichierBuffer
-      : Buffer.from(new Uint8Array(fichierBuffer));
+    fichierBuffer instanceof Buffer ? fichierBuffer : Buffer.from(new Uint8Array(fichierBuffer));
 
   switch (fichierType) {
     case 'txt':
@@ -239,7 +237,8 @@ async function extraireTexteFichier(
             .map((v) => {
               if (v === null || v === undefined) return '';
               if (typeof v === 'object' && 'text' in v) return String((v as { text: string }).text);
-              if (typeof v === 'object' && 'result' in v) return String((v as { result: unknown }).result ?? '');
+              if (typeof v === 'object' && 'result' in v)
+                return String((v as { result: unknown }).result ?? '');
               return String(v);
             });
           lignes.push(valeurs.join('\t'));
@@ -357,17 +356,19 @@ function normaliserLigneExtraite(brute: LigneBrute): LigneExtraite {
 
 function calculerConfianceGlobale(lignes: LigneExtraite[]): number {
   if (lignes.length === 0) return 0;
-  const moyenne =
-    lignes.reduce((acc, l) => acc + l.confiance, 0) / lignes.length;
+  const moyenne = lignes.reduce((acc, l) => acc + l.confiance, 0) / lignes.length;
   return Math.round(moyenne);
 }
 
 function construireNotes(lignes: LigneExtraite[], format: FormatFichier): string {
   const formatLabel =
-    format === 'pdf' ? 'PDF' :
-    format === 'docx' ? 'Word (DOCX)' :
-    format === 'xlsx' ? 'Excel (analyse IA)' :
-    'texte brut';
+    format === 'pdf'
+      ? 'PDF'
+      : format === 'docx'
+        ? 'Word (DOCX)'
+        : format === 'xlsx'
+          ? 'Excel (analyse IA)'
+          : 'texte brut';
   const nbProjetsReconnus = lignes.filter((l) => l.donnees['Code projet *']).length;
   const nbPaysReconnus = lignes.filter((l) => l.donnees['Code pays bénéficiaire *']).length;
 

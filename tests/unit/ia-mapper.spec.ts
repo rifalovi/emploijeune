@@ -48,7 +48,8 @@ function parserReponseClaude(texte: string, valeursAttendues: ReadonlyArray<stri
 
   const valeursAttenduesSet = new Set(valeursAttendues);
   const codesValides = new Set<string>(DOMAINES);
-  const suggestions: Array<{ valeurOriginale: string; codeSuggere: string; confiance: number }> = [];
+  const suggestions: Array<{ valeurOriginale: string; codeSuggere: string; confiance: number }> =
+    [];
 
   for (const item of parsed) {
     if (!item || typeof item !== 'object') continue;
@@ -113,7 +114,7 @@ describe('parserReponseClaude — Phase 3 import IA', () => {
     expect(r.suggestions[0]?.valeurOriginale).toBe('y');
   });
 
-  it("ignore les valeurs que Claude aurait inventées (hors liste attendue)", () => {
+  it('ignore les valeurs que Claude aurait inventées (hors liste attendue)', () => {
     const texte = `[{"valeur": "valeur_invente", "code": "AUTRE", "confiance": 50}]`;
     const r = parserReponseClaude(texte, ['valeur_reelle']);
     expect(r.status).toBe('succes');

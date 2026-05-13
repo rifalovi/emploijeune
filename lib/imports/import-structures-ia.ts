@@ -7,11 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { structureInsertSchema } from '@/lib/schemas/structure';
 import { extraireStructuresAvecIA, type FormatFichier } from './ia-extractor-structures';
 import { mapLigneVersStructure } from './mapping-structures';
-import type {
-  LigneRapportImport,
-  RapportImportEnrichi,
-  ResultatImportEnrichi,
-} from './types';
+import type { LigneRapportImport, RapportImportEnrichi, ResultatImportEnrichi } from './types';
 
 /**
  * Orchestrateur IA B1 — miroir de `importerBeneficiairesDepuisIA` pour les
@@ -39,10 +35,7 @@ export async function importerStructuresDepuisIA(
 ): Promise<ResultatImportEnrichi> {
   // 0. Droits + flag
   const utilisateur = await getCurrentUtilisateur();
-  if (
-    !utilisateur ||
-    !['super_admin', 'admin_scs', 'editeur_projet'].includes(utilisateur.role)
-  ) {
+  if (!utilisateur || !['super_admin', 'admin_scs', 'editeur_projet'].includes(utilisateur.role)) {
     return {
       status: 'erreur_droits',
       message: 'Réservé aux administrateurs SCS, super_admin et coordonnateurs de projet.',
@@ -110,9 +103,7 @@ export async function importerStructuresDepuisIA(
     const { donneesParsees, erreursMapping } = mapLigneVersStructure(donnees);
 
     // Déterminer si le seul problème est le consentement absent (cas IA normal)
-    const erreursHorsConsentement = erreursMapping.filter(
-      (e) => e.colonne !== 'Consentement *',
-    );
+    const erreursHorsConsentement = erreursMapping.filter((e) => e.colonne !== 'Consentement *');
     const consentementSeulManquant =
       erreursMapping.length > 0 && erreursHorsConsentement.length === 0;
 
@@ -230,9 +221,7 @@ export async function importerStructuresDepuisIA(
       numero_ligne: numLigne,
       statut,
       mappages_auto: [],
-      champs_manquants: consentementSeulManquant
-        ? ['Consentement *']
-        : [],
+      champs_manquants: consentementSeulManquant ? ['Consentement *'] : [],
       champs_mis_a_jour: [],
       alertes: consentementSeulManquant
         ? [
@@ -266,12 +255,7 @@ export async function importerStructuresDepuisIA(
         nb_lignes_inserees: nbInserees + nbIncompletes,
         nb_erreurs: nbRejetees,
         rapport_erreurs: lignesRapport.filter((l) => l.statut === 'rejetee') as unknown as never,
-        statut:
-          nbRejetees === 0
-            ? 'reussi'
-            : nbInserees + nbIncompletes > 0
-              ? 'partiel'
-              : 'echec',
+        statut: nbRejetees === 0 ? 'reussi' : nbInserees + nbIncompletes > 0 ? 'partiel' : 'echec',
         termine_a: new Date().toISOString(),
         created_by: utilisateur.user_id,
       } as never)

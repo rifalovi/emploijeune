@@ -52,8 +52,8 @@ export default async function AnalysesIndicateursPage() {
             <h2 className="text-xl font-semibold">Analyses IA par indicateur</h2>
           </div>
           <p className="text-muted-foreground mt-1 text-sm">
-            Générez, révisez et publiez les analyses Claude pour chaque indicateur CMR.
-            Seules les analyses <strong>publiées</strong> sont visibles sur le tableau de bord public.
+            Générez, révisez et publiez les analyses Claude pour chaque indicateur CMR. Seules les
+            analyses <strong>publiées</strong> sont visibles sur le tableau de bord public.
           </p>
         </div>
         {/* Compteurs */}
@@ -74,9 +74,9 @@ export default async function AnalysesIndicateursPage() {
 
       {/* Note pédagogique */}
       <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
-        <strong>Workflow :</strong> Générer → Relire/Modifier → Publier.
-        Une seule analyse peut être publiée par indicateur. Publier une nouvelle analyse
-        rétrograde automatiquement l&apos;ancienne en brouillon.
+        <strong>Workflow :</strong> Générer → Relire/Modifier → Publier. Une seule analyse peut être
+        publiée par indicateur. Publier une nouvelle analyse rétrograde automatiquement
+        l&apos;ancienne en brouillon.
       </div>
 
       {/* Liste par pilier */}
@@ -89,10 +89,13 @@ export default async function AnalysesIndicateursPage() {
             {/* En-tête pilier */}
             <div
               className="flex items-center gap-3 rounded-lg px-4 py-2.5"
-              style={{ backgroundColor: `${pilier.couleur}10`, borderLeft: `3px solid ${pilier.couleur}` }}
+              style={{
+                backgroundColor: `${pilier.couleur}10`,
+                borderLeft: `3px solid ${pilier.couleur}`,
+              }}
             >
               <span
-                className="inline-flex size-7 items-center justify-center rounded font-bold text-white text-xs"
+                className="inline-flex size-7 items-center justify-center rounded text-xs font-bold text-white"
                 style={{ backgroundColor: pilier.couleur }}
               >
                 {codePilier}
@@ -150,7 +153,10 @@ export default async function AnalysesIndicateursPage() {
                         </Badge>
                       )}
                       {analyse?.modifie_par_sa && (
-                        <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-200">
+                        <Badge
+                          variant="outline"
+                          className="border-blue-200 text-[10px] text-blue-600"
+                        >
                           <PenLine className="mr-1 size-3" aria-hidden />
                           Révisé
                         </Badge>
@@ -184,7 +190,7 @@ export default async function AnalysesIndicateursPage() {
 
                     {/* Résumé si disponible */}
                     {analyse?.resume && (
-                      <p className="mt-2 text-xs text-slate-500 leading-relaxed pl-[2.75rem]">
+                      <p className="mt-2 pl-[2.75rem] text-xs leading-relaxed text-slate-500">
                         {analyse.resume}
                       </p>
                     )}
@@ -198,7 +204,7 @@ export default async function AnalysesIndicateursPage() {
 
                     {/* Tokens info */}
                     {analyse?.tokens_utilises && (
-                      <p className="mt-1 text-[10px] text-slate-400 pl-[2.75rem]">
+                      <p className="mt-1 pl-[2.75rem] text-[10px] text-slate-400">
                         {analyse.tokens_utilises.toLocaleString('fr-FR')} tokens utilisés
                       </p>
                     )}

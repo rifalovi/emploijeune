@@ -101,7 +101,9 @@ export function DialogueRapportImportEnrichi({
     if (rejetees.length > 0) {
       lignes.push(``, `Lignes rejetées (${rejetees.length}) :`);
       for (const l of rejetees) {
-        const errMsg = l.erreurs.map((e) => (e.colonne ? `${e.colonne}: ${e.message}` : e.message)).join(' | ');
+        const errMsg = l.erreurs
+          .map((e) => (e.colonne ? `${e.colonne}: ${e.message}` : e.message))
+          .join(' | ');
         lignes.push(`  L${l.numero_ligne} — ${errMsg || 'erreur inconnue'}`);
       }
     }
@@ -206,7 +208,9 @@ export function DialogueRapportImportEnrichi({
                   />
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Confirmer l&apos;annulation de l&apos;import</AlertDialogTitle>
+                      <AlertDialogTitle>
+                        Confirmer l&apos;annulation de l&apos;import
+                      </AlertDialogTitle>
                       <AlertDialogDescription>
                         Cette action va supprimer (soft-delete) les{' '}
                         <strong>
@@ -368,7 +372,7 @@ function Compteur({ n, label, classe }: { n: number; label: string; classe: stri
   return (
     <div className={`rounded-lg border px-3 py-2 text-center ${classe}`}>
       <div className="text-lg font-bold tabular-nums">{n}</div>
-      <div className="text-[10px] uppercase tracking-wide">{label}</div>
+      <div className="text-[10px] tracking-wide uppercase">{label}</div>
     </div>
   );
 }
@@ -424,7 +428,7 @@ function SectionStatut({
       </button>
       {ouvert && (
         <div className="border-t border-current/10 px-4 py-3 text-xs text-slate-700">
-          <p className="mb-3 italic text-slate-600">{intro}</p>
+          <p className="mb-3 text-slate-600 italic">{intro}</p>
           <ul className="space-y-2">
             {filtrees.map((l) => (
               <li key={l.numero_ligne} className="rounded bg-white p-2 shadow-sm">
@@ -474,7 +478,7 @@ function SectionStatut({
                   </p>
                 )}
                 {l.alertes.length > 0 && (
-                  <p className="mt-1 text-[10px] italic text-slate-500">{l.alertes.join(' / ')}</p>
+                  <p className="mt-1 text-[10px] text-slate-500 italic">{l.alertes.join(' / ')}</p>
                 )}
                 {l.erreurs.length > 0 && (
                   <ul className="mt-1 list-disc pl-4 text-[10px] text-red-700">

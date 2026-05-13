@@ -10,13 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 
 /**
  * Tests de non-régression pour le hotfix 4f :
@@ -106,7 +100,7 @@ describe('Select — hotfix 4f : pointer-events sur les items', () => {
     expect(screen.getByTestId('state').textContent).toBe('M');
   });
 
-  it('le Popup porte bien la classe `pointer-events-auto` pour lever l\'héritage du Positioner', async () => {
+  it("le Popup porte bien la classe `pointer-events-auto` pour lever l'héritage du Positioner", async () => {
     const user = userEvent.setup();
     render(
       <Select value="" onValueChange={() => {}}>

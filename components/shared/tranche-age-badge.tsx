@@ -49,7 +49,10 @@ export function TrancheAgeCalculeeBadge({ tranche, estDeclaree }: TrancheCalcule
         {libelle}
       </Badge>
       {estDeclaree && (
-        <span className="text-muted-foreground text-[9px]" title="Tranche déclarée (date de naissance non disponible)">
+        <span
+          className="text-muted-foreground text-[9px]"
+          title="Tranche déclarée (date de naissance non disponible)"
+        >
           décl.
         </span>
       )}

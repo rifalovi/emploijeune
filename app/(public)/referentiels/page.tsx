@@ -2,11 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import {
-  PILIERS,
-  indicateursParPilier,
-  type CodePilier,
-} from '@/lib/referentiels/indicateurs';
+import { PILIERS, indicateursParPilier, type CodePilier } from '@/lib/referentiels/indicateurs';
 
 export const metadata: Metadata = {
   title: 'Référentiels – Cadre Commun OIF',
@@ -82,7 +78,7 @@ export default function ReferentielsAccueil() {
                   >
                     {/* Code */}
                     <span
-                      className="inline-flex h-7 min-w-[2.75rem] items-center justify-center rounded px-2 font-mono text-xs font-bold text-white shrink-0"
+                      className="inline-flex h-7 min-w-[2.75rem] shrink-0 items-center justify-center rounded px-2 font-mono text-xs font-bold text-white"
                       style={{ backgroundColor: p.couleur }}
                     >
                       {ind.code}
@@ -91,9 +87,7 @@ export default function ReferentielsAccueil() {
                     {/* Titre + définition */}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-800">{ind.intitule}</p>
-                      <p className="text-muted-foreground line-clamp-1 text-xs">
-                        {ind.definition}
-                      </p>
+                      <p className="text-muted-foreground line-clamp-1 text-xs">{ind.definition}</p>
                     </div>
 
                     {/* Statut collecte */}
@@ -140,8 +134,8 @@ export default function ReferentielsAccueil() {
       <p className="border-t border-slate-200 pt-6 text-xs text-slate-400">
         Source :{' '}
         <em>
-          Cadre commun pour le suivi et la documentation des résultats de l&apos;emploi des jeunes
-          – Note mÃ©thodologique
+          Cadre commun pour le suivi et la documentation des résultats de l&apos;emploi des jeunes –
+          Note mÃ©thodologique
         </em>
         , validé par le Service de Conception et Suivi (SCS) de l&apos;OIF.
       </p>

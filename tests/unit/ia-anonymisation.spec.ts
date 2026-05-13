@@ -80,7 +80,7 @@ describe('anonymisation IA — V2.0.0', () => {
       expect(SYSTEM_PROMPT_INSTITUTIONNEL.toLowerCase()).toContain('anonymis');
     });
 
-    it("interdit conseils personnels et jugements individuels", () => {
+    it('interdit conseils personnels et jugements individuels', () => {
       expect(SYSTEM_PROMPT_INSTITUTIONNEL).toContain('aucun conseil personnel');
     });
   });

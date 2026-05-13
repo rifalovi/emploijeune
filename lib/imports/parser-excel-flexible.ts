@@ -133,7 +133,9 @@ export async function parseExcelFlexible(
   const headersLus: Array<string | null> = [];
   headerRow.eachCell({ includeEmpty: true }, (cell) => {
     const v = extraireValeurCellule(cell);
-    headersLus.push(typeof v === 'string' && v.trim() ? v.trim() : v !== null ? String(v).trim() || null : null);
+    headersLus.push(
+      typeof v === 'string' && v.trim() ? v.trim() : v !== null ? String(v).trim() || null : null,
+    );
   });
 
   // 3. Appliquer le mapping flou

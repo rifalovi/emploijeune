@@ -6,11 +6,7 @@ import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { revalidatePath } from 'next/cache';
 import { extraireAvecIA, type FormatFichier } from './ia-extractor';
 import { traiterLigneImport } from './import-beneficiaires';
-import type {
-  LigneRapportImport,
-  RapportImportEnrichi,
-  ResultatImportEnrichi,
-} from './types';
+import type { LigneRapportImport, RapportImportEnrichi, ResultatImportEnrichi } from './types';
 
 /**
  * Phase 4 du sprint Import IA — orchestration extraction PDF/DOCX/TXT
@@ -41,10 +37,7 @@ export async function importerBeneficiairesDepuisIA(
 ): Promise<ResultatImportEnrichi> {
   // 0. Droits + flag
   const utilisateur = await getCurrentUtilisateur();
-  if (
-    !utilisateur ||
-    !['super_admin', 'admin_scs', 'editeur_projet'].includes(utilisateur.role)
-  ) {
+  if (!utilisateur || !['super_admin', 'admin_scs', 'editeur_projet'].includes(utilisateur.role)) {
     return {
       status: 'erreur_droits',
       message: 'Réservé aux administrateurs SCS, super_admin et coordonnateurs de projet.',
@@ -59,11 +52,7 @@ export async function importerBeneficiairesDepuisIA(
   }
 
   // 1. Extraction IA — la garde feature flag est intégrée dans extraireAvecIA
-  const extraction = await extraireAvecIA(
-    input.fichierBuffer,
-    input.fichierNom,
-    input.fichierType,
-  );
+  const extraction = await extraireAvecIA(input.fichierBuffer, input.fichierNom, input.fichierType);
 
   if (extraction.status === 'desactive') {
     return { status: 'erreur_droits', message: extraction.message };
