@@ -28,6 +28,7 @@ import {
 } from '@/lib/referentiels/indicateurs';
 import { getKpisPublics, getRepartitionTrancheAge } from '@/lib/landing/queries';
 import { getAnalysePubliee } from '@/lib/analyses-indicateurs/queries';
+import { getValeursPubliees, agregerTaux, agregerTotal, type ValeurPubliee } from '@/lib/realisations/queries';
 import { BlocAnalytiqueIA } from '@/components/realisations/bloc-analytique-ia';
 
 type Props = { params: Promise<{ pilier: string; indicateur: string }> };
@@ -228,11 +229,14 @@ export default async function IndicateurRealisationPage({ params }: Props) {
   const user = await getAuthUser();
   const typeInd: TypeIndicateur = INDICATEUR_TYPE[ind.code] ?? 'count';
 
-  // Données réelles pour A1 et B1 uniquement
+  // Données réelles :
+  //  - A1 / B1 → calcul automatique BDD (bénéficiaires / structures)
+  //  - Autres   → saisies manuelles publiées (valeurs_indicateurs_saisies WHERE publie = TRUE)
   let kpisReels = null;
   let trancheAge = null;
   let topPays: { code: string; libelle: string | null; beneficiaires: number }[] = [];
   let donneesReelles = false;
+  let valeursPubliees: ValeurPubliee[] = [];
 
   if (ind.code === 'A1') {
     const [kpis, ta] = await Promise.all([getKpisPublics(), getRepartitionTrancheAge()]);
@@ -243,9 +247,53 @@ export default async function IndicateurRealisationPage({ params }: Props) {
   } else if (ind.code === 'B1') {
     kpisReels = await getKpisPublics();
     donneesReelles = true;
+  } else {
+    // Lit les saisies publiées pour tous les autres indicateurs
+    valeursPubliees = await getValeursPubliees(ind.code);
+    donneesReelles = valeursPubliees.length > 0;
   }
 
   const fictif = !donneesReelles;
+
+  // ── Calcul des métriques réelles depuis les saisies publiées ──────────────
+  const dataRateReelle: DonneesRate | undefined =
+    typeInd === 'rate' && valeursPubliees.length > 0
+      ? (() => {
+          const m = agregerTaux(valeursPubliees);
+          if (!m) return undefined;
+          const base = FICTIF_RATE[ind.code];
+          return {
+            taux: m.taux,
+            numerateur: m.numerateur,
+            denominateur: m.denominateur,
+            labelNumerateur: base?.labelNumerateur ?? 'Réalisés',
+            labelDenominateur: base?.labelDenominateur ?? 'Prévus',
+            femmes: 0,
+            pays: 0,
+          };
+        })()
+      : undefined;
+
+  const fictifCountReel: DonneesCount | undefined =
+    typeInd === 'count' && valeursPubliees.length > 0
+      ? (() => {
+          const total = agregerTotal(valeursPubliees);
+          return total !== null ? { total, femmes: 0, jeunes: 0, adultes: 0, pays: 0 } : undefined;
+        })()
+      : undefined;
+
+  const fictifAmountReel: DonneesAmount | undefined =
+    typeInd === 'amount' && valeursPubliees.length > 0
+      ? (() => {
+          const montant = valeursPubliees.reduce((s, v) => s + (v.valeur_directe ?? 0), 0);
+          if (montant === 0) return undefined;
+          const montantLibelle =
+            montant >= 1000
+              ? `${(montant / 1000).toFixed(1).replace('.', ',')} M€`
+              : `${montant.toLocaleString('fr-FR')} €`;
+          return { montant, montantLibelle, sourcesPublic: 0, sourcesPrive: 0, pays: 0 };
+        })()
+      : undefined;
 
   // Analyse IA publiée (si disponible)
   const analyseIA = await getAnalysePubliee(ind.code);
@@ -308,18 +356,18 @@ export default async function IndicateurRealisationPage({ params }: Props) {
               pilierData={pilierData}
               kpisReels={kpisReels}
               trancheAge={trancheAge}
-              fictifCount={FICTIF_COUNT[ind.code]}
+              fictifCount={(!fictif && fictifCountReel) ? fictifCountReel : FICTIF_COUNT[ind.code]}
               fictif={fictif}
             />
           )}
 
           {/* TYPE : RATE */}
-          {typeInd === 'rate' && FICTIF_RATE[ind.code] && (
+          {typeInd === 'rate' && (dataRateReelle ?? FICTIF_RATE[ind.code]) && (
             <KpisRate
-              data={FICTIF_RATE[ind.code]!}
+              data={(dataRateReelle ?? FICTIF_RATE[ind.code])!}
               couleur={pilierData.couleur}
               fictif={fictif}
-              afficherFemmes={ind.code !== 'D3'}
+              afficherFemmes={fictif ? ind.code !== 'D3' : false}
             />
           )}
 
@@ -333,9 +381,9 @@ export default async function IndicateurRealisationPage({ params }: Props) {
           )}
 
           {/* TYPE : AMOUNT */}
-          {typeInd === 'amount' && FICTIF_AMOUNT[ind.code] && (
+          {typeInd === 'amount' && (fictifAmountReel ?? FICTIF_AMOUNT[ind.code]) && (
             <KpisAmount
-              data={FICTIF_AMOUNT[ind.code]!}
+              data={(fictifAmountReel ?? FICTIF_AMOUNT[ind.code])!}
               couleur={pilierData.couleur}
               fictif={fictif}
             />
@@ -475,16 +523,26 @@ function KpisCount({
   const uniteAffichee = ind.unitePrincipale ?? 'personnes';
   const afficherVentilateur = ind.afficherVentilateurPersonne ?? true;
   const isB1 = ind.code === 'B1';
+  const isA1 = ind.code === 'A1';
 
-  const total = fictif
-    ? (fictifCount?.total ?? 0)
-    : isB1
-      ? (kpisReels?.structures_total ?? 0)
-      : (kpisReels?.beneficiaires_total ?? 0);
-  const femmes = fictif ? (fictifCount?.femmes ?? 0) : (kpisReels?.beneficiaires_femmes ?? 0);
-  const jeunes = fictif ? (fictifCount?.jeunes ?? 0) : (trancheAge?.jeunes ?? 0);
-  const adultes = fictif ? (fictifCount?.adultes ?? 0) : (trancheAge?.adultes ?? 0);
-  const paysCount = fictif ? (fictifCount?.pays ?? 0) : (kpisReels?.pays_total ?? 0);
+  // Pour A1/B1 : données auto BDD. Pour tous les autres : fictifCount (fictif ou calculé depuis saisies).
+  const total = isB1
+    ? (kpisReels?.structures_total ?? 0)
+    : isA1
+      ? (kpisReels?.beneficiaires_total ?? 0)
+      : (fictifCount?.total ?? 0);
+  const femmes = (isA1 && !fictif)
+    ? (kpisReels?.beneficiaires_femmes ?? 0)
+    : (fictifCount?.femmes ?? 0);
+  const jeunes = (isA1 && !fictif)
+    ? (trancheAge?.jeunes ?? 0)
+    : (fictifCount?.jeunes ?? 0);
+  const adultes = (isA1 && !fictif)
+    ? (trancheAge?.adultes ?? 0)
+    : (fictifCount?.adultes ?? 0);
+  const paysCount = (isA1 && !fictif)
+    ? (kpisReels?.pays_total ?? 0)
+    : (fictifCount?.pays ?? 0);
   const femmesPct = total > 0 ? Math.round((femmes / total) * 100) : 0;
   const jeunesAdultes = jeunes + adultes;
   const jeunesPct = jeunesAdultes > 0 ? Math.round((jeunes / jeunesAdultes) * 100) : 0;

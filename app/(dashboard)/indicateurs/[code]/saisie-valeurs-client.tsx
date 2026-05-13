@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, Save, Loader2, Pencil, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Save, Loader2, Pencil, EyeOff, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   enregistrerSaisieValeur,
@@ -144,6 +144,13 @@ export function SaisieValeursClient({
   const saisiesExistantes = valeursExistantes.filter(
     (v) => v.source === 'saisie' || v.source === 'mixte',
   );
+
+  // Années pour lesquelles le calcul automatique (BDD) produit déjà des données.
+  // Une saisie sur ces années sera IGNORÉE dans le graphique (COALESCE auto > saisie).
+  const anneesAvecAuto = new Set(
+    valeursExistantes.filter((v) => v.source === 'auto').map((v) => v.annee),
+  );
+  const anneeSelectionneeEstAuto = anneesAvecAuto.has(annee);
 
   return (
     <section className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
@@ -326,6 +333,21 @@ export function SaisieValeursClient({
             />
           </label>
         </div>
+
+        {/* Avertissement : année déjà couverte par le calcul automatique */}
+        {anneeSelectionneeEstAuto && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" aria-hidden />
+            <span>
+              <strong>Année {annee} — données auto disponibles.</strong> Le calcul automatique
+              (depuis la base bénéficiaires) est prioritaire pour cette année.
+              Votre saisie sera enregistrée mais <strong>n&apos;affectera pas le graphique</strong> tant
+              que des données auto existent. Pour remplacer les chiffres visibles, modifiez les
+              données sources (bénéficiaires) ou choisissez une année sans données auto
+              ({annees.filter((a) => !anneesAvecAuto.has(a)).join(', ') || 'aucune disponible'}).
+            </span>
+          </div>
+        )}
 
         <div className="flex justify-end">
           <Button
