@@ -176,6 +176,7 @@ export function mapLigneVersStructure(donneesBrut: Record<string, unknown>): {
   const payload: StructureInsertInput = {
     nom_structure: nomStructure,
     type_structure_code: typeStructure,
+    type_structure_autre: lireTexte(donnees['Type structure – précision']),
     secteur_activite_code: secteur,
     secteur_precis: lireTexte(donnees['Secteur précis']),
     intitule_initiative: lireTexte(donnees['Intitulé initiative']),
@@ -192,6 +193,7 @@ export function mapLigneVersStructure(donneesBrut: Record<string, unknown>): {
     fonction_porteur: lireTexte(donnees['Fonction porteur']),
     annee_appui: annee,
     nature_appui_code: natureAppui,
+    nature_appui_autre: lireTexte(donnees['Nature appui – précision']),
     montant_appui: lireNombreFloat(donnees['Montant appui']) ?? undefined,
     devise_code: devise,
     consentement_recueilli: consentement,

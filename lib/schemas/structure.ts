@@ -46,7 +46,7 @@ const anneeCourante = new Date().getFullYear();
 const telephoneRegex = /^\+\d{6,20}$/;
 
 /** Nom/prénom porteur : lettres accentuées, tirets, espaces, apostrophes. */
-const nomPrenomRegex = /^[\p{L}\p{M}\s'’\-]+$/u;
+const nomPrenomRegex = /^[\p{L}\p{M}\s''\-]+$/u;
 
 /**
  * Nom de structure : plus permissif qu'un nom de personne — on accepte
@@ -94,8 +94,11 @@ const baseStructureSchema = z.object({
     message: 'Type de structure invalide',
   }),
 
+  /** Précision libre quand type_structure_code = 'AUTRE' */
+  type_structure_autre: optionalString(200),
+
   secteur_activite_code: z.enum([...SECTEURS_ACTIVITE_CODES] as [string, ...string[]], {
-    message: 'Secteur d’activité invalide',
+    message: "Secteur d'activité invalide",
   }),
 
   secteur_precis: optionalString(200),
@@ -104,7 +107,7 @@ const baseStructureSchema = z.object({
 
   date_creation: optionalDate.refine(
     (d) => !d || (d >= new Date('1900-01-01') && d <= new Date()),
-    'Date de création hors plage (1900 – aujourd’hui)',
+    "Date de création hors plage (1900 – aujourd'hui)",
   ),
 
   statut_creation: z.enum([...STATUTS_STRUCTURE_VALUES] as [string, ...string[]], {
@@ -142,19 +145,22 @@ const baseStructureSchema = z.object({
 
   porteur_date_naissance: optionalDate.refine(
     (d) => !d || (d >= new Date('1900-01-01') && d <= new Date()),
-    'Date de naissance hors plage (1900 – aujourd’hui)',
+    "Date de naissance hors plage (1900 – aujourd'hui)",
   ),
 
   // === Section 4 : Appui ===
   annee_appui: z.coerce
-    .number({ message: 'Année d’appui invalide' })
+    .number({ message: "Année d'appui invalide" })
     .int()
     .min(2000, 'Année minimum : 2000')
     .max(anneeCourante + 1, `Année maximum : ${anneeCourante + 1}`),
 
   nature_appui_code: z.enum([...NATURES_APPUI_CODES] as [string, ...string[]], {
-    message: 'Nature d’appui invalide',
+    message: "Nature d'appui invalide",
   }),
+
+  /** Précision libre quand nature_appui_code = 'AUTRE' */
+  nature_appui_autre: optionalString(200),
 
   montant_appui: z
     .union([z.coerce.number().nonnegative(), z.literal(''), z.null(), z.undefined()])
@@ -270,7 +276,7 @@ function appliquerReglesMetierStructure(data: BaseStructureShape, ctx: z.Refinem
         code: z.ZodIssueCode.custom,
         path: ['consentement_date'],
         message:
-          'La date de consentement doit être antérieure ou égale à la date de début de l’appui OIF (exigence RGPD : le consentement précède le traitement des données).',
+          "La date de consentement doit être antérieure ou égale à la date de début de l'appui OIF (exigence RGPD : le consentement précède le traitement des données).",
       });
     }
   }
@@ -279,7 +285,7 @@ function appliquerReglesMetierStructure(data: BaseStructureShape, ctx: z.Refinem
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['devise_code'],
-      message: 'Une devise est obligatoire si un montant d’appui est saisi',
+      message: "Une devise est obligatoire si un montant d'appui est saisi",
     });
   }
   // Règle E (Étape 5c) : si nature_appui = 'SUBVENTION', le montant doit

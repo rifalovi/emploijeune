@@ -35,6 +35,7 @@ import type { Nomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import {
@@ -57,14 +58,6 @@ import {
 import { RepriseApresEnregistrementStructure } from './reprise-apres-enregistrement-structure';
 import { DialogueDoublonStructure } from './dialogue-doublon-structure';
 import { EcranSuccesCreationStructure } from './ecran-succes-creation-structure';
-
-/**
- * Mapping booléen→libellé pour le Select « Consentement RGPD ».
- */
-const CONSENTEMENT_LIBELLES: Record<'true' | 'false', string> = {
-  true: 'Oui – consentement recueilli',
-  false: 'Non – pas de consentement',
-};
 
 /**
  * Helper d'affichage des libellés Select (Base-UI 1.3+ affiche la valeur
@@ -158,6 +151,7 @@ export function StructureForm({
       // Section 1 : Identité
       nom_structure: initialValues?.nom_structure ?? '',
       type_structure_code: initialValues?.type_structure_code ?? undefined,
+      type_structure_autre: initialValues?.type_structure_autre ?? '',
       secteur_activite_code:
         initialValues?.secteur_activite_code ?? cohorte.secteur_activite ?? undefined,
       secteur_precis: initialValues?.secteur_precis ?? '',
@@ -184,9 +178,11 @@ export function StructureForm({
         cohorte.annee ??
         new Date().getFullYear()) as unknown as FormValues['annee_appui'],
       nature_appui_code: initialValues?.nature_appui_code ?? cohorte.nature_appui ?? undefined,
+      nature_appui_autre: initialValues?.nature_appui_autre ?? '',
       montant_appui:
         (initialValues?.montant_appui as unknown as FormValues['montant_appui']) ?? undefined,
-      devise_code: initialValues?.devise_code ?? cohorte.devise ?? undefined,
+      // Devise : EUR par défaut
+      devise_code: initialValues?.devise_code ?? cohorte.devise ?? 'EUR',
 
       // Section 5 : RGPD & contacts
       consentement_recueilli: initialValues?.consentement_recueilli ?? false,
@@ -220,12 +216,52 @@ export function StructureForm({
   const projetsLibelles = Object.fromEntries(projetsOptions.map((o) => [o.code, o.libelle]));
   const paysLibelles = Object.fromEntries(paysOptions.map((o) => [o.code, o.libelle]));
 
+  // Watches pour les comportements dynamiques
+  const typeStructureCode  = form.watch('type_structure_code');
+  const secteurActiviteCode = form.watch('secteur_activite_code');
+  const natureAppuiCode    = form.watch('nature_appui_code');
+  const consentement       = form.watch('consentement_recueilli') as boolean | undefined;
+
   const onSubmit = form.handleSubmit(async (values) => {
     setDoublon(null);
+
+    // Validation "Autre" : précision obligatoire
+    if (values.type_structure_code === 'AUTRE' && !values.type_structure_autre?.trim()) {
+      form.setError('type_structure_autre', { message: 'Précisez le type de structure.' });
+      return;
+    }
+    if (values.secteur_activite_code === 'AUTRE' && !values.secteur_precis?.trim()) {
+      form.setError('secteur_precis', { message: "Précisez le secteur d'activité." });
+      return;
+    }
+    if (values.nature_appui_code === 'AUTRE' && !values.nature_appui_autre?.trim()) {
+      form.setError('nature_appui_autre', { message: "Précisez la nature de l'appui." });
+      return;
+    }
+
+    // Validation RGPD : si consentement → au moins un contact requis
+    if (values.consentement_recueilli) {
+      const hasContact =
+        (values.telephone_porteur && values.telephone_porteur.trim() !== '') ||
+        (values.courriel_porteur && values.courriel_porteur.trim() !== '');
+      if (!hasContact) {
+        form.setError('telephone_porteur', {
+          message: 'Au moins un contact (téléphone ou courriel) est requis avec le consentement.',
+        });
+        return;
+      }
+    }
+
+    // Si pas de consentement, vider les coordonnées (contrainte DB)
+    if (!values.consentement_recueilli) {
+      values.telephone_porteur = '';
+      values.courriel_porteur  = '';
+    }
+
     startTransition(async () => {
       if (mode === 'edition') {
         if (!structureId) {
-          toast.error('Impossible d’identifier la fiche à modifier');
+          toast.error("Impossible d'identifier la fiche à modifier");
           return;
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -374,6 +410,25 @@ export function StructureForm({
                   </FormItem>
                 )}
               />
+              {typeStructureCode === 'AUTRE' && (
+                <FormField
+                  control={form.control}
+                  name="type_structure_autre"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Précisez le type de structure *</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value ?? ''}
+                          placeholder="Ex : Coopérative agricole…"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="secteur_activite_code"
@@ -409,6 +464,25 @@ export function StructureForm({
                   </FormItem>
                 )}
               />
+              {secteurActiviteCode === 'AUTRE' && (
+                <FormField
+                  control={form.control}
+                  name="secteur_precis"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Précisez le secteur *</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value ?? ''}
+                          placeholder="Ex : Transformation alimentaire…"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="pays_code"
@@ -644,6 +718,25 @@ export function StructureForm({
                   </FormItem>
                 )}
               />
+              {natureAppuiCode === 'AUTRE' && (
+                <FormField
+                  control={form.control}
+                  name="nature_appui_autre"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Précisez la nature de l&apos;appui *</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value ?? ''}
+                          placeholder="Ex : Mentorat, mise en réseau…"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="montant_appui"
@@ -710,63 +803,12 @@ export function StructureForm({
             <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
-                name="consentement_recueilli"
-                render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
-                    <FormLabel>Consentement RGPD recueilli *</FormLabel>
-                    <Select
-                      onValueChange={(v) => field.onChange(v === 'true')}
-                      value={field.value ? 'true' : 'false'}
-                    >
-                      <FormControl>
-                        <SelectTrigger
-                          title={CONSENTEMENT_LIBELLES[field.value ? 'true' : 'false']}
-                        >
-                          <SelectValue>
-                            {afficherLibelle(CONSENTEMENT_LIBELLES, 'Sélectionner')}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="true">Oui – consentement recueilli</SelectItem>
-                        <SelectItem value="false">Non – pas de consentement</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Sans consentement, les coordonnées téléphone et courriel ne pourront pas être
-                      conservées.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="consentement_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date du consentement</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        value={
-                          field.value instanceof Date
-                            ? field.value.toISOString().slice(0, 10)
-                            : ((field.value as string | undefined) ?? '')
-                        }
-                        onChange={(e) => field.onChange(e.target.value || undefined)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="telephone_porteur"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Téléphone du responsable</FormLabel>
+                    <FormLabel>
+                      Téléphone du responsable{consentement ? ' *' : ''}
+                    </FormLabel>
                     <FormControl>
                       <Input
                         type="tel"
@@ -784,8 +826,10 @@ export function StructureForm({
                 control={form.control}
                 name="courriel_porteur"
                 render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
-                    <FormLabel>Courriel du responsable</FormLabel>
+                  <FormItem>
+                    <FormLabel>
+                      Courriel du responsable{consentement ? ' *' : ''}
+                    </FormLabel>
                     <FormControl>
                       <Input
                         type="email"
@@ -799,6 +843,29 @@ export function StructureForm({
                   </FormItem>
                 )}
               />
+              {consentement && (
+                <FormField
+                  control={form.control}
+                  name="consentement_date"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Date du consentement</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={
+                            field.value instanceof Date
+                              ? field.value.toISOString().slice(0, 10)
+                              : ((field.value as string | undefined) ?? '')
+                          }
+                          onChange={(e) => field.onChange(e.target.value || undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </CardContent>
           </Card>
 
@@ -1109,6 +1176,40 @@ export function StructureForm({
               </div>
             </div>
           </CollapsibleSection>
+
+          {/* ============================================================== */}
+          {/* Consentement RGPD                                            */}
+          {/* ============================================================== */}
+          <Card>
+            <CardContent className="pt-5">
+              <FormField
+                control={form.control}
+                name="consentement_recueilli"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start gap-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={(field.value as boolean) ?? false}
+                        onCheckedChange={(checked) => field.onChange(!!checked)}
+                      />
+                    </FormControl>
+                    <div className="space-y-1">
+                      <FormLabel className="text-sm font-medium leading-none cursor-pointer">
+                        Consentement RGPD recueilli *
+                      </FormLabel>
+                      <FormDescription>
+                        Le porteur a consenti à ce que ses coordonnées soient conservées.
+                        {consentement
+                          ? ' Au moins un moyen de contact (téléphone ou courriel) est requis.'
+                          : ' Sans consentement, le formulaire peut être enregistré sans coordonnées.'}
+                      </FormDescription>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
 
           {/* ============================================================== */}
           {/* Boutons d'action                                              */}

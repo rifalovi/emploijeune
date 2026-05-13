@@ -35,6 +35,24 @@ export const metadata: Metadata = {
     index: false,
     follow: false,
   },
+  // Open Graph + Twitter Card — aperçu enrichi sur WhatsApp, LinkedIn,
+  // Facebook, Twitter/X. Les images sont auto-détectées par Next.js
+  // depuis app/opengraph-image.png et app/twitter-image.png (1200x630,
+  // logo OIF sur fond bleu institutionnel #0E4F88).
+  openGraph: {
+    title: 'OIF – Suivi Emploi Jeunes',
+    description:
+      "Plateforme de gestion et de suivi des projets emploi-jeunes de l'Organisation Internationale de la Francophonie.",
+    type: 'website',
+    locale: 'fr_FR',
+    siteName: 'OIF Emploi Jeunes',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'OIF – Suivi Emploi Jeunes',
+    description:
+      "Plateforme de gestion et de suivi des projets emploi-jeunes de l'OIF.",
+  },
 };
 
 export default function RootLayout({

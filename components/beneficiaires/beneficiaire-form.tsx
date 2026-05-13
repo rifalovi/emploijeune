@@ -21,6 +21,7 @@ import type { Nomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Form,
@@ -44,17 +45,6 @@ import { WarningQualite, messageWarningQualiteStatut } from './warning-qualite';
 import { RepriseApresEnregistrement } from './reprise-apres-enregistrement';
 import { DialogueDoublon } from './dialogue-doublon';
 import { EcranSuccesCreation } from './ecran-succes-creation';
-import { calculerTrancheAge } from './tranche-age';
-
-/**
- * Mapping booléen→libellé pour le Select « Consentement RGPD ».
- * Valeur du form : `boolean`. Valeur passée au Select : stringifiée via
- * ternaire côté parent. Ce Record doit donc indexer par `'true'`/`'false'`.
- */
-const CONSENTEMENT_LIBELLES: Record<'true' | 'false', string> = {
-  true: 'Oui – consentement recueilli',
-  false: 'Non – pas de consentement',
-};
 
 /**
  * Helper : renvoie une fonction de rendu pour `<SelectValue>` qui résout la
@@ -192,10 +182,11 @@ export function BeneficiaireForm({
   });
 
   // Watches pour les comportements dynamiques
-  const dateNaissance = form.watch('date_naissance');
   const statut = form.watch('statut_code');
   const dateFinFormation = form.watch('date_fin_formation');
   const telephone = form.watch('telephone') ?? '';
+  const domaineCode = form.watch('domaine_formation_code');
+  const consentement = form.watch('consentement_recueilli') as boolean | undefined;
 
   // Maps code→libellé dérivés des options serveur, pour afficher le libellé
   // dans le trigger Select après sélection (Base-UI 1.3+ affiche la valeur
@@ -208,10 +199,34 @@ export function BeneficiaireForm({
 
   const onSubmit = form.handleSubmit(async (values) => {
     setDoublon(null);
+
+    // Validation RGPD : si consentement coché → au moins un contact requis
+    if (values.consentement_recueilli) {
+      const hasContact =
+        (values.telephone && values.telephone.trim() !== '') ||
+        (values.courriel && values.courriel.trim() !== '');
+      if (!hasContact) {
+        form.setError('telephone', {
+          message: 'Au moins un contact (téléphone ou courriel) est requis avec le consentement.',
+        });
+        return;
+      }
+    }
+
+    // Validation "Autre" domaine : intitule_formation obligatoire
+    if (values.domaine_formation_code === 'AUTRE') {
+      if (!values.intitule_formation || values.intitule_formation.trim() === '') {
+        form.setError('intitule_formation', {
+          message: 'Précisez le domaine quand « Autre » est sélectionné.',
+        });
+        return;
+      }
+    }
+
     startTransition(async () => {
       if (mode === 'edition') {
         if (!beneficiaireId) {
-          toast.error('Impossible d’identifier la fiche à modifier');
+          toast.error("Impossible d'identifier la fiche à modifier");
           return;
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -283,10 +298,6 @@ export function BeneficiaireForm({
       </div>
     );
   }
-
-  const trancheAge = calculerTrancheAge(
-    typeof dateNaissance === 'string' || dateNaissance instanceof Date ? dateNaissance : null,
-  );
 
   return (
     <div className="space-y-6">
@@ -370,31 +381,6 @@ export function BeneficiaireForm({
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="date_naissance"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date de naissance</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        value={
-                          field.value instanceof Date
-                            ? field.value.toISOString().slice(0, 10)
-                            : ((field.value as string | undefined) ?? '')
-                        }
-                        onChange={(e) => field.onChange(e.target.value || undefined)}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormDescription>Tranche d&apos;âge : {trancheAge}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -526,10 +512,25 @@ export function BeneficiaireForm({
                 name="intitule_formation"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Intitulé précis de la formation</FormLabel>
+                    <FormLabel>
+                      {domaineCode === 'AUTRE'
+                        ? 'Précisez le domaine *'
+                        : 'Intitulé précis de la formation'}
+                    </FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value ?? ''} />
+                      <Input
+                        {...field}
+                        value={field.value ?? ''}
+                        placeholder={
+                          domaineCode === 'AUTRE' ? 'Ex : Transformation alimentaire…' : ''
+                        }
+                      />
                     </FormControl>
+                    {domaineCode === 'AUTRE' && (
+                      <FormDescription>
+                        Obligatoire quand le domaine est « Autre ».
+                      </FormDescription>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -691,70 +692,17 @@ export function BeneficiaireForm({
             </CardContent>
           </Card>
 
-          {/* ===== Section 4 : RGPD & Contacts ===== */}
+          {/* ===== Section 4 : Contacts ===== */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">4. RGPD et contacts</CardTitle>
+              <CardTitle className="text-base">4. Contacts</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
-                name="consentement_recueilli"
-                render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
-                    <FormLabel>Consentement recueilli *</FormLabel>
-                    <Select
-                      onValueChange={(v) => field.onChange(v === 'true')}
-                      value={field.value ? 'true' : 'false'}
-                    >
-                      <FormControl>
-                        <SelectTrigger
-                          title={CONSENTEMENT_LIBELLES[field.value ? 'true' : 'false']}
-                        >
-                          <SelectValue>
-                            {afficherLibelle(CONSENTEMENT_LIBELLES, 'Sélectionner')}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="true">Oui – consentement recueilli</SelectItem>
-                        <SelectItem value="false">Non – pas de consentement</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Sans consentement, les coordonnées téléphone et courriel ne pourront pas être
-                      conservées.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="consentement_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date du consentement</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        value={
-                          field.value instanceof Date
-                            ? field.value.toISOString().slice(0, 10)
-                            : ((field.value as string | undefined) ?? '')
-                        }
-                        onChange={(e) => field.onChange(e.target.value || undefined)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="localite_residence"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="sm:col-span-2">
                     <FormLabel>Localité de résidence</FormLabel>
                     <FormControl>
                       <Input {...field} value={field.value ?? ''} />
@@ -768,7 +716,10 @@ export function BeneficiaireForm({
                 name="telephone"
                 render={({ field }) => (
                   <FormItem className="sm:col-span-2">
-                    <FormLabel>Téléphone (avec indicatif international)</FormLabel>
+                    <FormLabel>
+                      Téléphone (avec indicatif international)
+                      {consentement ? ' *' : ''}
+                    </FormLabel>
                     <FormControl>
                       <Input
                         type="tel"
@@ -791,7 +742,9 @@ export function BeneficiaireForm({
                 name="courriel"
                 render={({ field }) => (
                   <FormItem className="sm:col-span-2">
-                    <FormLabel>Courriel</FormLabel>
+                    <FormLabel>
+                      Courriel{consentement ? ' *' : ''}
+                    </FormLabel>
                     <FormControl>
                       <Input
                         type="email"
@@ -805,6 +758,29 @@ export function BeneficiaireForm({
                   </FormItem>
                 )}
               />
+              {consentement && (
+                <FormField
+                  control={form.control}
+                  name="consentement_date"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Date du consentement</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={
+                            field.value instanceof Date
+                              ? field.value.toISOString().slice(0, 10)
+                              : ((field.value as string | undefined) ?? '')
+                          }
+                          onChange={(e) => field.onChange(e.target.value || undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </CardContent>
           </Card>
 
@@ -824,6 +800,39 @@ export function BeneficiaireForm({
                       <Textarea rows={3} {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          {/* ===== Consentement RGPD ===== */}
+          <Card>
+            <CardContent className="pt-5">
+              <FormField
+                control={form.control}
+                name="consentement_recueilli"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start gap-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={(field.value as boolean) ?? false}
+                        onCheckedChange={(checked) => field.onChange(!!checked)}
+                      />
+                    </FormControl>
+                    <div className="space-y-1">
+                      <FormLabel className="text-sm font-medium leading-none cursor-pointer">
+                        Consentement RGPD recueilli *
+                      </FormLabel>
+                      <FormDescription>
+                        Le bénéficiaire a consenti à ce que ses coordonnées soient
+                        conservées et utilisées à des fins de suivi.
+                        {consentement
+                          ? ' Au moins un moyen de contact (téléphone ou courriel) est requis.'
+                          : ' Sans consentement, le formulaire peut être enregistré sans coordonnées.'}
+                      </FormDescription>
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
