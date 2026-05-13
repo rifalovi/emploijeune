@@ -1,6 +1,10 @@
 import 'server-only';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { indicateursAnnuelsSchema, type IndicateursAnnuelsPayload } from './types';
+import {
+  indicateursAnnuelsSchema,
+  type IndicateursAnnuelsPayload,
+  type SaisieIndicateurBrute,
+} from './types';
 
 /**
  * Récupère tous les indicateurs CMR avec leurs valeurs annuelles (RPC
@@ -30,4 +34,23 @@ export async function getConfigIndicateurs(): Promise<ConfigIndicateur[]> {
     .select('indicateur_code, visu_activee, visu_forcee');
   if (error || !data) return [];
   return data as ConfigIndicateur[];
+}
+
+/**
+ * Lit les saisies manuelles brutes pour un indicateur donné, directement
+ * depuis `valeurs_indicateurs_saisies` (sans la RPC de fusion auto+saisie).
+ *
+ * Cela permet d'afficher — et de supprimer / publier — les saisies même
+ * quand le calcul automatique (BDD) est prioritaire et que la RPC renvoie
+ * `source: 'auto'` pour toutes les lignes (cas A2, Taux d'achèvement).
+ */
+export async function getSaisiesIndicateur(code: string): Promise<SaisieIndicateurBrute[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('valeurs_indicateurs_saisies')
+    .select('annee, numerateur, denominateur, valeur_directe, note, publie')
+    .eq('indicateur_code', code)
+    .order('annee', { ascending: true });
+  if (error || !data) return [];
+  return data as SaisieIndicateurBrute[];
 }

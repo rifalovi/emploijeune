@@ -18,12 +18,18 @@ import {
   supprimerSaisieValeur,
   basculerPubliSaisieValeur,
 } from '@/lib/indicateurs-annuels/server-actions';
-import type { ValeurAnnee } from '@/lib/indicateurs-annuels/types';
+import type { ValeurAnnee, SaisieIndicateurBrute } from '@/lib/indicateurs-annuels/types';
 
 type Props = {
   code: string;
   /** Valeurs existantes (auto + saisies confondues, renvoyées par la RPC). */
   valeursExistantes: ValeurAnnee[];
+  /**
+   * Saisies brutes lues directement dans `valeurs_indicateurs_saisies`.
+   * Permet d'afficher le tableau même quand la RPC renvoie `source: 'auto'`
+   * (cas A2 — calcul BDD prioritaire masquant les lignes de saisie).
+   */
+  saisiesBrutes: SaisieIndicateurBrute[];
   /** Indique si l'indicateur est de type "taux" (A2, A3, A5, B2, B3, etc.). */
   estTaux: boolean;
   /** Année min/max autorisées. */
@@ -46,6 +52,7 @@ type Props = {
 export function SaisieValeursClient({
   code,
   valeursExistantes,
+  saisiesBrutes,
   estTaux,
   anneeMin,
   anneeMax,
@@ -120,39 +127,34 @@ export function SaisieValeursClient({
     });
   };
 
-  // Pre-fill quand on change d'année si une saisie existe pour cette année
+  // Pre-fill quand on change d'année si une saisie brute existe pour cette année
   const handleAnneeChange = (a: number) => {
     setAnnee(a);
-    const existante = valeursExistantes.find((v) => v.annee === a && v.source !== 'auto');
-    if (existante) {
-      setNumerateur(
-        existante.numerateur !== null && existante.numerateur !== undefined
-          ? String(existante.numerateur)
-          : '',
-      );
-      setDenominateur(
-        existante.denominateur !== null && existante.denominateur !== undefined
-          ? String(existante.denominateur)
-          : '',
-      );
+    const brute = saisiesBrutes.find((s) => s.annee === a);
+    if (brute) {
+      setNumerateur(brute.numerateur !== null ? String(brute.numerateur) : '');
+      setDenominateur(brute.denominateur !== null ? String(brute.denominateur) : '');
       setValeurDirecte(
-        existante.valeur !== null &&
-          existante.valeur !== undefined &&
-          (existante.numerateur === null || existante.numerateur === undefined) &&
-          (existante.denominateur === null || existante.denominateur === undefined)
-          ? String(existante.valeur)
+        brute.valeur_directe !== null && brute.numerateur === null && brute.denominateur === null
+          ? String(brute.valeur_directe)
           : '',
       );
+      setNote(brute.note ?? '');
+    } else {
+      setNumerateur('');
+      setDenominateur('');
+      setValeurDirecte('');
+      setNote('');
     }
   };
 
   const annees = [];
   for (let a = anneeMin; a <= anneeMax; a++) annees.push(a);
 
-  // Liste des saisies déjà présentes (source 'saisie' ou 'mixte')
-  const saisiesExistantes = valeursExistantes.filter(
-    (v) => v.source === 'saisie' || v.source === 'mixte',
-  );
+  // Tableau des saisies : on utilise les saisies brutes directement (indépendant
+  // du champ `source` renvoyé par la RPC, qui peut valoir 'auto' même quand une
+  // saisie manuelle existe — cas A2, calcul BDD prioritaire).
+  const saisiesExistantes = saisiesBrutes;
 
   // Années pour lesquelles le calcul automatique (BDD) produit déjà des données.
   // Une saisie sur ces années sera IGNORÉE dans le graphique (COALESCE auto > saisie).
@@ -201,65 +203,72 @@ export function SaisieValeursClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-blue-100">
-              {saisiesExistantes.map((v) => (
-                <tr key={v.annee}>
-                  <td className="px-2 py-1.5 font-mono">{v.annee}</td>
-                  <td className="px-2 py-1.5 text-right tabular-nums">{v.numerateur ?? '—'}</td>
-                  <td className="px-2 py-1.5 text-right tabular-nums">{v.denominateur ?? '—'}</td>
-                  <td className="px-2 py-1.5 text-right font-semibold tabular-nums">
-                    {v.valeur ?? '—'}
-                  </td>
-                  <td className="px-2 py-1.5 text-center">
-                    <span
-                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                        v.source === 'mixte'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-blue-100 text-blue-700'
-                      }`}
-                    >
-                      {v.source}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1.5 text-center">
-                    <button
-                      type="button"
-                      onClick={() => handleTogglePubli(v.annee, !v.publie)}
-                      disabled={pending}
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-50 ${
-                        v.publie
-                          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                      aria-label={
-                        v.publie ? `Dépublier la saisie ${v.annee}` : `Publier la saisie ${v.annee}`
-                      }
-                    >
-                      {v.publie ? (
-                        <>
-                          <CheckCircle2 className="size-3" aria-hidden />
-                          Publiée
-                        </>
-                      ) : (
-                        <>
-                          <EyeOff className="size-3" aria-hidden />
-                          Brouillon
-                        </>
-                      )}
-                    </button>
-                  </td>
-                  <td className="px-2 py-1.5 text-right">
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(v.annee)}
-                      disabled={pending}
-                      className="text-red-500 hover:text-red-700 disabled:opacity-50"
-                      aria-label={`Supprimer la saisie ${v.annee}`}
-                    >
-                      <Trash2 className="size-3" aria-hidden />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {saisiesExistantes.map((s) => {
+                // Calcul de la valeur affichée depuis les champs bruts
+                const valeurCalculee =
+                  s.numerateur !== null && s.denominateur !== null && s.denominateur !== 0
+                    ? Math.round((s.numerateur / s.denominateur) * 1000) / 10
+                    : s.valeur_directe;
+                return (
+                  <tr key={s.annee}>
+                    <td className="px-2 py-1.5 font-mono">{s.annee}</td>
+                    <td className="px-2 py-1.5 text-right tabular-nums">{s.numerateur ?? '—'}</td>
+                    <td className="px-2 py-1.5 text-right tabular-nums">{s.denominateur ?? '—'}</td>
+                    <td className="px-2 py-1.5 text-right font-semibold tabular-nums">
+                      {valeurCalculee !== null && valeurCalculee !== undefined
+                        ? estTaux
+                          ? `${valeurCalculee} %`
+                          : valeurCalculee.toLocaleString('fr-FR')
+                        : '—'}
+                    </td>
+                    <td className="px-2 py-1.5 text-center">
+                      <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
+                        saisie
+                      </span>
+                    </td>
+                    <td className="px-2 py-1.5 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePubli(s.annee, !s.publie)}
+                        disabled={pending}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-50 ${
+                          s.publie
+                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                        aria-label={
+                          s.publie
+                            ? `Dépublier la saisie ${s.annee}`
+                            : `Publier la saisie ${s.annee}`
+                        }
+                      >
+                        {s.publie ? (
+                          <>
+                            <CheckCircle2 className="size-3" aria-hidden />
+                            Publiée
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="size-3" aria-hidden />
+                            Brouillon
+                          </>
+                        )}
+                      </button>
+                    </td>
+                    <td className="px-2 py-1.5 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(s.annee)}
+                        disabled={pending}
+                        className="text-red-500 hover:text-red-700 disabled:opacity-50"
+                        aria-label={`Supprimer la saisie ${s.annee}`}
+                      >
+                        <Trash2 className="size-3" aria-hidden />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

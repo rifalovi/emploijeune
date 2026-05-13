@@ -4,7 +4,11 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, BarChart3, CheckCircle2, Clock, Info } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { indicateurParCode, PILIERS, type CodePilier } from '@/lib/referentiels/indicateurs';
-import { getIndicateursAnnuels, getConfigIndicateurs } from '@/lib/indicateurs-annuels/queries';
+import {
+  getIndicateursAnnuels,
+  getConfigIndicateurs,
+  getSaisiesIndicateur,
+} from '@/lib/indicateurs-annuels/queries';
 import {
   doitAfficherVisualisation,
   type IndicateurAvecValeurs,
@@ -35,7 +39,11 @@ export default async function IndicateurDetailPage({ params }: Props) {
   const ind = indicateurParCode(codeBrut);
   if (!ind) notFound();
 
-  const [payload, config] = await Promise.all([getIndicateursAnnuels(), getConfigIndicateurs()]);
+  const [payload, config, saisiesBrutes] = await Promise.all([
+    getIndicateursAnnuels(),
+    getConfigIndicateurs(),
+    getSaisiesIndicateur(ind.code),
+  ]);
 
   if (!payload) {
     return <p className="text-sm text-amber-700">Impossible de charger les indicateurs.</p>;
@@ -104,6 +112,7 @@ export default async function IndicateurDetailPage({ params }: Props) {
         <SaisieValeursClient
           code={ind.code}
           valeursExistantes={valeurs.valeurs_par_annee}
+          saisiesBrutes={saisiesBrutes}
           estTaux={INDICATEURS_TAUX.has(ind.code)}
           anneeMin={payload.annee_min}
           anneeMax={payload.annee_max}

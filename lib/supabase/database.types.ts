@@ -1776,6 +1776,48 @@ export type Database = {
         }
         Relationships: []
       }
+      valeurs_indicateurs_saisies: {
+        Row: {
+          indicateur_code: string
+          annee: number
+          numerateur: number | null
+          denominateur: number | null
+          valeur_directe: number | null
+          note: string | null
+          publie: boolean
+          created_at: string
+          updated_at: string
+          created_by: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          indicateur_code: string
+          annee: number
+          numerateur?: number | null
+          denominateur?: number | null
+          valeur_directe?: number | null
+          note?: string | null
+          publie?: boolean
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          indicateur_code?: string
+          annee?: number
+          numerateur?: number | null
+          denominateur?: number | null
+          valeur_directe?: number | null
+          note?: string | null
+          publie?: boolean
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       v_liens_collecte_stats: {

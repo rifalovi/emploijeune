@@ -56,6 +56,20 @@ export type IndicateurAvecValeurs = z.infer<typeof indicateurSchema>;
 export type IndicateursAnnuelsPayload = z.infer<typeof indicateursAnnuelsSchema>;
 
 /**
+ * Ligne brute lue directement dans `valeurs_indicateurs_saisies`.
+ * Utilisé par SaisieValeursClient pour afficher le tableau des saisies
+ * même quand la RPC renvoie `source: 'auto'` (cas A2 — calcul BDD prioritaire).
+ */
+export type SaisieIndicateurBrute = {
+  annee: number;
+  numerateur: number | null;
+  denominateur: number | null;
+  valeur_directe: number | null;
+  note: string | null;
+  publie: boolean;
+};
+
+/**
  * Règle d'activation de la visualisation graphique pour un indicateur.
  *
  *   - Si le super_admin a forcé un choix via `indicateurs_config.visu_forcee`
