@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { AlertTriangle } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { InfoPersoCard } from '@/components/mon-compte/info-perso-card';
@@ -6,6 +7,10 @@ import { ChangerMdpForm } from '@/components/mon-compte/changer-mdp-form';
 
 export const metadata: Metadata = {
   title: 'Mon compte – OIF Emploi Jeunes',
+};
+
+type PageProps = {
+  searchParams: Promise<{ mdp_temporaire?: string }>;
 };
 
 /**
@@ -19,13 +24,21 @@ export const metadata: Metadata = {
  * V1.5 prévues : édition prénom/nom/email avec workflow de confirmation,
  * historique des connexions, paramètres de notification.
  */
-export default async function MonComptePage() {
+export default async function MonComptePage({ searchParams }: PageProps) {
   const utilisateur = await requireUtilisateurValide();
+  const sp = await searchParams;
 
   const supabase = await createSupabaseServerClient();
   const { data: auth } = await supabase.auth.getUser();
   const email = auth.user?.email ?? '–';
   const createdAt = auth.user?.created_at ?? new Date().toISOString();
+
+  // Le middleware redirige vers /mon-compte?mdp_temporaire=1 quand le user
+  // métadata mdp_temporaire=true (cas d'un compte créé par le super_admin
+  // avec mot de passe défini). On affiche un bandeau et on focus le form.
+  const mdpTemporaire =
+    sp.mdp_temporaire === '1' ||
+    Boolean((auth.user?.user_metadata as { mdp_temporaire?: unknown } | null)?.mdp_temporaire);
 
   // Récupère organisation + projets gérés (pour rôles partenaire/coordo)
   let organisationNom: string | null = null;
@@ -48,6 +61,21 @@ export default async function MonComptePage() {
           Consultez vos informations personnelles et gérez votre mot de passe.
         </p>
       </header>
+
+      {mdpTemporaire && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <div>
+            <p className="font-semibold">Mot de passe temporaire détecté</p>
+            <p className="mt-0.5 leading-relaxed">
+              Votre compte a été créé par le super administrateur avec un mot de passe communiqué
+              manuellement. Pour des raisons de sécurité, vous devez définir votre propre mot de
+              passe avant d&apos;accéder au reste de la plateforme. Utilisez le formulaire
+              ci-dessous.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <InfoPersoCard

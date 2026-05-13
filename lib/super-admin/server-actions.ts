@@ -463,3 +463,113 @@ export async function supprimerCompteUtilisateur(
   revalidatePath('/admin/utilisateurs');
   return { status: 'succes' };
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Création de compte avec mot de passe défini par le super_admin
+// ─────────────────────────────────────────────────────────────────────────
+//
+// Différence avec `creerCompteUtilisateur` (lib/utilisateurs/mutations.ts) :
+//
+//   creerCompteUtilisateur               creerCompteAvecMotPasseDefini
+//   ────────────────────────             ──────────────────────────────
+//   mdp aléatoire généré côté serveur    mdp choisi par le super_admin
+//   email d'invitation envoyé            aucun email — communication manuelle
+//   lien de récupération à cliquer       compte directement utilisable
+//
+// Dans les deux cas, `user_metadata.mdp_temporaire = true` est posé : le
+// dashboard layout détecte ce flag et redirige vers /mon-compte au premier
+// login pour forcer le changement de mot de passe. La fonction
+// `changerMonMotPasse` (lib/utilisateurs/mon-compte.ts) efface le flag
+// une fois le nouveau mdp confirmé.
+
+const creerCompteAvecMdpSchema = z.object({
+  email: z.string().trim().email(),
+  nom_complet: z.string().trim().min(2).max(150),
+  role: z.enum(['admin_scs', 'editeur_projet', 'contributeur_partenaire', 'lecteur']),
+  organisation_id: z.string().uuid().nullable().optional(),
+  mot_passe: z.string().min(8, 'Le mot de passe doit faire au moins 8 caractères').max(72),
+});
+
+export type CreerCompteAvecMdpResult =
+  | { status: 'succes'; user_id: string; email: string }
+  | { status: 'erreur'; message: string };
+
+export async function creerCompteAvecMotPasseDefini(
+  payload: z.infer<typeof creerCompteAvecMdpSchema>,
+): Promise<CreerCompteAvecMdpResult> {
+  const garde = await exigerSuperAdmin();
+  if ('erreur' in garde) return { status: 'erreur', message: garde.erreur };
+
+  const parsed = creerCompteAvecMdpSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { status: 'erreur', message: parsed.error.issues[0]?.message ?? 'payload_invalide' };
+  }
+
+  const admin = createSupabaseAdminClient();
+
+  // 1. Création auth.users avec mot de passe + email confirmé immédiatement
+  //    (pas d'email de confirmation envoyé — le super_admin communique
+  //    les credentials directement).
+  const { data: authData, error: authErr } = await admin.auth.admin.createUser({
+    email: parsed.data.email,
+    password: parsed.data.mot_passe,
+    email_confirm: true,
+    user_metadata: {
+      mdp_temporaire: true,
+      cree_par_admin: garde.utilisateur.user_id,
+      cree_le: new Date().toISOString(),
+      mode_creation: 'mdp_defini_par_admin',
+    },
+  });
+
+  if (authErr || !authData.user) {
+    const msg = (authErr?.message ?? '').toLowerCase();
+    if (msg.includes('already') && msg.includes('registered')) {
+      return { status: 'erreur', message: 'email_deja_utilise' };
+    }
+    return { status: 'erreur', message: `auth_create: ${authErr?.message ?? 'inconnue'}` };
+  }
+
+  const newUserId = authData.user.id;
+
+  // 2. INSERT public.utilisateurs (miroir du profil métier)
+  const { error: dbErr } = await admin.from('utilisateurs').insert({
+    user_id: newUserId,
+    nom_complet: parsed.data.nom_complet,
+    role: parsed.data.role,
+    organisation_id: parsed.data.organisation_id ?? null,
+    actif: true,
+    statut_validation: 'valide',
+    created_by: garde.utilisateur.user_id,
+  } as never);
+
+  if (dbErr) {
+    // Rollback best-effort sur auth.users
+    await admin.auth.admin.deleteUser(newUserId).catch(() => undefined);
+    return { status: 'erreur', message: `db_insert: ${dbErr.message}` };
+  }
+
+  // 3. Audit log
+  await admin
+    .from('journaux_audit')
+    .insert({
+      action: 'utilisateur.creer_avec_mdp_defini',
+      acteur_user_id: garde.utilisateur.user_id,
+      cible_type: 'utilisateur',
+      cible_id: newUserId,
+      diff: {
+        email: parsed.data.email,
+        nom_complet: parsed.data.nom_complet,
+        role: parsed.data.role,
+      } as never,
+    } as never)
+    .then(
+      () => undefined,
+      () => undefined,
+    );
+
+  revalidatePath('/super-admin/utilisateurs');
+  revalidatePath('/admin/utilisateurs');
+
+  return { status: 'succes', user_id: newUserId, email: parsed.data.email };
+}

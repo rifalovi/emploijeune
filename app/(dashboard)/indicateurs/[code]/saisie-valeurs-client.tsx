@@ -2,7 +2,16 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, Save, Loader2, Pencil, EyeOff, CheckCircle2, AlertTriangle } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Save,
+  Loader2,
+  Pencil,
+  EyeOff,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   enregistrerSaisieValeur,
@@ -340,11 +349,11 @@ export function SaisieValeursClient({
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" aria-hidden />
             <span>
               <strong>Année {annee} — données auto disponibles.</strong> Le calcul automatique
-              (depuis la base bénéficiaires) est prioritaire pour cette année.
-              Votre saisie sera enregistrée mais <strong>n&apos;affectera pas le graphique</strong> tant
-              que des données auto existent. Pour remplacer les chiffres visibles, modifiez les
-              données sources (bénéficiaires) ou choisissez une année sans données auto
-              ({annees.filter((a) => !anneesAvecAuto.has(a)).join(', ') || 'aucune disponible'}).
+              (depuis la base bénéficiaires) est prioritaire pour cette année. Votre saisie sera
+              enregistrée mais <strong>n&apos;affectera pas le graphique</strong> tant que des
+              données auto existent. Pour remplacer les chiffres visibles, modifiez les données
+              sources (bénéficiaires) ou choisissez une année sans données auto (
+              {annees.filter((a) => !anneesAvecAuto.has(a)).join(', ') || 'aucune disponible'}).
             </span>
           </div>
         )}

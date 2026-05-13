@@ -228,17 +228,25 @@ export async function approuverDemandeAcces(demandeId: string): Promise<Approuve
   }
 
   // Lien d'activation
+  // Hotfix v2.0.1.2 : on utilise hashed_token + lien direct vers notre callback
+  // (même approche que creerCompteUtilisateur / envoyer-reset-mot-passe).
   const origin = getBaseUrl();
-  const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent('/motpasse/changer?premier_login=1')}`;
+  const redirectInterne = '/motpasse/changer?premier_login=1';
+  const redirectTo = `${origin}/api/auth/callback?redirect=${encodeURIComponent(redirectInterne)}`;
   const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: 'recovery',
     email: demande.email,
     options: { redirectTo },
   });
-  if (linkError || !linkData?.properties?.action_link) {
-    return { status: 'erreur_inconnue', message: linkError?.message ?? 'Lien KO' };
+  const hashedToken = linkData?.properties?.hashed_token;
+  if (linkError || !hashedToken) {
+    return { status: 'erreur_inconnue', message: linkError?.message ?? 'hashed_token manquant' };
   }
-  const lienActivation = linkData.properties.action_link;
+  const lienActivation =
+    `${origin}/api/auth/callback` +
+    `?token_hash=${encodeURIComponent(hashedToken)}` +
+    `&type=recovery` +
+    `&redirect=${encodeURIComponent(redirectInterne)}`;
 
   // Email d'invitation (template centralisé)
   const roleLibelle =

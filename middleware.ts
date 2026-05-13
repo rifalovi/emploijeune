@@ -115,10 +115,7 @@ export async function middleware(request: NextRequest) {
 
   // Rate-limit sur la génération IA d'analyses (coût API Anthropic)
   // Les Server Actions POST sur la page super-admin/analyses-indicateurs.
-  if (
-    pathname.startsWith('/super-admin/analyses-indicateurs') &&
-    request.method === 'POST'
-  ) {
+  if (pathname.startsWith('/super-admin/analyses-indicateurs') && request.method === 'POST') {
     const rl = checkRateLimit('generate-analyse', getIp(request), 60 * 60_000, 10);
     if (!rl.allowed) return tooManyRequestsResponse(rl.resetAt);
   }
@@ -141,6 +138,28 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = '/connexion';
       url.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(url);
+    }
+
+    // Force changement du mot de passe temporaire au premier login.
+    //
+    // Quand le super_admin crée un compte avec mot de passe défini (voir
+    // `creerCompteAvecMotPasseDefini` dans lib/super-admin/server-actions.ts),
+    // il pose `user_metadata.mdp_temporaire = true`. Tant que le flag n'est
+    // pas effacé (via changerMonMotPasse), on redirige toute navigation
+    // protégée vers /mon-compte, sauf l'auto-référence (pour éviter boucle)
+    // et /api/auth/sign-out (pour permettre la déconnexion).
+    const mdpTemporaire = Boolean(
+      (data.user.user_metadata as { mdp_temporaire?: unknown } | null)?.mdp_temporaire,
+    );
+    if (
+      mdpTemporaire &&
+      !pathname.startsWith('/mon-compte') &&
+      !pathname.startsWith('/api/auth/sign-out')
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/mon-compte';
+      url.searchParams.set('mdp_temporaire', '1');
       return NextResponse.redirect(url);
     }
   }

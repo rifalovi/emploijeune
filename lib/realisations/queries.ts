@@ -33,7 +33,9 @@ export async function getValeursPubliees(code: string): Promise<ValeurPubliee[]>
 export function agregerTaux(
   vals: ValeurPubliee[],
 ): { taux: number; numerateur: number; denominateur: number } | null {
-  const avecDonnees = vals.filter((v) => v.numerateur !== null && v.denominateur !== null && v.denominateur > 0);
+  const avecDonnees = vals.filter(
+    (v) => v.numerateur !== null && v.denominateur !== null && v.denominateur > 0,
+  );
   if (avecDonnees.length === 0) return null;
   const totalNum = avecDonnees.reduce((s, v) => s + (v.numerateur ?? 0), 0);
   const totalDenom = avecDonnees.reduce((s, v) => s + (v.denominateur ?? 0), 0);

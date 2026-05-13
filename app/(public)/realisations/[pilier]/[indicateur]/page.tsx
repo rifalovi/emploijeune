@@ -28,7 +28,12 @@ import {
 } from '@/lib/referentiels/indicateurs';
 import { getKpisPublics, getRepartitionTrancheAge } from '@/lib/landing/queries';
 import { getAnalysePubliee } from '@/lib/analyses-indicateurs/queries';
-import { getValeursPubliees, agregerTaux, agregerTotal, type ValeurPubliee } from '@/lib/realisations/queries';
+import {
+  getValeursPubliees,
+  agregerTaux,
+  agregerTotal,
+  type ValeurPubliee,
+} from '@/lib/realisations/queries';
 import { BlocAnalytiqueIA } from '@/components/realisations/bloc-analytique-ia';
 
 type Props = { params: Promise<{ pilier: string; indicateur: string }> };
@@ -356,7 +361,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
               pilierData={pilierData}
               kpisReels={kpisReels}
               trancheAge={trancheAge}
-              fictifCount={(!fictif && fictifCountReel) ? fictifCountReel : FICTIF_COUNT[ind.code]}
+              fictifCount={!fictif && fictifCountReel ? fictifCountReel : FICTIF_COUNT[ind.code]}
               fictif={fictif}
             />
           )}
@@ -531,18 +536,11 @@ function KpisCount({
     : isA1
       ? (kpisReels?.beneficiaires_total ?? 0)
       : (fictifCount?.total ?? 0);
-  const femmes = (isA1 && !fictif)
-    ? (kpisReels?.beneficiaires_femmes ?? 0)
-    : (fictifCount?.femmes ?? 0);
-  const jeunes = (isA1 && !fictif)
-    ? (trancheAge?.jeunes ?? 0)
-    : (fictifCount?.jeunes ?? 0);
-  const adultes = (isA1 && !fictif)
-    ? (trancheAge?.adultes ?? 0)
-    : (fictifCount?.adultes ?? 0);
-  const paysCount = (isA1 && !fictif)
-    ? (kpisReels?.pays_total ?? 0)
-    : (fictifCount?.pays ?? 0);
+  const femmes =
+    isA1 && !fictif ? (kpisReels?.beneficiaires_femmes ?? 0) : (fictifCount?.femmes ?? 0);
+  const jeunes = isA1 && !fictif ? (trancheAge?.jeunes ?? 0) : (fictifCount?.jeunes ?? 0);
+  const adultes = isA1 && !fictif ? (trancheAge?.adultes ?? 0) : (fictifCount?.adultes ?? 0);
+  const paysCount = isA1 && !fictif ? (kpisReels?.pays_total ?? 0) : (fictifCount?.pays ?? 0);
   const femmesPct = total > 0 ? Math.round((femmes / total) * 100) : 0;
   const jeunesAdultes = jeunes + adultes;
   const jeunesPct = jeunesAdultes > 0 ? Math.round((jeunes / jeunesAdultes) * 100) : 0;

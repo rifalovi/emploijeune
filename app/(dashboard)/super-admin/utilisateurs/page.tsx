@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { listerUtilisateursAvecSuspension } from '@/lib/super-admin/queries';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { ActionsUtilisateurRow } from '@/components/super-admin/actions-utilisateur-row';
+import { DialogCreerCompteAvecMdp } from '@/components/super-admin/dialog-creer-compte-mdp';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export const metadata: Metadata = {
   title: 'Utilisateurs avancé – Super Administration',
@@ -20,24 +22,33 @@ export default async function UtilisateursAvancePage() {
 
   const monUserId = courant?.user_id ?? null;
 
+  // Liste légère des organisations pour le Select du dialog création
+  const admin = createSupabaseAdminClient();
+  const { data: orgsRaw } = await admin
+    .from('organisations')
+    .select('id, nom')
+    .order('nom', { ascending: true });
+  const organisations = (orgsRaw ?? []).map((o) => ({ id: o.id, nom: o.nom }));
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span
               className="inline-flex size-10 items-center justify-center rounded-lg text-white"
               style={{ backgroundColor: '#0E4F88' }}
             >
               <Users className="size-5" aria-hidden />
             </span>
-            <div>
+            <div className="min-w-0 flex-1">
               <CardTitle>Tous les utilisateurs ({utilisateurs.length})</CardTitle>
               <CardDescription>
                 Vue super_admin : suspension temporaire / bannissement, changement de rôle. Vos
                 propres action(s) sont désactivées sur votre propre compte.
               </CardDescription>
             </div>
+            <DialogCreerCompteAvecMdp organisations={organisations} />
           </div>
         </CardHeader>
         <CardContent>
