@@ -751,7 +751,7 @@ export function StructureForm({
                     <FormControl>
                       <Input
                         type="date"
-                        disabled={!consentement}
+
                         value={
                           field.value instanceof Date
                             ? field.value.toISOString().slice(0, 10)
@@ -774,7 +774,7 @@ export function StructureForm({
                       <Input
                         type="tel"
                         inputMode="tel"
-                        disabled={!consentement}
+
                         placeholder="+22676123456"
                         {...field}
                         value={field.value ?? ''}
@@ -794,7 +794,7 @@ export function StructureForm({
                       <Input
                         type="email"
                         autoComplete="email"
-                        disabled={!consentement}
+
                         placeholder="contact@structure.org"
                         {...field}
                         value={field.value ?? ''}

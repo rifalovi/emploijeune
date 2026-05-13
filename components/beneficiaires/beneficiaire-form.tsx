@@ -739,7 +739,7 @@ export function BeneficiaireForm({
                     <FormControl>
                       <Input
                         type="date"
-                        disabled={!consentement}
+
                         value={
                           field.value instanceof Date
                             ? field.value.toISOString().slice(0, 10)
@@ -775,18 +775,16 @@ export function BeneficiaireForm({
                       <Input
                         type="tel"
                         inputMode="tel"
-                        disabled={!consentement}
+
                         placeholder="+22676123456"
                         {...field}
                         value={field.value ?? ''}
                       />
                     </FormControl>
-                    {Boolean(consentement) && (
-                      <PickerIndicatifPays
-                        valeur={typeof telephone === 'string' ? telephone : ''}
-                        onChange={(nouvelle) => form.setValue('telephone', nouvelle)}
-                      />
-                    )}
+                    <PickerIndicatifPays
+                      valeur={typeof telephone === 'string' ? telephone : ''}
+                      onChange={(nouvelle) => form.setValue('telephone', nouvelle)}
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
@@ -801,7 +799,7 @@ export function BeneficiaireForm({
                       <Input
                         type="email"
                         autoComplete="email"
-                        disabled={!consentement}
+
                         placeholder="prenom.nom@example.org"
                         {...field}
                         value={field.value ?? ''}
