@@ -246,7 +246,3 @@ export async function nettoyerValeursParasites(payload: {
   };
 }
 
-// =============================================================================
-// Export des champs obligatoires pour l'UI (affichage des avertissements)
-// =============================================================================
-export { CHAMPS_TEXTE_OBLIGATOIRES };
