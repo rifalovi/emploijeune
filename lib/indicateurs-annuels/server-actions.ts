@@ -238,17 +238,15 @@ export async function enregistrerKpisContexte(
   // Utilise le client admin pour contourner le RLS — l'autorisation est
   // déjà vérifiée ci-dessus (role admin_scs / super_admin).
   const admin = createSupabaseAdminClient();
-  const { error } = await admin
-    .from('kpis_contexte_indicateurs')
-    .upsert(
-      {
-        indicateur_code: code,
-        ...champs,
-        updated_at: new Date().toISOString(),
-        updated_by: utilisateur.id,
-      },
-      { onConflict: 'indicateur_code' },
-    );
+  const { error } = await admin.from('kpis_contexte_indicateurs').upsert(
+    {
+      indicateur_code: code,
+      ...champs,
+      updated_at: new Date().toISOString(),
+      updated_by: utilisateur.id,
+    },
+    { onConflict: 'indicateur_code' },
+  );
 
   if (error) return { status: 'erreur', message: error.message };
 

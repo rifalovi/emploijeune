@@ -20,44 +20,127 @@
  */
 export const GARBAGE_EXACT: ReadonlySet<string> = new Set([
   // Séries de lettres répétées (toutes combinaisons jusqu'à 6 chars)
-  'z', 'zz', 'zzz', 'zzzz', 'zzzzz', 'zzzzzz',
-  'x', 'xx', 'xxx', 'xxxx', 'xxxxx',
-  'a', 'aa', 'aaa', 'aaaa',
-  'b', 'bb', 'bbb',
-  'c', 'cc', 'ccc',
-  'abc', 'abcd', 'azerty', 'qwerty',
+  'z',
+  'zz',
+  'zzz',
+  'zzzz',
+  'zzzzz',
+  'zzzzzz',
+  'x',
+  'xx',
+  'xxx',
+  'xxxx',
+  'xxxxx',
+  'a',
+  'aa',
+  'aaa',
+  'aaaa',
+  'b',
+  'bb',
+  'bbb',
+  'c',
+  'cc',
+  'ccc',
+  'abc',
+  'abcd',
+  'azerty',
+  'qwerty',
   // Abréviations "pas de valeur"
-  'n/a', 'na', 'n.a', 'n.a.', 'n/a.',
-  'nd', 'n/d', 'n.d', 'n.d.', 'n/d.',
-  'nc', 'n/c', 'n.c', 'n.c.',
-  'nr', 'n/r',
+  'n/a',
+  'na',
+  'n.a',
+  'n.a.',
+  'n/a.',
+  'nd',
+  'n/d',
+  'n.d',
+  'n.d.',
+  'n/d.',
+  'nc',
+  'n/c',
+  'n.c',
+  'n.c.',
+  'nr',
+  'n/r',
   // Tirets / séparateurs
-  '-', '--', '---', '----', '-----',
-  '/', '//', '\\', '\\\\',
-  '.', '..', '...', '.....',
-  '_', '__', '___',
-  '?', '??', '???', '????',
-  '!', '!!',
-  '0', '00', '000', '0000', '00000', '000000',
+  '-',
+  '--',
+  '---',
+  '----',
+  '-----',
+  '/',
+  '//',
+  '\\',
+  '\\\\',
+  '.',
+  '..',
+  '...',
+  '.....',
+  '_',
+  '__',
+  '___',
+  '?',
+  '??',
+  '???',
+  '????',
+  '!',
+  '!!',
+  '0',
+  '00',
+  '000',
+  '0000',
+  '00000',
+  '000000',
   '1',
   // Mots génériques français
-  'test', 'testing', 'essai', 'exemple',
-  'null', 'nil', 'none', 'void', 'empty', 'vide',
-  'inconnu', 'inconnue', 'unknown', 'unkn',
-  'néant', 'neant', 'rien',
-  'non renseigné', 'non renseigne',
-  'non défini', 'non defini',
-  'non communiqué', 'non communique',
-  'non précisé', 'non precise',
-  'à compléter', 'a completer',
-  'à renseigner', 'a renseigner',
-  'à saisir', 'a saisir',
-  'pas de données', 'pas de donnees',
-  'sans objet', 's/o', 's.o',
+  'test',
+  'testing',
+  'essai',
+  'exemple',
+  'null',
+  'nil',
+  'none',
+  'void',
+  'empty',
+  'vide',
+  'inconnu',
+  'inconnue',
+  'unknown',
+  'unkn',
+  'néant',
+  'neant',
+  'rien',
+  'non renseigné',
+  'non renseigne',
+  'non défini',
+  'non defini',
+  'non communiqué',
+  'non communique',
+  'non précisé',
+  'non precise',
+  'à compléter',
+  'a completer',
+  'à renseigner',
+  'a renseigner',
+  'à saisir',
+  'a saisir',
+  'pas de données',
+  'pas de donnees',
+  'sans objet',
+  's/o',
+  's.o',
   // Autres placeholders courants
-  'xxx', 'yyy', 'zzz',
-  'tbd', 'tba', 'tbf', 'to be defined', 'to be filled',
-  'pending', 'todo', 'to do',
+  'xxx',
+  'yyy',
+  'zzz',
+  'tbd',
+  'tba',
+  'tbf',
+  'to be defined',
+  'to be filled',
+  'pending',
+  'todo',
+  'to do',
 ]);
 
 // =============================================================================
@@ -65,21 +148,21 @@ export const GARBAGE_EXACT: ReadonlySet<string> = new Set([
 // =============================================================================
 
 const GARBAGE_REGEX: RegExp[] = [
-  /^z+$/i,                  // ZZZ, zzz, ZZZZZ
-  /^x+$/i,                  // XXX, xxx
-  /^y+$/i,                  // YYY
-  /^a+$/i,                  // aaa, AAA
-  /^b+$/i,                  // bbb
-  /^-+$/,                   // ---, ----
-  /^\.+$/,                  // ...
-  /^\?+$/,                  // ???
-  /^0+$/,                   // 000, 0000
-  /^[\s]+$/,                // seulement des espaces
-  /^[\-_\.\/\\*#@!]+$/,     // seulement des symboles/séparateurs
-  /^[=]+$/,                 // ===
-  /^[+]+$/,                 // +++
-  /^[~]+$/,                 // ~~~
-  /^test\d*$/i,             // test, test1, test2
+  /^z+$/i, // ZZZ, zzz, ZZZZZ
+  /^x+$/i, // XXX, xxx
+  /^y+$/i, // YYY
+  /^a+$/i, // aaa, AAA
+  /^b+$/i, // bbb
+  /^-+$/, // ---, ----
+  /^\.+$/, // ...
+  /^\?+$/, // ???
+  /^0+$/, // 000, 0000
+  /^[\s]+$/, // seulement des espaces
+  /^[\-_\.\/\\*#@!]+$/, // seulement des symboles/séparateurs
+  /^[=]+$/, // ===
+  /^[+]+$/, // +++
+  /^[~]+$/, // ~~~
+  /^test\d*$/i, // test, test1, test2
 ];
 
 // =============================================================================
@@ -117,9 +200,7 @@ export function nettoyerTexte(v: string | null | undefined): string | null {
  *
  * Utilisé dans le pipeline d'import AVANT le mapping métier.
  */
-export function nettoyerLigneImport(
-  ligne: Record<string, unknown>,
-): Record<string, unknown> {
+export function nettoyerLigneImport(ligne: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(ligne)) {
     if (typeof v === 'string') {
@@ -188,10 +269,7 @@ export const CHAMPS_TEXTE: Record<TableCible, ReadonlyArray<string>> = {
     ...CHAMPS_TEXTE_OBLIGATOIRES.beneficiaires,
     ...CHAMPS_TEXTE_NULLABLE.beneficiaires,
   ],
-  structures: [
-    ...CHAMPS_TEXTE_OBLIGATOIRES.structures,
-    ...CHAMPS_TEXTE_NULLABLE.structures,
-  ],
+  structures: [...CHAMPS_TEXTE_OBLIGATOIRES.structures, ...CHAMPS_TEXTE_NULLABLE.structures],
 };
 
 // =============================================================================

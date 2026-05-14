@@ -20,7 +20,6 @@ import {
   estValeurParasite,
   CHAMPS_TEXTE,
   CHAMPS_TEXTE_NULLABLE,
-  CHAMPS_TEXTE_OBLIGATOIRES,
   type TableCible,
   type ValeurParasite,
   type RapportScan,
