@@ -1,4 +1,5 @@
 import { COLONNES_A1, CONSENTEMENT_LIBELLES } from '@/lib/beneficiaires/export-helpers';
+import { nettoyerTexte } from '@/lib/imports/normalizer-garbage';
 import {
   DOMAINES_FORMATION_CODES,
   MODALITES_FORMATION_CODES,
@@ -192,7 +193,10 @@ function stringify(v: unknown): string | null {
 function lireTexte(v: unknown): string | undefined {
   if (v === null || v === undefined || v === '') return undefined;
   const s = String(v).trim();
-  return s === '' ? undefined : s;
+  if (s === '') return undefined;
+  // Filtre les valeurs parasites (ZZZ, N/A, ---, etc.) → champ vide
+  const net = nettoyerTexte(s);
+  return net ?? undefined;
 }
 
 function lireNombre(v: unknown): number | null {

@@ -8,6 +8,7 @@ import {
   Sparkles,
   ShieldCheck,
   ArrowRight,
+  Eraser,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -78,6 +79,14 @@ export default async function SuperAdminHomePage() {
           description="Archivage des organisations partenaires et désactivation en cascade des utilisateurs liés."
           tag={`${stats.organisations_archivees} archivée(s)`}
           tagColor="#F5A623"
+        />
+        <SectionCard
+          href="/super-admin/nettoyage-donnees"
+          icon={Eraser}
+          titre="Nettoyage des données"
+          description="Détecte et supprime les valeurs parasites (ZZZ, N/A, ---, xxx, inconnu…) importées dans bénéficiaires et structures."
+          tag="Scan + nettoyage en lot"
+          tagColor="#DC2626"
         />
       </div>
 
