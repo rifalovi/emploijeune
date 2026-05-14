@@ -21,12 +21,12 @@ import { SaisieValeursClient } from './saisie-valeurs-client';
 import { SaisieContexteKpisClient } from './saisie-contexte-kpis-client';
 
 /** Indicateurs de type "taux" : nécessitent numérateur + dénominateur. */
-const INDICATEURS_TAUX = new Set(['A2', 'A3', 'A5', 'B2', 'C2', 'D3']);
+const INDICATEURS_TAUX = new Set(['A2', 'A3', 'A5', 'B2', 'C2', 'C5', 'D3']);
 
 const INDICATEUR_TYPE_MAP: Record<string, 'count' | 'rate' | 'score' | 'amount'> = {
   A1: 'count', A2: 'rate', A3: 'rate', A4: 'score', A5: 'rate',
   B1: 'count', B2: 'rate', B3: 'count', B4: 'amount',
-  C1: 'count', C2: 'rate', C3: 'count', C4: 'count',
+  C1: 'count', C2: 'rate', C3: 'count', C4: 'count', C5: 'rate',
   D1: 'count', D2: 'count', D3: 'rate', F1: 'count',
 };
 
@@ -74,15 +74,41 @@ export default async function IndicateurDetailPage({ params }: Props) {
   const isSuperAdmin = utilisateur.role === 'super_admin';
 
   /**
-   * Pour les indicateurs calculés depuis la BDD (ex. A2), les saisies manuelles
-   * priment sur les valeurs auto dans le graphique et le tableau récapitulatif.
-   * Pour les indicateurs « saisie_manuelle » (A3, A5…), valeurs_par_annee
-   * provient déjà des saisies — on laisse tel quel.
+   * Calcule les valeurs à afficher dans le graphique et le tableau récapitulatif.
+   *
+   * Règles :
+   *  - saisie_manuelle : la RPC fournit déjà les saisies dans valeurs_par_annee → on retourne tel quel.
+   *  - calcule (ex. A2) : les saisies manuelles sont prioritaires sur les valeurs auto BDD.
+   *  - non_mesurable / pas_de_donnees avec saisies → on affiche directement les saisies
+   *    (cas où l'admin saisit des données avant que la collecte auto soit en place).
+   *  - Aucune saisie → valeurs_par_annee inchangé (peut être vide).
    */
   const valeursFinales: typeof valeurs.valeurs_par_annee = (() => {
-    if (valeurs.statut_calcul !== 'calcule' || saisiesBrutes.length === 0) {
+    // Cas saisie_manuelle : la RPC renvoie déjà les bonnes valeurs
+    if (valeurs.statut_calcul === 'saisie_manuelle') {
       return valeurs.valeurs_par_annee;
     }
+    // Pas de saisies brutes → rien à fusionner
+    if (saisiesBrutes.length === 0) {
+      return valeurs.valeurs_par_annee;
+    }
+    // non_mesurable / pas_de_donnees AVEC saisies → les saisies deviennent les valeurs
+    if (valeurs.statut_calcul !== 'calcule') {
+      return saisiesBrutes
+        .map((s) => ({
+          annee: s.annee,
+          valeur:
+            s.numerateur !== null && s.denominateur !== null && s.denominateur !== 0
+              ? Math.round((s.numerateur / s.denominateur) * 1000) / 10
+              : s.valeur_directe,
+          numerateur: s.numerateur,
+          denominateur: s.denominateur,
+          source: 'saisie' as const,
+          publie: s.publie,
+        }))
+        .sort((a, b) => a.annee - b.annee);
+    }
+    // calcule (ex. A2) : les saisies priment sur l'auto BDD
     const saisiesMap = new Map(saisiesBrutes.map((s) => [s.annee, s]));
     const merged = valeurs.valeurs_par_annee.map((v) => {
       const s = saisiesMap.get(v.annee);
@@ -173,15 +199,18 @@ export default async function IndicateurDetailPage({ params }: Props) {
         />
       )}
 
-      {/* KPIs contextuels pour la page publique Réalisations — admin_scs / super_admin */}
-      {(utilisateur.role === 'admin_scs' || isSuperAdmin) && (
-        <SaisieContexteKpisClient
-          code={ind.code}
-          typeInd={INDICATEUR_TYPE_MAP[ind.code] ?? 'count'}
-          afficherVentilateur={ind.afficherVentilateurPersonne ?? true}
-          kpisInit={kpisContexte}
-        />
-      )}
+      {/* KPIs contextuels pour la page publique Réalisations — admin_scs / super_admin.
+          Masqué pour A1 et B1 qui alimentent la page Réalisations via la BDD auto. */}
+      {(utilisateur.role === 'admin_scs' || isSuperAdmin) &&
+        ind.code !== 'A1' &&
+        ind.code !== 'B1' && (
+          <SaisieContexteKpisClient
+            code={ind.code}
+            typeInd={INDICATEUR_TYPE_MAP[ind.code] ?? 'count'}
+            afficherVentilateur={ind.afficherVentilateurPersonne ?? true}
+            kpisInit={kpisContexte}
+          />
+        )}
 
       {/* Graphique (si valeurs et visu activée) */}
       {valeursFinales.length > 0 && visuActive && (

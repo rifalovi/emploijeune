@@ -84,6 +84,8 @@ const INDICATEUR_TYPE: Record<string, TypeIndicateur> = {
   // C4 = Délai d'accès à l'opportunité (rendu en jours via count + unite='jours').
   // Pas de ventilation personnes (cf. afficherVentilateurPersonne=false dans le réf).
   C4: 'count',
+  // C5 = Satisfaction / utilité : taux de jeunes jugeant l'appui déterminant.
+  C5: 'rate',
   D1: 'count',
   D2: 'count',
   D3: 'rate',
@@ -173,6 +175,15 @@ const FICTIF_RATE: Record<string, DonneesRate> = {
     labelDenominateur: 'Mises en relation initiées',
     femmes: 380,
     pays: 11,
+  },
+  C5: {
+    taux: 74.2,
+    numerateur: 2849,
+    denominateur: 3840,
+    labelNumerateur: "Jugeant l'appui déterminant",
+    labelDenominateur: "Répondants au total",
+    femmes: 1710,
+    pays: 12,
   },
   D3: {
     taux: 58.3,
