@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { Globe2, Save, Loader2, BarChart3 } from 'lucide-react';
+import { Globe2, Save, Loader2, BarChart3, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { enregistrerKpisContexte } from '@/lib/indicateurs-annuels/server-actions';
 import type { KpisContexte } from '@/lib/realisations/queries';
@@ -16,6 +16,11 @@ type Props = {
   afficherVentilateur: boolean;
   /** Valeurs actuellement en base (null si aucune saisie). */
   kpisInit: KpisContexte | null;
+  /**
+   * TRUE pour A1 et B1 : données principales calculées depuis la BDD auto.
+   * Les KPIs ici complètent / corrigent les valeurs auto quand elles sont absentes.
+   */
+  estAutoBDD?: boolean;
 };
 
 /**
@@ -25,7 +30,7 @@ type Props = {
  * Ces chiffres alimentent la page publique Réalisations pour les indicateurs
  * dont la collecte automatique ne fournit pas encore ces ventilations.
  */
-export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, kpisInit }: Props) {
+export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, kpisInit, estAutoBDD = false }: Props) {
   const [paysCount, setPaysCount] = useState(kpisInit?.pays_count?.toString() ?? '');
   const [femmesCount, setFemmesCount] = useState(kpisInit?.femmes_count?.toString() ?? '');
   const [nbJeunes, setNbJeunes] = useState(kpisInit?.nb_jeunes?.toString() ?? '');
@@ -79,11 +84,22 @@ export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, k
         </h2>
       </header>
 
-      <p className="text-xs text-emerald-900">
-        Ces chiffres complètent la page publique de l&apos;indicateur (pays couverts, femmes,
-        répartition…). Ils sont affichés à des fins de présentation en attendant les données de
-        collecte automatique.
-      </p>
+      {estAutoBDD ? (
+        <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-100 px-3 py-2 text-xs text-emerald-900">
+          <Info className="mt-0.5 size-3.5 shrink-0 text-emerald-700" aria-hidden />
+          <span>
+            Cet indicateur est alimenté <strong>automatiquement</strong> depuis la BDD. Les valeurs
+            ici servent de <strong>complément ou fallback</strong> si certains champs auto sont
+            absents (ex.&nbsp;: pays non encore calculé).
+          </span>
+        </div>
+      ) : (
+        <p className="text-xs text-emerald-900">
+          Ces chiffres complètent la page publique de l&apos;indicateur (pays couverts, femmes,
+          répartition…). Ils sont affichés à des fins de présentation en attendant les données de
+          collecte automatique.
+        </p>
+      )}
 
       <div className="mt-4 space-y-4 rounded-lg border border-emerald-100 bg-white p-3">
         {/* Champ commun : pays couverts */}

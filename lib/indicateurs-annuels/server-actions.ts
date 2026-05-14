@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 
 const anneeCourante = new Date().getFullYear();
@@ -234,8 +235,10 @@ export async function enregistrerKpisContexte(
   }
 
   const { code, ...champs } = parsed.data;
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase
+  // Utilise le client admin pour contourner le RLS — l'autorisation est
+  // déjà vérifiée ci-dessus (role admin_scs / super_admin).
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
     .from('kpis_contexte_indicateurs')
     .upsert(
       {

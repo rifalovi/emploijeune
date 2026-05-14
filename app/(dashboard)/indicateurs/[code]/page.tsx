@@ -199,18 +199,16 @@ export default async function IndicateurDetailPage({ params }: Props) {
         />
       )}
 
-      {/* KPIs contextuels pour la page publique Réalisations — admin_scs / super_admin.
-          Masqué pour A1 et B1 qui alimentent la page Réalisations via la BDD auto. */}
-      {(utilisateur.role === 'admin_scs' || isSuperAdmin) &&
-        ind.code !== 'A1' &&
-        ind.code !== 'B1' && (
-          <SaisieContexteKpisClient
-            code={ind.code}
-            typeInd={INDICATEUR_TYPE_MAP[ind.code] ?? 'count'}
-            afficherVentilateur={ind.afficherVentilateurPersonne ?? true}
-            kpisInit={kpisContexte}
-          />
-        )}
+      {/* KPIs contextuels pour la page publique Réalisations — admin_scs / super_admin */}
+      {(utilisateur.role === 'admin_scs' || isSuperAdmin) && (
+        <SaisieContexteKpisClient
+          code={ind.code}
+          typeInd={INDICATEUR_TYPE_MAP[ind.code] ?? 'count'}
+          afficherVentilateur={ind.afficherVentilateurPersonne ?? true}
+          kpisInit={kpisContexte}
+          estAutoBDD={ind.code === 'A1' || ind.code === 'B1'}
+        />
+      )}
 
       {/* Graphique (si valeurs et visu activée) */}
       {valeursFinales.length > 0 && visuActive && (

@@ -250,17 +250,20 @@ export default async function IndicateurRealisationPage({ params }: Props) {
   // Données réelles :
   //  - A1 / B1 → calcul automatique BDD (bénéficiaires / structures)
   //  - Autres   → saisies manuelles publiées (valeurs_indicateurs_saisies WHERE publie = TRUE)
+  // KPIs contextuels chargés pour TOUS les indicateurs — ils servent de
+  // complément / fallback même pour A1/B1 quand certains champs auto sont absents.
   let kpisReels = null;
   let trancheAge = null;
   let topPays: { code: string; libelle: string | null; beneficiaires: number }[] = [];
   let donneesReelles = false;
   let valeursPubliees: ValeurPubliee[] = [];
 
-  // KPIs contextuels (pays, femmes, etc.) saisis manuellement dans l'admin
-  let kpisContexte: KpisContexte | null = null;
-
   if (ind.code === 'A1') {
-    const [kpis, ta] = await Promise.all([getKpisPublics(), getRepartitionTrancheAge()]);
+    const [kpis, ta, _ctx] = await Promise.all([
+      getKpisPublics(),
+      getRepartitionTrancheAge(),
+      getKpisContexte(ind.code), // préchargé mais utilisé comme fallback
+    ]);
     kpisReels = kpis;
     trancheAge = ta;
     topPays = kpis?.top_pays?.slice(0, 6) ?? [];
@@ -269,13 +272,14 @@ export default async function IndicateurRealisationPage({ params }: Props) {
     kpisReels = await getKpisPublics();
     donneesReelles = true;
   } else {
-    // Lit les saisies publiées + KPIs contextuels en parallèle
-    [valeursPubliees, kpisContexte] = await Promise.all([
-      getValeursPubliees(ind.code),
-      getKpisContexte(ind.code),
-    ]);
+    valeursPubliees = await getValeursPubliees(ind.code);
     donneesReelles = valeursPubliees.length > 0;
   }
+
+  // KPIs contextuels chargés pour tous (en parallèle si possible, ou ici
+  // pour les indicateurs hors A1 — A1 le charge déjà ci-dessus).
+  const kpisContexte: KpisContexte | null =
+    ind.code !== 'A1' ? await getKpisContexte(ind.code) : null;
 
   const fictif = !donneesReelles;
 
@@ -416,6 +420,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
               trancheAge={trancheAge}
               fictifCount={!fictif && fictifCountReel ? fictifCountReel : FICTIF_COUNT[ind.code]}
               fictif={fictif}
+              kpisContexte={kpisContexte}
             />
           )}
 
@@ -570,6 +575,7 @@ function KpisCount({
   trancheAge,
   fictifCount,
   fictif,
+  kpisContexte,
 }: {
   ind: ReturnType<typeof indicateurParCode> & object;
   pilierData: (typeof PILIERS)[CodePilier];
@@ -577,6 +583,7 @@ function KpisCount({
   trancheAge: Awaited<ReturnType<typeof getRepartitionTrancheAge>>;
   fictifCount: DonneesCount | undefined;
   fictif: boolean;
+  kpisContexte: KpisContexte | null;
 }) {
   // Configuration métier issue du référentiel — fallback rétro-compatible
   // (« Bénéficiaires » / « personnes » / ventilation visible) pour les
@@ -587,17 +594,31 @@ function KpisCount({
   const isB1 = ind.code === 'B1';
   const isA1 = ind.code === 'A1';
 
-  // Pour A1/B1 : données auto BDD. Pour tous les autres : fictifCount (fictif ou calculé depuis saisies).
+  // Pour A1 / B1 : données auto BDD en priorité, kpisContexte en fallback si null/0.
+  // Pour les autres : fictifCount (calculé depuis saisies ou fictif de démo).
   const total = isB1
     ? (kpisReels?.structures_total ?? 0)
     : isA1
       ? (kpisReels?.beneficiaires_total ?? 0)
       : (fictifCount?.total ?? 0);
-  const femmes =
-    isA1 && !fictif ? (kpisReels?.beneficiaires_femmes ?? 0) : (fictifCount?.femmes ?? 0);
-  const jeunes = isA1 && !fictif ? (trancheAge?.jeunes ?? 0) : (fictifCount?.jeunes ?? 0);
-  const adultes = isA1 && !fictif ? (trancheAge?.adultes ?? 0) : (fictifCount?.adultes ?? 0);
-  const paysCount = isA1 && !fictif ? (kpisReels?.pays_total ?? 0) : (fictifCount?.pays ?? 0);
+  const femmes = isA1 && !fictif
+    ? (kpisReels?.beneficiaires_femmes ?? kpisContexte?.femmes_count ?? 0)
+    : (fictifCount?.femmes ?? 0);
+  const jeunes = isA1 && !fictif
+    ? (trancheAge?.jeunes ?? kpisContexte?.nb_jeunes ?? 0)
+    : (fictifCount?.jeunes ?? 0);
+  const adultes = isA1 && !fictif
+    ? (trancheAge?.adultes ?? kpisContexte?.nb_adultes ?? 0)
+    : (fictifCount?.adultes ?? 0);
+  // paysCount :
+  //  - A1 réel → auto BDD, fallback kpisContexte
+  //  - B1 réel → kpisContexte (pas de champ dans kpisReels)
+  //  - Autres  → fictifCount.pays (calculé depuis saisies ou fictif)
+  const paysCount = isA1 && !fictif
+    ? (kpisReels?.pays_total ?? kpisContexte?.pays_count ?? 0)
+    : isB1 && !fictif
+      ? (kpisContexte?.pays_count ?? fictifCount?.pays ?? 0)
+      : (fictifCount?.pays ?? 0);
   const femmesPct = total > 0 ? Math.round((femmes / total) * 100) : 0;
   const jeunesAdultes = jeunes + adultes;
   const jeunesPct = jeunesAdultes > 0 ? Math.round((jeunes / jeunesAdultes) * 100) : 0;
