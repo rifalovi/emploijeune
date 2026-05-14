@@ -216,8 +216,8 @@ export function nettoyerLigneImport(ligne: Record<string, unknown>): Record<stri
 
 // =============================================================================
 // Configuration par table — champs texte libres à scanner en BDD
-// (les champs codifiés comme projet_code, pays_code sont exclus car
-//  leur validation dépend de la nomenclature, pas du filtre parasite)
+// (projet_code est exclu : sa validation dépend de la nomenclature ;
+//  pays_code est inclus depuis qu'il est nullable — ZZZ → NULL autorisé)
 // =============================================================================
 
 export type TableCible = 'beneficiaires' | 'structures';
@@ -228,6 +228,7 @@ export type TableCible = 'beneficiaires' | 'structures';
  */
 export const CHAMPS_TEXTE_NULLABLE: Record<TableCible, ReadonlyArray<string>> = {
   beneficiaires: [
+    'pays_code', // nullable depuis migration 20260514100001 — ZZZ/inconnu → NULL
     'fonction_actuelle',
     'intitule_formation',
     'localite_residence',

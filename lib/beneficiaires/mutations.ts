@@ -72,7 +72,7 @@ export async function creerBeneficiaire(raw: unknown): Promise<CreerBeneficiaire
     date_naissance: null,
     tranche_age_declaree: data.tranche_age_declaree ?? null,
     projet_code: data.projet_code,
-    pays_code: data.pays_code,
+    pays_code: (data.pays_code ?? null) as string, // nullable après migration 20260514100001
     organisation_id: data.organisation_id ?? utilisateur?.organisation_id ?? null,
     partenaire_accompagnement: data.partenaire_accompagnement ?? null,
     domaine_formation_code: data.domaine_formation_code,
@@ -195,7 +195,7 @@ export async function modifierBeneficiaire(raw: unknown): Promise<ModifierBenefi
     sexe: data.sexe as 'F' | 'M' | 'Autre',
     tranche_age_declaree: data.tranche_age_declaree ?? null,
     projet_code: data.projet_code,
-    pays_code: data.pays_code,
+    pays_code: (data.pays_code ?? null) as string, // nullable après migration 20260514100001
     partenaire_accompagnement: data.partenaire_accompagnement ?? null,
     domaine_formation_code: data.domaine_formation_code,
     intitule_formation: data.intitule_formation ?? null,

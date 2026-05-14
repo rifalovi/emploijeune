@@ -97,9 +97,10 @@ const baseBeneficiaireSchema = z.object({
     message: 'Code projet invalide',
   }),
 
-  pays_code: z.enum([...PAYS_CODES] as [string, ...string[]], {
-    message: 'Code pays invalide',
-  }),
+  pays_code: z
+    .enum([...PAYS_CODES] as [string, ...string[]], { message: 'Code pays invalide' })
+    .nullable()
+    .optional(),
 
   organisation_id: z.string().uuid().nullable().optional(),
 

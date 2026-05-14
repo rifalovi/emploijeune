@@ -481,19 +481,26 @@ export function BeneficiaireForm({
                 name="pays_code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Pays *</FormLabel>
+                    <FormLabel>Pays</FormLabel>
                     <Select
-                      onValueChange={(v) => field.onChange(v ?? undefined)}
-                      value={field.value ?? ''}
+                      onValueChange={(v) =>
+                        field.onChange(v === '__vide__' ? null : (v ?? undefined))
+                      }
+                      value={field.value ?? '__vide__'}
                     >
                       <FormControl>
                         <SelectTrigger title={field.value ? paysLibelles[field.value] : undefined}>
                           <SelectValue>
-                            {afficherLibelle(paysLibelles, 'Sélectionner un pays')}
+                            {field.value
+                              ? (paysLibelles[field.value] ?? field.value)
+                              : '(Pays non renseigné)'}
                           </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="__vide__">
+                          <span className="text-muted-foreground italic">(Pays non renseigné)</span>
+                        </SelectItem>
                         {paysOptions.map((opt) => (
                           <SelectItem key={opt.code} value={opt.code}>
                             {opt.libelle}
