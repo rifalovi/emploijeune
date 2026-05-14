@@ -65,10 +65,7 @@ export async function scannerValeursParasites(): Promise<ScanResult> {
     const champsNullable = new Set(CHAMPS_TEXTE_NULLABLE[table]);
     const colonnes = ['id', ...champs].join(', ');
 
-    const { data, error } = await admin
-      .from(table)
-      .select(colonnes)
-      .is('deleted_at', null);
+    const { data, error } = await admin.from(table).select(colonnes).is('deleted_at', null);
 
     if (error) {
       return { status: 'erreur', message: `Erreur scan ${table} : ${error.message}` };
@@ -118,8 +115,7 @@ export async function scannerValeursParasites(): Promise<ScanResult> {
       exemples: [...parasites]
         .sort((a, b) => {
           // Obligatoires en fin (nécessitent action manuelle)
-          if (a.auto_corrigeable !== b.auto_corrigeable)
-            return a.auto_corrigeable ? -1 : 1;
+          if (a.auto_corrigeable !== b.auto_corrigeable) return a.auto_corrigeable ? -1 : 1;
           return a.valeur_actuelle.length - b.valeur_actuelle.length;
         })
         .slice(0, 200),
@@ -163,10 +159,7 @@ export async function nettoyerValeursParasites(payload: {
     const champsNullable = CHAMPS_TEXTE_NULLABLE[table];
     const colonnes = ['id', ...champsNullable].join(', ');
 
-    const { data, error } = await admin
-      .from(table)
-      .select(colonnes)
-      .is('deleted_at', null);
+    const { data, error } = await admin.from(table).select(colonnes).is('deleted_at', null);
 
     if (error) {
       return { status: 'erreur', message: `Erreur lecture ${table} : ${error.message}` };
@@ -213,20 +206,18 @@ export async function nettoyerValeursParasites(payload: {
 
   // Journalise l'opération dans journaux_audit (best-effort, action UPDATE)
   try {
-    await admin
-      .from('journaux_audit')
-      .insert({
-        user_id: utilisateur.id,
-        action: 'UPDATE' as const,
-        table_affectee: 'nettoyage_batch',
-        diff: {
-          operation: 'nettoyage_valeurs_parasites',
-          nb_champs_nettoyes: nbChampsNettoyes,
-          nb_enregistrements_affectes: idsAffectes.size,
-          tables: tablesACibler,
-          par_table: parTable,
-        },
-      });
+    await admin.from('journaux_audit').insert({
+      user_id: utilisateur.id,
+      action: 'UPDATE' as const,
+      table_affectee: 'nettoyage_batch',
+      diff: {
+        operation: 'nettoyage_valeurs_parasites',
+        nb_champs_nettoyes: nbChampsNettoyes,
+        nb_enregistrements_affectes: idsAffectes.size,
+        tables: tablesACibler,
+        par_table: parTable,
+      },
+    });
   } catch {
     // best-effort — ne bloque pas le retour succès
   }
@@ -245,4 +236,3 @@ export async function nettoyerValeursParasites(payload: {
     },
   };
 }
-
