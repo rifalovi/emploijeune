@@ -141,11 +141,12 @@ export function nettoyerLigneImport(
 
 export type TableCible = 'beneficiaires' | 'structures';
 
-/** Champs de texte libre (nullable) à scanner pour chaque table. */
-export const CHAMPS_TEXTE: Record<TableCible, ReadonlyArray<string>> = {
+/**
+ * Champs de texte optionnels (nullable en BDD) → peuvent être mis à NULL
+ * automatiquement lors du nettoyage batch.
+ */
+export const CHAMPS_TEXTE_NULLABLE: Record<TableCible, ReadonlyArray<string>> = {
   beneficiaires: [
-    'prenom',
-    'nom',
     'fonction_actuelle',
     'intitule_formation',
     'localite_residence',
@@ -156,9 +157,7 @@ export const CHAMPS_TEXTE: Record<TableCible, ReadonlyArray<string>> = {
     'commentaire',
   ],
   structures: [
-    'porteur_nom',
     'porteur_prenom',
-    'nom_structure',
     'fonction_porteur',
     'adresse',
     'localite',
@@ -171,6 +170,30 @@ export const CHAMPS_TEXTE: Record<TableCible, ReadonlyArray<string>> = {
   ],
 };
 
+/**
+ * Champs de texte obligatoires (NOT NULL en BDD) → ne peuvent PAS être mis à NULL.
+ * Ils sont signalés dans le rapport de scan mais nécessitent une correction manuelle.
+ */
+export const CHAMPS_TEXTE_OBLIGATOIRES: Record<TableCible, ReadonlyArray<string>> = {
+  beneficiaires: ['prenom', 'nom'],
+  structures: ['porteur_nom', 'nom_structure'],
+};
+
+/**
+ * Tous les champs texte à scanner (nullable + obligatoires).
+ * À utiliser pour le scan uniquement.
+ */
+export const CHAMPS_TEXTE: Record<TableCible, ReadonlyArray<string>> = {
+  beneficiaires: [
+    ...CHAMPS_TEXTE_OBLIGATOIRES.beneficiaires,
+    ...CHAMPS_TEXTE_NULLABLE.beneficiaires,
+  ],
+  structures: [
+    ...CHAMPS_TEXTE_OBLIGATOIRES.structures,
+    ...CHAMPS_TEXTE_NULLABLE.structures,
+  ],
+};
+
 // =============================================================================
 // Types pour le rapport de scan / nettoyage
 // =============================================================================
@@ -180,10 +203,19 @@ export type ValeurParasite = {
   id: string;
   champ: string;
   valeur_actuelle: string;
+  /**
+   * TRUE si le champ est nullable → nettoyage auto possible (→ NULL).
+   * FALSE si le champ est NOT NULL → signalé uniquement, correction manuelle requise.
+   */
+  auto_corrigeable: boolean;
 };
 
 export type RapportScan = {
   total_parasites: number;
+  /** Nombre total auto-corrigeables (nullable). */
+  total_auto_corrigeables: number;
+  /** Nombre nécessitant correction manuelle (NOT NULL). */
+  total_manuels: number;
   par_table: Record<TableCible, number>;
   par_champ: Record<string, number>;
   exemples: ValeurParasite[]; // max 200 pour l'UI

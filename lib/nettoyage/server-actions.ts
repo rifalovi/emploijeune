@@ -7,6 +7,8 @@
  * Elles opèrent en deux étapes :
  *   1. SCAN  — identifie les valeurs parasites sans modifier la BDD
  *   2. CLEAN — applique le nettoyage (remplace par NULL) sur confirmation
+ *              UNIQUEMENT pour les champs nullable. Les champs NOT NULL
+ *              sont signalés mais nécessitent une correction manuelle.
  *
  * Toutes les modifications sont journalisées dans journaux_audit.
  */
@@ -17,6 +19,8 @@ import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import {
   estValeurParasite,
   CHAMPS_TEXTE,
+  CHAMPS_TEXTE_NULLABLE,
+  CHAMPS_TEXTE_OBLIGATOIRES,
   type TableCible,
   type ValeurParasite,
   type RapportScan,
@@ -58,7 +62,7 @@ export async function scannerValeursParasites(): Promise<ScanResult> {
 
   for (const table of TABLES_CIBLES) {
     const champs = CHAMPS_TEXTE[table];
-    // Sélectionne uniquement id + champs texte, exclut les enregistrements supprimés
+    const champsNullable = new Set(CHAMPS_TEXTE_NULLABLE[table]);
     const colonnes = ['id', ...champs].join(', ');
 
     const { data, error } = await admin
@@ -75,7 +79,13 @@ export async function scannerValeursParasites(): Promise<ScanResult> {
       for (const champ of champs) {
         const val = row[champ];
         if (typeof val === 'string' && val.trim().length > 0 && estValeurParasite(val)) {
-          parasites.push({ table, id, champ, valeur_actuelle: val });
+          parasites.push({
+            table,
+            id,
+            champ,
+            valeur_actuelle: val,
+            auto_corrigeable: champsNullable.has(champ),
+          });
         }
       }
     }
@@ -94,15 +104,24 @@ export async function scannerValeursParasites(): Promise<ScanResult> {
     parChamp[clef] = (parChamp[clef] ?? 0) + 1;
   }
 
+  const totalAutoCorrigeables = parasites.filter((p) => p.auto_corrigeable).length;
+
   return {
     status: 'succes',
     rapport: {
       total_parasites: parasites.length,
+      total_auto_corrigeables: totalAutoCorrigeables,
+      total_manuels: parasites.length - totalAutoCorrigeables,
       par_table: parTable,
       par_champ: parChamp,
       // max 200 exemples pour l'UI — les plus courts d'abord (plus représentatifs)
       exemples: [...parasites]
-        .sort((a, b) => a.valeur_actuelle.length - b.valeur_actuelle.length)
+        .sort((a, b) => {
+          // Obligatoires en fin (nécessitent action manuelle)
+          if (a.auto_corrigeable !== b.auto_corrigeable)
+            return a.auto_corrigeable ? -1 : 1;
+          return a.valeur_actuelle.length - b.valeur_actuelle.length;
+        })
         .slice(0, 200),
     },
   };
@@ -113,8 +132,9 @@ export async function scannerValeursParasites(): Promise<ScanResult> {
 // =============================================================================
 
 /**
- * Remplace par NULL toutes les valeurs parasites détectées dans les tables
- * cibles. Journalise l'opération dans journaux_audit.
+ * Remplace par NULL toutes les valeurs parasites des champs NULLABLE.
+ * Les champs NOT NULL (prenom, nom, porteur_nom, nom_structure) sont ignorés
+ * car ils ne peuvent pas être mis à null — signalés dans le scan uniquement.
  *
  * ⚠️ Irréversible — toujours proposer un SCAN préalable avec confirmation UI.
  *
@@ -139,8 +159,9 @@ export async function nettoyerValeursParasites(payload: {
   >;
 
   for (const table of tablesACibler) {
-    const champs = CHAMPS_TEXTE[table];
-    const colonnes = ['id', ...champs].join(', ');
+    // IMPORTANT : on ne cible QUE les champs nullable pour éviter la contrainte NOT NULL
+    const champsNullable = CHAMPS_TEXTE_NULLABLE[table];
+    const colonnes = ['id', ...champsNullable].join(', ');
 
     const { data, error } = await admin
       .from(table)
@@ -156,7 +177,7 @@ export async function nettoyerValeursParasites(payload: {
 
     for (const row of (data ?? []) as unknown as Record<string, unknown>[]) {
       const id = row['id'] as string;
-      for (const champ of champs) {
+      for (const champ of champsNullable) {
         const val = row[champ];
         if (typeof val === 'string' && val.trim().length > 0 && estValeurParasite(val)) {
           if (!updates.has(id)) updates.set(id, {});
@@ -224,3 +245,8 @@ export async function nettoyerValeursParasites(payload: {
     },
   };
 }
+
+// =============================================================================
+// Export des champs obligatoires pour l'UI (affichage des avertissements)
+// =============================================================================
+export { CHAMPS_TEXTE_OBLIGATOIRES };

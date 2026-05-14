@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +48,12 @@ export function NettoyageClient() {
   // ─── Nettoyage ──────────────────────────────────────────────────────────────
 
   const handleNettoyer = () => {
-    if (!confirm('Confirmer le nettoyage ? Les valeurs parasites seront remplacées par des champs vides. Cette opération est irréversible.')) {
+    if (!rapport || rapport.total_auto_corrigeables === 0) return;
+    if (
+      !confirm(
+        `Confirmer le nettoyage de ${rapport.total_auto_corrigeables} champ(s) nullable(s) ?\nLes valeurs parasites seront remplacées par des champs vides. Cette opération est irréversible.`,
+      )
+    ) {
       return;
     }
     setEtape('nettoyage_en_cours');
@@ -82,9 +88,9 @@ export function NettoyageClient() {
             <code className="rounded bg-amber-100 px-1 text-xs">---</code>,{' '}
             <code className="rounded bg-amber-100 px-1 text-xs">xxx</code>,{' '}
             <code className="rounded bg-amber-100 px-1 text-xs">inconnu</code>,{' '}
-            <code className="rounded bg-amber-100 px-1 text-xs">000</code>, etc. Ces valeurs
-            polluent les filtres, les statistiques et les exports. Cette page permet de les
-            identifier et de les remplacer par des champs vides (<em>null</em>).
+            <code className="rounded bg-amber-100 px-1 text-xs">000</code>, etc. Cette page permet
+            de les identifier et de remplacer automatiquement ceux dans les champs optionnels
+            par des valeurs vides.
           </p>
         </div>
       </div>
@@ -117,7 +123,7 @@ export function NettoyageClient() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Résumé */}
+              {/* Résumé global */}
               <div className="rounded-xl border border-red-200 bg-red-50/60 p-4">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="size-4 text-red-600" aria-hidden />
@@ -129,10 +135,32 @@ export function NettoyageClient() {
                   {(Object.entries(rapport.par_table) as [string, number][])
                     .filter(([, n]) => n > 0)
                     .map(([table, n]) => (
-                      <Badge key={table} variant="outline" className="text-xs text-red-700 border-red-300">
+                      <Badge
+                        key={table}
+                        variant="outline"
+                        className="text-xs text-red-700 border-red-300"
+                      >
                         {table} : {n}
                       </Badge>
                     ))}
+                </div>
+
+                {/* Décomposition auto / manuel */}
+                <div className="mt-3 flex flex-wrap gap-3 text-xs">
+                  {rapport.total_auto_corrigeables > 0 && (
+                    <span className="flex items-center gap-1 text-emerald-700">
+                      <CheckCircle2 className="size-3" aria-hidden />
+                      <strong>{rapport.total_auto_corrigeables}</strong> auto-corrigeable(s)
+                      (champs optionnels → seront mis à vide)
+                    </span>
+                  )}
+                  {rapport.total_manuels > 0 && (
+                    <span className="flex items-center gap-1 text-orange-700">
+                      <AlertCircle className="size-3" aria-hidden />
+                      <strong>{rapport.total_manuels}</strong> nécessite(nt) correction manuelle
+                      (champs obligatoires : prenom, nom, etc.)
+                    </span>
+                  )}
                 </div>
 
                 {/* Détail par champ */}
@@ -158,6 +186,26 @@ export function NettoyageClient() {
                 )}
               </div>
 
+              {/* Avertissement champs obligatoires */}
+              {rapport.total_manuels > 0 && (
+                <div className="flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 p-3">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0 text-orange-600" aria-hidden />
+                  <div className="text-xs text-orange-900">
+                    <p className="font-semibold">
+                      {rapport.total_manuels} valeur(s) dans des champs obligatoires
+                    </p>
+                    <p className="mt-1 text-orange-800">
+                      Les champs <code className="bg-orange-100 px-1 rounded">prenom</code>,{' '}
+                      <code className="bg-orange-100 px-1 rounded">nom</code>,{' '}
+                      <code className="bg-orange-100 px-1 rounded">porteur_nom</code>,{' '}
+                      <code className="bg-orange-100 px-1 rounded">nom_structure</code> ne peuvent
+                      pas être mis à vide (contrainte NOT NULL). Ces fiches doivent être corrigées
+                      manuellement depuis les pages Bénéficiaires ou Structures.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Exemples */}
               <div className="rounded-xl border border-slate-200 bg-white">
                 <button
@@ -166,8 +214,8 @@ export function NettoyageClient() {
                   className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
                   <span>
-                    Aperçu des valeurs détectées ({Math.min(rapport.exemples.length, 200)}{' '}
-                    sur {rapport.total_parasites})
+                    Aperçu des valeurs détectées ({Math.min(rapport.exemples.length, 200)} sur{' '}
+                    {rapport.total_parasites})
                   </span>
                   {showExemples ? (
                     <ChevronUp className="size-4" aria-hidden />
@@ -183,7 +231,12 @@ export function NettoyageClient() {
                         <tr>
                           <th className="px-3 py-2 text-left font-medium text-slate-600">Table</th>
                           <th className="px-3 py-2 text-left font-medium text-slate-600">Champ</th>
-                          <th className="px-3 py-2 text-left font-medium text-slate-600">Valeur actuelle</th>
+                          <th className="px-3 py-2 text-left font-medium text-slate-600">
+                            Valeur actuelle
+                          </th>
+                          <th className="px-3 py-2 text-left font-medium text-slate-600">
+                            Action
+                          </th>
                           <th className="px-3 py-2 text-left font-medium text-slate-600">ID</th>
                         </tr>
                       </thead>
@@ -197,6 +250,15 @@ export function NettoyageClient() {
                                 {ex.valeur_actuelle}
                               </code>
                             </td>
+                            <td className="px-3 py-1.5">
+                              {ex.auto_corrigeable ? (
+                                <span className="text-emerald-700 font-medium">→ vide (auto)</span>
+                              ) : (
+                                <span className="text-orange-600 font-medium">
+                                  ⚠ correction manuelle
+                                </span>
+                              )}
+                            </td>
                             <td className="px-3 py-1.5 font-mono text-slate-400 text-[10px]">
                               {ex.id.slice(0, 8)}…
                             </td>
@@ -209,7 +271,7 @@ export function NettoyageClient() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
@@ -220,26 +282,42 @@ export function NettoyageClient() {
                   <ScanSearch className="size-3.5" aria-hidden />
                   Re-scanner
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={handleNettoyer}
-                  disabled={pending}
-                  className="gap-1.5 bg-red-600 hover:bg-red-700"
-                >
-                  {pending ? (
-                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                  ) : (
-                    <Trash2 className="size-3.5" aria-hidden />
-                  )}
-                  {pending ? 'Nettoyage en cours…' : `Nettoyer ${rapport.total_parasites} valeur(s)`}
-                </Button>
+                {rapport.total_auto_corrigeables > 0 && (
+                  <Button
+                    size="sm"
+                    onClick={handleNettoyer}
+                    disabled={pending}
+                    className="gap-1.5 bg-red-600 hover:bg-red-700"
+                  >
+                    {pending ? (
+                      <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                    ) : (
+                      <Trash2 className="size-3.5" aria-hidden />
+                    )}
+                    {pending
+                      ? 'Nettoyage en cours…'
+                      : `Nettoyer ${rapport.total_auto_corrigeables} champ(s) optionnel(s)`}
+                  </Button>
+                )}
+                {rapport.total_auto_corrigeables === 0 && rapport.total_manuels > 0 && (
+                  <p className="text-xs text-slate-500 self-center">
+                    Aucun champ optionnel à nettoyer automatiquement — correction manuelle
+                    uniquement.
+                  </p>
+                )}
               </div>
             </div>
           )}
 
           {/* Re-scanner si déjà propre */}
           {rapport.total_parasites === 0 && (
-            <Button variant="outline" size="sm" onClick={handleScan} disabled={pending} className="gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleScan}
+              disabled={pending}
+              className="gap-1.5"
+            >
               <ScanSearch className="size-3.5" aria-hidden />
               Re-scanner
             </Button>
@@ -284,7 +362,13 @@ export function NettoyageClient() {
             </div>
           </div>
 
-          <Button variant="outline" size="sm" onClick={handleScan} disabled={pending} className="gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleScan}
+            disabled={pending}
+            className="gap-1.5"
+          >
             <ScanSearch className="size-3.5" aria-hidden />
             Nouveau scan de vérification
           </Button>
