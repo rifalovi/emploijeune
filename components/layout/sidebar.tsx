@@ -38,7 +38,15 @@ export function Sidebar({
   notificationsCount,
   moduleIaActif = false,
 }: SidebarProps) {
-  const items = visibleNavItems(utilisateur.role, { module_ia: moduleIaActif });
+  const groups = visibleNavGroups(utilisateur.role, { module_ia: moduleIaActif });
+
+  // Badge de notification sur Administration
+  const adminBadges: Record<string, number | undefined> =
+    (utilisateur.role === 'admin_scs' || utilisateur.role === 'super_admin') &&
+    notificationsCount &&
+    notificationsCount > 0
+      ? { '/admin': notificationsCount }
+      : {};
 
   // V2.2.2 — Sidebar sticky avec profil utilisateur toujours visible.
   //
@@ -78,21 +86,29 @@ export function Sidebar({
         que `overflow-y-auto` fonctionne dans un flex container : sans lui,
         l'enfant flex prend sa taille de contenu et déborde.
       */}
-      <nav aria-label="Menu" className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {items.map((item) => (
+      <nav aria-label="Menu" className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
+        {/* Item autonome — Accueil */}
+        <div className="mb-1 px-1">
           <NavLink
-            key={item.href}
-            href={item.href}
-            label={item.label}
-            icon={item.icon}
-            badge={
-              item.href === '/admin' &&
-              (utilisateur.role === 'admin_scs' || utilisateur.role === 'super_admin')
-                ? notificationsCount
-                : undefined
-            }
+            href={HOME_NAV_ITEM.href}
+            label={HOME_NAV_ITEM.label}
+            icon={HOME_NAV_ITEM.icon}
           />
-        ))}
+        </div>
+
+        <Separator className="my-2" />
+
+        {/* Groupes accordéon */}
+        <div className="space-y-0.5 px-1">
+          {groups.map(({ group, items }) => (
+            <NavGroup
+              key={group.id}
+              group={group}
+              items={items}
+              badges={group.id === 'administration' ? adminBadges : {}}
+            />
+          ))}
+        </div>
       </nav>
 
       <Separator />
