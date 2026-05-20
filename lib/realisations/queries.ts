@@ -157,9 +157,7 @@ export async function getKpisContexteAuto(code: string): Promise<KpisContexteAut
     const { data } = await q;
     if (!data || data.length === 0) return EMPTY_AUTO;
 
-    const pays = new Set(
-      data.map((r) => r.pays_code).filter((c): c is string => Boolean(c)),
-    ).size;
+    const pays = new Set(data.map((r) => r.pays_code).filter((c): c is string => Boolean(c))).size;
     const femmes = data.filter((r) => r.sexe === 'F').length;
     let jeunes = 0;
     let adultes = 0;
@@ -177,14 +175,9 @@ export async function getKpisContexteAuto(code: string): Promise<KpisContexteAut
   }
 
   if (code.startsWith('B')) {
-    const { data } = await admin
-      .from('structures')
-      .select('pays_code')
-      .is('deleted_at', null);
+    const { data } = await admin.from('structures').select('pays_code').is('deleted_at', null);
     if (!data || data.length === 0) return EMPTY_AUTO;
-    const pays = new Set(
-      data.map((r) => r.pays_code).filter((c): c is string => Boolean(c)),
-    ).size;
+    const pays = new Set(data.map((r) => r.pays_code).filter((c): c is string => Boolean(c))).size;
     return { ...EMPTY_AUTO, pays_count: pays > 0 ? pays : null };
   }
 

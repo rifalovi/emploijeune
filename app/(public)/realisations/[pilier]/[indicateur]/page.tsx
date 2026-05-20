@@ -36,7 +36,6 @@ import {
   agregerTaux,
   agregerTotal,
   type ValeurPubliee,
-  type KpisContexte,
 } from '@/lib/realisations/queries';
 import { BlocAnalytiqueIA } from '@/components/realisations/bloc-analytique-ia';
 
@@ -183,7 +182,7 @@ const FICTIF_RATE: Record<string, DonneesRate> = {
     numerateur: 2849,
     denominateur: 3840,
     labelNumerateur: "Jugeant l'appui déterminant",
-    labelDenominateur: "Répondants au total",
+    labelDenominateur: 'Répondants au total',
     femmes: 1710,
     pays: 12,
   },
@@ -436,11 +435,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
               data={(dataRateReelle ?? FICTIF_RATE[ind.code])!}
               couleur={pilierData.couleur}
               fictif={fictif}
-              afficherFemmes={
-                fictif
-                  ? ind.code !== 'D3'
-                  : (dataRateReelle?.femmes ?? 0) > 0
-              }
+              afficherFemmes={fictif ? ind.code !== 'D3' : (dataRateReelle?.femmes ?? 0) > 0}
             />
           )}
 
@@ -607,24 +602,28 @@ function KpisCount({
     : isA1
       ? (kpisReels?.beneficiaires_total ?? 0)
       : (fictifCount?.total ?? 0);
-  const femmes = isA1 && !fictif
-    ? (kpisReels?.beneficiaires_femmes ?? kpisFusion.femmes_count ?? 0)
-    : (fictifCount?.femmes ?? 0);
-  const jeunes = isA1 && !fictif
-    ? (trancheAge?.jeunes ?? kpisFusion.nb_jeunes ?? 0)
-    : (fictifCount?.jeunes ?? 0);
-  const adultes = isA1 && !fictif
-    ? (trancheAge?.adultes ?? kpisFusion.nb_adultes ?? 0)
-    : (fictifCount?.adultes ?? 0);
+  const femmes =
+    isA1 && !fictif
+      ? (kpisReels?.beneficiaires_femmes ?? kpisFusion.femmes_count ?? 0)
+      : (fictifCount?.femmes ?? 0);
+  const jeunes =
+    isA1 && !fictif
+      ? (trancheAge?.jeunes ?? kpisFusion.nb_jeunes ?? 0)
+      : (fictifCount?.jeunes ?? 0);
+  const adultes =
+    isA1 && !fictif
+      ? (trancheAge?.adultes ?? kpisFusion.nb_adultes ?? 0)
+      : (fictifCount?.adultes ?? 0);
   // paysCount — règle plateforme : auto BDD > saisie manuelle > 0.
   //  - A1 réel → kpisReels.pays_total (auto) puis fusion
   //  - B1 réel → kpisFusion (auto structures puis manuel)
   //  - Autres  → fictifCount.pays (déjà fusionné en amont)
-  const paysCount = isA1 && !fictif
-    ? (kpisReels?.pays_total ?? kpisFusion.pays_count ?? 0)
-    : isB1 && !fictif
-      ? (kpisFusion.pays_count ?? fictifCount?.pays ?? 0)
-      : (fictifCount?.pays ?? 0);
+  const paysCount =
+    isA1 && !fictif
+      ? (kpisReels?.pays_total ?? kpisFusion.pays_count ?? 0)
+      : isB1 && !fictif
+        ? (kpisFusion.pays_count ?? fictifCount?.pays ?? 0)
+        : (fictifCount?.pays ?? 0);
   const femmesPct = total > 0 ? Math.round((femmes / total) * 100) : 0;
   const jeunesAdultes = jeunes + adultes;
   const jeunesPct = jeunesAdultes > 0 ? Math.round((jeunes / jeunesAdultes) * 100) : 0;
