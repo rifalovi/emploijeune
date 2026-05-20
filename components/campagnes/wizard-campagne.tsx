@@ -34,7 +34,7 @@ import {
 import { ListeCiblesRevue } from './liste-cibles-revue';
 
 type Mode = 'toutes' | 'filtres' | 'manuelle';
-type Questionnaire = 'A' | 'B';
+type Questionnaire = 'A' | 'B' | 'C';
 
 export type WizardCampagneProps = {
   projets: Array<{ code: string; libelle: string }>;
@@ -99,10 +99,11 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
     if (filtreProjets.length > 0) obj.projets = filtreProjets;
     if (filtrePays.length > 0) obj.pays = filtrePays;
     if (filtreAnnees.length > 0) {
-      obj[questionnaire === 'A' ? 'annees' : 'annees_appui'] = filtreAnnees;
+      // A et C ciblent les bénéficiaires (annee_formation) ; B cible les structures (annee_appui)
+      obj[questionnaire !== 'B' ? 'annees' : 'annees_appui'] = filtreAnnees;
     }
-    if (questionnaire === 'A' && filtreSexe) obj.sexe = filtreSexe;
-    if (questionnaire === 'A' && filtreTrancheAge) obj.tranche_age = filtreTrancheAge;
+    if (questionnaire !== 'B' && filtreSexe) obj.sexe = filtreSexe;
+    if (questionnaire !== 'B' && filtreTrancheAge) obj.tranche_age = filtreTrancheAge;
     return obj;
   }, [
     mode,
@@ -352,6 +353,7 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
                 <SelectContent>
                   <SelectItem value="A">A : Bénéficiaires (personnes formées)</SelectItem>
                   <SelectItem value="B">B : Structures (activités économiques)</SelectItem>
+                  <SelectItem value="C">C : Bénéficiaires (intermédiation emploi)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

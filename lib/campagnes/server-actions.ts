@@ -32,7 +32,7 @@ import {
 // =============================================================================
 
 export async function compterStrate(
-  questionnaire: 'A' | 'B',
+  questionnaire: 'A' | 'B' | 'C',
   filtres: Record<string, unknown>,
 ): Promise<CompterStrateResult> {
   const courant = await getCurrentUtilisateur();
@@ -92,7 +92,7 @@ export type ListerStrateLigne = {
 };
 
 export async function listerStrate(
-  questionnaire: 'A' | 'B',
+  questionnaire: 'A' | 'B' | 'C',
   filtres: Record<string, unknown>,
   recherche: string,
   limit = 50,
@@ -160,7 +160,7 @@ export async function listerStrate(
 // =============================================================================
 
 export async function listerStrateIds(
-  questionnaire: 'A' | 'B',
+  questionnaire: 'A' | 'B' | 'C',
   filtres: Record<string, unknown>,
 ): Promise<{ status: 'succes'; ids: string[] } | { status: 'erreur'; message: string }> {
   const courant = await getCurrentUtilisateur();
@@ -299,11 +299,11 @@ export async function lancerCampagne(campagneId: string): Promise<LancerCampagne
         message: 'Mode manuel mais aucune cible sélectionnée.',
       };
     }
-    cibles = await chargerCiblesParIds(supabase, campagne.questionnaire as 'A' | 'B', ids);
+    cibles = await chargerCiblesParIds(supabase, campagne.questionnaire as 'A' | 'B' | 'C', ids);
   } else {
     cibles = await chargerCiblesParStrate(
       supabase,
-      campagne.questionnaire as 'A' | 'B',
+      campagne.questionnaire as 'A' | 'B' | 'C',
       (campagne.filtres ?? {}) as Record<string, unknown>,
       campagne.plafond + 1,
     );
@@ -334,7 +334,9 @@ export async function lancerCampagne(campagneId: string): Promise<LancerCampagne
     }
 
     const result = await genererTokenEnquete({
-      cibleType: campagne.questionnaire === 'A' ? 'beneficiaire' : 'structure',
+      // A et C → bénéficiaire ; B (et futur D) → structure
+      cibleType: campagne.questionnaire !== 'B' ? 'beneficiaire' : 'structure',
+      questionnaire: campagne.questionnaire as 'A' | 'B' | 'C',
       cibleId: cible.id,
       vagueEnquete: campagne.type_vague as never,
       emailDestinataire,
@@ -379,10 +381,11 @@ export async function lancerCampagne(campagneId: string): Promise<LancerCampagne
 
 async function chargerCiblesParIds(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  questionnaire: 'A' | 'B',
+  questionnaire: 'A' | 'B' | 'C',
   ids: string[],
 ): Promise<Array<{ id: string; libelle: string; email: string | null; consentement: boolean }>> {
-  if (questionnaire === 'A') {
+  // A et C ciblent les bénéficiaires ; B (structures) va vers l'autre branche
+  if (questionnaire !== 'B') {
     const { data } = await supabase
       .from('beneficiaires')
       .select('id, prenom, nom, courriel, consentement_recueilli')
@@ -410,7 +413,7 @@ async function chargerCiblesParIds(
 
 async function chargerCiblesParStrate(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  questionnaire: 'A' | 'B',
+  questionnaire: 'A' | 'B' | 'C',
   filtres: Record<string, unknown>,
   limit: number,
 ): Promise<Array<{ id: string; libelle: string; email: string | null; consentement: boolean }>> {
