@@ -240,7 +240,8 @@ export async function enregistrerKpisContexte(
   // Utilise le client admin pour contourner le RLS — l'autorisation est
   // déjà vérifiée ci-dessus (role super_admin uniquement).
   const admin = createSupabaseAdminClient();
-  const { error } = await admin.from('kpis_contexte_indicateurs').upsert(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (admin.from('kpis_contexte_indicateurs') as any).upsert(
     {
       indicateur_code: code,
       ...champs,

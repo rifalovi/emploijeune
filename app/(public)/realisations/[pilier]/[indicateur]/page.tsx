@@ -93,9 +93,31 @@ const INDICATEUR_TYPE: Record<string, TypeIndicateur> = {
   F1: 'count',
 };
 
-// ─── Données fictives réalistes par type ─────────────────────────────────────
+// ─── Labels métier pour indicateurs de type RATE ──────────────────────────────
+// Utilisés même pour les données réelles (numérateur / dénominateur labels).
+const LABELS_RATE: Record<string, { labelNumerateur: string; labelDenominateur: string }> = {
+  A2: { labelNumerateur: 'Ayant achevé la formation', labelDenominateur: 'Inscrits au total' },
+  A3: { labelNumerateur: 'Certifiés ou attestés', labelDenominateur: 'Jeunes formés' },
+  A5: { labelNumerateur: 'En emploi ou AGR à 6 mois', labelDenominateur: 'Suivis post-formation' },
+  B2: {
+    labelNumerateur: 'Structures actives à 12 mois',
+    labelDenominateur: 'Structures appuyées',
+  },
+  C2: {
+    labelNumerateur: 'Mises en relation réussies',
+    labelDenominateur: 'Mises en relation initiées',
+  },
+  C5: { labelNumerateur: "Jugeant l'appui déterminant", labelDenominateur: 'Répondants au total' },
+  D3: { labelNumerateur: 'Recommandations adoptées', labelDenominateur: 'Recommandations émises' },
+};
 
-/** Indicateurs de type COUNT (effectifs). */
+// ─── Labels métier pour indicateurs de type SCORE ────────────────────────────
+const LABELS_SCORE: Record<string, string> = {
+  A4: '% ayant progressé significativement',
+};
+
+// ─── Types locaux ─────────────────────────────────────────────────────────────
+
 type DonneesCount = {
   total: number;
   femmes: number;
@@ -103,138 +125,33 @@ type DonneesCount = {
   adultes: number;
   pays: number;
 };
-const FICTIF_COUNT: Record<string, DonneesCount> = {
-  // Indicateurs qui comptent des « entités » (emplois, structures,
-  // dispositifs) : ventilation femmes/jeunes/adultes mise à 0 — elle
-  // serait ininterprétable sur ces objets. Le rendu masque les
-  // sous-cartes via `afficherVentilateurPersonne: false` côté référentiel.
-  B3: { total: 612, femmes: 0, jeunes: 0, adultes: 0, pays: 11 }, // emplois
-  C1: { total: 1240, femmes: 0, jeunes: 0, adultes: 0, pays: 16 }, // mises en relation
-  C3: { total: 87, femmes: 0, jeunes: 0, adultes: 0, pays: 13 }, // emplois/stages
-  C4: { total: 65, femmes: 0, jeunes: 0, adultes: 0, pays: 12 }, // jours moyens d'accès
-  D1: { total: 14, femmes: 0, jeunes: 0, adultes: 0, pays: 8 }, // dispositifs politiques
-  // Indicateurs qui comptent des PERSONNES — ventilation femmes/jeunes/adultes
-  // affichée (`afficherVentilateurPersonne: true`).
-  D2: { total: 92, femmes: 51, jeunes: 22, adultes: 70, pays: 6 }, // acteurs publics formés
-  F1: { total: 3421, femmes: 2327, jeunes: 2052, adultes: 1231, pays: 15 },
-};
 
-/** Indicateurs de type RATE (pourcentages). */
 type DonneesRate = {
   taux: number;
   numerateur: number;
   denominateur: number;
   labelNumerateur: string;
   labelDenominateur: string;
-  femmes: number; // dans le numérateur
-  pays: number;
-};
-const FICTIF_RATE: Record<string, DonneesRate> = {
-  A2: {
-    taux: 87.3,
-    numerateur: 3825,
-    denominateur: 4381,
-    labelNumerateur: 'Ayant achevé la formation',
-    labelDenominateur: 'Inscrits au total',
-    femmes: 2604,
-    pays: 18,
-  },
-  A3: {
-    taux: 76.4,
-    numerateur: 3347,
-    denominateur: 4381,
-    labelNumerateur: 'Certifiés ou attestés',
-    labelDenominateur: 'Jeunes formés',
-    femmes: 2276,
-    pays: 18,
-  },
-  A5: {
-    taux: 68.7,
-    numerateur: 2515,
-    denominateur: 3661,
-    labelNumerateur: 'En emploi ou AGR à 6 mois',
-    labelDenominateur: 'Suivis post-formation',
-    femmes: 1711,
-    pays: 15,
-  },
-  // B2 = Taux de survie à 12/24 mois (cf. lib/referentiels/indicateurs.ts).
-  // Labels alignés sur la sémantique "structures appuyées encore actives".
-  B2: {
-    taux: 71.2,
-    numerateur: 141,
-    denominateur: 198,
-    labelNumerateur: 'Structures actives à 12 mois',
-    labelDenominateur: 'Structures appuyées',
-    femmes: 79,
-    pays: 9,
-  },
-  C2: {
-    taux: 63.8,
-    numerateur: 559,
-    denominateur: 876,
-    labelNumerateur: 'Mises en relation réussies',
-    labelDenominateur: 'Mises en relation initiées',
-    femmes: 380,
-    pays: 11,
-  },
-  C5: {
-    taux: 74.2,
-    numerateur: 2849,
-    denominateur: 3840,
-    labelNumerateur: "Jugeant l'appui déterminant",
-    labelDenominateur: 'Répondants au total',
-    femmes: 1710,
-    pays: 12,
-  },
-  D3: {
-    taux: 58.3,
-    numerateur: 39,
-    denominateur: 67,
-    labelNumerateur: 'Recommandations adoptées',
-    labelDenominateur: 'Recommandations émises',
-    femmes: 0,
-    pays: 10,
-  },
-};
-
-/** Indicateurs de type SCORE (gain / progression). */
-type DonneesScore = {
-  scoreMoyen: number; // % ou points
-  labelScore: string;
-  participantsTotal: number;
-  ayantProgresse: number;
-  gainMoyen: number; // points de progression moyens
   femmes: number;
   pays: number;
 };
-const FICTIF_SCORE: Record<string, DonneesScore> = {
-  A4: {
-    scoreMoyen: 78,
-    labelScore: '% ayant progressé significativement',
-    participantsTotal: 4381,
-    ayantProgresse: 3417,
-    gainMoyen: 23,
-    femmes: 2325,
-    pays: 18,
-  },
-};
 
-/** Indicateurs de type AMOUNT (volumes financiers). */
-type DonneesAmount = {
-  montant: number; // en milliers €
-  montantLibelle: string;
-  sourcesPublic: number; // %
-  sourcesPrive: number; // %
+type DonneesScore = {
+  scoreMoyen: number;
+  labelScore: string;
+  participantsTotal: number;
+  ayantProgresse: number;
+  gainMoyen: number;
+  femmes: number;
   pays: number;
 };
-const FICTIF_AMOUNT: Record<string, DonneesAmount> = {
-  B4: {
-    montant: 3820,
-    montantLibelle: '3,8 M€',
-    sourcesPublic: 62,
-    sourcesPrive: 38,
-    pays: 11,
-  },
+
+type DonneesAmount = {
+  montant: number;
+  montantLibelle: string;
+  sourcesPublic: number;
+  sourcesPrive: number;
+  pays: number;
 };
 
 // ─── Page principale ──────────────────────────────────────────────────────────
@@ -256,25 +173,17 @@ export default async function IndicateurRealisationPage({ params }: Props) {
   let kpisReels = null;
   let trancheAge = null;
   let topPays: { code: string; libelle: string | null; beneficiaires: number }[] = [];
-  let donneesReelles = false;
   let valeursPubliees: ValeurPubliee[] = [];
 
   if (ind.code === 'A1') {
-    const [kpis, ta, _ctx] = await Promise.all([
-      getKpisPublics(),
-      getRepartitionTrancheAge(),
-      getKpisContexte(ind.code), // préchargé mais utilisé comme fallback
-    ]);
+    const [kpis, ta] = await Promise.all([getKpisPublics(), getRepartitionTrancheAge()]);
     kpisReels = kpis;
     trancheAge = ta;
     topPays = kpis?.top_pays?.slice(0, 6) ?? [];
-    donneesReelles = true;
   } else if (ind.code === 'B1') {
     kpisReels = await getKpisPublics();
-    donneesReelles = true;
   } else {
     valeursPubliees = await getValeursPubliees(ind.code);
-    donneesReelles = valeursPubliees.length > 0;
   }
 
   // KPIs contextuels — source déterminée par le flag forcer_manuel de l'admin.
@@ -284,9 +193,11 @@ export default async function IndicateurRealisationPage({ params }: Props) {
     getKpisContexte(ind.code),
     getKpisContexteAuto(ind.code),
   ]);
-  const kpisFusion = mergerKpisContexte(kpisAuto, kpisContexte, kpisContexte?.forcer_manuel ?? false);
-
-  const fictif = !donneesReelles;
+  const kpisFusion = mergerKpisContexte(
+    kpisAuto,
+    kpisContexte,
+    kpisContexte?.forcer_manuel ?? false,
+  );
 
   // ── Calcul des métriques réelles depuis les saisies publiées ──────────────
   const dataRateReelle: DonneesRate | undefined =
@@ -294,20 +205,20 @@ export default async function IndicateurRealisationPage({ params }: Props) {
       ? (() => {
           const m = agregerTaux(valeursPubliees);
           if (!m) return undefined;
-          const base = FICTIF_RATE[ind.code];
+          const labels = LABELS_RATE[ind.code];
           return {
             taux: m.taux,
             numerateur: m.numerateur,
             denominateur: m.denominateur,
-            labelNumerateur: base?.labelNumerateur ?? 'Réalisés',
-            labelDenominateur: base?.labelDenominateur ?? 'Prévus',
+            labelNumerateur: labels?.labelNumerateur ?? 'Réalisés',
+            labelDenominateur: labels?.labelDenominateur ?? 'Prévus',
             femmes: kpisFusion.femmes_count ?? 0,
             pays: kpisFusion.pays_count ?? 0,
           };
         })()
       : undefined;
 
-  const fictifCountReel: DonneesCount | undefined =
+  const dataCountReelle: DonneesCount | undefined =
     typeInd === 'count' && valeursPubliees.length > 0
       ? (() => {
           const total = agregerTotal(valeursPubliees);
@@ -323,7 +234,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
         })()
       : undefined;
 
-  const fictifAmountReel: DonneesAmount | undefined =
+  const dataAmountReelle: DonneesAmount | undefined =
     typeInd === 'amount' && valeursPubliees.length > 0
       ? (() => {
           const montant = valeursPubliees.reduce((s, v) => s + (v.valeur_directe ?? 0), 0);
@@ -343,16 +254,15 @@ export default async function IndicateurRealisationPage({ params }: Props) {
       : undefined;
 
   // Pour A4 (score) : score depuis la dernière saisie publiée, contexte depuis kpisContexte
-  const fictifScoreReel: DonneesScore | undefined =
+  const dataScoreReelle: DonneesScore | undefined =
     typeInd === 'score' && valeursPubliees.length > 0
       ? (() => {
           const derniere = valeursPubliees[valeursPubliees.length - 1];
           const scoreMoyen = derniere?.valeur_directe ?? null;
           if (scoreMoyen === null) return undefined;
-          const base = FICTIF_SCORE[ind.code]!;
           return {
             scoreMoyen,
-            labelScore: base.labelScore,
+            labelScore: LABELS_SCORE[ind.code] ?? '% ayant progressé',
             participantsTotal: kpisContexte?.participants_count ?? 0,
             ayantProgresse: kpisContexte?.ayant_progresse ?? 0,
             gainMoyen: kpisContexte?.gain_moyen ?? 0,
@@ -364,6 +274,15 @@ export default async function IndicateurRealisationPage({ params }: Props) {
 
   // Analyse IA publiée (si disponible)
   const analyseIA = await getAnalysePubliee(ind.code);
+
+  // Détermine si un type non-auto (count non-A1/B1) a des données publiées
+  const isAutoBDD = ind.code === 'A1' || ind.code === 'B1';
+  const aDesDonn =
+    isAutoBDD ||
+    dataRateReelle !== undefined ||
+    dataCountReelle !== undefined ||
+    dataAmountReelle !== undefined ||
+    dataScoreReelle !== undefined;
 
   return (
     <div className="bg-background min-h-screen">
@@ -400,74 +319,69 @@ export default async function IndicateurRealisationPage({ params }: Props) {
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/90">{ind.definition}</p>
         </header>
 
-        {/* Avertissement données fictives */}
-        {fictif && (
-          <div className="mt-6 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <AlertCircle className="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden />
-            <p className="text-xs leading-relaxed text-slate-400">
-              <span className="font-semibold">Données indicatives</span> – Les chiffres ci-dessous
-              sont fictifs et présentés à des fins de présentation. Ils seront remplacés par les
-              données réelles dès l&apos;alimentation des questionnaires de collecte.
-            </p>
-          </div>
-        )}
-
         {/* ── KPIs selon le type d'indicateur ── */}
         <section className="mt-8">
           <h2 className="mb-5 text-lg font-semibold text-[#0E4F88]">Chiffres clés</h2>
 
           {/* TYPE : COUNT */}
           {typeInd === 'count' && (
-            <KpisCount
-              ind={ind}
-              pilierData={pilierData}
-              kpisReels={kpisReels}
-              trancheAge={trancheAge}
-              fictifCount={!fictif && fictifCountReel ? fictifCountReel : FICTIF_COUNT[ind.code]}
-              fictif={fictif}
-              kpisFusion={kpisFusion}
-            />
+            isAutoBDD || dataCountReelle ? (
+              <KpisCount
+                ind={ind}
+                pilierData={pilierData}
+                kpisReels={kpisReels}
+                trancheAge={trancheAge}
+                dataCount={dataCountReelle}
+                kpisFusion={kpisFusion}
+              />
+            ) : (
+              <EmptyState />
+            )
           )}
 
           {/* TYPE : RATE */}
-          {typeInd === 'rate' && (dataRateReelle ?? FICTIF_RATE[ind.code]) && (
-            <KpisRate
-              data={(dataRateReelle ?? FICTIF_RATE[ind.code])!}
-              couleur={pilierData.couleur}
-              fictif={fictif}
-              afficherFemmes={fictif ? ind.code !== 'D3' : (dataRateReelle?.femmes ?? 0) > 0}
-            />
+          {typeInd === 'rate' && (
+            dataRateReelle ? (
+              <KpisRate
+                data={dataRateReelle}
+                couleur={pilierData.couleur}
+                afficherFemmes={(dataRateReelle.femmes ?? 0) > 0}
+              />
+            ) : (
+              <EmptyState />
+            )
           )}
 
           {/* TYPE : SCORE */}
-          {typeInd === 'score' && (fictifScoreReel ?? FICTIF_SCORE[ind.code]) && (
-            <KpisScore
-              data={(fictifScoreReel ?? FICTIF_SCORE[ind.code])!}
-              couleur={pilierData.couleur}
-              fictif={fictif}
-            />
+          {typeInd === 'score' && (
+            dataScoreReelle ? (
+              <KpisScore data={dataScoreReelle} couleur={pilierData.couleur} />
+            ) : (
+              <EmptyState />
+            )
           )}
 
           {/* TYPE : AMOUNT */}
-          {typeInd === 'amount' && (fictifAmountReel ?? FICTIF_AMOUNT[ind.code]) && (
-            <KpisAmount
-              data={(fictifAmountReel ?? FICTIF_AMOUNT[ind.code])!}
-              couleur={pilierData.couleur}
-              fictif={fictif}
-            />
+          {typeInd === 'amount' && (
+            dataAmountReelle ? (
+              <KpisAmount data={dataAmountReelle} couleur={pilierData.couleur} />
+            ) : (
+              <EmptyState />
+            )
           )}
 
           {/* Projets (commun à tous les types) */}
-          <div className="mt-4">
-            <KpiCard
-              icone={TrendingUp}
-              label="Projets concernés"
-              valeur={ind.projetsConcernes.length}
-              couleur="#F5A623"
-              fictif={false}
-              sousTitre="selon le CMR"
-            />
-          </div>
+          {aDesDonn && (
+            <div className="mt-4">
+              <KpiCard
+                icone={TrendingUp}
+                label="Projets concernés"
+                valeur={ind.projetsConcernes.length}
+                couleur="#F5A623"
+                sousTitre="selon le CMR"
+              />
+            </div>
+          )}
         </section>
 
         {/* Top pays si disponible (A1) */}
@@ -567,6 +481,22 @@ export default async function IndicateurRealisationPage({ params }: Props) {
   );
 }
 
+// ─── État vide — aucune donnée publiée ────────────────────────────────────────
+
+function EmptyState() {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8">
+      <AlertCircle className="size-5 shrink-0 text-slate-300" aria-hidden />
+      <div>
+        <p className="text-sm font-medium text-slate-500">Données en cours de collecte</p>
+        <p className="mt-0.5 text-xs text-slate-400">
+          Les résultats seront publiés dès l&apos;alimentation des questionnaires de collecte.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Grilles KPI par type ─────────────────────────────────────────────────────
 
 function KpisCount({
@@ -574,16 +504,14 @@ function KpisCount({
   pilierData,
   kpisReels,
   trancheAge,
-  fictifCount,
-  fictif,
+  dataCount,
   kpisFusion,
 }: {
   ind: ReturnType<typeof indicateurParCode> & object;
   pilierData: (typeof PILIERS)[CodePilier];
   kpisReels: Awaited<ReturnType<typeof getKpisPublics>>;
   trancheAge: Awaited<ReturnType<typeof getRepartitionTrancheAge>>;
-  fictifCount: DonneesCount | undefined;
-  fictif: boolean;
+  dataCount: DonneesCount | undefined;
   kpisFusion: Awaited<ReturnType<typeof getKpisContexteAuto>>;
 }) {
   // Configuration métier issue du référentiel — fallback rétro-compatible
@@ -595,35 +523,31 @@ function KpisCount({
   const isB1 = ind.code === 'B1';
   const isA1 = ind.code === 'A1';
 
-  // Pour A1 / B1 : données auto BDD en priorité, kpisContexte en fallback si null/0.
-  // Pour les autres : fictifCount (calculé depuis saisies ou fictif de démo).
+  // Pour A1 / B1 : données auto BDD en priorité, kpisFusion en fallback si null.
+  // Pour les autres : dataCount (calculé depuis saisies publiées).
   const total = isB1
     ? (kpisReels?.structures_total ?? 0)
     : isA1
       ? (kpisReels?.beneficiaires_total ?? 0)
-      : (fictifCount?.total ?? 0);
-  const femmes =
-    isA1 && !fictif
-      ? (kpisReels?.beneficiaires_femmes ?? kpisFusion.femmes_count ?? 0)
-      : (fictifCount?.femmes ?? 0);
-  const jeunes =
-    isA1 && !fictif
-      ? (trancheAge?.jeunes ?? kpisFusion.nb_jeunes ?? 0)
-      : (fictifCount?.jeunes ?? 0);
-  const adultes =
-    isA1 && !fictif
-      ? (trancheAge?.adultes ?? kpisFusion.nb_adultes ?? 0)
-      : (fictifCount?.adultes ?? 0);
+      : (dataCount?.total ?? 0);
+  const femmes = isA1
+    ? (kpisReels?.beneficiaires_femmes ?? kpisFusion.femmes_count ?? 0)
+    : (dataCount?.femmes ?? 0);
+  const jeunes = isA1
+    ? (trancheAge?.jeunes ?? kpisFusion.nb_jeunes ?? 0)
+    : (dataCount?.jeunes ?? 0);
+  const adultes = isA1
+    ? (trancheAge?.adultes ?? kpisFusion.nb_adultes ?? 0)
+    : (dataCount?.adultes ?? 0);
   // paysCount — règle plateforme : auto BDD > saisie manuelle > 0.
   //  - A1 réel → kpisReels.pays_total (auto) puis fusion
   //  - B1 réel → kpisFusion (auto structures puis manuel)
-  //  - Autres  → fictifCount.pays (déjà fusionné en amont)
-  const paysCount =
-    isA1 && !fictif
-      ? (kpisReels?.pays_total ?? kpisFusion.pays_count ?? 0)
-      : isB1 && !fictif
-        ? (kpisFusion.pays_count ?? fictifCount?.pays ?? 0)
-        : (fictifCount?.pays ?? 0);
+  //  - Autres  → dataCount.pays (déjà fusionné en amont)
+  const paysCount = isA1
+    ? (kpisReels?.pays_total ?? kpisFusion.pays_count ?? 0)
+    : isB1
+      ? (kpisFusion.pays_count ?? dataCount?.pays ?? 0)
+      : (dataCount?.pays ?? 0);
   const femmesPct = total > 0 ? Math.round((femmes / total) * 100) : 0;
   const jeunesAdultes = jeunes + adultes;
   const jeunesPct = jeunesAdultes > 0 ? Math.round((jeunes / jeunesAdultes) * 100) : 0;
@@ -640,7 +564,6 @@ function KpisCount({
         label={labelPrincipal}
         valeur={total}
         couleur={pilierData.couleur}
-        fictif={fictif}
         unite={uniteAffichee}
       />
       {afficherSexeAge && (
@@ -650,7 +573,6 @@ function KpisCount({
             label="Femmes"
             valeur={femmes}
             couleur="#e91e8c"
-            fictif={fictif}
             sousTitre={`${femmesPct}\u00a0% du total`}
           />
           <KpiCard
@@ -658,7 +580,6 @@ function KpisCount({
             label="Jeunes (18-34 ans)"
             valeur={jeunes}
             couleur="#0198E9"
-            fictif={fictif}
             sousTitre={`${jeunesPct}\u00a0% des jeunes+adultes`}
           />
           <KpiCard
@@ -666,7 +587,6 @@ function KpisCount({
             label="Adultes (35 ans et +)"
             valeur={adultes}
             couleur="#5D0073"
-            fictif={fictif}
             sousTitre={`${100 - jeunesPct}\u00a0% des jeunes+adultes`}
           />
         </>
@@ -676,7 +596,6 @@ function KpisCount({
         label="Pays couverts"
         valeur={paysCount}
         couleur="#7EB301"
-        fictif={fictif}
       />
     </div>
   );
@@ -685,19 +604,17 @@ function KpisCount({
 function KpisRate({
   data,
   couleur,
-  fictif,
   afficherFemmes,
 }: {
   data: DonneesRate;
   couleur: string;
-  fictif: boolean;
   afficherFemmes?: boolean;
 }) {
   const femmesPct = data.numerateur > 0 ? Math.round((data.femmes / data.numerateur) * 100) : 0;
   return (
     <div className="space-y-4">
       {/* KPI principal — le taux en grand */}
-      <Card className="relative overflow-hidden border-2" style={{ borderColor: couleur }}>
+      <Card className="overflow-hidden border-2" style={{ borderColor: couleur }}>
         <CardContent className="p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -729,9 +646,6 @@ function KpisRate({
             </span>
             <span className="text-slate-500">{data.labelDenominateur}</span>
           </div>
-          {fictif && (
-            <span className="absolute top-3 right-3 text-[9px] text-slate-400 italic">fictif</span>
-          )}
         </CardContent>
       </Card>
       {/* KPIs secondaires */}
@@ -742,17 +656,10 @@ function KpisRate({
             label="Femmes (dans le numérateur)"
             valeur={data.femmes}
             couleur="#e91e8c"
-            fictif={fictif}
             sousTitre={`${femmesPct}\u00a0% du groupe`}
           />
         )}
-        <KpiCard
-          icone={Globe2}
-          label="Pays couverts"
-          valeur={data.pays}
-          couleur="#7EB301"
-          fictif={fictif}
-        />
+        <KpiCard icone={Globe2} label="Pays couverts" valeur={data.pays} couleur="#7EB301" />
       </div>
     </div>
   );
@@ -761,11 +668,9 @@ function KpisRate({
 function KpisScore({
   data,
   couleur,
-  fictif,
 }: {
   data: DonneesScore;
   couleur: string;
-  fictif: boolean;
 }) {
   const progressionPct =
     data.participantsTotal > 0
@@ -775,7 +680,7 @@ function KpisScore({
     data.participantsTotal > 0 ? Math.round((data.femmes / data.participantsTotal) * 100) : 0;
   return (
     <div className="space-y-4">
-      <Card className="relative overflow-hidden border-2" style={{ borderColor: couleur }}>
+      <Card className="overflow-hidden border-2" style={{ borderColor: couleur }}>
         <CardContent className="p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -807,9 +712,6 @@ function KpisScore({
               {data.participantsTotal.toLocaleString('fr-FR')} participants
             </span>
           </div>
-          {fictif && (
-            <span className="absolute top-3 right-3 text-[9px] text-slate-400 italic">fictif</span>
-          )}
         </CardContent>
       </Card>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
@@ -818,22 +720,14 @@ function KpisScore({
           label="Femmes participantes"
           valeur={data.femmes}
           couleur="#e91e8c"
-          fictif={fictif}
           sousTitre={`${femmesPct}\u00a0% du total`}
         />
-        <KpiCard
-          icone={Globe2}
-          label="Pays couverts"
-          valeur={data.pays}
-          couleur="#7EB301"
-          fictif={fictif}
-        />
+        <KpiCard icone={Globe2} label="Pays couverts" valeur={data.pays} couleur="#7EB301" />
         <KpiCard
           icone={Target}
           label="Participants évalués"
           valeur={data.participantsTotal}
           couleur={couleur}
-          fictif={fictif}
         />
       </div>
     </div>
@@ -843,15 +737,13 @@ function KpisScore({
 function KpisAmount({
   data,
   couleur,
-  fictif,
 }: {
   data: DonneesAmount;
   couleur: string;
-  fictif: boolean;
 }) {
   return (
     <div className="space-y-4">
-      <Card className="relative overflow-hidden border-2" style={{ borderColor: couleur }}>
+      <Card className="overflow-hidden border-2" style={{ borderColor: couleur }}>
         <CardContent className="p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -881,19 +773,10 @@ function KpisAmount({
               <span className="ml-1 text-slate-500">Secteur privé</span>
             </div>
           </div>
-          {fictif && (
-            <span className="absolute top-3 right-3 text-[9px] text-slate-400 italic">fictif</span>
-          )}
         </CardContent>
       </Card>
       <div className="grid grid-cols-2 gap-4">
-        <KpiCard
-          icone={Globe2}
-          label="Pays couverts"
-          valeur={data.pays}
-          couleur="#7EB301"
-          fictif={fictif}
-        />
+        <KpiCard icone={Globe2} label="Pays couverts" valeur={data.pays} couleur="#7EB301" />
       </div>
     </div>
   );
@@ -906,7 +789,6 @@ function KpiCard({
   label,
   valeur,
   couleur,
-  fictif,
   sousTitre,
   unite,
 }: {
@@ -914,12 +796,11 @@ function KpiCard({
   label: string;
   valeur: number;
   couleur: string;
-  fictif?: boolean;
   sousTitre?: string;
   unite?: string;
 }) {
   return (
-    <Card className="relative overflow-hidden">
+    <Card className="overflow-hidden">
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <div
@@ -928,7 +809,6 @@ function KpiCard({
           >
             <Icone className="size-4" style={{ color: couleur }} aria-hidden />
           </div>
-          {fictif && <span className="text-[9px] font-medium text-slate-400 italic">fictif</span>}
         </div>
         <div className="mt-3 text-2xl font-bold tabular-nums" style={{ color: couleur }}>
           {valeur.toLocaleString('fr-FR')}
