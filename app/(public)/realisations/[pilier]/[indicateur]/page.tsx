@@ -27,7 +27,6 @@ import {
   type CodePilier,
 } from '@/lib/referentiels/indicateurs';
 import { getKpisPublics, getRepartitionTrancheAge } from '@/lib/landing/queries';
-import { getAnalysePubliee } from '@/lib/analyses-indicateurs/queries';
 import {
   getValeursPubliees,
   getKpisContexte,
@@ -37,7 +36,6 @@ import {
   agregerTotal,
   type ValeurPubliee,
 } from '@/lib/realisations/queries';
-import { BlocAnalytiqueIA } from '@/components/realisations/bloc-analytique-ia';
 
 type Props = { params: Promise<{ pilier: string; indicateur: string }> };
 
@@ -97,7 +95,7 @@ const INDICATEUR_TYPE: Record<string, TypeIndicateur> = {
 // Utilisés même pour les données réelles (numérateur / dénominateur labels).
 const LABELS_RATE: Record<string, { labelNumerateur: string; labelDenominateur: string }> = {
   A2: { labelNumerateur: 'Ayant achevé la formation', labelDenominateur: 'Inscrits au total' },
-  A3: { labelNumerateur: 'Certifiés ou attestés', labelDenominateur: 'Jeunes formés' },
+  A3: { labelNumerateur: 'Certifiés ou attestés', labelDenominateur: 'Personnes formées' },
   A5: { labelNumerateur: 'En emploi ou AGR à 6 mois', labelDenominateur: 'Suivis post-formation' },
   B2: {
     labelNumerateur: 'Structures actives à 12 mois',
@@ -272,9 +270,6 @@ export default async function IndicateurRealisationPage({ params }: Props) {
         })()
       : undefined;
 
-  // Analyse IA publiée (si disponible)
-  const analyseIA = await getAnalysePubliee(ind.code);
-
   // Détermine si un type non-auto (count non-A1/B1) a des données publiées
   const isAutoBDD = ind.code === 'A1' || ind.code === 'B1';
   const aDesDonn =
@@ -324,8 +319,8 @@ export default async function IndicateurRealisationPage({ params }: Props) {
           <h2 className="mb-5 text-lg font-semibold text-[#0E4F88]">Chiffres clés</h2>
 
           {/* TYPE : COUNT */}
-          {typeInd === 'count' && (
-            isAutoBDD || dataCountReelle ? (
+          {typeInd === 'count' &&
+            (isAutoBDD || dataCountReelle ? (
               <KpisCount
                 ind={ind}
                 pilierData={pilierData}
@@ -336,12 +331,11 @@ export default async function IndicateurRealisationPage({ params }: Props) {
               />
             ) : (
               <EmptyState />
-            )
-          )}
+            ))}
 
           {/* TYPE : RATE */}
-          {typeInd === 'rate' && (
-            dataRateReelle ? (
+          {typeInd === 'rate' &&
+            (dataRateReelle ? (
               <KpisRate
                 data={dataRateReelle}
                 couleur={pilierData.couleur}
@@ -349,26 +343,23 @@ export default async function IndicateurRealisationPage({ params }: Props) {
               />
             ) : (
               <EmptyState />
-            )
-          )}
+            ))}
 
           {/* TYPE : SCORE */}
-          {typeInd === 'score' && (
-            dataScoreReelle ? (
+          {typeInd === 'score' &&
+            (dataScoreReelle ? (
               <KpisScore data={dataScoreReelle} couleur={pilierData.couleur} />
             ) : (
               <EmptyState />
-            )
-          )}
+            ))}
 
           {/* TYPE : AMOUNT */}
-          {typeInd === 'amount' && (
-            dataAmountReelle ? (
+          {typeInd === 'amount' &&
+            (dataAmountReelle ? (
               <KpisAmount data={dataAmountReelle} couleur={pilierData.couleur} />
             ) : (
               <EmptyState />
-            )
-          )}
+            ))}
 
           {/* Projets (commun à tous les types) */}
           {aDesDonn && (
@@ -433,9 +424,6 @@ export default async function IndicateurRealisationPage({ params }: Props) {
             ))}
           </div>
         </section>
-
-        {/* ── Bloc analytique IA ── */}
-        <BlocAnalytiqueIA analyse={analyseIA} couleur={pilierData.couleur} />
 
         {/* Collecte et calcul */}
         <section className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -591,12 +579,7 @@ function KpisCount({
           />
         </>
       )}
-      <KpiCard
-        icone={Globe2}
-        label="Pays couverts"
-        valeur={paysCount}
-        couleur="#7EB301"
-      />
+      <KpiCard icone={Globe2} label="Pays couverts" valeur={paysCount} couleur="#7EB301" />
     </div>
   );
 }
@@ -665,13 +648,7 @@ function KpisRate({
   );
 }
 
-function KpisScore({
-  data,
-  couleur,
-}: {
-  data: DonneesScore;
-  couleur: string;
-}) {
+function KpisScore({ data, couleur }: { data: DonneesScore; couleur: string }) {
   const progressionPct =
     data.participantsTotal > 0
       ? Math.round((data.ayantProgresse / data.participantsTotal) * 100)
@@ -734,13 +711,7 @@ function KpisScore({
   );
 }
 
-function KpisAmount({
-  data,
-  couleur,
-}: {
-  data: DonneesAmount;
-  couleur: string;
-}) {
+function KpisAmount({ data, couleur }: { data: DonneesAmount; couleur: string }) {
   return (
     <div className="space-y-4">
       <Card className="overflow-hidden border-2" style={{ borderColor: couleur }}>

@@ -350,7 +350,7 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="A">A : Bénéficiaires (jeunes formés)</SelectItem>
+                  <SelectItem value="A">A : Bénéficiaires (personnes formées)</SelectItem>
                   <SelectItem value="B">B : Structures (activités économiques)</SelectItem>
                 </SelectContent>
               </Select>

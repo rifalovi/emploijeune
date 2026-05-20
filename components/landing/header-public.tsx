@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
  * Header public 4 onglets — V2.4.0.
  *
  * Validé par André (Chef SCS) : refonte de la vitrine en
- * Accueil / Référentiels / Réalisations / Contacts. L'item actif est
+ * Accueil / Résultats / Référentiel / Contact. L'item actif est
  * surligné en bleu OIF, les inactifs sont en gris avec hover.
  *
  * Le bouton de droite change selon l'état d'auth :
@@ -31,18 +31,18 @@ export function HeaderPublic({ isAuthenticated }: { isAuthenticated: boolean }) 
       matches: (p) => p === '/',
     },
     {
-      href: '/referentiels',
-      label: 'Référentiels',
-      matches: (p) => p.startsWith('/referentiels'),
-    },
-    {
       href: '/realisations',
-      label: 'Réalisations',
+      label: 'Résultats',
       matches: (p) => p.startsWith('/realisations'),
     },
     {
+      href: '/referentiels',
+      label: 'Référentiel',
+      matches: (p) => p.startsWith('/referentiels'),
+    },
+    {
       href: '/contact',
-      label: 'Contacts',
+      label: 'Contact',
       matches: (p) => p.startsWith('/contact'),
     },
   ];

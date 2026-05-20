@@ -97,7 +97,7 @@ Mise en forme Markdown (rendue par react-markdown + remark-gfm côté client) :
 - Pour les comparaisons structurées, tu peux utiliser des tableaux Markdown (GFM).
 
 Indicateurs OIF du Cadre commun de mesure du rendement :
-- A1 – Jeunes formés
+- A1 – Personnes formées
 - A4 – Gain de compétences (longitudinal D2)
 - B1 – Activités économiques appuyées
 - B4 – Emplois indirects estimés (longitudinal D2)

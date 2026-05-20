@@ -8,7 +8,6 @@ import {
   ArrowRight,
   ShieldCheck,
   History,
-  Briefcase,
   GraduationCap,
   Vote,
   Leaf,
@@ -49,7 +48,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Plateforme OIF Emploi Jeunes',
     description:
-      'Suivi-évaluation des projets emploi jeunes de la Francophonie : 5 000+ jeunes accompagnés dans 50+ pays.',
+      'Suivi-évaluation des projets emploi jeunes de la Francophonie : 5 000+ personnes accompagnées dans 50+ pays.',
     locale: 'fr_FR',
     type: 'website',
   },
@@ -84,13 +83,11 @@ export default async function VitrinePubliquePage() {
       {isAuthenticated && <BandeauAuthentifie />}
       <HeaderPublic isAuthenticated={isAuthenticated} />
       <HeroAvecCarrousel kpis={kpis} isAuthenticated={isAuthenticated} />
-      <KpiCompteurs kpis={kpis} />
       <Programmes />
+      <KpiCompteurs kpis={kpis} />
       <Methodologie />
       <CadreCommun />
       <Pourquoi />
-      <Audiences />
-      <PaysIntervention kpis={kpis} />
       <Citations />
       <CtaFinal isAuthenticated={isAuthenticated} />
       <FooterPublic />
@@ -131,7 +128,7 @@ function BandeauAuthentifie() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Header — réutilise le composant partagé V2.4.0 (4 onglets : Accueil,
-// Référentiels, Réalisations, Contacts).
+// Résultats, Référentiel, Contact).
 // Cf. components/landing/header-public.tsx.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -168,8 +165,8 @@ function HeroAvecCarrousel({
             <strong className="text-white">
               {kpis.beneficiaires_total.toLocaleString('fr-FR')}
             </strong>{' '}
-            jeunes accompagnés dans <strong className="text-white">{kpis.pays_total}</strong> pays :
-            période {kpis.annee_couverture_min} à {kpis.annee_couverture_max}.
+            personnes accompagnées dans <strong className="text-white">{kpis.pays_total}</strong>{' '}
+            pays : période {kpis.annee_couverture_min} à {kpis.annee_couverture_max}.
           </p>
         )}
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -223,18 +220,11 @@ function KpiCompteurs({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPublics
     <section className="border-b bg-white py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <Badge
-            variant="outline"
-            style={{ color: COULEUR_ACCENT, borderColor: `${COULEUR_ACCENT}66` }}
-          >
-            En chiffres
-          </Badge>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-            L&apos;impact de nos interventions
+          <h2 className="text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
+            Données agrégées des projets emploi Jeunes OIF
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
-            Données agrégées des projets emploi jeunes OIF : période {kpis.annee_couverture_min} à{' '}
-            {kpis.annee_couverture_max}.
+            Période {kpis.annee_couverture_min} à {kpis.annee_couverture_max}.
           </p>
         </div>
         <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4">
@@ -387,7 +377,7 @@ function Methodologie() {
     {
       titre: 'Cadre Commun de mesure',
       description:
-        "Tous les projets emploi jeunes OIF s'appuient sur un référentiel d'indicateurs partagé : A1 (jeunes formés), A4 (gain de compétences), B1 (activités économiques appuyées), B4 (emplois indirects), F1 (apport du français à l'employabilité).",
+        "Tous les projets emploi jeunes OIF s'appuient sur un référentiel d'indicateurs partagé : A1 (personnes formées), A4 (gain de compétences), B1 (activités économiques appuyées), B4 (emplois indirects), F1 (apport du français à l'employabilité).",
       icone: Target,
     },
     {
@@ -559,115 +549,6 @@ function Pourquoi() {
             </Card>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Audiences
-// ─────────────────────────────────────────────────────────────────────────────
-function Audiences() {
-  const audiences = [
-    {
-      icone: Briefcase,
-      titre: 'Coordonnateurs de projet OIF',
-      description:
-        'Tableau de bord opérationnel, suivi des cohortes, lancement de campagnes ciblées.',
-    },
-    {
-      icone: Building2,
-      titre: 'Partenaires de mise en œuvre',
-      description: "Saisie terrain, complétion des dossiers, génération d'enquêtes longitudinales.",
-    },
-    {
-      icone: Vote,
-      titre: 'Bailleurs et États et gouvernements membres',
-      description:
-        'Reporting agrégé, indicateurs stratégiques, exports pour rapports annuels – destinés aux bailleurs (UE, AFD, etc.) et aux représentants des États et gouvernements membres, membres associés et observateurs de l\u2019OIF.',
-    },
-  ];
-  return (
-    <section className="bg-gradient-to-b from-white via-blue-50/30 to-white py-16 md:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-            À qui s&apos;adresse cette plateforme
-          </h2>
-        </div>
-        <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {audiences.map((a) => (
-            <Card
-              key={a.titre}
-              className="border-t-4 border-t-[#0198E9] transition-all hover:-translate-y-1 hover:shadow-xl"
-            >
-              <CardContent className="p-6">
-                <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-[#0198E9]/10 text-[#0198E9]">
-                  <a.icone aria-hidden className="size-6" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">{a.titre}</h3>
-                <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-                  {a.description}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Pays d'intervention
-// ─────────────────────────────────────────────────────────────────────────────
-function PaysIntervention({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPublics>> }) {
-  if (!kpis || kpis.top_pays.length === 0) return null;
-  const max = kpis.top_pays[0]?.beneficiaires ?? 1;
-  return (
-    <section className="border-t bg-white py-16 md:py-20">
-      <div className="mx-auto max-w-5xl px-4 sm:px-8">
-        <div className="text-center">
-          <Badge
-            variant="outline"
-            style={{ color: COULEUR_ACCENT, borderColor: `${COULEUR_ACCENT}66` }}
-          >
-            Présence francophone
-          </Badge>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-            Top {kpis.top_pays.length} pays
-          </h2>
-          <p className="text-muted-foreground mt-3 text-base">
-            Sur {kpis.pays_total} pays d&apos;intervention au total. Données agrégées, anonymes.
-          </p>
-        </div>
-        <ol className="mt-12 space-y-3">
-          {kpis.top_pays.map((p, i) => {
-            const pct = Math.round((p.beneficiaires / max) * 100);
-            return (
-              <li key={p.code} className="flex items-center gap-3 text-sm">
-                <span className="text-muted-foreground w-6 tabular-nums">
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <span className="w-40 truncate font-medium text-gray-900">
-                  {p.libelle ?? p.code}
-                </span>
-                <div className="flex-1 overflow-hidden rounded-full bg-gray-100">
-                  <div
-                    className="h-3 rounded-full transition-all"
-                    style={{
-                      width: `${pct}%`,
-                      background: `linear-gradient(90deg, #0198E9 0%, #0E4F88 100%)`,
-                    }}
-                  />
-                </div>
-                <span className="w-20 text-right font-semibold text-gray-900 tabular-nums">
-                  {p.beneficiaires.toLocaleString('fr-FR')}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
       </div>
     </section>
   );

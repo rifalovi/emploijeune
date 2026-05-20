@@ -31,7 +31,7 @@ export const PILIERS: Record<CodePilier, Pilier> = {
     titre: 'Catégorie A',
     sousTitre: 'Compétences et employabilité',
     description:
-      "Les indicateurs de cette catégorie suivent les jeunes formés et leur progression – depuis l'inscription en formation jusqu'à l'insertion professionnelle 6 ou 12 mois après. Ils permettent de mesurer la qualité et l'efficacité des dispositifs de formation soutenus par l'OIF.",
+      "Les indicateurs de cette catégorie suivent les personnes formées et leur progression – depuis l'inscription en formation jusqu'à l'insertion professionnelle 6 ou 12 mois après. Ils permettent de mesurer la qualité et l'efficacité des dispositifs de formation soutenus par l'OIF.",
     couleur: '#0E4F88', // bleu institutionnel
   },
   B: {
@@ -109,7 +109,7 @@ export const INDICATEURS: Indicateur[] = [
   {
     code: 'A1',
     pilier: 'A',
-    intitule: 'Nombre de jeunes formés',
+    intitule: 'Nombre de personnes formées',
     definition:
       "Nombre total de jeunes femmes et hommes ayant effectivement participé à une formation soutenue par l'OIF.",
     variables: [
@@ -135,7 +135,7 @@ export const INDICATEURS: Indicateur[] = [
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
     donneeLiveCle: 'A1',
-    labelMetrique: 'Jeunes formés',
+    labelMetrique: 'Personnes formées',
     unitePrincipale: 'personnes',
     afficherVentilateurPersonne: true,
   },
@@ -153,7 +153,7 @@ export const INDICATEURS: Indicateur[] = [
     collecte:
       "Suivi continu à partir des présences ou de l'activité enregistrée sur la plateforme.",
     calcul:
-      '(Nombre de jeunes ayant atteint le seuil d’achèvement / Nombre total de jeunes inscrits) × 100.',
+      '(Nombre de personnes ayant atteint le seuil d’achèvement / Nombre total de jeunes inscrits) × 100.',
     sources: ['Listes de présence', 'Plateforme d’apprentissage', 'Rapports des opérateurs'],
     frequence: 'À la fin de chaque cycle de formation.',
     precautions: [
@@ -168,7 +168,7 @@ export const INDICATEURS: Indicateur[] = [
     pilier: 'A',
     intitule: 'Taux de certification / attestation',
     definition:
-      'Pourcentage de jeunes formés ayant obtenu une certification ou une attestation reconnue.',
+      'Pourcentage de personnes formées ayant obtenu une certification ou une attestation reconnue.',
     variables: [
       'Identifiant du bénéficiaire',
       'Type de certification ou attestation',
@@ -177,7 +177,8 @@ export const INDICATEURS: Indicateur[] = [
       'Date de délivrance',
     ],
     collecte: 'Vérification post-formation sur la base des documents délivrés.',
-    calcul: '(Nombre de jeunes certifiés ou attestés / Nombre total de jeunes formés) × 100.',
+    calcul:
+      '(Nombre de personnes certifiés ou attestés / Nombre total de personnes formées) × 100.',
     sources: ['Certificats', 'Attestations', 'Rapports partenaires'],
     frequence: 'À la fin de la formation ou après la session de certification.',
     precautions: [
@@ -228,7 +229,7 @@ export const INDICATEURS: Indicateur[] = [
     collecte:
       'Enquête de suivi à 6 mois ou 12 mois, avec vérification légère sur échantillon si possible.',
     calcul:
-      '(Nombre de jeunes en emploi ou AGR liée à la formation / Nombre total de jeunes suivis) × 100.',
+      '(Nombre de personnes en emploi ou AGR liée à la formation / Nombre total de jeunes suivis) × 100.',
     sources: ['Enquêtes post-formation', 'Contrats', 'Attestations', 'Registres'],
     frequence: 'À 6 mois et/ou à 12 mois.',
     precautions: [
@@ -444,7 +445,7 @@ export const INDICATEURS: Indicateur[] = [
       'Suggestions d’amélioration',
     ],
     collecte: 'Enquête de satisfaction standardisée.',
-    calcul: '(Nombre de jeunes jugeant l’appui déterminant / Nombre total de répondants) × 100.',
+    calcul: '(Nombre de personnes jugeant l’appui déterminant / Nombre total de répondants) × 100.',
     sources: ['Enquêtes bénéficiaires'],
     frequence: 'À la fin de l’activité et/ou lors du suivi.',
     precautions: [
