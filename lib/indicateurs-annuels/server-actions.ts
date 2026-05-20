@@ -78,8 +78,8 @@ export type SaisieValeurResult =
   | { status: 'erreur'; message: string };
 
 /**
- * Enregistre ou met à jour une valeur saisie manuellement. Réservé
- * admin_scs / super_admin (double-gardé en Server Action + RPC).
+ * Enregistre ou met à jour une valeur saisie manuellement.
+ * Réservé super_admin uniquement (double-gardé en Server Action + RPC).
  */
 export async function enregistrerSaisieValeur(
   payload: z.infer<typeof saisieSchema>,
@@ -166,8 +166,8 @@ const publicationSchema = z.object({
 });
 
 /**
- * Bascule l'état brouillon ↔ publié d'une saisie. Réservé admin_scs /
- * super_admin (double-gardé en Server Action + RPC).
+ * Bascule l'état brouillon ↔ publié d'une saisie.
+ * Réservé super_admin uniquement (double-gardé en Server Action + RPC).
  */
 export async function basculerPubliSaisieValeur(
   payload: z.infer<typeof publicationSchema>,
@@ -219,7 +219,7 @@ export type KpisContexteResult =
 
 /**
  * Crée ou met à jour les KPIs contextuels d'un indicateur.
- * Réservé admin_scs / super_admin.
+ * Réservé super_admin uniquement.
  */
 export async function enregistrerKpisContexte(
   payload: z.infer<typeof kpisContexteSchema>,
@@ -236,7 +236,7 @@ export async function enregistrerKpisContexte(
 
   const { code, ...champs } = parsed.data;
   // Utilise le client admin pour contourner le RLS — l'autorisation est
-  // déjà vérifiée ci-dessus (role admin_scs / super_admin).
+  // déjà vérifiée ci-dessus (role super_admin uniquement).
   const admin = createSupabaseAdminClient();
   const { error } = await admin.from('kpis_contexte_indicateurs').upsert(
     {

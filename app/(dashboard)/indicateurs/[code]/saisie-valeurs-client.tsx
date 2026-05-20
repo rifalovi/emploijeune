@@ -46,8 +46,8 @@ type Props = {
 };
 
 /**
- * Encart de saisie manuelle des valeurs d'un indicateur (admin_scs /
- * super_admin uniquement, garde côté serveur).
+ * Encart de saisie manuelle des valeurs d'un indicateur
+ * (super_admin uniquement, garde côté serveur + RPC).
  *
  * Cas d'usage : pour A2 (taux d'achèvement), le SCS connaît parfois le
  * nombre d'achevements via une enquête sans avoir le dénominateur
