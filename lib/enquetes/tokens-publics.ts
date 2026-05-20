@@ -13,9 +13,11 @@ import {
   soumissionQuestionnaireASchema,
   soumissionQuestionnaireBSchema,
   soumissionQuestionnaireCSchema,
+  soumissionQuestionnaireDSchema,
   type SoumissionQuestionnaireAOutput,
   type SoumissionQuestionnaireBOutput,
   type SoumissionQuestionnaireCOutput,
+  type SoumissionQuestionnaireDOutput,
 } from '@/lib/schemas/enquetes/schemas';
 import { INDICATEURS_PAR_QUESTIONNAIRE } from '@/lib/schemas/enquetes/nomenclatures';
 
@@ -27,7 +29,7 @@ const EXPIRATION_PAR_DEFAUT_JOURS = 30;
 
 /** Detail public d'une cible (rendu cote formulaire sans reveler de PII). */
 export type CibleTokenDetail = {
-  questionnaire: 'A' | 'B' | 'C';
+  questionnaire: 'A' | 'B' | 'C' | 'D';
   cible_libelle: string;
   /**
    * UUID de la cible (bénéficiaire ou structure). Indispensable côté client
@@ -89,7 +91,7 @@ export async function validerToken(token: string): Promise<ValiderTokenResult> {
   return {
     status: 'valide',
     cible: {
-      questionnaire: data.questionnaire as 'A' | 'B' | 'C',
+      questionnaire: data.questionnaire as 'A' | 'B' | 'C' | 'D',
       cible_libelle: cibleLibelle,
       cible_id: cibleId,
       projet_code: data.projet_code,
@@ -128,7 +130,7 @@ export type GenererTokenInput = {
    * Si absent : derive de cibleType (beneficiaire->A, structure->B).
    * Passer 'C' pour un questionnaire C (intermediation) sur beneficiaire.
    */
-  questionnaire?: 'A' | 'B' | 'C';
+  questionnaire?: 'A' | 'B' | 'C' | 'D';
 };
 
 /**
@@ -151,7 +153,7 @@ export async function genererTokenEnquete(input: GenererTokenInput): Promise<Gen
 
   const supabase = await createSupabaseServerClient();
   // Questionnaire explicite en priorite ; sinon derive de cibleType (historique).
-  const questionnaire: 'A' | 'B' | 'C' =
+  const questionnaire: 'A' | 'B' | 'C' | 'D' =
     input.questionnaire ?? (input.cibleType === 'beneficiaire' ? 'A' : 'B');
 
   // Récupère cible (RLS-safe) pour projet + nom + email destinataire potentiel
@@ -293,7 +295,8 @@ export async function soumettreEnquetePublique(
   payload:
     | SoumissionQuestionnaireAOutput
     | SoumissionQuestionnaireBOutput
-    | SoumissionQuestionnaireCOutput,
+    | SoumissionQuestionnaireCOutput
+    | SoumissionQuestionnaireDOutput,
 ): Promise<SoumissionPubliqueResult> {
   if (!/^[0-9a-f]{32}$/.test(token)) return { status: 'erreur_token' };
 
@@ -329,7 +332,9 @@ export async function soumettreEnquetePublique(
       ? soumissionQuestionnaireASchema
       : payload.questionnaire === 'C'
         ? soumissionQuestionnaireCSchema
-        : soumissionQuestionnaireBSchema;
+        : payload.questionnaire === 'D'
+          ? soumissionQuestionnaireDSchema
+          : soumissionQuestionnaireBSchema;
   const parse = schema.safeParse(payload);
   if (!parse.success) {
     return {
@@ -342,10 +347,11 @@ export async function soumettreEnquetePublique(
   // Etape 4 : construire les lignes reponses_enquetes
   const sessionId = crypto.randomUUID();
   const dateCollecte = data.date_collecte.toISOString().slice(0, 10);
-  // A et C ciblent les beneficiaires ; B cible les structures.
+  // A et C ciblent les beneficiaires ; B et D ciblent les structures.
   const beneficiaireId =
     data.questionnaire === 'A' || data.questionnaire === 'C' ? data.cible_id : null;
-  const structureId = data.questionnaire === 'B' ? data.cible_id : null;
+  const structureId =
+    data.questionnaire === 'B' || data.questionnaire === 'D' ? data.cible_id : null;
   const indicateurs = INDICATEURS_PAR_QUESTIONNAIRE[data.questionnaire];
 
   const lignes = indicateurs.map((code) => {
@@ -398,7 +404,7 @@ export async function soumettreEnquetePublique(
           };
           break;
       }
-    } else {
+    } else if (data.questionnaire === 'B') {
       const dB = data as SoumissionQuestionnaireBOutput;
       switch (code) {
         case 'B2':
@@ -417,6 +423,25 @@ export async function soumettreEnquetePublique(
           break;
         case 'C5':
           donnees = { ...dB.c5 };
+          break;
+      }
+    } else {
+      // Questionnaire D (acteurs institutionnels / ecosystemes)
+      const dD = data as SoumissionQuestionnaireDOutput;
+      switch (code) {
+        case 'D1':
+          donnees = { ...dD.d1 };
+          break;
+        case 'D2':
+          donnees = { ...dD.d2 };
+          break;
+        case 'D3':
+          donnees = {
+            ...dD.d3,
+            effets_impacts: dD.effets_impacts,
+            observations: dD.observations_libres,
+            temoignage: dD.temoignage,
+          };
           break;
       }
     }

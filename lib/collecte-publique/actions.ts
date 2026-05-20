@@ -28,7 +28,7 @@ import { z } from 'zod';
 // Types publics
 // =============================================================================
 
-export type TypeCollecte = 'A' | 'B' | 'C';
+export type TypeCollecte = 'A' | 'B' | 'C' | 'D';
 
 export type LienCollecte = {
   id: string;
@@ -105,7 +105,7 @@ function urlLien(slug: string): string {
 // =============================================================================
 
 const creerLienSchema = z.object({
-  type: z.enum(['A', 'B', 'C']),
+  type: z.enum(['A', 'B', 'C', 'D']),
   label: z.string().trim().min(1, 'Le libellé est obligatoire').max(200),
   projet_code: z.string().nullable().optional(),
   expire_dans_jours: z.coerce.number().int().min(1).max(365).nullable().optional(),
@@ -587,6 +587,88 @@ export async function validerSoumission(soumissionId: string): Promise<ValiderSo
     }));
 
     await admin.from('reponses_enquetes').insert(lignesC as never);
+  } else if (soumission.type === 'D') {
+    // Type D — structure (acteur institutionnel) + 3 lignes questionnaire écosystèmes
+    // (D1, D2, D3). Création de la structure identique à B (champs minimaux),
+    // puis insertion des 3 indicateurs dans reponses_enquetes.
+    const payloadStructure = {
+      nom_structure: (donnees['nom_structure'] as string) ?? '',
+      type_structure_code: (donnees['type_structure_code'] as string) ?? 'AUTRE',
+      secteur_activite_code: (donnees['secteur_activite_code'] as string) ?? 'AUTRE',
+      statut_creation: 'creation' as const,
+      annee_appui: Number(donnees['annee_appui'] ?? new Date().getFullYear()),
+      nature_appui_code: 'AUTRE',
+      projet_code: projetCode ?? (donnees['projet_code'] as string) ?? '',
+      pays_code: (donnees['pays_code'] as string) ?? '',
+      porteur_nom: (donnees['porteur_nom'] as string) ?? '',
+      porteur_prenom: (donnees['porteur_prenom'] as string | null) ?? null,
+      porteur_sexe: (donnees['porteur_sexe'] as 'F' | 'M' | 'Autre') ?? 'M',
+      telephone_porteur: (donnees['telephone'] as string | null) ?? null,
+      courriel_porteur: (donnees['courriel'] as string | null) ?? null,
+      intitule_initiative: null,
+      consentement_recueilli: false,
+      source_import: 'formulaire_web' as const,
+    };
+
+    const { data: str, error: strError } = await admin
+      .from('structures')
+      .insert(payloadStructure as never)
+      .select('id')
+      .single();
+
+    if (strError || !str) {
+      return {
+        status: 'erreur_inconnue',
+        message: strError?.message ?? 'Erreur insertion structure (D).',
+      };
+    }
+    entiteId = str.id;
+
+    // Étape 2 : créer les 3 lignes du questionnaire D dans reponses_enquetes.
+    const sessionId = crypto.randomUUID();
+    const dateCollecte = new Date().toISOString().slice(0, 10);
+    const projetFinal = projetCode ?? (donnees['projet_code'] as string) ?? null;
+
+    const d1Data = {
+      a_appuye: donnees['d1_a_appuye'] ?? false,
+      type_dispositif: donnees['d1_type_dispositif'] ?? null,
+      type_dispositif_autre: donnees['d1_type_dispositif_autre'] ?? null,
+      intitule_dispositif: donnees['d1_intitule_dispositif'] ?? null,
+      niveau_adoption: donnees['d1_niveau_adoption'] ?? null,
+    };
+    const d2Data = {
+      a_ete_forme: donnees['d2_a_ete_forme'] ?? false,
+      type_acteur: donnees['d2_type_acteur'] ?? null,
+      nb_formes: donnees['d2_nb_formes'] ?? null,
+      nb_femmes_formees: donnees['d2_nb_femmes_formees'] ?? null,
+      amelioration_declaree: donnees['d2_amelioration_declaree'] ?? null,
+    };
+    const d3Data = {
+      effets_observes: donnees['d3_effets_observes'] ?? null,
+      niveau_observation: donnees['d3_niveau_observation'] ?? null,
+      elements_preuve: donnees['d3_elements_preuve'] ?? null,
+      observations: donnees['observations_libres'] ?? null,
+    };
+
+    const lignesD = [
+      { indicateur_code: 'D1', donnees: d1Data },
+      { indicateur_code: 'D2', donnees: d2Data },
+      { indicateur_code: 'D3', donnees: d3Data },
+    ].map((l) => ({
+      indicateur_code: l.indicateur_code,
+      beneficiaire_id: null,
+      structure_id: str.id,
+      projet_code: projetFinal,
+      donnees: l.donnees as never,
+      date_collecte: dateCollecte,
+      vague_enquete: 'ponctuelle' as const,
+      canal_collecte: 'formulaire_web' as const,
+      session_enquete_id: sessionId,
+      questionnaire_code: 'D',
+      lien_public_token: null,
+    }));
+
+    await admin.from('reponses_enquetes').insert(lignesD as never);
   } else {
     // Structure B — colonnes `*_code` pour les enums alignées sur le schéma
     // initial (migration 20260422, lignes 320-340).

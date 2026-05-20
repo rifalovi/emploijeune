@@ -34,7 +34,7 @@ import {
 import { ListeCiblesRevue } from './liste-cibles-revue';
 
 type Mode = 'toutes' | 'filtres' | 'manuelle';
-type Questionnaire = 'A' | 'B' | 'C';
+type Questionnaire = 'A' | 'B' | 'C' | 'D';
 
 export type WizardCampagneProps = {
   projets: Array<{ code: string; libelle: string }>;
@@ -99,11 +99,14 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
     if (filtreProjets.length > 0) obj.projets = filtreProjets;
     if (filtrePays.length > 0) obj.pays = filtrePays;
     if (filtreAnnees.length > 0) {
-      // A et C ciblent les bénéficiaires (annee_formation) ; B cible les structures (annee_appui)
-      obj[questionnaire !== 'B' ? 'annees' : 'annees_appui'] = filtreAnnees;
+      // A et C → bénéficiaires (annee_formation) ; B et D → structures (annee_appui)
+      const cibleStructure = questionnaire === 'B' || questionnaire === 'D';
+      obj[cibleStructure ? 'annees_appui' : 'annees'] = filtreAnnees;
     }
-    if (questionnaire !== 'B' && filtreSexe) obj.sexe = filtreSexe;
-    if (questionnaire !== 'B' && filtreTrancheAge) obj.tranche_age = filtreTrancheAge;
+    // Filtres sexe/tranche_age : uniquement pour A et C (bénéficiaires personnels)
+    const cibleBeneficiaire = questionnaire === 'A' || questionnaire === 'C';
+    if (cibleBeneficiaire && filtreSexe) obj.sexe = filtreSexe;
+    if (cibleBeneficiaire && filtreTrancheAge) obj.tranche_age = filtreTrancheAge;
     return obj;
   }, [
     mode,
@@ -354,6 +357,7 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
                   <SelectItem value="A">A : Bénéficiaires (personnes formées)</SelectItem>
                   <SelectItem value="B">B : Structures (activités économiques)</SelectItem>
                   <SelectItem value="C">C : Bénéficiaires (intermédiation emploi)</SelectItem>
+                  <SelectItem value="D">D : Acteurs institutionnels (écosystèmes)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -462,7 +466,11 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
                 hauteur="max-h-40"
               />
               <FiltreCheckboxes
-                label={questionnaire === 'A' ? 'Année de formation' : "Année d'appui"}
+                label={
+                  questionnaire === 'A' || questionnaire === 'C'
+                    ? 'Année de formation'
+                    : "Année d'appui"
+                }
                 options={[2023, 2024, 2025].map((a) => ({
                   value: String(a),
                   label: String(a),
@@ -470,7 +478,7 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
                 selection={filtreAnnees.map(String)}
                 onChange={(vals) => setFiltreAnnees(vals.map((v) => Number(v)))}
               />
-              {questionnaire === 'A' && (
+              {(questionnaire === 'A' || questionnaire === 'C') && (
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1">

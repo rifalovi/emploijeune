@@ -1055,7 +1055,7 @@ export type Database = {
           cible_type: 'beneficiaire' | 'structure'
           beneficiaire_id: string | null
           structure_id: string | null
-          questionnaire: 'A' | 'B' | 'C'
+          questionnaire: 'A' | 'B' | 'C' | 'D'
           vague_enquete: Database["public"]["Enums"]["vague_enquete"]
           canal_collecte: Database["public"]["Enums"]["canal_collecte"]
           projet_code: string | null
@@ -1073,7 +1073,7 @@ export type Database = {
           cible_type: 'beneficiaire' | 'structure'
           beneficiaire_id?: string | null
           structure_id?: string | null
-          questionnaire: 'A' | 'B' | 'C'
+          questionnaire: 'A' | 'B' | 'C' | 'D'
           vague_enquete?: Database["public"]["Enums"]["vague_enquete"]
           canal_collecte?: Database["public"]["Enums"]["canal_collecte"]
           projet_code?: string | null
@@ -1091,7 +1091,7 @@ export type Database = {
           cible_type?: 'beneficiaire' | 'structure'
           beneficiaire_id?: string | null
           structure_id?: string | null
-          questionnaire?: 'A' | 'B' | 'C'
+          questionnaire?: 'A' | 'B' | 'C' | 'D'
           vague_enquete?: Database["public"]["Enums"]["vague_enquete"]
           canal_collecte?: Database["public"]["Enums"]["canal_collecte"]
           projet_code?: string | null
@@ -1432,7 +1432,7 @@ export type Database = {
           id: string
           nom: string
           description: string | null
-          questionnaire: 'A' | 'B' | 'C'
+          questionnaire: 'A' | 'B' | 'C' | 'D'
           type_vague: string
           mode_selection: 'toutes' | 'filtres' | 'manuelle'
           filtres: Json
@@ -1454,7 +1454,7 @@ export type Database = {
           id?: string
           nom: string
           description?: string | null
-          questionnaire: 'A' | 'B' | 'C'
+          questionnaire: 'A' | 'B' | 'C' | 'D'
           type_vague: string
           mode_selection: 'toutes' | 'filtres' | 'manuelle'
           filtres?: Json
@@ -1476,7 +1476,7 @@ export type Database = {
           id?: string
           nom?: string
           description?: string | null
-          questionnaire?: 'A' | 'B' | 'C'
+          questionnaire?: 'A' | 'B' | 'C' | 'D'
           type_vague?: string
           mode_selection?: 'toutes' | 'filtres' | 'manuelle'
           filtres?: Json
@@ -1696,7 +1696,7 @@ export type Database = {
         Row: {
           id: string
           slug: string
-          type: 'A' | 'B' | 'C'
+          type: 'A' | 'B' | 'C' | 'D'
           label: string
           projet_code: string | null
           statut: 'actif' | 'inactif' | 'expire'
@@ -1709,7 +1709,7 @@ export type Database = {
         Insert: {
           id?: string
           slug: string
-          type: 'A' | 'B' | 'C'
+          type: 'A' | 'B' | 'C' | 'D'
           label?: string
           projet_code?: string | null
           statut?: 'actif' | 'inactif' | 'expire'
@@ -1722,7 +1722,7 @@ export type Database = {
         Update: {
           id?: string
           slug?: string
-          type?: 'A' | 'B' | 'C'
+          type?: 'A' | 'B' | 'C' | 'D'
           label?: string
           projet_code?: string | null
           statut?: 'actif' | 'inactif' | 'expire'
@@ -1738,7 +1738,7 @@ export type Database = {
         Row: {
           id: string
           lien_id: string
-          type: 'A' | 'B' | 'C'
+          type: 'A' | 'B' | 'C' | 'D'
           donnees: Json
           statut: 'en_attente' | 'valide' | 'rejete'
           motif_rejet: string | null
@@ -1752,7 +1752,7 @@ export type Database = {
         Insert: {
           id?: string
           lien_id: string
-          type: 'A' | 'B' | 'C'
+          type: 'A' | 'B' | 'C' | 'D'
           donnees?: Json
           statut?: 'en_attente' | 'valide' | 'rejete'
           motif_rejet?: string | null
@@ -1766,7 +1766,7 @@ export type Database = {
         Update: {
           id?: string
           lien_id?: string
-          type?: 'A' | 'B' | 'C'
+          type?: 'A' | 'B' | 'C' | 'D'
           donnees?: Json
           statut?: 'en_attente' | 'valide' | 'rejete'
           motif_rejet?: string | null

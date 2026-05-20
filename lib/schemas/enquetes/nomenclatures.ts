@@ -195,21 +195,21 @@ export const Q_A409_PROPORTION_AUGMENTATION_LIBELLES: Record<
 
 /** Q C102 — Type de service d'intermediation recu. */
 export const Q_C102_TYPE_INTERMEDIATION_VALUES = [
-  'SPE_PUBLIC',     // Service public de l'emploi (ANPE, ANEJ, OFPE, etc.)
-  'CABINET_PRIVE',  // Cabinet de placement prive / consultant
+  'SPE_PUBLIC', // Service public de l'emploi (ANPE, ANEJ, OFPE, etc.)
+  'CABINET_PRIVE', // Cabinet de placement prive / consultant
   'PLATEFORME_NUM', // Plateforme numerique (job board, appli mobile)
-  'RESEAU_PROF',    // Reseau professionnel / bouche-a-oreille
-  'ONG_ASSO',       // ONG ou association d'accompagnement
-  'AUTRE',          // Autre
+  'RESEAU_PROF', // Reseau professionnel / bouche-a-oreille
+  'ONG_ASSO', // ONG ou association d'accompagnement
+  'AUTRE', // Autre
 ] as const;
 export type Q_C102_TypeIntermediation = (typeof Q_C102_TYPE_INTERMEDIATION_VALUES)[number];
 
 export const Q_C102_TYPE_INTERMEDIATION_LIBELLES: Record<Q_C102_TypeIntermediation, string> = {
-  SPE_PUBLIC: 'Service public de l\'emploi (ANPE, ANEJ, OFPE, etc.)',
+  SPE_PUBLIC: "Service public de l'emploi (ANPE, ANEJ, OFPE, etc.)",
   CABINET_PRIVE: 'Cabinet de placement prive ou consultant RH',
   PLATEFORME_NUM: 'Plateforme numerique (job board, application mobile)',
   RESEAU_PROF: 'Reseau professionnel (reseau de diplomes, bouche-a-oreille)',
-  ONG_ASSO: 'ONG ou association d\'accompagnement a l\'emploi',
+  ONG_ASSO: "ONG ou association d'accompagnement a l'emploi",
   AUTRE: 'Autre',
 };
 
@@ -252,6 +252,80 @@ export const Q_B211_TYPE_EMPLOI_LIBELLES: Record<Q_B211_TypeEmploi, string> = {
 };
 
 // =============================================================================
+// QUESTIONNAIRE D — acteurs institutionnels (D1, D2, D3)
+// =============================================================================
+
+/** Q D101 — Type de dispositif politique appuyé (indicateur D1). */
+export const Q_D101_TYPE_DISPOSITIF_VALUES = [
+  'POLITIQUE_NATIONALE',
+  'STRATEGIE_SECTORIELLE',
+  'PROGRAMME_PUBLIC',
+  'CADRE_REGLEMENTAIRE',
+  'DISPOSITIF_FINANCEMENT',
+  'AUTRE',
+] as const;
+export type Q_D101_TypeDispositif = (typeof Q_D101_TYPE_DISPOSITIF_VALUES)[number];
+
+export const Q_D101_TYPE_DISPOSITIF_LIBELLES: Record<Q_D101_TypeDispositif, string> = {
+  POLITIQUE_NATIONALE: "Politique nationale pour l'emploi des jeunes",
+  STRATEGIE_SECTORIELLE: 'Stratégie sectorielle emploi / formation',
+  PROGRAMME_PUBLIC: "Programme public d'insertion ou d'accompagnement",
+  CADRE_REGLEMENTAIRE: 'Cadre réglementaire ou législatif',
+  DISPOSITIF_FINANCEMENT: 'Dispositif de financement public (fonds, subventions)',
+  AUTRE: 'Autre (à préciser)',
+};
+
+/** Q D105 — Niveau d'adoption du dispositif (indicateur D1). */
+export const Q_D102_NIVEAU_ADOPTION_VALUES = [
+  'EN_COURS_ELABORATION',
+  'ADOPTE_NON_MIS_EN_OEUVRE',
+  'EN_COURS_MISE_EN_OEUVRE',
+  'PLEINEMENT_OPERATIONNEL',
+] as const;
+export type Q_D102_NiveauAdoption = (typeof Q_D102_NIVEAU_ADOPTION_VALUES)[number];
+
+export const Q_D102_NIVEAU_ADOPTION_LIBELLES: Record<Q_D102_NiveauAdoption, string> = {
+  EN_COURS_ELABORATION: "En cours d'élaboration",
+  ADOPTE_NON_MIS_EN_OEUVRE: 'Adopté mais non encore mis en œuvre',
+  EN_COURS_MISE_EN_OEUVRE: 'En cours de mise en œuvre',
+  PLEINEMENT_OPERATIONNEL: 'Pleinement opérationnel',
+};
+
+/** Q D202 — Type d'acteur institutionnel formé (indicateur D2). */
+export const Q_D201_TYPE_ACTEUR_VALUES = [
+  'MINISTERE',
+  'AGENCE_PUBLIQUE',
+  'COLLECTIVITE',
+  'ORGANISME_FORMATION',
+  'AUTRE',
+] as const;
+export type Q_D201_TypeActeur = (typeof Q_D201_TYPE_ACTEUR_VALUES)[number];
+
+export const Q_D201_TYPE_ACTEUR_LIBELLES: Record<Q_D201_TypeActeur, string> = {
+  MINISTERE: 'Ministère / Direction nationale',
+  AGENCE_PUBLIQUE: "Agence publique pour l'emploi",
+  COLLECTIVITE: 'Collectivité territoriale',
+  ORGANISME_FORMATION: 'Organisme public de formation',
+  AUTRE: 'Autre (à préciser)',
+};
+
+/** Q D302 — Niveau d'observation des effets (indicateur D3). */
+export const Q_D301_NIVEAU_OBSERVATION_VALUES = [
+  'LOCAL',
+  'REGIONAL',
+  'NATIONAL',
+  'TRANSNATIONAL',
+] as const;
+export type Q_D301_NiveauObservation = (typeof Q_D301_NIVEAU_OBSERVATION_VALUES)[number];
+
+export const Q_D301_NIVEAU_OBSERVATION_LIBELLES: Record<Q_D301_NiveauObservation, string> = {
+  LOCAL: 'Local (ville / commune)',
+  REGIONAL: 'Régional (province / région)',
+  NATIONAL: 'National',
+  TRANSNATIONAL: 'Transnational / multi-pays',
+};
+
+// =============================================================================
 // Méta : indicateurs cibles couverts par chaque questionnaire
 // =============================================================================
 
@@ -264,19 +338,22 @@ export const INDICATEURS_PAR_QUESTIONNAIRE = {
   A: ['A2', 'A3', 'A4', 'A5', 'F1', 'C5'] as const,
   B: ['B2', 'B3', 'B4', 'C5'] as const,
   C: ['C1', 'C2', 'C4', 'C5'] as const,
+  D: ['D1', 'D2', 'D3'] as const,
 } as const;
 
 export type CodeQuestionnaire = keyof typeof INDICATEURS_PAR_QUESTIONNAIRE;
 export type IndicateurCible =
   | (typeof INDICATEURS_PAR_QUESTIONNAIRE)['A'][number]
   | (typeof INDICATEURS_PAR_QUESTIONNAIRE)['B'][number]
-  | (typeof INDICATEURS_PAR_QUESTIONNAIRE)['C'][number];
+  | (typeof INDICATEURS_PAR_QUESTIONNAIRE)['C'][number]
+  | (typeof INDICATEURS_PAR_QUESTIONNAIRE)['D'][number];
 
 /** Libellés humains des questionnaires (UI). */
 export const QUESTIONNAIRE_LIBELLES: Record<CodeQuestionnaire, string> = {
   A: 'Questionnaire A \u2013 B\u00e9n\u00e9ficiaires (formation et insertion)',
   B: 'Questionnaire B \u2013 Structures (survie et emplois)',
-  C: 'Questionnaire C \u2013 B\u00e9n\u00e9ficiaires (interm\u00e9diation vers l\'emploi)',
+  C: "Questionnaire C \u2013 B\u00e9n\u00e9ficiaires (interm\u00e9diation vers l'emploi)",
+  D: 'Questionnaire D \u2013 Acteurs institutionnels (\u00e9cosyst\u00e8mes)',
 };
 
 // =============================================================================

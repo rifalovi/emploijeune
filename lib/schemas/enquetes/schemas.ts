@@ -29,6 +29,10 @@ import {
   Q_B211_TYPE_EMPLOI_VALUES,
   Q_C102_TYPE_INTERMEDIATION_VALUES,
   Q_C105_DELAI_PLACEMENT_VALUES,
+  Q_D101_TYPE_DISPOSITIF_VALUES,
+  Q_D102_NIVEAU_ADOPTION_VALUES,
+  Q_D201_TYPE_ACTEUR_VALUES,
+  Q_D301_NIVEAU_OBSERVATION_VALUES,
   VAGUES_ENQUETE_VALUES,
   CANAUX_COLLECTE_VALUES,
 } from './nomenclatures';
@@ -374,14 +378,14 @@ export const c1Schema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['type_intermediation'],
-        message: 'Type d\'intermediation obligatoire si vous avez beneficie du service',
+        message: "Type d'intermediation obligatoire si vous avez beneficie du service",
       });
     }
     if (data.type_intermediation === 'AUTRE' && !data.type_intermediation_autre) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['type_intermediation_autre'],
-        message: 'Precisez le type d\'intermediation lorsque vous choisissez Autre',
+        message: "Precisez le type d'intermediation lorsque vous choisissez Autre",
       });
     }
   });
@@ -394,9 +398,7 @@ export const c2Schema = z
   .object({
     a_ete_place: z.boolean(), // Q C104
     annee_placement: optionalAnneeRecente, // Q C105 (si place)
-    nature_emploi: z
-      .enum([...Q_A405_NATURE_ACTIVITE_VALUES] as [string, ...string[]])
-      .optional(), // Q C106 (si place)
+    nature_emploi: z.enum([...Q_A405_NATURE_ACTIVITE_VALUES] as [string, ...string[]]).optional(), // Q C106 (si place)
   })
   .superRefine((data, ctx) => {
     if (data.a_ete_place) {
@@ -411,7 +413,7 @@ export const c2Schema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['nature_emploi'],
-          message: 'Nature de l\'emploi obligatoire',
+          message: "Nature de l'emploi obligatoire",
         });
       }
     }
@@ -422,9 +424,82 @@ export const c2Schema = z
  * Source : Q C201.
  */
 export const c4Schema = z.object({
-  delai_placement: z
-    .enum([...Q_C105_DELAI_PLACEMENT_VALUES] as [string, ...string[]])
-    .optional(), // Q C201 (si place)
+  delai_placement: z.enum([...Q_C105_DELAI_PLACEMENT_VALUES] as [string, ...string[]]).optional(), // Q C201 (si place)
+});
+
+// =============================================================================
+// QUESTIONNAIRE D -- schemas par indicateur (ecosystemes / acteurs institutionnels)
+// =============================================================================
+
+/**
+ * Indicateur D1 -- Cadres/dispositifs politiques emploi-jeunes appuyes.
+ * Source : Q D101 a D105.
+ */
+export const d1Schema = z
+  .object({
+    a_appuye: z.boolean(), // Q D101
+    type_dispositif: z.enum([...Q_D101_TYPE_DISPOSITIF_VALUES] as [string, ...string[]]).optional(), // Q D102
+    type_dispositif_autre: optionalString(300), // Q D103
+    intitule_dispositif: optionalString(500), // Q D104
+    niveau_adoption: z.enum([...Q_D102_NIVEAU_ADOPTION_VALUES] as [string, ...string[]]).optional(), // Q D105
+  })
+  .superRefine((data, ctx) => {
+    if (data.a_appuye && !data.type_dispositif) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['type_dispositif'],
+        message: "Type de dispositif obligatoire si l'institution a beneficie d'un appui",
+      });
+    }
+    if (data.type_dispositif === 'AUTRE' && !data.type_dispositif_autre) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['type_dispositif_autre'],
+        message: 'Precisez le type de dispositif lorsque vous choisissez Autre',
+      });
+    }
+  });
+
+/**
+ * Indicateur D2 -- Capacites institutionnelles renforcees.
+ * Source : Q D201 a D205.
+ */
+export const d2Schema = z
+  .object({
+    a_ete_forme: z.boolean(), // Q D201
+    type_acteur: z.enum([...Q_D201_TYPE_ACTEUR_VALUES] as [string, ...string[]]).optional(), // Q D202
+    type_acteur_autre: optionalString(300),
+    nb_formes: entierPositifOptionnel(10_000), // Q D203
+    nb_femmes_formees: entierPositifOptionnel(10_000), // Q D204
+    amelioration_declaree: z.boolean().optional(), // Q D205
+  })
+  .superRefine((data, ctx) => {
+    if (data.a_ete_forme && !data.type_acteur) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['type_acteur'],
+        message: "Type d'acteur obligatoire si des membres ont ete formes",
+      });
+    }
+    if ((data.nb_femmes_formees ?? 0) > (data.nb_formes ?? 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['nb_femmes_formees'],
+        message: "Le nombre de femmes formees ne peut exceder le nombre total d'acteurs formes",
+      });
+    }
+  });
+
+/**
+ * Indicateur D3 -- Effets observables sur l'environnement de l'emploi.
+ * Source : Q D301 a D304 (analyse qualitative).
+ */
+export const d3Schema = z.object({
+  effets_observes: optionalString(2000), // Q D301
+  niveau_observation: z
+    .enum([...Q_D301_NIVEAU_OBSERVATION_VALUES] as [string, ...string[]])
+    .optional(), // Q D302
+  elements_preuve: optionalString(2000), // Q D303
 });
 
 // =============================================================================
@@ -485,12 +560,25 @@ export const soumissionQuestionnaireCSchema = baseSoumission.extend({
   c5: c5Schema,
 });
 
+/**
+ * Soumission Questionnaire D : agrege D1/D2/D3 + metadonnees
+ * (cible_id = structure UUID, comme B).
+ */
+export const soumissionQuestionnaireDSchema = baseSoumission.extend({
+  questionnaire: z.literal('D'),
+  d1: d1Schema,
+  d2: d2Schema,
+  d3: d3Schema,
+});
+
 export type SoumissionQuestionnaireA = z.input<typeof soumissionQuestionnaireASchema>;
 export type SoumissionQuestionnaireAOutput = z.output<typeof soumissionQuestionnaireASchema>;
 export type SoumissionQuestionnaireB = z.input<typeof soumissionQuestionnaireBSchema>;
 export type SoumissionQuestionnaireBOutput = z.output<typeof soumissionQuestionnaireBSchema>;
 export type SoumissionQuestionnaireC = z.input<typeof soumissionQuestionnaireCSchema>;
 export type SoumissionQuestionnaireCOutput = z.output<typeof soumissionQuestionnaireCSchema>;
+export type SoumissionQuestionnaireD = z.input<typeof soumissionQuestionnaireDSchema>;
+export type SoumissionQuestionnaireDOutput = z.output<typeof soumissionQuestionnaireDSchema>;
 
 // =============================================================================
 // Filtres de la liste enquêtes (utilisés par /enquetes en 6c)
@@ -511,7 +599,13 @@ export const enqueteFiltersSchema = z.object({
     .optional(),
 
   questionnaire: z
-    .union([z.enum(['A', 'B', 'C']), z.literal('tous'), z.literal(''), z.null(), z.undefined()])
+    .union([
+      z.enum(['A', 'B', 'C', 'D']),
+      z.literal('tous'),
+      z.literal(''),
+      z.null(),
+      z.undefined(),
+    ])
     .transform((v) => (v === '' || v === null || v === 'tous' ? undefined : v))
     .optional(),
 

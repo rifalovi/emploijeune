@@ -20,12 +20,14 @@ type PageProps = {
  *
  * Paramètres URL requis :
  *   - cible_type=beneficiaire → questionnaire A par défaut, ou C si ?questionnaire=C
- *   - cible_type=structure   → questionnaire B (indicateurs B2/B3/B4/C5)
+ *   - cible_type=structure    → questionnaire B par défaut, ou D si ?questionnaire=D
  *   - cible_id=UUID
  *
  * Paramètre optionnel :
  *   - questionnaire=C → force le questionnaire C (intermédiation) sur une
- *     fiche bénéficiaire (utile depuis le bouton CTA de la fiche bénéficiaire)
+ *     fiche bénéficiaire (depuis le dropdown de la fiche bénéficiaire).
+ *   - questionnaire=D → force le questionnaire D (écosystèmes) sur une
+ *     fiche structure (depuis le dropdown de la fiche structure).
  *
  * Sans paramètres : affiche une carte d'aide indiquant comment lancer
  * une enquête depuis une fiche bénéficiaire ou structure.
@@ -48,12 +50,13 @@ export default async function NouvelleEnquetePage({ searchParams }: PageProps) {
   }
 
   // Détermine le questionnaire :
-  //   - structure → toujours B
+  //   - structure + ?questionnaire=D    → D (écosystèmes / acteurs institutionnels)
+  //   - structure sinon                 → B (activité économique)
   //   - beneficiaire + ?questionnaire=C → C (intermédiation vers l'emploi)
-  //   - beneficiaire sinon → A (insertion / formation)
-  let questionnaire: 'A' | 'B' | 'C';
+  //   - beneficiaire sinon              → A (formation / insertion)
+  let questionnaire: 'A' | 'B' | 'C' | 'D';
   if (cible_type === 'structure') {
-    questionnaire = 'B';
+    questionnaire = questionnaireParam === 'D' ? 'D' : 'B';
   } else if (questionnaireParam === 'C') {
     questionnaire = 'C';
   } else {

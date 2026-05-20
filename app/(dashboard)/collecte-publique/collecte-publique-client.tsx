@@ -197,7 +197,8 @@ export function CollectePubliqueClient({
           <h1 className="text-2xl font-bold tracking-tight">Collecte publique</h1>
           <p className="text-muted-foreground text-sm">
             Liens réutilisables pour l&apos;enregistrement sans compte — Type A (bénéficiaires),
-            Type B (structures) ou Type C (questionnaire intermédiation)
+            Type B (structures), Type C (questionnaire intermédiation) ou Type D (acteurs
+            institutionnels / écosystèmes)
           </p>
         </div>
         {peutCreer && (
@@ -374,6 +375,10 @@ export function CollectePubliqueClient({
                             <>
                               <User className="mr-1 size-3" /> Interméd.
                             </>
+                          ) : s.type === 'D' ? (
+                            <>
+                              <Building2 className="mr-1 size-3" /> Écosys.
+                            </>
                           ) : (
                             <>
                               <Building2 className="mr-1 size-3" /> Structure
@@ -446,7 +451,9 @@ export function CollectePubliqueClient({
                   ? 'bénéficiaire'
                   : soumissionDetail.type === 'C'
                     ? 'intermédiation'
-                    : 'structure'}
+                    : soumissionDetail.type === 'D'
+                      ? 'écosystèmes'
+                      : 'structure'}
               </DialogTitle>
               <DialogDescription className="sr-only">
                 Détail de la soumission et actions de validation
@@ -608,15 +615,14 @@ function LienCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <Badge
-              variant={lien.type === 'B' ? 'secondary' : 'default'}
-              className="shrink-0"
-            >
+            <Badge variant={lien.type === 'B' ? 'secondary' : 'default'} className="shrink-0">
               {lien.type === 'A'
                 ? 'Type A – Bénéf.'
                 : lien.type === 'C'
                   ? 'Type C – Intermédiation'
-                  : 'Type B – Structure'}
+                  : lien.type === 'D'
+                    ? 'Type D – Écosystèmes'
+                    : 'Type B – Structure'}
             </Badge>
             <div className="min-w-0">
               <CardTitle className="truncate text-sm">
@@ -1006,7 +1012,32 @@ function DonneesGrid({ donnees, type }: { donnees: Record<string, unknown>; type
     ['Consentement RGPD', 'consentement_recueilli'],
   ];
 
-  const champs = type === 'A' ? champsA : type === 'C' ? champsC : champsB;
+  // Type D — acteur institutionnel + questionnaire écosystèmes
+  const champsD: [string, string][] = [
+    ['Institution', 'nom_structure'],
+    ["Type d'acteur", 'type_structure_code'],
+    ['Référent (nom)', 'porteur_nom'],
+    ['Référent (prénom)', 'porteur_prenom'],
+    ['Pays', 'pays_code'],
+    ['Projet OIF', 'projet_code'],
+    ['Téléphone', 'telephone'],
+    ['Courriel', 'courriel'],
+    ['D1 – Appui cadre politique', 'd1_a_appuye'],
+    ['D1 – Type dispositif', 'd1_type_dispositif'],
+    ['D1 – Intitulé', 'd1_intitule_dispositif'],
+    ['D1 – Niveau adoption', 'd1_niveau_adoption'],
+    ['D2 – Acteurs formés', 'd2_a_ete_forme'],
+    ['D2 – Nombre formés', 'd2_nb_formes'],
+    ['D2 – Dont femmes', 'd2_nb_femmes_formees'],
+    ['D2 – Amélioration déclarée', 'd2_amelioration_declaree'],
+    ['D3 – Effets observés', 'd3_effets_observes'],
+    ["D3 – Niveau d'observation", 'd3_niveau_observation'],
+    ['D3 – Éléments de preuve', 'd3_elements_preuve'],
+    ['Observations', 'observations_libres'],
+    ['Consentement RGPD', 'consentement_recueilli'],
+  ];
+
+  const champs = type === 'A' ? champsA : type === 'C' ? champsC : type === 'D' ? champsD : champsB;
   const champsAvecValeur = champs.filter(([, clef]) => {
     const v = donnees[clef];
     return v !== null && v !== undefined && v !== '';
@@ -1106,6 +1137,12 @@ function DialogCreerLien({
                   <div className="flex items-center gap-2">
                     <User className="size-4 text-[#5D0073]" />
                     <span>Type C — Intermédiation vers l&apos;emploi (questionnaire C)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="D">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="size-4 text-[#0198E9]" />
+                    <span>Type D — Acteurs institutionnels / écosystèmes (questionnaire D)</span>
                   </div>
                 </SelectItem>
               </SelectContent>

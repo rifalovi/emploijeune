@@ -7,9 +7,11 @@ import {
   soumissionQuestionnaireASchema,
   soumissionQuestionnaireBSchema,
   soumissionQuestionnaireCSchema,
+  soumissionQuestionnaireDSchema,
   type SoumissionQuestionnaireAOutput,
   type SoumissionQuestionnaireBOutput,
   type SoumissionQuestionnaireCOutput,
+  type SoumissionQuestionnaireDOutput,
 } from '@/lib/schemas/enquetes/schemas';
 import { INDICATEURS_PAR_QUESTIONNAIRE } from '@/lib/schemas/enquetes/nomenclatures';
 import type { Json } from '@/lib/supabase/database.types';
@@ -40,14 +42,17 @@ export async function soumettreEnquete(
   payload:
     | SoumissionQuestionnaireAOutput
     | SoumissionQuestionnaireBOutput
-    | SoumissionQuestionnaireCOutput,
+    | SoumissionQuestionnaireCOutput
+    | SoumissionQuestionnaireDOutput,
 ): Promise<ResultatSoumissionEnquete> {
   const schema =
     payload.questionnaire === 'A'
       ? soumissionQuestionnaireASchema
       : payload.questionnaire === 'C'
         ? soumissionQuestionnaireCSchema
-        : soumissionQuestionnaireBSchema;
+        : payload.questionnaire === 'D'
+          ? soumissionQuestionnaireDSchema
+          : soumissionQuestionnaireBSchema;
   const parse = schema.safeParse(payload);
   if (!parse.success) {
     return {
@@ -98,9 +103,11 @@ export async function soumettreEnquete(
 
   const sessionId = randomUUID();
   const dateCollecte = data.date_collecte.toISOString().slice(0, 10);
-  // A et C ciblent les beneficiaires ; B cible les structures.
+  // A et C ciblent les beneficiaires ; B et D ciblent les structures.
   const cibleColumn =
     data.questionnaire === 'A' || data.questionnaire === 'C' ? 'beneficiaire_id' : 'structure_id';
+  // Note : pour D, la cible doit etre une structure existante (acteur institutionnel).
+  // La verification projet_code ci-dessus utilise donc la table structures.
 
   // Construit les N lignes -- 1 par indicateur du questionnaire.
   const indicateurs = INDICATEURS_PAR_QUESTIONNAIRE[data.questionnaire];
@@ -168,7 +175,7 @@ export async function soumettreEnquete(
           };
           break;
       }
-    } else {
+    } else if (data.questionnaire === 'B') {
       const dB = data as SoumissionQuestionnaireBOutput;
       switch (code) {
         case 'B2':
@@ -187,6 +194,25 @@ export async function soumettreEnquete(
           break;
         case 'C5':
           donnees = { ...dB.c5 };
+          break;
+      }
+    } else {
+      // Questionnaire D (acteurs institutionnels / ecosystemes)
+      const dD = data as SoumissionQuestionnaireDOutput;
+      switch (code) {
+        case 'D1':
+          donnees = { ...dD.d1 };
+          break;
+        case 'D2':
+          donnees = { ...dD.d2 };
+          break;
+        case 'D3':
+          donnees = {
+            ...dD.d3,
+            effets_impacts: dD.effets_impacts,
+            observations: dD.observations_libres,
+            temoignage: dD.temoignage,
+          };
           break;
       }
     }

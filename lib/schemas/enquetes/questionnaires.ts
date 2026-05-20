@@ -39,6 +39,14 @@ import {
   Q_C102_TYPE_INTERMEDIATION_LIBELLES,
   Q_C105_DELAI_PLACEMENT_VALUES,
   Q_C105_DELAI_PLACEMENT_LIBELLES,
+  Q_D101_TYPE_DISPOSITIF_VALUES,
+  Q_D101_TYPE_DISPOSITIF_LIBELLES,
+  Q_D102_NIVEAU_ADOPTION_VALUES,
+  Q_D102_NIVEAU_ADOPTION_LIBELLES,
+  Q_D201_TYPE_ACTEUR_VALUES,
+  Q_D201_TYPE_ACTEUR_LIBELLES,
+  Q_D301_NIVEAU_OBSERVATION_VALUES,
+  Q_D301_NIVEAU_OBSERVATION_LIBELLES,
 } from './nomenclatures';
 
 export type QuestionType =
@@ -81,7 +89,7 @@ export type Section = {
 };
 
 export type Questionnaire = {
-  code: 'A' | 'B' | 'C';
+  code: 'A' | 'B' | 'C' | 'D';
   titre: string;
   /** Indicateurs cibles (ordre = ordre d'affichage dans la fiche). */
   indicateurs: ReadonlyArray<string>;
@@ -490,30 +498,33 @@ export const QUESTIONNAIRE_B: Questionnaire = {
 
 export const QUESTIONNAIRE_C: Questionnaire = {
   code: 'C',
-  titre: 'Questionnaire C \u2013 B\u00e9n\u00e9ficiaires (interm\u00e9diation vers l\'emploi)',
+  titre: "Questionnaire C \u2013 B\u00e9n\u00e9ficiaires (interm\u00e9diation vers l'emploi)",
   indicateurs: ['C1', 'C2', 'C4', 'C5'],
   introduction:
-    'Enqu\u00eate de suivi adress\u00e9e aux jeunes ayant b\u00e9n\u00e9fici\u00e9 d\'un service d\'interm\u00e9diation vers l\'emploi via un projet OIF. Donn\u00e9es strictement confidentielles, trait\u00e9es de mani\u00e8re anonyme conform\u00e9ment au secret statistique.',
+    "Enqu\u00eate de suivi adress\u00e9e aux jeunes ayant b\u00e9n\u00e9fici\u00e9 d'un service d'interm\u00e9diation vers l'emploi via un projet OIF. Donn\u00e9es strictement confidentielles, trait\u00e9es de mani\u00e8re anonyme conform\u00e9ment au secret statistique.",
   sections: [
     {
       id: 'C_INTERMEDIATION',
-      titre: 'Acc\u00e8s au service d\'interm\u00e9diation',
+      titre: "Acc\u00e8s au service d'interm\u00e9diation",
       description: 'Indicateurs C1 (volume b\u00e9n\u00e9ficiaires) et C2 (taux de placement).',
       questions: [
         {
           id: 'C101',
           type: 'oui_non',
           libelle:
-            'Avez-vous b\u00e9n\u00e9fici\u00e9 d\'un service d\'interm\u00e9diation vers l\'emploi dans le cadre du projet ?',
+            "Avez-vous b\u00e9n\u00e9fici\u00e9 d'un service d'interm\u00e9diation vers l'emploi dans le cadre du projet ?",
           champ_payload: 'c1.a_beneficie',
           obligatoire: true,
         },
         {
           id: 'C102',
           type: 'choix_unique',
-          libelle: 'Quel type de service d\'interm\u00e9diation avez-vous re\u00e7u ?',
+          libelle: "Quel type de service d'interm\u00e9diation avez-vous re\u00e7u ?",
           champ_payload: 'c1.type_intermediation',
-          options: toOptions(Q_C102_TYPE_INTERMEDIATION_VALUES, Q_C102_TYPE_INTERMEDIATION_LIBELLES),
+          options: toOptions(
+            Q_C102_TYPE_INTERMEDIATION_VALUES,
+            Q_C102_TYPE_INTERMEDIATION_LIBELLES,
+          ),
           affiche_si: { champ_payload: 'c1.a_beneficie', valeur_egale: true },
         },
         {
@@ -527,7 +538,7 @@ export const QUESTIONNAIRE_C: Questionnaire = {
           id: 'C104',
           type: 'oui_non',
           libelle:
-            'Avez-vous \u00e9t\u00e9 plac\u00e9(e) en emploi \u00e0 la suite de ce service d\'interm\u00e9diation ?',
+            "Avez-vous \u00e9t\u00e9 plac\u00e9(e) en emploi \u00e0 la suite de ce service d'interm\u00e9diation ?",
           champ_payload: 'c2.a_ete_place',
           obligatoire: true,
           affiche_si: { champ_payload: 'c1.a_beneficie', valeur_egale: true },
@@ -542,7 +553,7 @@ export const QUESTIONNAIRE_C: Questionnaire = {
         {
           id: 'C106',
           type: 'choix_unique',
-          libelle: 'Quelle est la nature de l\'emploi obtenu apr\u00e8s l\'interm\u00e9diation ?',
+          libelle: "Quelle est la nature de l'emploi obtenu apr\u00e8s l'interm\u00e9diation ?",
           champ_payload: 'c2.nature_emploi',
           options: toOptions(Q_A405_NATURE_ACTIVITE_VALUES, Q_A405_NATURE_ACTIVITE_LIBELLES),
           affiche_si: { champ_payload: 'c2.a_ete_place', valeur_egale: true },
@@ -551,14 +562,14 @@ export const QUESTIONNAIRE_C: Questionnaire = {
     },
     {
       id: 'C_DELAI_SATISFACTION',
-      titre: 'D\u00e9lai d\'acc\u00e8s et satisfaction',
+      titre: "D\u00e9lai d'acc\u00e8s et satisfaction",
       description: 'Indicateurs C4 (d\u00e9lai moyen) et C5 (satisfaction).',
       questions: [
         {
           id: 'C201',
           type: 'choix_unique',
           libelle:
-            'Quel est le d\u00e9lai estim\u00e9 entre le d\u00e9but de l\'accompagnement et votre placement en emploi ?',
+            "Quel est le d\u00e9lai estim\u00e9 entre le d\u00e9but de l'accompagnement et votre placement en emploi ?",
           champ_payload: 'c4.delai_placement',
           options: toOptions(Q_C105_DELAI_PLACEMENT_VALUES, Q_C105_DELAI_PLACEMENT_LIBELLES),
           affiche_si: { champ_payload: 'c2.a_ete_place', valeur_egale: true },
@@ -567,7 +578,7 @@ export const QUESTIONNAIRE_C: Questionnaire = {
         {
           id: 'C202',
           type: 'echelle',
-          libelle: '\u00cates-vous satisfait(e) du service d\'interm\u00e9diation re\u00e7u ?',
+          libelle: "\u00cates-vous satisfait(e) du service d'interm\u00e9diation re\u00e7u ?",
           champ_payload: 'c5.satisfaction',
           options: toOptions(ECHELLE_SATISFACTION_VALUES, ECHELLE_SATISFACTION_LIBELLES),
           obligatoire: true,
@@ -582,7 +593,8 @@ export const QUESTIONNAIRE_C: Questionnaire = {
         {
           id: 'C301',
           type: 'texte_long',
-          libelle: 'Quels sont les principaux effets et impacts constat\u00e9s \u00e0 la suite de l\'appui ?',
+          libelle:
+            "Quels sont les principaux effets et impacts constat\u00e9s \u00e0 la suite de l'appui ?",
           champ_payload: 'effets_impacts',
         },
         {
@@ -602,9 +614,146 @@ export const QUESTIONNAIRE_C: Questionnaire = {
   ],
 };
 
+// =============================================================================
+// QUESTIONNAIRE D -- acteurs institutionnels (ecosystemes, 14 questions, 3 sections)
+// =============================================================================
+
+export const QUESTIONNAIRE_D: Questionnaire = {
+  code: 'D',
+  titre: 'Questionnaire D – Acteurs institutionnels (écosystèmes)',
+  indicateurs: ['D1', 'D2', 'D3'],
+  introduction:
+    "Enquête de suivi adressée aux institutions et acteurs publics ayant bénéficié d'un appui OIF pour renforcer l'environnement de l'emploi des jeunes. Données strictement confidentielles, traitées conformément au secret statistique.",
+  sections: [
+    {
+      id: 'D_POLITIQUE',
+      titre: 'Appui aux cadres politiques',
+      description: 'Indicateur D1 – dispositifs politiques emploi-jeunes appuyés.',
+      questions: [
+        {
+          id: 'D101',
+          type: 'oui_non',
+          libelle:
+            "Votre institution a-t-elle bénéficié d'un appui OIF pour l'élaboration ou la mise en œuvre d'un cadre politique emploi-jeunes ?",
+          champ_payload: 'd1.a_appuye',
+          obligatoire: true,
+        },
+        {
+          id: 'D102',
+          type: 'choix_unique',
+          libelle: 'Quel type de dispositif politique a été appuyé ?',
+          champ_payload: 'd1.type_dispositif',
+          options: toOptions(Q_D101_TYPE_DISPOSITIF_VALUES, Q_D101_TYPE_DISPOSITIF_LIBELLES),
+          affiche_si: { champ_payload: 'd1.a_appuye', valeur_egale: true },
+        },
+        {
+          id: 'D103',
+          type: 'texte_court',
+          libelle: 'Si autre, précisez le type de dispositif',
+          champ_payload: 'd1.type_dispositif_autre',
+          affiche_si: { champ_payload: 'd1.type_dispositif', valeur_egale: 'AUTRE' },
+        },
+        {
+          id: 'D104',
+          type: 'texte_court',
+          libelle: 'Intitulé du document ou dispositif appuyé',
+          champ_payload: 'd1.intitule_dispositif',
+          affiche_si: { champ_payload: 'd1.a_appuye', valeur_egale: true },
+        },
+        {
+          id: 'D105',
+          type: 'choix_unique',
+          libelle: "Niveau d'adoption actuel du dispositif",
+          champ_payload: 'd1.niveau_adoption',
+          options: toOptions(Q_D102_NIVEAU_ADOPTION_VALUES, Q_D102_NIVEAU_ADOPTION_LIBELLES),
+          affiche_si: { champ_payload: 'd1.a_appuye', valeur_egale: true },
+        },
+      ],
+    },
+    {
+      id: 'D_CAPACITES',
+      titre: 'Renforcement des capacités institutionnelles',
+      description: 'Indicateur D2 – acteurs formés et pratiques améliorées.',
+      questions: [
+        {
+          id: 'D201',
+          type: 'oui_non',
+          libelle:
+            'Des membres de votre institution ont-ils été formés dans le cadre du projet OIF ?',
+          champ_payload: 'd2.a_ete_forme',
+          obligatoire: true,
+        },
+        {
+          id: 'D202',
+          type: 'choix_unique',
+          libelle: "Type d'acteur institutionnel concerné",
+          champ_payload: 'd2.type_acteur',
+          options: toOptions(Q_D201_TYPE_ACTEUR_VALUES, Q_D201_TYPE_ACTEUR_LIBELLES),
+          affiche_si: { champ_payload: 'd2.a_ete_forme', valeur_egale: true },
+        },
+        {
+          id: 'D203',
+          type: 'nombre_entier',
+          libelle: "Nombre total d'acteurs formés",
+          champ_payload: 'd2.nb_formes',
+          affiche_si: { champ_payload: 'd2.a_ete_forme', valeur_egale: true },
+        },
+        {
+          id: 'D204',
+          type: 'nombre_entier',
+          libelle: 'Dont : nombre de femmes formées',
+          champ_payload: 'd2.nb_femmes_formees',
+          affiche_si: { champ_payload: 'd2.a_ete_forme', valeur_egale: true },
+        },
+        {
+          id: 'D205',
+          type: 'oui_non',
+          libelle: 'Ces acteurs déclarent-ils une amélioration de leurs pratiques ?',
+          champ_payload: 'd2.amelioration_declaree',
+          affiche_si: { champ_payload: 'd2.a_ete_forme', valeur_egale: true },
+        },
+      ],
+    },
+    {
+      id: 'D_EFFETS',
+      titre: "Effets observables sur l'environnement de l'emploi",
+      description: 'Indicateur D3 – analyse qualitative des changements observés.',
+      questions: [
+        {
+          id: 'D301',
+          type: 'texte_long',
+          libelle: "Quels changements observables liés à l'appui OIF pouvez-vous décrire ?",
+          champ_payload: 'd3.effets_observes',
+          aide: "Indicateur D3 – changements concrets et vérifiables dans l'environnement de l'emploi.",
+        },
+        {
+          id: 'D302',
+          type: 'choix_unique',
+          libelle: 'À quel niveau ces effets sont-ils observés ?',
+          champ_payload: 'd3.niveau_observation',
+          options: toOptions(Q_D301_NIVEAU_OBSERVATION_VALUES, Q_D301_NIVEAU_OBSERVATION_LIBELLES),
+        },
+        {
+          id: 'D303',
+          type: 'texte_long',
+          libelle: 'Éléments de preuve ou de contexte',
+          champ_payload: 'd3.elements_preuve',
+        },
+        {
+          id: 'D304',
+          type: 'texte_long',
+          libelle: 'Observations ou suggestions',
+          champ_payload: 'observations_libres',
+        },
+      ],
+    },
+  ],
+};
+
 /** Acces indexe par code pour rendu dynamique. */
-export const QUESTIONNAIRES: Record<'A' | 'B' | 'C', Questionnaire> = {
+export const QUESTIONNAIRES: Record<'A' | 'B' | 'C' | 'D', Questionnaire> = {
   A: QUESTIONNAIRE_A,
   B: QUESTIONNAIRE_B,
   C: QUESTIONNAIRE_C,
+  D: QUESTIONNAIRE_D,
 };

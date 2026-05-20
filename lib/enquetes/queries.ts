@@ -8,7 +8,7 @@ import type { EnqueteFilters } from '@/lib/schemas/enquetes/schemas';
  */
 export type SessionEnqueteDetail = {
   session_id: string;
-  questionnaire: 'A' | 'B' | 'C' | null;
+  questionnaire: 'A' | 'B' | 'C' | 'D' | null;
   beneficiaire_id: string | null;
   structure_id: string | null;
   cible_libelle: string | null;
@@ -74,8 +74,8 @@ export async function getSessionEnqueteById(
   // Utilise questionnaire_code si disponible (lignes depuis V2 migration C),
   // sinon fallback sur l'inference historique beneficiaire=A / structure=B.
   const qCode = (premiereLigne as Record<string, unknown>).questionnaire_code as string | null;
-  const questionnaire: 'A' | 'B' | 'C' | null = qCode
-    ? (qCode as 'A' | 'B' | 'C')
+  const questionnaire: 'A' | 'B' | 'C' | 'D' | null = qCode
+    ? (qCode as 'A' | 'B' | 'C' | 'D')
     : premiereLigne.beneficiaire_id
       ? 'A'
       : premiereLigne.structure_id
@@ -111,7 +111,7 @@ export type SessionEnqueteListItem = {
   beneficiaire_id: string | null;
   structure_id: string | null;
   cible_libelle: string | null;
-  questionnaire: 'A' | 'B' | 'C' | null;
+  questionnaire: 'A' | 'B' | 'C' | 'D' | null;
   projet_code: string | null;
   programme_strategique: string | null;
   vague_enquete: string;

@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Pencil, MoreVertical, Trash2, ClipboardList } from 'lucide-react';
+import { Pencil, MoreVertical, Trash2, ClipboardList, ChevronDown } from 'lucide-react';
 
 import { buttonVariants } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { DialogueSuppressionStructure } from './dialogue-suppression-structure';
@@ -61,13 +62,40 @@ export function StructureDetailActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Link
-        href={`/enquetes/nouvelle?cible_type=structure&cible_id=${structureId}`}
-        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-2')}
-      >
-        <ClipboardList aria-hidden className="size-4" />
-        Lancer une enquête
-      </Link>
+      {/* Dropdown : choisir entre Questionnaire B (activité éco) et D (écosystèmes).
+          NB : @base-ui Menu ne supporte pas `asChild` — on utilise onClick + router.push. */}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-2')}
+        >
+          <ClipboardList aria-hidden className="size-4" />
+          Lancer une enquête
+          <ChevronDown aria-hidden className="size-3 opacity-60" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuItem
+            onClick={() =>
+              router.push(`/enquetes/nouvelle?cible_type=structure&cible_id=${structureId}`)
+            }
+            className="flex flex-col items-start gap-0.5"
+          >
+            <span className="font-medium">Questionnaire B – Activité économique</span>
+            <span className="text-muted-foreground text-xs">Indicateurs B2, B3, B4</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() =>
+              router.push(
+                `/enquetes/nouvelle?cible_type=structure&cible_id=${structureId}&questionnaire=D`,
+              )
+            }
+            className="flex flex-col items-start gap-0.5"
+          >
+            <span className="font-medium">Questionnaire D – Écosystèmes</span>
+            <span className="text-muted-foreground text-xs">Indicateurs D1, D2, D3</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       {peutEditer && (
         <Link
           href={`/structures/${structureId}/modifier`}

@@ -91,6 +91,7 @@ export function EnqueteFilters({ projets }: EnqueteFiltersProps) {
             { code: 'A', libelle: 'A – Bénéficiaires' },
             { code: 'B', libelle: 'B – Structures' },
             { code: 'C', libelle: 'C – Bénéficiaires (intermédiation)' },
+            { code: 'D', libelle: 'D – Acteurs institutionnels (écosystèmes)' },
           ]}
           onChange={(v) => setParams({ questionnaire: v })}
         />

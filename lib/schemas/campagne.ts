@@ -77,7 +77,7 @@ export const creerCampagneSchema = z
       .max(2000, 'La description est trop longue (max 2000 caractères)')
       .optional()
       .transform((v) => (v && v.trim() !== '' ? v.trim() : undefined)),
-    questionnaire: z.enum(['A', 'B', 'C']),
+    questionnaire: z.enum(['A', 'B', 'C', 'D']),
     type_vague: z.enum([...VAGUES_ENQUETE_VALUES] as [string, ...string[]]).default('ponctuelle'),
     mode_selection: z.enum([...MODES_SELECTION] as [string, ...string[]]),
     filtres: z.record(z.string(), z.unknown()).default({}),
@@ -149,14 +149,19 @@ export type LancerCampagneResult =
  * Génère un libellé descriptif de la strate à partir des filtres.
  * Ex: « Bénéficiaires PROJ_A14 + Mali + 2024 + Formés »
  */
-export function resumerStrate(questionnaire: 'A' | 'B' | 'C', filtres: Record<string, unknown>): string {
+export function resumerStrate(
+  questionnaire: 'A' | 'B' | 'C' | 'D',
+  filtres: Record<string, unknown>,
+): string {
   const morceaux: string[] = [];
   morceaux.push(
     questionnaire === 'A'
       ? 'Bénéficiaires'
       : questionnaire === 'C'
         ? 'Bénéficiaires (intermédiation)'
-        : 'Structures',
+        : questionnaire === 'D'
+          ? 'Acteurs institutionnels (écosystèmes)'
+          : 'Structures',
   );
 
   const projets = (filtres.projets as string[] | undefined) ?? [];
@@ -165,8 +170,9 @@ export function resumerStrate(questionnaire: 'A' | 'B' | 'C', filtres: Record<st
   const pays = (filtres.pays as string[] | undefined) ?? [];
   if (pays.length > 0) morceaux.push(pays.join(', '));
 
-  const annees =
-    (filtres[questionnaire === 'B' ? 'annees_appui' : 'annees'] as number[] | undefined) ?? [];
+  // A/C utilisent `annees` (annee_formation), B/D utilisent `annees_appui` (annee_appui).
+  const cleAnnees = questionnaire === 'B' || questionnaire === 'D' ? 'annees_appui' : 'annees';
+  const annees = (filtres[cleAnnees] as number[] | undefined) ?? [];
   if (annees.length > 0) morceaux.push(annees.join(', '));
 
   if (questionnaire === 'A' || questionnaire === 'C') {
@@ -176,6 +182,7 @@ export function resumerStrate(questionnaire: 'A' | 'B' | 'C', filtres: Record<st
     const statuts = (filtres.statuts as string[] | undefined) ?? [];
     if (statuts.length > 0) morceaux.push(statuts.join(', '));
   } else {
+    // B et D : structures (pas de sexe / tranche d'age)
     const types = (filtres.types_structure as string[] | undefined) ?? [];
     if (types.length > 0) morceaux.push(types.join(', '));
 
