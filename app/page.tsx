@@ -275,7 +275,7 @@ function KpiCompteurs({
           </p>
         </div>
         {afficherIndicateurs ? (
-          <div className={cn('mt-12 grid grid-cols-2 gap-6', gridCols)}>
+          <div className={cn('mt-12 grid grid-cols-2 gap-4', gridCols)}>
             {indicateurs.map((ind, i) => (
               <CompteurCarte
                 key={ind.code}
@@ -334,18 +334,22 @@ function CompteurCarte({
   couleur: string;
 }) {
   return (
-    <Card className="group transition-all hover:-translate-y-1 hover:shadow-lg">
-      <CardContent className="p-6 text-center">
+    <Card className="group overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
+      <div className="h-1 w-full" style={{ backgroundColor: couleur }} />
+      <CardContent className="p-5 text-center">
         <div
-          className="mx-auto mb-3 flex size-14 items-center justify-center rounded-full transition-transform group-hover:scale-110"
+          className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full transition-transform group-hover:scale-110"
           style={{ backgroundColor: `${couleur}1a`, color: couleur }}
         >
-          <Icone aria-hidden className="size-7" />
+          <Icone aria-hidden className="size-6" />
         </div>
-        <div className="text-3xl font-bold tabular-nums md:text-4xl" style={{ color: couleur }}>
+        <div
+          className="text-xl leading-tight font-bold break-words tabular-nums sm:text-2xl md:text-3xl"
+          style={{ color: couleur }}
+        >
           {valeur}
         </div>
-        <p className="text-muted-foreground mt-2 text-sm">{libelle}</p>
+        <p className="text-muted-foreground mt-2 text-xs leading-snug font-medium">{libelle}</p>
       </CardContent>
     </Card>
   );
@@ -485,17 +489,33 @@ function Methodologie() {
             rendement.
           </p>
         </div>
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {principes.map((p) => (
-            <Card key={p.titre} className="border-l-4" style={{ borderLeftColor: COULEUR_ACCENT }}>
+        <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {principes.map((p, i) => (
+            <Card
+              key={p.titre}
+              className="group overflow-hidden border-0 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
+              style={{ background: `linear-gradient(145deg, ${COULEUR_ACCENT}07 0%, white 55%)` }}
+            >
               <CardContent className="p-6">
-                <div
-                  className="mb-3 flex size-12 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: `${COULEUR_ACCENT}1a`, color: COULEUR_ACCENT }}
-                >
-                  <p.icone aria-hidden className="size-6" />
+                <div className="mb-4 flex items-center gap-3">
+                  {/* Numéro d'étape */}
+                  <span
+                    className="flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm"
+                    style={{
+                      background: `linear-gradient(135deg, ${COULEUR_ACCENT} 0%, ${COULEUR_ACCENT}bb 100%)`,
+                    }}
+                  >
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  {/* Icône */}
+                  <div
+                    className="flex size-9 items-center justify-center rounded-lg transition-transform group-hover:scale-110"
+                    style={{ backgroundColor: `${COULEUR_ACCENT}15`, color: COULEUR_ACCENT }}
+                  >
+                    <p.icone aria-hidden className="size-5" />
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">{p.titre}</h3>
+                <h3 className="text-base font-semibold text-gray-900">{p.titre}</h3>
                 <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
                   {p.description}
                 </p>
@@ -511,50 +531,52 @@ function Methodologie() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Cadre Commun — Architecture (4 catégories + marqueur transversal F1)
 // Source : Cadre de mesure du rendement emploi V2, section 5.
+// Diagramme en éventail SVG — reproduit l'illustration du document CMR.
+//
+// Coordonnées SVG (viewBox 0 0 480 280) :
+//   Centre : (240, 265) | R externe : 225 | R interne : 78
+//   Secteur A 180→135° | B 135→90° | C 90→45° | D 45→0°
 // ─────────────────────────────────────────────────────────────────────────────
 function CadreCommun() {
-  const piliers = [
+  const CATEGORIE_CMR = [
     {
       code: 'A',
+      couleur: '#0098A0',
+      fillSvg: '#A8D8D5',
       titre: 'Formation, compétences et insertion',
       description:
         "Indicateurs relatifs au nombre de personnes formées, à l'achèvement des formations, à la certification, au gain de compétences et à l'insertion professionnelle à moyen terme.",
       icone: GraduationCap,
-      transversal: false,
     },
     {
       code: 'B',
+      couleur: '#5BAD4E',
+      fillSvg: '#B8E0B0',
       titre: 'Activités économiques, entrepreneuriat et emploi',
       description:
         'Indicateurs relatifs aux activités économiques appuyées, à la survie des structures soutenues, aux emplois créés ou maintenus et aux emplois indirects estimés.',
       icone: Building2,
-      transversal: false,
     },
     {
       code: 'C',
+      couleur: '#B8A000',
+      fillSvg: '#E8D87A',
       titre: 'Intermédiation et accès aux opportunités',
       description:
         "Indicateurs relatifs aux mises en relation effectives, à leur conversion en opportunités, aux emplois obtenus, au délai d'accès à l'opportunité et à l'utilité perçue de l'appui.",
       icone: Network,
-      transversal: false,
     },
     {
       code: 'D',
+      couleur: '#D96030',
+      fillSvg: '#F5C4A0',
       titre: "Écosystèmes et conditions de l'emploi",
       description:
-        "Indicateurs relatifs aux projets visant à améliorer ou renforcer l'environnement et les dispositifs de l'emploi, en créant des conditions favorables — au-delà du seul niveau des bénéficiaires directs.",
+        "Indicateurs relatifs aux projets visant à améliorer ou renforcer l'environnement et les dispositifs de l'emploi, en créant des conditions favorables au-delà du seul niveau des bénéficiaires directs.",
       icone: Globe2,
-      transversal: false,
-    },
-    {
-      code: 'F1',
-      titre: 'Marqueur transversal — Langue française et employabilité',
-      description:
-        "Apprécie, lorsque cela est pertinent, la manière dont la maîtrise ou l'usage du français contribue à l'accès à l'emploi, à l'exercice d'une activité ou à la valorisation professionnelle. Angle d'analyse intégrable à tous les projets.",
-      icone: BookOpen,
-      transversal: true,
     },
   ];
+
   return (
     <section className="bg-gradient-to-b from-white via-amber-50/40 to-white py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
@@ -567,40 +589,149 @@ function CadreCommun() {
             projets emploi jeunes OIF.
           </p>
         </div>
-        <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {piliers.map((p) => (
+
+        {/* ── Diagramme en éventail ── */}
+        <div className="mx-auto mt-10 max-w-xl">
+          {/* Labels au-dessus du diagramme */}
+          <div className="mb-1 grid grid-cols-2 gap-x-4 px-4 text-center text-[11px] font-semibold">
+            <span style={{ color: '#5BAD4E' }}>Activités Économiques</span>
+            <span style={{ color: '#B8A000' }}>Intermédiation</span>
+          </div>
+
+          {/* SVG fan */}
+          <svg
+            viewBox="0 0 480 280"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-full drop-shadow-sm"
+            aria-hidden
+          >
+            {/* Secteur A — Formation (teal) : 180° → 135° */}
+            <path
+              d="M15,265 A225,225 0 0,0 80.9,105.9 L184.8,209.8 A78,78 0 0,1 162,265 Z"
+              fill="#A8D8D5"
+              stroke="white"
+              strokeWidth="4"
+            />
+            {/* Secteur B — Activités économiques (vert) : 135° → 90° */}
+            <path
+              d="M80.9,105.9 A225,225 0 0,0 240,40 L240,187 A78,78 0 0,1 184.8,209.8 Z"
+              fill="#B8E0B0"
+              stroke="white"
+              strokeWidth="4"
+            />
+            {/* Secteur C — Intermédiation (jaune-vert) : 90° → 45° */}
+            <path
+              d="M240,40 A225,225 0 0,0 399.1,105.9 L295.2,209.8 A78,78 0 0,1 240,187 Z"
+              fill="#E8D87A"
+              stroke="white"
+              strokeWidth="4"
+            />
+            {/* Secteur D — Écosystèmes (orange) : 45° → 0° */}
+            <path
+              d="M399.1,105.9 A225,225 0 0,0 465,265 L318,265 A78,78 0 0,1 295.2,209.8 Z"
+              fill="#F5C4A0"
+              stroke="white"
+              strokeWidth="4"
+            />
+
+            {/* Cercle central blanc */}
+            <circle cx="240" cy="265" r="74" fill="white" />
+
+            {/* Pastilles catégories — positions au centre de chaque secteur (r=152) */}
+            {/* A (157.5°): x=99.6, y=206.8 */}
+            <circle cx="100" cy="207" r="26" fill="#0098A0" />
+            <text x="100" y="212" textAnchor="middle" fontSize="15" fontWeight="bold" fill="white">
+              A
+            </text>
+            {/* B (112.5°): x=181.8, y=124.6 */}
+            <circle cx="182" cy="125" r="26" fill="#5BAD4E" />
+            <text x="182" y="130" textAnchor="middle" fontSize="15" fontWeight="bold" fill="white">
+              B
+            </text>
+            {/* C (67.5°): x=298.2, y=124.6 */}
+            <circle cx="298" cy="125" r="26" fill="#B8A000" />
+            <text x="298" y="130" textAnchor="middle" fontSize="15" fontWeight="bold" fill="white">
+              C
+            </text>
+            {/* D (22.5°): x=380.4, y=206.8 */}
+            <circle cx="380" cy="207" r="26" fill="#D96030" />
+            <text x="380" y="212" textAnchor="middle" fontSize="15" fontWeight="bold" fill="white">
+              D
+            </text>
+
+            {/* Texte central */}
+            <text
+              x="240"
+              y="257"
+              textAnchor="middle"
+              fontSize="8"
+              fill="#64748b"
+              letterSpacing="0.1em"
+              fontWeight="600"
+            >
+              CADRE COMMUN
+            </text>
+            <text
+              x="240"
+              y="270"
+              textAnchor="middle"
+              fontSize="8"
+              fill="#94a3b8"
+              letterSpacing="0.08em"
+            >
+              DE MESURE
+            </text>
+          </svg>
+
+          {/* Labels bas du diagramme */}
+          <div className="mt-1 grid grid-cols-2 gap-x-4 px-4 text-center text-[11px] font-semibold">
+            <span style={{ color: '#0098A0' }}>Formation et Compétences</span>
+            <span style={{ color: '#D96030' }}>Écosystèmes d&apos;Emploi</span>
+          </div>
+
+          {/* Marqueur transversal F1 */}
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-center shadow-sm">
+            <p className="text-[10px] font-bold tracking-widest text-amber-600 uppercase">
+              Marqueur transversal · F1
+            </p>
+            <p className="mt-0.5 text-sm font-semibold text-amber-900">
+              Langue française et employabilité
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Améliorer l&apos;employabilité grâce à la maîtrise du français — angle d&apos;analyse
+              intégrable à tous les projets.
+            </p>
+          </div>
+        </div>
+
+        {/* ── Grille des 4 catégories ── */}
+        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {CATEGORIE_CMR.map((cat) => (
             <Card
-              key={p.code}
-              className={cn(
-                'transition-all hover:shadow-md',
-                p.transversal && 'border-2 lg:col-span-3',
-              )}
-              style={p.transversal ? { borderColor: `${COULEUR_ACCENT}66` } : undefined}
+              key={cat.code}
+              className="group overflow-hidden border-t-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
+              style={{ borderTopColor: cat.couleur }}
             >
               <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  <div
-                    className="flex size-12 shrink-0 items-center justify-center rounded-lg"
-                    style={{
-                      backgroundColor: p.transversal ? `${COULEUR_ACCENT}1a` : '#0198E91a',
-                      color: p.transversal ? COULEUR_ACCENT : '#0198E9',
-                    }}
+                <div className="mb-3 flex items-center gap-2">
+                  <span
+                    className="flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
+                    style={{ backgroundColor: cat.couleur }}
                   >
-                    <p.icone aria-hidden className="size-6" />
-                  </div>
-                  <div>
-                    <div
-                      className="font-mono text-xs font-bold"
-                      style={{ color: p.transversal ? COULEUR_ACCENT : '#0198E9' }}
-                    >
-                      Catégorie {p.code}
-                    </div>
-                    <h3 className="mt-1 text-lg font-semibold text-gray-900">{p.titre}</h3>
-                    <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-                      {p.description}
-                    </p>
+                    {cat.code}
+                  </span>
+                  <div
+                    className="flex size-7 items-center justify-center rounded-lg transition-transform group-hover:scale-110"
+                    style={{ backgroundColor: `${cat.couleur}18`, color: cat.couleur }}
+                  >
+                    <cat.icone aria-hidden className="size-3.5" />
                   </div>
                 </div>
+                <h3 className="text-sm font-semibold text-gray-900">{cat.titre}</h3>
+                <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+                  {cat.description}
+                </p>
               </CardContent>
             </Card>
           ))}
@@ -848,6 +979,11 @@ function FooterPublic() {
               <li>
                 <Link href="/contact" className="hover:text-foreground">
                   Nous contacter
+                </Link>
+              </li>
+              <li>
+                <Link href="/documents" className="hover:text-foreground">
+                  Documents publics
                 </Link>
               </li>
             </ul>
