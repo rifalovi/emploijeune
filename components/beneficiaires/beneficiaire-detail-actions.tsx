@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Pencil, MoreVertical, Trash2, ClipboardList } from 'lucide-react';
+import { Pencil, MoreVertical, Trash2, ClipboardList, ChevronDown } from 'lucide-react';
 
 import { buttonVariants } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { DialogueSuppression } from './dialogue-suppression';
@@ -64,13 +65,42 @@ export function BeneficiaireDetailActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Link
-        href={`/enquetes/nouvelle?cible_type=beneficiaire&cible_id=${beneficiaireId}`}
-        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-2')}
-      >
-        <ClipboardList aria-hidden className="size-4" />
-        Lancer une enquête
-      </Link>
+      {/* Dropdown : choisir entre Questionnaire A (suivi) et C (intermédiation).
+          NB : @base-ui Menu ne supporte pas `asChild` — on utilise onClick + router.push. */}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-2')}
+        >
+          <ClipboardList aria-hidden className="size-4" />
+          Lancer une enquête
+          <ChevronDown aria-hidden className="size-3 opacity-60" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuItem
+            onClick={() =>
+              router.push(
+                `/enquetes/nouvelle?cible_type=beneficiaire&cible_id=${beneficiaireId}`,
+              )
+            }
+            className="flex flex-col items-start gap-0.5"
+          >
+            <span className="font-medium">Questionnaire A – Suivi bénéficiaire</span>
+            <span className="text-muted-foreground text-xs">Indicateurs A1 à A5</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() =>
+              router.push(
+                `/enquetes/nouvelle?cible_type=beneficiaire&cible_id=${beneficiaireId}&questionnaire=C`,
+              )
+            }
+            className="flex flex-col items-start gap-0.5"
+          >
+            <span className="font-medium">Questionnaire C – Intermédiation</span>
+            <span className="text-muted-foreground text-xs">Indicateurs C1, C2, C4, C5</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       {peutEditer && (
         <Link
           href={`/beneficiaires/${beneficiaireId}/modifier`}

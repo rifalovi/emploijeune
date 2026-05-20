@@ -23,7 +23,9 @@ export default async function CollectePubliquePage({ params }: PageProps) {
     validation.status === 'valide'
       ? validation.lien.type === 'A'
         ? 'Inscription bénéficiaire'
-        : 'Enregistrement structure partenaire'
+        : validation.lien.type === 'C'
+          ? "Questionnaire – Intermédiation vers l'emploi"
+          : 'Enregistrement structure partenaire'
       : "Formulaire d'enregistrement";
 
   return (

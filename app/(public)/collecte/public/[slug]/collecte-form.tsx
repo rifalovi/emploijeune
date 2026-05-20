@@ -34,6 +34,12 @@ import {
   SECTEURS_ACTIVITE_CODES,
   NATURES_APPUI_CODES,
 } from '@/lib/schemas/nomenclatures';
+import {
+  Q_C102_TYPE_INTERMEDIATION_VALUES,
+  Q_C102_TYPE_INTERMEDIATION_LIBELLES,
+  Q_C105_DELAI_PLACEMENT_VALUES,
+  Q_C105_DELAI_PLACEMENT_LIBELLES,
+} from '@/lib/schemas/enquetes/nomenclatures';
 
 // =============================================================================
 // États et gouvernements membres de l'OIF — liste complète (~90 entrées, 2025)
@@ -265,6 +271,19 @@ export function CollecteForm({ lien }: { lien: InfoLienPublic }) {
   if (lien.type === 'A') {
     return (
       <FormulaireBeneficiaire
+        key={formKey}
+        lien={lien}
+        isPending={isPending}
+        erreur={erreurMessage}
+        onSubmit={handleSubmit}
+        onSubmitEtNouveau={handleSubmitEtNouveau}
+        confirmationNouveau={confirmationNouveau}
+      />
+    );
+  }
+  if (lien.type === 'C') {
+    return (
+      <FormulaireIntermediationC
         key={formKey}
         lien={lien}
         isPending={isPending}
@@ -1121,7 +1140,7 @@ function FormulaireStructure({
 // Écran de succès
 // =============================================================================
 
-function SuccesMessage({ type, onNouveau }: { type: 'A' | 'B'; onNouveau: () => void }) {
+function SuccesMessage({ type, onNouveau }: { type: 'A' | 'B' | 'C'; onNouveau: () => void }) {
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
@@ -1133,14 +1152,523 @@ function SuccesMessage({ type, onNouveau }: { type: 'A' | 'B'; onNouveau: () => 
           <p className="text-muted-foreground text-sm">
             {type === 'A'
               ? "Votre inscription a bien été soumise. Elle sera examinée par un coordinateur OIF avant d'être intégrée dans la plateforme."
-              : 'Les informations sur votre structure ont bien été transmises. Un coordinateur OIF les examinera avant de les intégrer dans la plateforme.'}
+              : type === 'C'
+                ? "Vos réponses ont bien été transmises. Un coordinateur OIF les examinera avant de les intégrer dans la plateforme."
+                : 'Les informations sur votre structure ont bien été transmises. Un coordinateur OIF les examinera avant de les intégrer dans la plateforme.'}
           </p>
         </div>
         <Button type="button" variant="outline" onClick={onNouveau} className="mt-2">
           <PlusCircle className="mr-2 size-4" aria-hidden />
-          {type === 'A' ? 'Saisir un nouvel enregistrement' : 'Enregistrer une autre structure'}
+          {type === 'A'
+            ? 'Saisir un nouvel enregistrement'
+            : type === 'C'
+              ? 'Remplir un nouveau questionnaire'
+              : 'Enregistrer une autre structure'}
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+// =============================================================================
+// Type C — Bénéficiaire + Questionnaire Intermédiation (C1/C2/C4/C5)
+// =============================================================================
+
+type FormDataC = {
+  prenom: string;
+  nom: string;
+  sexe: string;
+  tranche_age_declaree: string;
+  pays_code: string;
+  pays_autre: string;
+  projet_code: string;
+  domaine_formation_code: string;
+  annee_formation: string;
+  telephone: string;
+  courriel: string;
+  consentement: boolean;
+  c1_a_beneficie: string;
+  c1_type_intermediation: string;
+  c1_type_intermediation_autre: string;
+  c2_a_ete_place: string;
+  c2_annee_placement: string;
+  c4_delai_placement: string;
+  c5_satisfaction: string;
+  c5_observations: string;
+};
+
+function FormulaireIntermediationC({
+  lien,
+  isPending,
+  erreur,
+  onSubmit,
+  onSubmitEtNouveau,
+  confirmationNouveau,
+}: {
+  lien: InfoLienPublic;
+  isPending: boolean;
+  erreur: string;
+  onSubmit: (d: Record<string, unknown>) => void;
+  onSubmitEtNouveau: (d: Record<string, unknown>) => void;
+  confirmationNouveau: boolean;
+}) {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    control,
+    setValue,
+    formState: { errors },
+  } = useForm<FormDataC>({
+    defaultValues: {
+      projet_code: lien.projet_code ?? '',
+      annee_formation: String(new Date().getFullYear()),
+      consentement: false,
+      pays_autre: '',
+      c1_a_beneficie: '',
+      c2_a_ete_place: '',
+    },
+  });
+
+  const paysCode = watch('pays_code');
+  const c1Beneficie = watch('c1_a_beneficie');
+  const c1Type = watch('c1_type_intermediation');
+  const c2Place = watch('c2_a_ete_place');
+  const consentement = watch('consentement');
+
+  const buildPayload = (data: FormDataC): Record<string, unknown> => ({
+    prenom: data.prenom,
+    nom: data.nom,
+    sexe: data.sexe,
+    pays_code: data.pays_code,
+    pays_autre: data.pays_code === 'AUTRE' ? data.pays_autre : null,
+    projet_code: data.projet_code || lien.projet_code,
+    domaine_formation_code: data.domaine_formation_code || 'AUTRE',
+    annee_formation: Number(data.annee_formation),
+    tranche_age_declaree: data.tranche_age_declaree || null,
+    telephone: data.telephone || null,
+    courriel: data.courriel || null,
+    consentement_recueilli: data.consentement,
+    c1_a_beneficie: data.c1_a_beneficie === 'oui',
+    c1_type_intermediation:
+      data.c1_a_beneficie === 'oui' ? data.c1_type_intermediation || null : null,
+    c1_type_intermediation_autre:
+      data.c1_type_intermediation === 'AUTRE' ? data.c1_type_intermediation_autre : null,
+    c2_a_ete_place:
+      data.c1_a_beneficie === 'oui'
+        ? data.c2_a_ete_place === 'oui'
+          ? true
+          : data.c2_a_ete_place === 'non'
+            ? false
+            : null
+        : null,
+    c2_annee_placement:
+      data.c2_a_ete_place === 'oui' ? Number(data.c2_annee_placement) || null : null,
+    c4_delai_placement: data.c2_a_ete_place === 'oui' ? data.c4_delai_placement || null : null,
+    c5_satisfaction:
+      data.c1_a_beneficie === 'oui' ? Number(data.c5_satisfaction) || null : null,
+    c5_observations: data.c5_observations || null,
+  });
+
+  const soumettre = (data: FormDataC) => onSubmit(buildPayload(data));
+  const soumettreEtNouveau = (data: FormDataC) => onSubmitEtNouveau(buildPayload(data));
+
+  return (
+    <form onSubmit={handleSubmit(soumettre)} className="space-y-6" noValidate>
+      {/* Section 1 : Identification du bénéficiaire */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Vos informations personnelles</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="prenom_c">
+                Prénom <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="prenom_c"
+                placeholder="Votre prénom"
+                {...register('prenom', { required: 'Le prénom est obligatoire' })}
+              />
+              {errors.prenom && (
+                <p className="text-destructive text-xs">{errors.prenom.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nom_c">
+                Nom <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="nom_c"
+                placeholder="Votre nom"
+                {...register('nom', { required: 'Le nom est obligatoire' })}
+              />
+              {errors.nom && <p className="text-destructive text-xs">{errors.nom.message}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>
+                Sexe <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="sexe"
+                control={control}
+                rules={{ required: 'Le sexe est obligatoire' }}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SEXE_VALUES.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {SEXE_LIBELLES[s]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.sexe && <p className="text-destructive text-xs">{errors.sexe.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tranche d&apos;âge</Label>
+              <Controller
+                name="tranche_age_declaree"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Facultatif…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="jeune">Jeune (18–34 ans)</SelectItem>
+                      <SelectItem value="adulte">Adulte (35 ans et +)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>
+              Pays <span className="text-destructive">*</span>
+            </Label>
+            <Controller
+              name="pays_code"
+              control={control}
+              rules={{ required: 'Le pays est obligatoire' }}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Votre pays…" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-56">
+                    {PAYS_OIF.map((p) => (
+                      <SelectItem key={p.code} value={p.code}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.pays_code && (
+              <p className="text-destructive text-xs">{errors.pays_code.message}</p>
+            )}
+            {paysCode === 'AUTRE' && (
+              <Input
+                className="mt-2"
+                placeholder="Précisez votre pays…"
+                {...register('pays_autre', { required: 'Veuillez préciser votre pays' })}
+              />
+            )}
+          </div>
+
+          {!lien.projet_code && (
+            <div className="space-y-1.5">
+              <Label>
+                Projet OIF <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="projet_code"
+                control={control}
+                rules={{ required: 'Le code projet est obligatoire' }}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Code projet…" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-56">
+                      {PROJETS_CODES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.projet_code && (
+                <p className="text-destructive text-xs">{errors.projet_code.message}</p>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="tel_c">Téléphone</Label>
+              <Input id="tel_c" placeholder="+22676123456" {...register('telephone')} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="mail_c">Courriel</Label>
+              <Input
+                id="mail_c"
+                type="email"
+                placeholder="votre@email.com"
+                {...register('courriel')}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 rounded-lg border p-4">
+            <Checkbox
+              id="consent_c"
+              checked={consentement}
+              onCheckedChange={(v) => setValue('consentement', v === true)}
+            />
+            <Label htmlFor="consent_c" className="cursor-pointer text-sm leading-relaxed">
+              J&apos;accepte que mes informations de contact soient conservées par l&apos;OIF aux
+              fins de suivi du projet et ne soient pas transmises à des tiers.
+            </Label>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Section 2 : Intermédiation vers l'emploi (C1 / C2 / C4 / C5) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Intermédiation vers l&apos;emploi</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>
+              Avez-vous bénéficié d&apos;un service d&apos;intermédiation vers l&apos;emploi ?{' '}
+              <span className="text-destructive">*</span>
+            </Label>
+            <Controller
+              name="c1_a_beneficie"
+              control={control}
+              rules={{ required: 'Veuillez répondre à cette question' }}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisir…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="oui">Oui</SelectItem>
+                    <SelectItem value="non">Non</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.c1_a_beneficie && (
+              <p className="text-destructive text-xs">{errors.c1_a_beneficie.message}</p>
+            )}
+          </div>
+
+          {c1Beneficie === 'oui' && (
+            <>
+              <div className="space-y-1.5">
+                <Label>Type de service utilisé</Label>
+                <Controller
+                  name="c1_type_intermediation"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisir…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Q_C102_TYPE_INTERMEDIATION_VALUES.map((v) => (
+                          <SelectItem key={v} value={v}>
+                            {Q_C102_TYPE_INTERMEDIATION_LIBELLES[v]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+
+              {c1Type === 'AUTRE' && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="c1_autre">Précisez le type de service</Label>
+                  <Input
+                    id="c1_autre"
+                    placeholder="Type de service…"
+                    {...register('c1_type_intermediation_autre')}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label>Ce service a-t-il abouti à un placement en emploi ?</Label>
+                <Controller
+                  name="c2_a_ete_place"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisir…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="oui">Oui</SelectItem>
+                        <SelectItem value="non">Non</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </>
+          )}
+
+          {c2Place === 'oui' && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="c2_annee">Année de placement</Label>
+                <Input
+                  id="c2_annee"
+                  type="number"
+                  min={2020}
+                  max={2030}
+                  placeholder={String(new Date().getFullYear())}
+                  {...register('c2_annee_placement')}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Délai entre la fin de l&apos;intermédiation et le placement</Label>
+                <Controller
+                  name="c4_delai_placement"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisir…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Q_C105_DELAI_PLACEMENT_VALUES.map((v) => (
+                          <SelectItem key={v} value={v}>
+                            {Q_C105_DELAI_PLACEMENT_LIBELLES[v]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </>
+          )}
+
+          {c1Beneficie === 'oui' && (
+            <div className="space-y-1.5">
+              <Label>
+                Niveau de satisfaction global (1 = très insatisfait, 5 = très satisfait)
+              </Label>
+              <Controller
+                name="c5_satisfaction"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Note de 1 à 5…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="c5_obs">
+              Observations ou commentaires{' '}
+              <span className="text-muted-foreground text-xs">(facultatif)</span>
+            </Label>
+            <textarea
+              id="c5_obs"
+              rows={3}
+              className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+              placeholder="Vos remarques libres…"
+              {...register('c5_observations')}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {confirmationNouveau && (
+        <div className="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-800">
+          <CheckCircle2 className="size-4 shrink-0" />
+          Réponses soumises avec succès. Vous pouvez saisir un nouvel enregistrement.
+        </div>
+      )}
+
+      {erreur && (
+        <div className="border-destructive/30 bg-destructive/10 text-destructive flex items-center gap-2 rounded-lg border p-4 text-sm">
+          <AlertCircle className="size-4 shrink-0" />
+          {erreur}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="flex-1 bg-[#5D0073] hover:bg-[#4a005c]"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 size-4 animate-spin" />
+              Envoi en cours…
+            </>
+          ) : (
+            <>
+              <Send className="mr-2 size-4" />
+              Soumettre
+            </>
+          )}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isPending}
+          onClick={handleSubmit(soumettreEtNouveau)}
+          className="flex-1"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 size-4 animate-spin" />
+              Envoi en cours…
+            </>
+          ) : (
+            <>
+              <PlusCircle className="mr-2 size-4" />
+              Soumettre et ajouter
+            </>
+          )}
+        </Button>
+      </div>
+    </form>
   );
 }

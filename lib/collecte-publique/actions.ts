@@ -28,7 +28,7 @@ import { z } from 'zod';
 // Types publics
 // =============================================================================
 
-export type TypeCollecte = 'A' | 'B';
+export type TypeCollecte = 'A' | 'B' | 'C';
 
 export type LienCollecte = {
   id: string;
@@ -105,7 +105,7 @@ function urlLien(slug: string): string {
 // =============================================================================
 
 const creerLienSchema = z.object({
-  type: z.enum(['A', 'B']),
+  type: z.enum(['A', 'B', 'C']),
   label: z.string().trim().min(1, 'Le libellé est obligatoire').max(200),
   projet_code: z.string().nullable().optional(),
   expire_dans_jours: z.coerce.number().int().min(1).max(365).nullable().optional(),
@@ -510,6 +510,83 @@ export async function validerSoumission(soumissionId: string): Promise<ValiderSo
       };
     }
     entiteId = ben.id;
+  } else if (soumission.type === 'C') {
+    // Type C — bénéficiaire + lignes questionnaire intermédiation (C1/C2/C4/C5).
+    // Étape 1 : créer le bénéficiaire (identique à A).
+    const payloadBen = {
+      prenom: (donnees['prenom'] as string) ?? '',
+      nom: (donnees['nom'] as string) ?? '',
+      sexe: (donnees['sexe'] as 'F' | 'M' | 'Autre') ?? 'M',
+      projet_code: projetCode ?? (donnees['projet_code'] as string) ?? '',
+      pays_code: (donnees['pays_code'] as string) ?? '',
+      domaine_formation_code: (donnees['domaine_formation_code'] as string) ?? 'AUTRE',
+      annee_formation: Number(donnees['annee_formation'] ?? new Date().getFullYear()),
+      statut_code: 'INSCRIT',
+      consentement_recueilli: false,
+      telephone: (donnees['telephone'] as string | null) ?? null,
+      courriel: (donnees['courriel'] as string | null) ?? null,
+      source_import: 'formulaire_web' as const,
+      tranche_age_declaree: (donnees['tranche_age_declaree'] as string | null) ?? null,
+    };
+
+    const { data: ben, error: benError } = await admin
+      .from('beneficiaires')
+      .insert(payloadBen as never)
+      .select('id')
+      .single();
+
+    if (benError || !ben) {
+      return {
+        status: 'erreur_inconnue',
+        message: benError?.message ?? 'Erreur insertion bénéficiaire (C).',
+      };
+    }
+    entiteId = ben.id;
+
+    // Étape 2 : créer les 4 lignes du questionnaire C dans reponses_enquetes.
+    const sessionId = crypto.randomUUID();
+    const dateCollecte = new Date().toISOString().slice(0, 10);
+    const projetFinal = projetCode ?? (donnees['projet_code'] as string) ?? null;
+
+    const c1Data = {
+      a_beneficie: donnees['c1_a_beneficie'] ?? false,
+      type_intermediation: donnees['c1_type_intermediation'] ?? null,
+      type_intermediation_autre: donnees['c1_type_intermediation_autre'] ?? null,
+    };
+    const c2Data = {
+      a_ete_place: donnees['c2_a_ete_place'] ?? null,
+      annee_placement: donnees['c2_annee_placement'] ?? null,
+      nature_emploi: donnees['c2_nature_emploi'] ?? null,
+    };
+    const c4Data = {
+      delai_placement: donnees['c4_delai_placement'] ?? null,
+    };
+    const c5Data = {
+      source_questionnaire: 'C',
+      satisfaction: donnees['c5_satisfaction'] ?? null,
+      observations: donnees['c5_observations'] ?? null,
+    };
+
+    const lignesC = [
+      { indicateur_code: 'C1', donnees: c1Data },
+      { indicateur_code: 'C2', donnees: c2Data },
+      { indicateur_code: 'C4', donnees: c4Data },
+      { indicateur_code: 'C5', donnees: c5Data },
+    ].map((l) => ({
+      indicateur_code: l.indicateur_code,
+      beneficiaire_id: ben.id,
+      structure_id: null,
+      projet_code: projetFinal,
+      donnees: l.donnees as never,
+      date_collecte: dateCollecte,
+      vague_enquete: 'ponctuelle' as const,
+      canal_collecte: 'formulaire_web' as const,
+      session_enquete_id: sessionId,
+      questionnaire_code: 'C',
+      lien_public_token: null,
+    }));
+
+    await admin.from('reponses_enquetes').insert(lignesC as never);
   } else {
     // Structure B — colonnes `*_code` pour les enums alignées sur le schéma
     // initial (migration 20260422, lignes 320-340).

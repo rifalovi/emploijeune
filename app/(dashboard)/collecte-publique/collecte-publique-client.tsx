@@ -196,8 +196,8 @@ export function CollectePubliqueClient({
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Collecte publique</h1>
           <p className="text-muted-foreground text-sm">
-            Liens réutilisables pour l'enregistrement sans compte — Type A (bénéficiaires) ou Type B
-            (structures)
+            Liens réutilisables pour l&apos;enregistrement sans compte — Type A (bénéficiaires),
+            Type B (structures) ou Type C (questionnaire intermédiation)
           </p>
         </div>
         {peutCreer && (
@@ -363,12 +363,16 @@ export function CollectePubliqueClient({
                     <TableRow key={s.id}>
                       <TableCell>
                         <Badge
-                          variant={s.type === 'A' ? 'default' : 'secondary'}
+                          variant={s.type === 'B' ? 'secondary' : 'default'}
                           className="font-mono"
                         >
                           {s.type === 'A' ? (
                             <>
                               <User className="mr-1 size-3" /> Bénéf.
+                            </>
+                          ) : s.type === 'C' ? (
+                            <>
+                              <User className="mr-1 size-3" /> Interméd.
                             </>
                           ) : (
                             <>
@@ -382,9 +386,9 @@ export function CollectePubliqueClient({
                       </TableCell>
                       <TableCell className="max-w-[200px]">
                         <p className="truncate text-sm font-medium">
-                          {s.type === 'A'
-                            ? `${s.donnees['prenom'] ?? ''} ${s.donnees['nom'] ?? ''}`
-                            : ((s.donnees['nom_structure'] as string) ?? '–')}
+                          {s.type === 'B'
+                            ? ((s.donnees['nom_structure'] as string) ?? '–')
+                            : `${s.donnees['prenom'] ?? ''} ${s.donnees['nom'] ?? ''}`}
                         </p>
                         <p className="text-muted-foreground truncate text-xs">
                           {(s.donnees['pays_code'] as string) ?? ''}
@@ -432,12 +436,17 @@ export function CollectePubliqueClient({
           <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                {soumissionDetail.type === 'A' ? (
-                  <User className="size-5 text-[#5D0073]" />
-                ) : (
+                {soumissionDetail.type === 'B' ? (
                   <Building2 className="size-5 text-[#5D0073]" />
+                ) : (
+                  <User className="size-5 text-[#5D0073]" />
                 )}
-                Soumission {soumissionDetail.type === 'A' ? 'bénéficiaire' : 'structure'}
+                Soumission{' '}
+                {soumissionDetail.type === 'A'
+                  ? 'bénéficiaire'
+                  : soumissionDetail.type === 'C'
+                    ? 'intermédiation'
+                    : 'structure'}
               </DialogTitle>
               <DialogDescription className="sr-only">
                 Détail de la soumission et actions de validation
@@ -599,8 +608,15 @@ function LienCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <Badge variant={lien.type === 'A' ? 'default' : 'secondary'} className="shrink-0">
-              {lien.type === 'A' ? 'Type A – Bénéf.' : 'Type B – Structure'}
+            <Badge
+              variant={lien.type === 'B' ? 'secondary' : 'default'}
+              className="shrink-0"
+            >
+              {lien.type === 'A'
+                ? 'Type A – Bénéf.'
+                : lien.type === 'C'
+                  ? 'Type C – Intermédiation'
+                  : 'Type B – Structure'}
             </Badge>
             <div className="min-w-0">
               <CardTitle className="truncate text-sm">
@@ -971,7 +987,26 @@ function DonneesGrid({ donnees, type }: { donnees: Record<string, unknown>; type
     ['Consentement RGPD', 'consentement_recueilli'],
   ];
 
-  const champs = type === 'A' ? champsA : champsB;
+  const champsC: [string, string][] = [
+    ['Prénom', 'prenom'],
+    ['Nom', 'nom'],
+    ['Sexe', 'sexe'],
+    ["Tranche d'âge", 'tranche_age_declaree'],
+    ['Pays', 'pays_code'],
+    ['Projet OIF', 'projet_code'],
+    ["A bénéficié d'intermédiation", 'c1_a_beneficie'],
+    ['Type de service', 'c1_type_intermediation'],
+    ['A été placé', 'c2_a_ete_place'],
+    ['Année de placement', 'c2_annee_placement'],
+    ['Délai de placement', 'c4_delai_placement'],
+    ['Satisfaction (1-5)', 'c5_satisfaction'],
+    ['Observations', 'c5_observations'],
+    ['Téléphone', 'telephone'],
+    ['Courriel', 'courriel'],
+    ['Consentement RGPD', 'consentement_recueilli'],
+  ];
+
+  const champs = type === 'A' ? champsA : type === 'C' ? champsC : champsB;
   const champsAvecValeur = champs.filter(([, clef]) => {
     const v = donnees[clef];
     return v !== null && v !== undefined && v !== '';
@@ -1065,6 +1100,12 @@ function DialogCreerLien({
                   <div className="flex items-center gap-2">
                     <Building2 className="size-4 text-[#5D0073]" />
                     <span>Type B — Structure partenaire (formulaire B1)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="C">
+                  <div className="flex items-center gap-2">
+                    <User className="size-4 text-[#5D0073]" />
+                    <span>Type C — Intermédiation vers l&apos;emploi (questionnaire C)</span>
                   </div>
                 </SelectItem>
               </SelectContent>

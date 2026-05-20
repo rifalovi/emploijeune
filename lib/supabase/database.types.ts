@@ -1696,7 +1696,7 @@ export type Database = {
         Row: {
           id: string
           slug: string
-          type: 'A' | 'B'
+          type: 'A' | 'B' | 'C'
           label: string
           projet_code: string | null
           statut: 'actif' | 'inactif' | 'expire'
@@ -1709,7 +1709,7 @@ export type Database = {
         Insert: {
           id?: string
           slug: string
-          type: 'A' | 'B'
+          type: 'A' | 'B' | 'C'
           label?: string
           projet_code?: string | null
           statut?: 'actif' | 'inactif' | 'expire'
@@ -1722,7 +1722,7 @@ export type Database = {
         Update: {
           id?: string
           slug?: string
-          type?: 'A' | 'B'
+          type?: 'A' | 'B' | 'C'
           label?: string
           projet_code?: string | null
           statut?: 'actif' | 'inactif' | 'expire'
@@ -1738,7 +1738,7 @@ export type Database = {
         Row: {
           id: string
           lien_id: string
-          type: 'A' | 'B'
+          type: 'A' | 'B' | 'C'
           donnees: Json
           statut: 'en_attente' | 'valide' | 'rejete'
           motif_rejet: string | null
@@ -1752,7 +1752,7 @@ export type Database = {
         Insert: {
           id?: string
           lien_id: string
-          type: 'A' | 'B'
+          type: 'A' | 'B' | 'C'
           donnees?: Json
           statut?: 'en_attente' | 'valide' | 'rejete'
           motif_rejet?: string | null
@@ -1766,7 +1766,7 @@ export type Database = {
         Update: {
           id?: string
           lien_id?: string
-          type?: 'A' | 'B'
+          type?: 'A' | 'B' | 'C'
           donnees?: Json
           statut?: 'en_attente' | 'valide' | 'rejete'
           motif_rejet?: string | null
