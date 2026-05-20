@@ -1890,6 +1890,42 @@ export type Database = {
         }
         Relationships: []
       }
+      documents_publics: {
+        Row: {
+          cle: string
+          libelle: string
+          nom_fichier: string
+          chemin_storage: string
+          url_publique: string
+          taille_octets: number
+          content_type: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          cle: string
+          libelle: string
+          nom_fichier?: string
+          chemin_storage?: string
+          url_publique?: string
+          taille_octets?: number
+          content_type?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          cle?: string
+          libelle?: string
+          nom_fichier?: string
+          chemin_storage?: string
+          url_publique?: string
+          taille_octets?: number
+          content_type?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       v_liens_collecte_stats: {
