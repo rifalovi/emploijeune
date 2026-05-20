@@ -184,6 +184,15 @@ export default async function IndicateurRealisationPage({ params }: Props) {
     valeursPubliees = await getValeursPubliees(ind.code);
   }
 
+  // Brief 3.3 : pour les autres indicateurs du pilier A (A2-A5), on récupère
+  // aussi les agrégats globaux pour pouvoir afficher la répartition par sexe
+  // et tranche d'âge — qui s'applique à l'ensemble des bénéficiaires formés.
+  if (ind.pilier === 'A' && ind.code !== 'A1') {
+    const [kpis, ta] = await Promise.all([getKpisPublics(), getRepartitionTrancheAge()]);
+    kpisReels = kpisReels ?? kpis;
+    trancheAge = ta;
+  }
+
   // KPIs contextuels — source déterminée par le flag forcer_manuel de l'admin.
   // forcer_manuel=FALSE (défaut) : auto BDD prioritaire, saisie manuelle en fallback.
   // forcer_manuel=TRUE           : saisie manuelle prioritaire, auto BDD en fallback.
@@ -375,6 +384,16 @@ export default async function IndicateurRealisationPage({ params }: Props) {
           )}
         </section>
 
+        {/* Brief 3.3 : Répartition globale (sexe + tranche d'âge) — pilier A uniquement.
+            Les données sont agrégées sur l'ensemble des bénéficiaires formés. */}
+        {ind.pilier === 'A' && (
+          <BlocRepartition
+            kpisReels={kpisReels}
+            trancheAge={trancheAge}
+            couleur={pilierData.couleur}
+          />
+        )}
+
         {/* Top pays si disponible (A1) */}
         {topPays.length > 0 && (
           <section className="mt-10">
@@ -465,6 +484,125 @@ export default async function IndicateurRealisationPage({ params }: Props) {
           © {new Date().getFullYear()} OIF · Service de Conception et Suivi
         </div>
       </footer>
+    </div>
+  );
+}
+
+// ─── Bloc Répartition globale — Brief 3.3 (pilier A uniquement) ────────────
+
+function BlocRepartition({
+  kpisReels,
+  trancheAge,
+  couleur,
+}: {
+  kpisReels: Awaited<ReturnType<typeof getKpisPublics>>;
+  trancheAge: Awaited<ReturnType<typeof getRepartitionTrancheAge>>;
+  couleur: string;
+}) {
+  const femmes = kpisReels?.beneficiaires_femmes ?? 0;
+  const hommes = kpisReels?.beneficiaires_hommes ?? 0;
+  const totalSexe = femmes + hommes;
+  const femmesPct = totalSexe > 0 ? Math.round((femmes / totalSexe) * 100) : 0;
+  const hommesPct = totalSexe > 0 ? 100 - femmesPct : 0;
+
+  const jeunes = trancheAge?.jeunes ?? 0;
+  const adultes = trancheAge?.adultes ?? 0;
+  const totalAge = jeunes + adultes;
+  const jeunesPct = totalAge > 0 ? Math.round((jeunes / totalAge) * 100) : 0;
+  const adultesPct = totalAge > 0 ? 100 - jeunesPct : 0;
+
+  if (totalSexe === 0 && totalAge === 0) return null;
+
+  return (
+    <section className="mt-10">
+      <h2 className="mb-5 text-lg font-semibold text-[#0E4F88]">Répartition globale</h2>
+      <p className="text-muted-foreground mb-4 text-xs">
+        Données agrégées sur l&apos;ensemble des bénéficiaires formés — toutes années et tous
+        projets confondus.
+      </p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {totalSexe > 0 && (
+          <Card>
+            <CardContent className="space-y-3 p-5">
+              <div className="flex items-center justify-between text-sm font-medium text-slate-700">
+                <span>Sexe</span>
+                <span className="text-muted-foreground text-xs tabular-nums">
+                  {totalSexe.toLocaleString('fr-FR')} bénéficiaires
+                </span>
+              </div>
+              <BarreRepartition
+                gauche={{ label: 'Femmes', valeur: femmes, pct: femmesPct, couleur: '#e91e8c' }}
+                droite={{ label: 'Hommes', valeur: hommes, pct: hommesPct, couleur }}
+              />
+            </CardContent>
+          </Card>
+        )}
+        {totalAge > 0 && (
+          <Card>
+            <CardContent className="space-y-3 p-5">
+              <div className="flex items-center justify-between text-sm font-medium text-slate-700">
+                <span>Tranche d&apos;âge</span>
+                <span className="text-muted-foreground text-xs tabular-nums">
+                  {totalAge.toLocaleString('fr-FR')} bénéficiaires
+                </span>
+              </div>
+              <BarreRepartition
+                gauche={{
+                  label: 'Jeunes (18-34 ans)',
+                  valeur: jeunes,
+                  pct: jeunesPct,
+                  couleur: '#0198E9',
+                }}
+                droite={{
+                  label: 'Adultes (35 ans et +)',
+                  valeur: adultes,
+                  pct: adultesPct,
+                  couleur: '#5D0073',
+                }}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function BarreRepartition({
+  gauche,
+  droite,
+}: {
+  gauche: { label: string; valeur: number; pct: number; couleur: string };
+  droite: { label: string; valeur: number; pct: number; couleur: string };
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex h-3 overflow-hidden rounded-full bg-slate-100">
+        <div style={{ width: `${gauche.pct}%`, backgroundColor: gauche.couleur }} />
+        <div style={{ width: `${droite.pct}%`, backgroundColor: droite.couleur }} />
+      </div>
+      <div className="flex justify-between text-xs">
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-block size-2.5 rounded-full"
+            style={{ backgroundColor: gauche.couleur }}
+          />
+          <span className="font-medium text-slate-700">{gauche.label}</span>
+          <span className="text-muted-foreground tabular-nums">
+            {gauche.valeur.toLocaleString('fr-FR')} · {gauche.pct}&nbsp;%
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground tabular-nums">
+            {droite.valeur.toLocaleString('fr-FR')} · {droite.pct}&nbsp;%
+          </span>
+          <span className="font-medium text-slate-700">{droite.label}</span>
+          <span
+            className="inline-block size-2.5 rounded-full"
+            style={{ backgroundColor: droite.couleur }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
