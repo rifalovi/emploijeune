@@ -21,9 +21,7 @@ export type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Roles autorises a voir l'item dans la sidebar. */
   roles: RoleUtilisateur[];
-  /** Si defini, l'item n'apparait que si ce flag conditionnel est TRUE. */
   conditional?: 'module_ia';
 };
 
@@ -34,7 +32,7 @@ export type NavGroupDef = {
   items: NavItem[];
 };
 
-// ─── Item autonome (hors groupes) ────────────────────────────────────────────
+// Item autonome (hors groupes)
 
 export const HOME_NAV_ITEM: NavItem = {
   href: '/dashboard',
@@ -43,7 +41,7 @@ export const HOME_NAV_ITEM: NavItem = {
   roles: ['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire', 'lecteur'],
 };
 
-// ─── Groupes accordeon ───────────────────────────────────────────────────────
+// Groupes accordeon
 
 export const NAV_GROUPS: NavGroupDef[] = [
   {
@@ -137,12 +135,8 @@ export const NAV_GROUPS: NavGroupDef[] = [
   },
 ];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// Helpers
 
-/**
- * Retourne les groupes visibles avec leurs items filtres par role + flags.
- * Les groupes dont tous les items sont masques sont exclus.
- */
 export function visibleNavGroups(
   role: RoleUtilisateur,
   flags: { module_ia?: boolean } = {},
@@ -157,10 +151,7 @@ export function visibleNavGroups(
   })).filter(({ items }) => items.length > 0);
 }
 
-/**
- * @deprecated Utiliser visibleNavGroups() a la place.
- * Conserve pour compatibilite eventuelle.
- */
+/** @deprecated Utiliser visibleNavGroups() a la place. */
 export const NAV_ITEMS: NavItem[] = [
   HOME_NAV_ITEM,
   ...NAV_GROUPS.flatMap((g) => g.items),
