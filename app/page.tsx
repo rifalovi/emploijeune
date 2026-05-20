@@ -6,7 +6,6 @@ import {
   Globe2,
   Heart,
   ArrowRight,
-  ShieldCheck,
   History,
   GraduationCap,
   Vote,
@@ -14,9 +13,11 @@ import {
   BookOpen,
   TrendingUp,
   Target,
-  BarChart3,
   Mail,
   LayoutDashboard,
+  Briefcase,
+  Sparkles,
+  Network,
 } from 'lucide-react';
 
 import { LogoOIF } from '@/components/branding/logo-oif';
@@ -373,24 +374,37 @@ function Programmes() {
 // Méthodologie OIF (V1.5.0 — extraits de la note méthodologique V2)
 // ─────────────────────────────────────────────────────────────────────────────
 function Methodologie() {
-  const points = [
+  // Source : Cadre de mesure du rendement emploi V2, section 4 "Principes directeurs".
+  const principes = [
     {
-      titre: 'Cadre Commun de mesure',
+      titre: 'Cohérence',
       description:
-        "Tous les projets emploi jeunes OIF s'appuient sur un référentiel d'indicateurs partagé : A1 (personnes formées), A4 (gain de compétences), B1 (activités économiques appuyées), B4 (emplois indirects), F1 (apport du français à l'employabilité).",
+        "Les indicateurs sont interprétés de manière homogène d'un projet à l'autre afin de permettre des comparaisons, des agrégations et des analyses transversales.",
       icone: Target,
     },
     {
-      titre: 'Approche stratifiée',
+      titre: 'Souplesse encadrée',
       description:
-        'Les collectes ciblent des strates précises (projet, pays, période, profil) plutôt que des envois en masse. Cette méthodologie garantit la délivrabilité, la qualité des réponses et la pertinence des analyses.',
-      icone: BarChart3,
+        "Le cadre commun fixe une structure partagée, mais laisse à chaque projet la possibilité de mobiliser les indicateurs les plus pertinents au regard de sa logique d'intervention, sans application uniforme ni mécanique.",
+      icone: Leaf,
     },
     {
-      titre: 'Marqueur F1 transversal',
+      titre: 'Traçabilité',
       description:
-        "L'apport du français à l'employabilité est suivi sur tous les projets : usage professionnel, accès à l'emploi, valorisation des compétences linguistiques dans les parcours.",
-      icone: GraduationCap,
+        'Tout résultat renseigné est adossé à des données vérifiables, à des définitions explicites et à des sources identifiables.',
+      icone: History,
+    },
+    {
+      titre: 'Fiabilisation progressive',
+      description:
+        "Respect de règles minimales d'harmonisation et de qualité des données, ainsi qu'un phasage des restitutions : première consolidation en juin, étape approfondie à l'automne, notamment pour les indicateurs C et D.",
+      icone: TrendingUp,
+    },
+    {
+      titre: 'Responsabilité partagée',
+      description:
+        "La collecte mobilise l'ensemble des parties prenantes : unités chefs de file pour les bases nominatives, partenaires de mise en œuvre, gestionnaires de plateformes de formation, et SCS pour les enquêtes d'approfondissement.",
+      icone: Users,
     },
   ];
   return (
@@ -401,17 +415,18 @@ function Methodologie() {
             variant="outline"
             style={{ color: COULEUR_ACCENT, borderColor: `${COULEUR_ACCENT}66` }}
           >
-            Note mÃ©thodologique
+            Principes directeurs
           </Badge>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
             Notre méthodologie de suivi-évaluation
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
-            Une démarche rigoureuse alignée sur les standards des bailleurs internationaux.
+            Cinq principes structurants pour la mise en œuvre du Cadre Commun de mesure du
+            rendement.
           </p>
         </div>
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {points.map((p) => (
+        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {principes.map((p) => (
             <Card key={p.titre} className="border-l-4" style={{ borderLeftColor: COULEUR_ACCENT }}>
               <CardContent className="p-6">
                 <div
@@ -434,27 +449,50 @@ function Methodologie() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cadre Commun (4 piliers)
+// Cadre Commun — Architecture (4 catégories + marqueur transversal F1)
+// Source : Cadre de mesure du rendement emploi V2, section 5.
 // ─────────────────────────────────────────────────────────────────────────────
 function CadreCommun() {
   const piliers = [
     {
-      titre: 'Insertion professionnelle',
-      description: "Formation, employabilité, accès à l'emploi durable.",
-    },
-    {
-      titre: 'Entrepreneuriat',
+      code: 'A',
+      titre: 'Formation, compétences et insertion',
       description:
-        'Soutien aux activités économiques portées par les jeunes (AGR, micro-entreprises).',
+        "Indicateurs relatifs au nombre de personnes formées, à l'achèvement des formations, à la certification, au gain de compétences et à l'insertion professionnelle à moyen terme.",
+      icone: GraduationCap,
+      transversal: false,
     },
     {
-      titre: 'Égalité femmes-hommes',
-      description: 'Marqueur transversal (89% de femmes accompagnées sur la base de sondage).',
-    },
-    {
-      titre: 'Apport du français (F1)',
+      code: 'B',
+      titre: 'Activités économiques, entrepreneuriat et emploi',
       description:
-        "Contribution du français à l'accès à l'emploi et à la valorisation professionnelle.",
+        'Indicateurs relatifs aux activités économiques appuyées, à la survie des structures soutenues, aux emplois créés ou maintenus et aux emplois indirects estimés.',
+      icone: Building2,
+      transversal: false,
+    },
+    {
+      code: 'C',
+      titre: 'Intermédiation et accès aux opportunités',
+      description:
+        "Indicateurs relatifs aux mises en relation effectives, à leur conversion en opportunités, aux emplois obtenus, au délai d'accès à l'opportunité et à l'utilité perçue de l'appui.",
+      icone: Network,
+      transversal: false,
+    },
+    {
+      code: 'D',
+      titre: "Écosystèmes et conditions de l'emploi",
+      description:
+        "Indicateurs relatifs aux projets visant à améliorer ou renforcer l'environnement et les dispositifs de l'emploi, en créant des conditions favorables — au-delà du seul niveau des bénéficiaires directs.",
+      icone: Globe2,
+      transversal: false,
+    },
+    {
+      code: 'F1',
+      titre: 'Marqueur transversal — Langue française et employabilité',
+      description:
+        "Apprécie, lorsque cela est pertinent, la manière dont la maîtrise ou l'usage du français contribue à l'accès à l'emploi, à l'exercice d'une activité ou à la valorisation professionnelle. Angle d'analyse intégrable à tous les projets.",
+      icone: BookOpen,
+      transversal: true,
     },
   ];
   return (
@@ -462,26 +500,47 @@ function CadreCommun() {
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-            Les 4 piliers du Cadre Commun
+            Architecture du Cadre Commun
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
-            Un référentiel partagé par tous les projets emploi jeunes OIF.
+            Quatre catégories d&apos;indicateurs et un marqueur transversal, partagés par tous les
+            projets emploi jeunes OIF.
           </p>
         </div>
-        <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {piliers.map((p, i) => (
-            <Card key={p.titre} className="transition-all hover:shadow-md">
+        <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {piliers.map((p) => (
+            <Card
+              key={p.code}
+              className={cn(
+                'transition-all hover:shadow-md',
+                p.transversal && 'border-2 lg:col-span-3',
+              )}
+              style={p.transversal ? { borderColor: `${COULEUR_ACCENT}66` } : undefined}
+            >
               <CardContent className="p-5">
-                <div
-                  className="text-3xl font-bold"
-                  style={{ color: i % 2 === 0 ? '#0198E9' : COULEUR_ACCENT }}
-                >
-                  {`0${i + 1}`}
+                <div className="flex items-start gap-4">
+                  <div
+                    className="flex size-12 shrink-0 items-center justify-center rounded-lg"
+                    style={{
+                      backgroundColor: p.transversal ? `${COULEUR_ACCENT}1a` : '#0198E91a',
+                      color: p.transversal ? COULEUR_ACCENT : '#0198E9',
+                    }}
+                  >
+                    <p.icone aria-hidden className="size-6" />
+                  </div>
+                  <div>
+                    <div
+                      className="font-mono text-xs font-bold"
+                      style={{ color: p.transversal ? COULEUR_ACCENT : '#0198E9' }}
+                    >
+                      Catégorie {p.code}
+                    </div>
+                    <h3 className="mt-1 text-lg font-semibold text-gray-900">{p.titre}</h3>
+                    <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+                      {p.description}
+                    </p>
+                  </div>
                 </div>
-                <h3 className="mt-2 font-semibold text-gray-900">{p.titre}</h3>
-                <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                  {p.description}
-                </p>
               </CardContent>
             </Card>
           ))}
@@ -492,32 +551,28 @@ function CadreCommun() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pourquoi
+// Portée du Cadre Commun — définitions OIF emploi / employabilité / jeunesse
+// Source : Cadre de mesure du rendement emploi V2, section 2.
 // ─────────────────────────────────────────────────────────────────────────────
 function Pourquoi() {
-  const valeurs = [
+  const definitions = [
     {
-      icone: ShieldCheck,
-      titre: 'RGPD natif',
+      icone: Users,
+      titre: 'Jeunesse',
       description:
-        'Consentement obligatoire à tous les niveaux, soft-delete avec audit, RLS Supabase 4 rôles.',
+        "Le cadre s'applique conformément aux définitions adoptées par l'OIF en matière de jeunesse, dans le but d'assurer un langage commun et une cohérence d'action entre l'ensemble des projets.",
     },
     {
-      icone: History,
-      titre: 'Traçabilité complète',
+      icone: Briefcase,
+      titre: 'Emploi',
       description:
-        "Historique des affectations projet, journal d'audit immuable, transferts contextualisés.",
+        "Toute activité exercée en contrepartie d'une rémunération ou d'un profit (monétaire ou en nature), qu'elle soit salariée ou indépendante, formelle ou informelle, incluant l'auto-emploi et l'entrepreneuriat. Les dispositifs de formation rémunérés (apprentissage, alternance, stage rémunéré) sont inclus. Les expériences non rémunérées sont reconnues comme leviers d'employabilité sans être assimilées à de l'emploi.",
     },
     {
-      icone: TrendingUp,
-      titre: 'Pilotage stratégique',
+      icone: Sparkles,
+      titre: 'Employabilité',
       description:
-        'Indicateurs OIF (A1, A4, B1, B4, F1), tableaux de bord par rôle, exports Excel ré-importables.',
-    },
-    {
-      icone: GraduationCap,
-      titre: 'Cohérence méthodologique',
-      description: 'Aligné sur le Cadre Commun de mesure et les questionnaires officiels SCS.',
+        "La capacité d'un jeune à accéder à un emploi, à s'y maintenir et à y progresser, grâce à un socle de compétences (fondamentales, techniques, numériques et transversales), d'expériences et de ressources (information, orientation, intermédiation, réseaux, accompagnement), dans un environnement favorable levant les principaux obstacles.",
     },
   ];
   return (
@@ -525,25 +580,28 @@ function Pourquoi() {
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-            Pourquoi cette plateforme
+            Portée du Cadre Commun
           </h2>
-          <p className="text-muted-foreground mt-3 text-base">
-            Conçue pour les exigences institutionnelles d&apos;un opérateur multilatéral.
+          <p className="text-muted-foreground mt-3 text-base leading-relaxed">
+            Référence commune pour tous les projets de l&apos;OIF qui contribuent à
+            l&apos;amélioration de l&apos;employabilité des jeunes, à leur accès à l&apos;emploi, à
+            l&apos;auto-emploi, aux activités génératrices de revenus ou à l&apos;environnement
+            favorable à leur insertion économique.
           </p>
         </div>
-        <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {valeurs.map((v) => (
-            <Card key={v.titre} className="transition-all hover:-translate-y-1 hover:shadow-md">
-              <CardContent className="p-5">
+        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+          {definitions.map((d) => (
+            <Card key={d.titre} className="transition-all hover:-translate-y-1 hover:shadow-md">
+              <CardContent className="p-6">
                 <div
-                  className="mb-3 flex size-10 items-center justify-center rounded-lg"
+                  className="mb-4 flex size-12 items-center justify-center rounded-lg"
                   style={{ backgroundColor: '#0E4F881a', color: '#0E4F88' }}
                 >
-                  <v.icone aria-hidden className="size-5" />
+                  <d.icone aria-hidden className="size-6" />
                 </div>
-                <h3 className="font-semibold text-gray-900">{v.titre}</h3>
-                <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                  {v.description}
+                <h3 className="text-lg font-semibold text-gray-900">{d.titre}</h3>
+                <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+                  {d.description}
                 </p>
               </CardContent>
             </Card>

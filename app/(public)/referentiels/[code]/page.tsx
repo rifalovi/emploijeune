@@ -10,6 +10,7 @@ import {
   Calendar,
   Database,
   FileText,
+  Info,
   ListChecks,
   ShieldAlert,
   Tag,
@@ -144,6 +145,13 @@ export default async function FicheIndicateurPage({ params }: Props) {
           ))}
         </div>
       </Section>
+
+      {/* Observation de rattachement — Cadre de mesure V2, section 6 */}
+      {ind.observationRattachement && (
+        <Section icon={Info} titre="Observation de rattachement" couleurAccent={pilier.couleur}>
+          <p>{ind.observationRattachement}</p>
+        </Section>
+      )}
 
       {/* Précautions */}
       <Section icon={ShieldAlert} titre="Précautions méthodologiques" couleurAccent="#dc2626">

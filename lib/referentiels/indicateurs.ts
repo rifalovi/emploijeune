@@ -102,6 +102,12 @@ export type Indicateur = {
    * Défaut : true (rétro-compatible avec A1 et F1).
    */
   afficherVentilateurPersonne?: boolean;
+  /**
+   * Observation de rattachement (Cadre de mesure du rendement emploi V2,
+   * section 6) — précise comment l'indicateur s'articule avec les projets
+   * OIF concernés. Affichée sur la page publique /referentiels/[code].
+   */
+  observationRattachement?: string;
 };
 
 export const INDICATEURS: Indicateur[] = [
@@ -138,6 +144,8 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Personnes formées',
     unitePrincipale: 'personnes',
     afficherVentilateurPersonne: true,
+    observationRattachement:
+      "Cet indicateur porte sur la formation directe des jeunes. Il se rattache d'abord aux projets qui offrent des parcours de formation ou de renforcement de capacités pour l'insertion économique, le numérique, l'innovation ou les filières durables.",
   },
   {
     code: 'A2',
@@ -162,6 +170,8 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer abandon, absence et non-validation',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
+    observationRattachement:
+      'Même logique que pour A1 : cet indicateur suit la complétion des parcours de formation portés par ces projets.',
   },
   {
     code: 'A3',
@@ -187,6 +197,8 @@ export const INDICATEURS: Indicateur[] = [
       'Ne pas compter les jeunes seulement présentés à l’examen',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
+    observationRattachement:
+      'Les projets où les formations débouchent sur une attestation, une validation ou une reconnaissance formelle.',
   },
   {
     code: 'A4',
@@ -211,6 +223,8 @@ export const INDICATEURS: Indicateur[] = [
       'Administrer T0 avant tout apprentissage',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15', 'PROJ_A14'],
+    observationRattachement:
+      "Cet indicateur peut couvrir aussi bien les compétences techniques que les compétences entrepreneuriales ou numériques. Il est pertinent pour les projets qui renforcent les capacités des bénéficiaires lorsque l'appui inclut de la formation.",
   },
   {
     code: 'A5',
@@ -238,6 +252,8 @@ export const INDICATEURS: Indicateur[] = [
       'Ne pas attribuer automatiquement l’insertion à la formation',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
+    observationRattachement:
+      "Il concerne les projets visant à renforcer l'employabilité ou l'auto-emploi des jeunes à l'issue d'un parcours de formation. Il est également pertinent pour les interventions menées dans des filières telles que le tourisme, l'agriculture ou les innovations vertes. Cet indicateur prendra en compte non seulement l'accès à l'emploi, mais aussi, le cas échéant, l'amélioration de la situation professionnelle des bénéficiaires déjà en activité au moment de leur entrée dans le dispositif.",
   },
 
   // ─────────────────────────── CATÉGORIE B ───────────────────────────
@@ -267,6 +283,8 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Structures appuyées',
     unitePrincipale: 'structures',
     afficherVentilateurPersonne: false,
+    observationRattachement:
+      "Cet indicateur vise les AGR et micro-entreprises soutenues. Il correspond surtout aux projets d'appui économique direct, de financement ou d'accompagnement entrepreneurial. Mais également lorsqu'il y a appui au développement d'entreprises.",
   },
   {
     code: 'B2',
@@ -290,6 +308,8 @@ export const INDICATEURS: Indicateur[] = [
       'Vérifier les déclarations si possible',
     ],
     projetsConcernes: ['PROJ_A14', 'PROJ_A15', 'PROJ_A19', 'PROJ_A20', 'PROJ_A17'],
+    observationRattachement:
+      'Il suit la pérennité des activités économiques soutenues. Il est donc logique pour les projets finançant ou accompagnant des structures économiques.',
   },
   {
     code: 'B3',
@@ -317,6 +337,8 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Emplois créés ou maintenus',
     unitePrincipale: 'emplois',
     afficherVentilateurPersonne: false,
+    observationRattachement:
+      "Cet indicateur mesure l'effet des projets sur l'emploi au sein des structures appuyées. Il s'applique principalement aux projets à visée économique et entrepreneuriale.",
   },
   {
     code: 'B4',
@@ -339,6 +361,8 @@ export const INDICATEURS: Indicateur[] = [
       'Ne pas agréger sans distinction aux emplois directs',
     ],
     projetsConcernes: ['PROJ_A17', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
+    observationRattachement:
+      'Cet indicateur est surtout pertinent pour les projets qui agissent sur des chaînes de valeur, des réseaux économiques ou des écosystèmes productifs.',
   },
 
   // ─────────────────────────── CATÉGORIE C ───────────────────────────
@@ -362,6 +386,8 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Mises en relation effectives',
     unitePrincipale: 'mises en relation',
     afficherVentilateurPersonne: false,
+    observationRattachement:
+      "L'indicateur renvoie explicitement à des mécanismes de mise en relation, de mentorat, de B2B ou d'orientation. Il correspond d'abord à P17 pour les rencontres économiques et commerciales.",
   },
   {
     code: 'C2',
@@ -385,6 +411,8 @@ export const INDICATEURS: Indicateur[] = [
       'Clarifier la notion de rémunération',
     ],
     projetsConcernes: ['PROJ_A17', 'PROJ_A16a', 'PROJ_A15'],
+    observationRattachement:
+      "Même logique que C1 : on mesure ici l'aboutissement des mises en relation en opportunités rémunérées.",
   },
   {
     code: 'C3',
@@ -412,6 +440,8 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Emplois ou stages obtenus',
     unitePrincipale: 'emplois/stages',
     afficherVentilateurPersonne: false,
+    observationRattachement:
+      "Cet indicateur est cohérent avec les projets qui conduisent à une insertion, à un stage ou à une opportunité professionnelle à travers la formation ou l'intermédiation.",
   },
   {
     code: 'C4',
@@ -432,6 +462,8 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Délai moyen d’accès',
     unitePrincipale: 'jours',
     afficherVentilateurPersonne: false,
+    observationRattachement:
+      'Il suppose généralement une plateforme ou un dispositif formalisé de suivi entre inscription et opportunité. Il est surtout adapté à D-CLIC et aux dispositifs de mise en relation économique de P17.',
   },
   {
     code: 'C5',
@@ -454,6 +486,8 @@ export const INDICATEURS: Indicateur[] = [
       'Éviter les questions orientées',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A17', 'PROJ_A20', 'PROJ_A15', 'PROJ_A19'],
+    observationRattachement:
+      "Cet indicateur peut être transversal à tout projet offrant un service direct aux jeunes, mais il est particulièrement utile pour les projets d'appui individualisé, de formation ou d'intermédiation.",
   },
 
   // ─────────────────────────── CATÉGORIE D ───────────────────────────
@@ -482,6 +516,8 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Cadres/dispositifs appuyés',
     unitePrincipale: 'dispositifs',
     afficherVentilateurPersonne: false,
+    observationRattachement:
+      "Cet indicateur renvoie à l'appui aux politiques, stratégies ou dispositifs publics. Il se rattache aux projets ayant une dimension de plaidoyer, de structuration sectorielle ou d'accompagnement institutionnel.",
   },
   {
     code: 'D2',
@@ -504,6 +540,8 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Acteurs institutionnels formés',
     unitePrincipale: 'acteurs',
     afficherVentilateurPersonne: true,
+    observationRattachement:
+      "Cet indicateur cible les acteurs publics formés et l'amélioration de leurs pratiques. Il relève surtout des projets qui combinent accompagnement institutionnel et appui technique.",
   },
   {
     code: 'D3',
@@ -526,6 +564,8 @@ export const INDICATEURS: Indicateur[] = [
       'Privilégier des changements concrets, vérifiables et bien décrits',
     ],
     projetsConcernes: ['PROJ_A15', 'PROJ_A17', 'PROJ_A18', 'PROJ_A19', 'PROJ_A20'],
+    observationRattachement:
+      "Il s'agit d'un indicateur qualitatif transversal, adapté aux projets qui produisent des effets écosystémiques, sectoriels ou territoriaux.",
   },
 
   // ─────────────────────────── MARQUEUR F ────────────────────────────
@@ -555,6 +595,8 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Bénéficiaires francophones',
     unitePrincipale: 'personnes',
     afficherVentilateurPersonne: true,
+    observationRattachement:
+      "Ce marqueur transversal est pertinent pour les projets où le français constitue une compétence professionnelle mobilisable dans l'emploi, l'entrepreneuriat, la relation client, le commerce ou le tourisme.",
   },
 ];
 
