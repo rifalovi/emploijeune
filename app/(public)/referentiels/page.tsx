@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Clock } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button';
 import { PILIERS, indicateursParPilier, type CodePilier } from '@/lib/referentiels/indicateurs';
+import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: 'Référentiels – Cadre Commun OIF',
@@ -36,6 +38,19 @@ export default function ReferentielsAccueil() {
           consulter sa fiche méthodologique complète (définition, variables, collecte, calcul,
           sources) ou accédez directement aux réalisations chiffrées.
         </p>
+        <div className="mt-6">
+          <a
+            href="/documents/note-de-cadrage-oif.pdf"
+            download
+            className={cn(
+              buttonVariants({ variant: 'outline', size: 'sm' }),
+              'gap-2 border-[#0E4F88] text-[#0E4F88] hover:bg-[#0E4F88]/5',
+            )}
+          >
+            <Download className="size-4" aria-hidden />
+            Télécharger la note de cadrage (PDF)
+          </a>
+        </div>
       </section>
 
       {/* Piliers */}
