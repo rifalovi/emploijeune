@@ -14,8 +14,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { LogoOIF } from '@/components/branding/logo-oif';
 import { NavLink } from './nav-link';
+import { NavGroup } from './nav-group';
 import { SignOutButton } from './sign-out-button';
-import { visibleNavItems } from './nav-items';
+import { HOME_NAV_ITEM, visibleNavGroups } from './nav-items';
 import type { UtilisateurProfile } from '@/lib/supabase/auth';
 
 type SidebarProps = {
