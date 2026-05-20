@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   PenLine,
+  Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -156,6 +157,43 @@ export function SaisieValeursClient({
           ? `Année ${anneeACibler} masquée du front public.`
           : `Année ${anneeACibler} réactivée sur le front public.`,
       );
+    });
+  };
+
+  // Publie directement une ligne auto BDD sans passer par le formulaire :
+  //   1. Crée une saisie manuelle avec la valeur auto (copie instantanée)
+  //   2. La marque aussitôt comme publiée
+  // Équivalent à "Saisir + Enregistrer + Publier" en un seul clic.
+  const handlePublierAuto = (v: ValeurAnnee) => {
+    startTransition(async () => {
+      const payload = {
+        code,
+        annee: v.annee,
+        numerateur: estTaux
+          ? (v.numerateur ?? null)
+          : null,
+        denominateur: estTaux
+          ? (v.denominateur ?? null)
+          : null,
+        valeur_directe: !estTaux
+          ? (v.valeur ?? null)
+          : null,
+        note: null,
+      };
+
+      const saveRes = await enregistrerSaisieValeur(payload);
+      if (saveRes.status === 'erreur') {
+        toast.error(`Enregistrement échoué : ${saveRes.message}`);
+        return;
+      }
+
+      const pubRes = await basculerPubliSaisieValeur({ code, annee: v.annee, publie: true });
+      if (pubRes.status === 'erreur') {
+        toast.error(`Publication échouée : ${pubRes.message}`);
+        return;
+      }
+
+      toast.success(`Valeur ${code} ${v.annee} publiée sur le front public.`);
     });
   };
 
@@ -426,12 +464,27 @@ export function SaisieValeursClient({
                               )}
                             </button>
                           )}
-                          {/* Saisir manuellement */}
+                          {/* Publier directement (copie auto → saisie publiée) */}
+                          <button
+                            type="button"
+                            onClick={() => handlePublierAuto(v)}
+                            disabled={pending}
+                            title={`Publier la valeur ${v.annee} telle quelle sur le front public`}
+                            className="inline-flex items-center gap-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                          >
+                            {pending ? (
+                              <Loader2 className="size-2.5 animate-spin" aria-hidden />
+                            ) : (
+                              <Send className="size-2.5" aria-hidden />
+                            )}
+                            Publier
+                          </button>
+                          {/* Saisir manuellement (modifier avant de publier) */}
                           <button
                             type="button"
                             onClick={() => handleBasculerManuel(v)}
                             disabled={pending}
-                            title="Créer une saisie manuelle pour cette année"
+                            title="Modifier la valeur avant de publier"
                             className="inline-flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-100 disabled:opacity-50"
                           >
                             <PenLine className="size-2.5" aria-hidden />
