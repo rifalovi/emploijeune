@@ -127,7 +127,10 @@ export function SaisieValeursClient({
     });
   };
 
-  // Pre-fill quand on change d'année si une saisie brute existe pour cette année
+  // Pre-fill quand on change d'année :
+  //   1. Saisie manuelle existante → prioritaire (valeurs brutes depuis BDD)
+  //   2. Valeur auto (source='auto') → pré-remplissage indicatif pour que
+  //      l'admin voie ce qui est actuellement affiché et puisse l'ajuster.
   const handleAnneeChange = (a: number) => {
     setAnnee(a);
     const brute = saisiesBrutes.find((s) => s.annee === a);
@@ -141,9 +144,31 @@ export function SaisieValeursClient({
       );
       setNote(brute.note ?? '');
     } else {
-      setNumerateur('');
-      setDenominateur('');
-      setValeurDirecte('');
+      // Fallback : pré-remplir depuis la valeur calculée automatiquement
+      const autoVal = valeursExistantes.find((v) => v.annee === a && v.source === 'auto');
+      if (autoVal) {
+        if (estTaux) {
+          setNumerateur(
+            autoVal.numerateur !== null && autoVal.numerateur !== undefined
+              ? String(autoVal.numerateur)
+              : '',
+          );
+          setDenominateur(
+            autoVal.denominateur !== null && autoVal.denominateur !== undefined
+              ? String(autoVal.denominateur)
+              : '',
+          );
+          setValeurDirecte('');
+        } else {
+          setValeurDirecte(autoVal.valeur !== null ? String(autoVal.valeur) : '');
+          setNumerateur('');
+          setDenominateur('');
+        }
+      } else {
+        setNumerateur('');
+        setDenominateur('');
+        setValeurDirecte('');
+      }
       setNote('');
     }
   };
@@ -151,13 +176,16 @@ export function SaisieValeursClient({
   const annees = [];
   for (let a = anneeMin; a <= anneeMax; a++) annees.push(a);
 
-  // Tableau des saisies : on utilise les saisies brutes directement (indépendant
-  // du champ `source` renvoyé par la RPC, qui peut valoir 'auto' même quand une
-  // saisie manuelle existe — cas A2, calcul BDD prioritaire).
-  const saisiesExistantes = saisiesBrutes;
+  // Tableau unifié : lignes auto (lecture seule) + lignes saisie (éditables).
+  // Pour une même année, la saisie manuelle prend le dessus — on n'affiche
+  // pas la ligne auto si une saisie existe déjà pour cette année.
+  const anneesAvecSaisie = new Set(saisiesBrutes.map((s) => s.annee));
+  const lignesAuto = valeursExistantes.filter(
+    (v) => v.source === 'auto' && !anneesAvecSaisie.has(v.annee),
+  );
+  const afficherTableau = saisiesBrutes.length > 0 || lignesAuto.length > 0;
 
   // Années pour lesquelles le calcul automatique (BDD) produit déjà des données.
-  // Une saisie sur ces années sera IGNORÉE dans le graphique (COALESCE auto > saisie).
   const anneesAvecAuto = new Set(
     valeursExistantes.filter((v) => v.source === 'auto').map((v) => v.annee),
   );
@@ -187,8 +215,10 @@ export function SaisieValeursClient({
         )}
       </p>
 
-      {/* Tableau des saisies existantes */}
-      {saisiesExistantes.length > 0 && (
+      {/* Tableau unifié : lignes auto (lecture seule) + lignes saisie (éditables).
+          Les lignes auto montrent ce qui est actuellement affiché sur le front ;
+          les lignes saisie permettent de l'ajuster / surcharger. */}
+      {afficherTableau && (
         <div className="mt-3 overflow-x-auto rounded-lg border border-blue-100 bg-white">
           <table className="w-full text-xs">
             <thead className="bg-blue-50 tracking-wide text-blue-700 uppercase">
@@ -203,14 +233,14 @@ export function SaisieValeursClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-blue-100">
-              {saisiesExistantes.map((s) => {
-                // Calcul de la valeur affichée depuis les champs bruts
+              {/* Lignes saisie manuelle (éditables + publiables) */}
+              {saisiesBrutes.map((s) => {
                 const valeurCalculee =
                   s.numerateur !== null && s.denominateur !== null && s.denominateur !== 0
                     ? Math.round((s.numerateur / s.denominateur) * 1000) / 10
                     : s.valeur_directe;
                 return (
-                  <tr key={s.annee}>
+                  <tr key={`saisie-${s.annee}`}>
                     <td className="px-2 py-1.5 font-mono">{s.annee}</td>
                     <td className="px-2 py-1.5 text-right tabular-nums">{s.numerateur ?? '—'}</td>
                     <td className="px-2 py-1.5 text-right tabular-nums">{s.denominateur ?? '—'}</td>
@@ -269,6 +299,39 @@ export function SaisieValeursClient({
                   </tr>
                 );
               })}
+
+              {/* Lignes auto BDD (lecture seule — aucune saisie manuelle pour ces années) */}
+              {lignesAuto
+                .slice()
+                .sort((a, b) => a.annee - b.annee)
+                .map((v) => (
+                  <tr key={`auto-${v.annee}`} className="bg-slate-50/60 text-slate-500">
+                    <td className="px-2 py-1.5 font-mono">{v.annee}</td>
+                    <td className="px-2 py-1.5 text-right tabular-nums">
+                      {v.numerateur ?? '—'}
+                    </td>
+                    <td className="px-2 py-1.5 text-right tabular-nums">
+                      {v.denominateur ?? '—'}
+                    </td>
+                    <td className="px-2 py-1.5 text-right font-semibold tabular-nums">
+                      {v.valeur !== null
+                        ? estTaux
+                          ? `${v.valeur} %`
+                          : v.valeur.toLocaleString('fr-FR')
+                        : '—'}
+                    </td>
+                    <td className="px-2 py-1.5 text-center">
+                      <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                        auto BDD
+                      </span>
+                    </td>
+                    {/* Pas de toggle ni suppression pour les lignes auto */}
+                    <td className="px-2 py-1.5 text-center text-[10px] italic text-slate-400">
+                      calculé auto
+                    </td>
+                    <td className="px-2 py-1.5" />
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>

@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { Globe2, Save, Loader2, BarChart3, Info } from 'lucide-react';
+import { Globe2, Save, Loader2, BarChart3, Info, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { enregistrerKpisContexte } from '@/lib/indicateurs-annuels/server-actions';
-import type { KpisContexte } from '@/lib/realisations/queries';
+import type { KpisContexte, KpisContexteAuto } from '@/lib/realisations/queries';
 
 type TypeIndicateur = 'count' | 'rate' | 'score' | 'amount';
 
@@ -14,8 +14,16 @@ type Props = {
   typeInd: TypeIndicateur;
   /** Afficher les champs femmes/jeunes/adultes (indicateurs qui comptent des personnes). */
   afficherVentilateur: boolean;
-  /** Valeurs actuellement en base (null si aucune saisie). */
+  /** Saisie manuelle actuelle en base (null si aucune saisie encore). */
   kpisInit: KpisContexte | null;
+  /**
+   * Valeurs fusionnées (auto BDD prioritaire + saisie manuelle en fallback).
+   * Reflète exactement ce qui est affiché sur la page publique Réalisations.
+   * Utilisé pour pré-remplir les champs auto (pays, femmes, jeunes, adultes)
+   * quand aucune saisie manuelle n'existe encore — l'admin voit ce qui est sur
+   * le front et peut décider de l'ajuster.
+   */
+  kpisMerges?: KpisContexteAuto | null;
   /**
    * TRUE pour A1 et B1 : données principales calculées depuis la BDD auto.
    * Les KPIs ici complètent / corrigent les valeurs auto quand elles sont absentes.
@@ -29,12 +37,36 @@ type Props = {
  *
  * Ces chiffres alimentent la page publique Réalisations pour les indicateurs
  * dont la collecte automatique ne fournit pas encore ces ventilations.
+ *
+ * Règle d'initialisation des champs :
+ *   1. Saisie manuelle existante (kpisInit) → prioritaire
+ *   2. Valeur auto BDD (kpisMerges) → pré-remplissage indicatif
+ *   3. Vide sinon
+ * Ce que l'admin voit = ce qui est actuellement affiché sur le front.
  */
-export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, kpisInit, estAutoBDD = false }: Props) {
-  const [paysCount, setPaysCount] = useState(kpisInit?.pays_count?.toString() ?? '');
-  const [femmesCount, setFemmesCount] = useState(kpisInit?.femmes_count?.toString() ?? '');
-  const [nbJeunes, setNbJeunes] = useState(kpisInit?.nb_jeunes?.toString() ?? '');
-  const [nbAdultes, setNbAdultes] = useState(kpisInit?.nb_adultes?.toString() ?? '');
+export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, kpisInit, kpisMerges, estAutoBDD = false }: Props) {
+  // Pré-remplissage : saisie manuelle > fusion auto/manuel (= valeur du front)
+  const initVal = (
+    manuelVal: number | null | undefined,
+    autoVal: number | null | undefined,
+  ): string => {
+    if (manuelVal !== null && manuelVal !== undefined) return String(manuelVal);
+    if (autoVal !== null && autoVal !== undefined) return String(autoVal);
+    return '';
+  };
+
+  const [paysCount, setPaysCount] = useState(
+    initVal(kpisInit?.pays_count, kpisMerges?.pays_count),
+  );
+  const [femmesCount, setFemmesCount] = useState(
+    initVal(kpisInit?.femmes_count, kpisMerges?.femmes_count),
+  );
+  const [nbJeunes, setNbJeunes] = useState(
+    initVal(kpisInit?.nb_jeunes, kpisMerges?.nb_jeunes),
+  );
+  const [nbAdultes, setNbAdultes] = useState(
+    initVal(kpisInit?.nb_adultes, kpisMerges?.nb_adultes),
+  );
   const [participantsCount, setParticipantsCount] = useState(
     kpisInit?.participants_count?.toString() ?? '',
   );
@@ -48,6 +80,12 @@ export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, k
   const [sourcesPrive, setSourcesPrive] = useState(
     kpisInit?.sources_prive_pct?.toString() ?? '',
   );
+
+  // Indique si un champ provient de la valeur auto BDD (pas de saisie manuelle)
+  const estAutoPaysFront = !kpisInit?.pays_count && !!kpisMerges?.pays_count;
+  const estAutoFemmesFront = !kpisInit?.femmes_count && !!kpisMerges?.femmes_count;
+  const estAutoJeunesFront = !kpisInit?.nb_jeunes && !!kpisMerges?.nb_jeunes;
+  const estAutoAdultesFront = !kpisInit?.nb_adultes && !!kpisMerges?.nb_adultes;
   const [note, setNote] = useState(kpisInit?.note ?? '');
   const [pending, startTransition] = useTransition();
 
@@ -110,6 +148,7 @@ export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, k
             onChange={setPaysCount}
             placeholder="ex. 18"
             disabled={pending}
+            isAuto={estAutoPaysFront}
           />
 
           {/* Femmes — rate, score, count-personnes */}
@@ -120,6 +159,7 @@ export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, k
               onChange={setFemmesCount}
               placeholder="ex. 2325"
               disabled={pending}
+              isAuto={estAutoFemmesFront}
             />
           )}
 
@@ -132,6 +172,7 @@ export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, k
                 onChange={setNbJeunes}
                 placeholder="ex. 1500"
                 disabled={pending}
+                isAuto={estAutoJeunesFront}
               />
               <Field
                 label="Adultes (35 ans et +)"
@@ -139,6 +180,7 @@ export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, k
                 onChange={setNbAdultes}
                 placeholder="ex. 900"
                 disabled={pending}
+                isAuto={estAutoAdultesFront}
               />
             </>
           )}
@@ -249,6 +291,7 @@ function Field({
   disabled,
   min = 0,
   max,
+  isAuto = false,
 }: {
   label: string;
   value: string;
@@ -257,10 +300,20 @@ function Field({
   disabled?: boolean;
   min?: number;
   max?: number;
+  /** TRUE si la valeur vient de la BDD auto (pas encore de saisie manuelle). */
+  isAuto?: boolean;
 }) {
   return (
     <label className="text-xs">
-      <span className="text-slate-600">{label}</span>
+      <span className="flex items-center gap-1 text-slate-600">
+        {label}
+        {isAuto && (
+          <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1 py-0.5 text-[10px] font-medium text-amber-700">
+            <Database className="size-2.5" aria-hidden />
+            auto BDD
+          </span>
+        )}
+      </span>
       <input
         type="number"
         value={value}
@@ -268,7 +321,11 @@ function Field({
         placeholder={placeholder}
         min={min}
         max={max}
-        className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1 text-xs"
+        className={`mt-0.5 w-full rounded border px-2 py-1 text-xs ${
+          isAuto
+            ? 'border-amber-200 bg-amber-50/60 text-amber-900'
+            : 'border-slate-200'
+        }`}
         disabled={disabled}
       />
     </label>

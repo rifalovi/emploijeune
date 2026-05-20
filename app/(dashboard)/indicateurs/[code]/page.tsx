@@ -9,7 +9,7 @@ import {
   getConfigIndicateurs,
   getSaisiesIndicateur,
 } from '@/lib/indicateurs-annuels/queries';
-import { getKpisContexte } from '@/lib/realisations/queries';
+import { getKpisContexte, getKpisContexteAuto, mergerKpisContexte } from '@/lib/realisations/queries';
 import {
   doitAfficherVisualisation,
   type IndicateurAvecValeurs,
@@ -48,12 +48,18 @@ export default async function IndicateurDetailPage({ params }: Props) {
   const ind = indicateurParCode(codeBrut);
   if (!ind) notFound();
 
-  const [payload, config, saisiesBrutes, kpisContexte] = await Promise.all([
+  const [payload, config, saisiesBrutes, kpisContexte, kpisAuto] = await Promise.all([
     getIndicateursAnnuels(),
     getConfigIndicateurs(),
     getSaisiesIndicateur(ind.code),
     getKpisContexte(ind.code),
+    getKpisContexteAuto(ind.code),
   ]);
+
+  // Fusion auto + manuel : reflète exactement ce qui est affiché sur le front public.
+  // Utilisé comme valeurs initiales du formulaire KPIs contextuels pour que l'admin
+  // voie et puisse ajuster ce qui est actuellement visible.
+  const kpisMerges = mergerKpisContexte(kpisAuto, kpisContexte);
 
   if (!payload) {
     return <p className="text-sm text-amber-700">Impossible de charger les indicateurs.</p>;
@@ -206,6 +212,7 @@ export default async function IndicateurDetailPage({ params }: Props) {
           typeInd={INDICATEUR_TYPE_MAP[ind.code] ?? 'count'}
           afficherVentilateur={ind.afficherVentilateurPersonne ?? true}
           kpisInit={kpisContexte}
+          kpisMerges={kpisMerges}
           estAutoBDD={ind.code === 'A1' || ind.code === 'B1'}
         />
       )}
