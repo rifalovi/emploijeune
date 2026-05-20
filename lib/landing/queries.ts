@@ -1,6 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { INDICATEURS } from '@/lib/referentiels/indicateurs';
 
 /**
  * Lecture publique des KPI agrégés pour la vitrine `/`.
@@ -80,6 +81,54 @@ function classifierTrancheAge(
     if (age >= 35) return 'Adulte';
   }
   return null;
+}
+
+/**
+ * Indicateurs sélectionnés pour la vitrine publique.
+ *
+ * Brief 1.5 : la liste est gérée dynamiquement par le super_admin via
+ * `/super-admin/affichage-public`. La table `config_vitrine_indicateurs` stocke
+ * les codes visibles et leur ordre. La RPC `get_indicateurs_vitrine_v1()`
+ * (SECURITY DEFINER, exposée à anon) renvoie pour chacun la valeur agrégée à
+ * afficher. Les métadonnées d'affichage (intitulé, unité) viennent du
+ * référentiel TypeScript hardcodé.
+ */
+export type IndicateurVitrine = {
+  code: string;
+  intitule: string;
+  labelMetrique: string;
+  valeur: number | null;
+  unite: string;
+  ordre: number;
+};
+
+const indicateurVitrineRpcSchema = z.array(
+  z.object({
+    code: z.string(),
+    ordre: z.number(),
+    valeur: z.number().nullable(),
+  }),
+);
+
+export async function getIndicateursVitrine(): Promise<IndicateurVitrine[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('get_indicateurs_vitrine_v1');
+  if (error) return [];
+
+  const parsed = indicateurVitrineRpcSchema.safeParse(data);
+  if (!parsed.success) return [];
+
+  return parsed.data.map((row) => {
+    const meta = INDICATEURS.find((i) => i.code === row.code);
+    return {
+      code: row.code,
+      intitule: meta?.intitule ?? row.code,
+      labelMetrique: meta?.labelMetrique ?? meta?.intitule ?? row.code,
+      valeur: row.valeur,
+      unite: meta?.unitePrincipale ?? '',
+      ordre: row.ordre,
+    };
+  });
 }
 
 export async function getRepartitionTrancheAge(): Promise<RepartitionTrancheAge | null> {

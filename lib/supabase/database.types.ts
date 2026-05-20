@@ -1866,6 +1866,30 @@ export type Database = {
         }
         Relationships: []
       }
+      config_vitrine_indicateurs: {
+        Row: {
+          indicateur_code: string
+          visible: boolean
+          ordre: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          indicateur_code: string
+          visible?: boolean
+          ordre?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          indicateur_code?: string
+          visible?: boolean
+          ordre?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       v_liens_collecte_stats: {
@@ -1960,6 +1984,7 @@ export type Database = {
       }
       get_indicateurs_oif_v1: { Args: { p_periode?: string }; Returns: Json }
       get_kpis_publics_v1: { Args: never; Returns: Json }
+      get_indicateurs_vitrine_v1: { Args: never; Returns: Json }
       get_indicateurs_oif_v1_for_user: {
         Args: { p_target_user_id: string; p_periode?: string }
         Returns: Json

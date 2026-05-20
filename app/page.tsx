@@ -27,7 +27,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { PROGRAMMES_STRATEGIQUES } from '@/lib/design/oif/programmes';
-import { getKpisPublics } from '@/lib/landing/queries';
+import { getKpisPublics, getIndicateursVitrine } from '@/lib/landing/queries';
+import type { IndicateurVitrine } from '@/lib/landing/queries';
 import { getAuthUser } from '@/lib/supabase/auth';
 import { cn } from '@/lib/utils';
 
@@ -76,7 +77,11 @@ const SLIDES = [
 ];
 
 export default async function VitrinePubliquePage() {
-  const [kpis, user] = await Promise.all([getKpisPublics(), getAuthUser()]);
+  const [kpis, indicateursVitrine, user] = await Promise.all([
+    getKpisPublics(),
+    getIndicateursVitrine(),
+    getAuthUser(),
+  ]);
   const isAuthenticated = Boolean(user);
 
   return (
@@ -85,7 +90,7 @@ export default async function VitrinePubliquePage() {
       <HeaderPublic isAuthenticated={isAuthenticated} />
       <HeroAvecCarrousel kpis={kpis} isAuthenticated={isAuthenticated} />
       <Programmes />
-      <KpiCompteurs kpis={kpis} />
+      <KpiCompteurs kpis={kpis} indicateurs={indicateursVitrine} />
       <Methodologie />
       <CadreCommun />
       <Pourquoi />
@@ -215,8 +220,49 @@ function HeroAvecCarrousel({
 // ─────────────────────────────────────────────────────────────────────────────
 // KPI compteurs
 // ─────────────────────────────────────────────────────────────────────────────
-function KpiCompteurs({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPublics>> }) {
+/**
+ * Couleurs cycliques pour les cartes d'indicateurs dynamiques.
+ * Reprend la palette des programmes stratégiques + accent doré.
+ */
+const COULEURS_COMPTEURS = [
+  PROGRAMMES_STRATEGIQUES.PS1.principale,
+  PROGRAMMES_STRATEGIQUES.PS3.principale,
+  PROGRAMMES_STRATEGIQUES.PS2.principale,
+  COULEUR_ACCENT,
+];
+
+function iconePourCode(code: string): typeof Users {
+  switch (code.charAt(0)) {
+    case 'A':
+      return GraduationCap;
+    case 'B':
+      return Briefcase;
+    case 'C':
+      return Network;
+    case 'D':
+      return Target;
+    case 'F':
+      return Sparkles;
+    default:
+      return Users;
+  }
+}
+
+function KpiCompteurs({
+  kpis,
+  indicateurs,
+}: {
+  kpis: Awaited<ReturnType<typeof getKpisPublics>>;
+  indicateurs: IndicateurVitrine[];
+}) {
   if (!kpis) return null;
+  const afficherIndicateurs = indicateurs.length > 0;
+  const gridCols =
+    indicateurs.length >= 6
+      ? 'md:grid-cols-3 lg:grid-cols-6'
+      : indicateurs.length === 5
+        ? 'md:grid-cols-3 lg:grid-cols-5'
+        : 'md:grid-cols-4';
   return (
     <section className="border-b bg-white py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
@@ -228,32 +274,46 @@ function KpiCompteurs({ kpis }: { kpis: Awaited<ReturnType<typeof getKpisPublics
             Période {kpis.annee_couverture_min} à {kpis.annee_couverture_max}.
           </p>
         </div>
-        <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4">
-          <CompteurCarte
-            valeur={kpis.beneficiaires_total.toLocaleString('fr-FR')}
-            libelle="Bénéficiaires accompagnés"
-            icone={Users}
-            couleur={PROGRAMMES_STRATEGIQUES.PS1.principale}
-          />
-          <CompteurCarte
-            valeur={kpis.structures_total.toLocaleString('fr-FR')}
-            libelle="Structures appuyées"
-            icone={Building2}
-            couleur={PROGRAMMES_STRATEGIQUES.PS3.principale}
-          />
-          <CompteurCarte
-            valeur={kpis.pays_total.toString()}
-            libelle="Pays d'intervention"
-            icone={Globe2}
-            couleur={PROGRAMMES_STRATEGIQUES.PS2.principale}
-          />
-          <CompteurCarte
-            valeur={`${kpis.beneficiaires_femmes_pct}\u00a0%`}
-            libelle="de femmes accompagnées"
-            icone={Heart}
-            couleur={COULEUR_ACCENT}
-          />
-        </div>
+        {afficherIndicateurs ? (
+          <div className={cn('mt-12 grid grid-cols-2 gap-6', gridCols)}>
+            {indicateurs.map((ind, i) => (
+              <CompteurCarte
+                key={ind.code}
+                valeur={ind.valeur !== null ? ind.valeur.toLocaleString('fr-FR') : '—'}
+                libelle={ind.labelMetrique}
+                icone={iconePourCode(ind.code)}
+                couleur={COULEURS_COMPTEURS[i % COULEURS_COMPTEURS.length] ?? COULEUR_ACCENT}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4">
+            <CompteurCarte
+              valeur={kpis.beneficiaires_total.toLocaleString('fr-FR')}
+              libelle="Bénéficiaires accompagnés"
+              icone={Users}
+              couleur={PROGRAMMES_STRATEGIQUES.PS1.principale}
+            />
+            <CompteurCarte
+              valeur={kpis.structures_total.toLocaleString('fr-FR')}
+              libelle="Structures appuyées"
+              icone={Building2}
+              couleur={PROGRAMMES_STRATEGIQUES.PS3.principale}
+            />
+            <CompteurCarte
+              valeur={kpis.pays_total.toString()}
+              libelle="Pays d'intervention"
+              icone={Globe2}
+              couleur={PROGRAMMES_STRATEGIQUES.PS2.principale}
+            />
+            <CompteurCarte
+              valeur={`${kpis.beneficiaires_femmes_pct}\u00a0%`}
+              libelle="de femmes accompagnées"
+              icone={Heart}
+              couleur={COULEUR_ACCENT}
+            />
+          </div>
+        )}
         <p className="text-muted-foreground mt-8 text-center text-xs">
           Aucune donnée nominative : chiffres anonymisés conformes RGPD.
         </p>
