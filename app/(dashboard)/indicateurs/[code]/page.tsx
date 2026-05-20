@@ -57,9 +57,8 @@ export default async function IndicateurDetailPage({ params }: Props) {
   ]);
 
   // Fusion auto + manuel : reflète exactement ce qui est affiché sur le front public.
-  // Utilisé comme valeurs initiales du formulaire KPIs contextuels pour que l'admin
-  // voie et puisse ajuster ce qui est actuellement visible.
-  const kpisMerges = mergerKpisContexte(kpisAuto, kpisContexte);
+  // Respecte la préférence de source choisie par l'admin (forcer_manuel).
+  const kpisMerges = mergerKpisContexte(kpisAuto, kpisContexte, kpisContexte?.forcer_manuel ?? false);
 
   if (!payload) {
     return <p className="text-sm text-amber-700">Impossible de charger les indicateurs.</p>;
@@ -214,7 +213,7 @@ export default async function IndicateurDetailPage({ params }: Props) {
           afficherVentilateur={ind.afficherVentilateurPersonne ?? true}
           kpisInit={kpisContexte}
           kpisMerges={kpisMerges}
-          estAutoBDD={ind.code === 'A1' || ind.code === 'B1'}
+          estAutoBDD={ind.code.startsWith('A') || ind.code.startsWith('B')}
         />
       )}
 

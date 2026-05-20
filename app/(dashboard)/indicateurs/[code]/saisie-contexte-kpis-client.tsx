@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Globe2, Save, Loader2, BarChart3, Info, Database } from 'lucide-react';
+import { Globe2, Save, Loader2, BarChart3, Info, Database, PenLine, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { enregistrerKpisContexte } from '@/lib/indicateurs-annuels/server-actions';
 import type { KpisContexte, KpisContexteAuto } from '@/lib/realisations/queries';
@@ -17,16 +17,13 @@ type Props = {
   /** Saisie manuelle actuelle en base (null si aucune saisie encore). */
   kpisInit: KpisContexte | null;
   /**
-   * Valeurs fusionnées (auto BDD prioritaire + saisie manuelle en fallback).
-   * Reflète exactement ce qui est affiché sur la page publique Réalisations.
-   * Utilisé pour pré-remplir les champs auto (pays, femmes, jeunes, adultes)
-   * quand aucune saisie manuelle n'existe encore — l'admin voit ce qui est sur
-   * le front et peut décider de l'ajuster.
+   * Valeurs fusionnées côté serveur avec auto BDD prioritaire.
+   * Reflète exactement ce que le front affiche quand forcer_manuel=false.
    */
   kpisMerges?: KpisContexteAuto | null;
   /**
-   * TRUE pour A1 et B1 : données principales calculées depuis la BDD auto.
-   * Les KPIs ici complètent / corrigent les valeurs auto quand elles sont absentes.
+   * TRUE pour les indicateurs A* et B* : des valeurs auto BDD existent.
+   * Affiche le banner d'information sur la source.
    */
   estAutoBDD?: boolean;
 };
@@ -38,34 +35,47 @@ type Props = {
  * Ces chiffres alimentent la page publique Réalisations pour les indicateurs
  * dont la collecte automatique ne fournit pas encore ces ventilations.
  *
- * Règle d'initialisation des champs :
- *   1. Saisie manuelle existante (kpisInit) → prioritaire
- *   2. Valeur auto BDD (kpisMerges) → pré-remplissage indicatif
- *   3. Vide sinon
- * Ce que l'admin voit = ce qui est actuellement affiché sur le front.
+ * Règle d'affichage des champs (dépend du toggle source) :
+ *   - Mode Auto BDD  → valeur fusionnée kpisMerges (= ce qu'affiche le front)
+ *   - Mode Manuel    → valeur kpisInit (saisie manuelle brute)
+ * Le toggle est persisté en base via forcer_manuel dans kpis_contexte_indicateurs.
  */
 export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, kpisInit, kpisMerges, estAutoBDD = false }: Props) {
-  // Pré-remplissage : saisie manuelle > fusion auto/manuel (= valeur du front)
-  const initVal = (
+
+  // ── Source prioritaire ────────────────────────────────────────────────────
+  // forcerManuel=false → auto BDD prime (comportement par défaut)
+  // forcerManuel=true  → saisie manuelle prime
+  const [forcerManuel, setForcerManuel] = useState(kpisInit?.forcer_manuel ?? false);
+
+  /**
+   * Retourne la valeur à afficher dans un champ selon le mode actif :
+   *   - Mode Auto BDD  → valeur fusionnée (kpisMerges = auto prio)
+   *   - Mode Manuel    → valeur manuelle (kpisInit)
+   */
+  const getVal = (
+    mergedVal: number | null | undefined,
     manuelVal: number | null | undefined,
-    autoVal: number | null | undefined,
+    modeManuel: boolean,
   ): string => {
+    if (modeManuel) {
+      return manuelVal !== null && manuelVal !== undefined ? String(manuelVal) : '';
+    }
+    if (mergedVal !== null && mergedVal !== undefined) return String(mergedVal);
     if (manuelVal !== null && manuelVal !== undefined) return String(manuelVal);
-    if (autoVal !== null && autoVal !== undefined) return String(autoVal);
     return '';
   };
 
-  const [paysCount, setPaysCount] = useState(
-    initVal(kpisInit?.pays_count, kpisMerges?.pays_count),
+  const [paysCount, setPaysCount] = useState(() =>
+    getVal(kpisMerges?.pays_count, kpisInit?.pays_count, kpisInit?.forcer_manuel ?? false),
   );
-  const [femmesCount, setFemmesCount] = useState(
-    initVal(kpisInit?.femmes_count, kpisMerges?.femmes_count),
+  const [femmesCount, setFemmesCount] = useState(() =>
+    getVal(kpisMerges?.femmes_count, kpisInit?.femmes_count, kpisInit?.forcer_manuel ?? false),
   );
-  const [nbJeunes, setNbJeunes] = useState(
-    initVal(kpisInit?.nb_jeunes, kpisMerges?.nb_jeunes),
+  const [nbJeunes, setNbJeunes] = useState(() =>
+    getVal(kpisMerges?.nb_jeunes, kpisInit?.nb_jeunes, kpisInit?.forcer_manuel ?? false),
   );
-  const [nbAdultes, setNbAdultes] = useState(
-    initVal(kpisInit?.nb_adultes, kpisMerges?.nb_adultes),
+  const [nbAdultes, setNbAdultes] = useState(() =>
+    getVal(kpisMerges?.nb_adultes, kpisInit?.nb_adultes, kpisInit?.forcer_manuel ?? false),
   );
   const [participantsCount, setParticipantsCount] = useState(
     kpisInit?.participants_count?.toString() ?? '',
@@ -80,13 +90,39 @@ export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, k
   const [sourcesPrive, setSourcesPrive] = useState(
     kpisInit?.sources_prive_pct?.toString() ?? '',
   );
-
-  // Indique si un champ provient de la valeur auto BDD (pas de saisie manuelle)
-  const estAutoPaysFront = !kpisInit?.pays_count && !!kpisMerges?.pays_count;
-  const estAutoFemmesFront = !kpisInit?.femmes_count && !!kpisMerges?.femmes_count;
-  const estAutoJeunesFront = !kpisInit?.nb_jeunes && !!kpisMerges?.nb_jeunes;
-  const estAutoAdultesFront = !kpisInit?.nb_adultes && !!kpisMerges?.nb_adultes;
   const [note, setNote] = useState(kpisInit?.note ?? '');
+
+  // Quand le toggle change, recalculer les valeurs des 4 champs auto/manuel
+  useEffect(() => {
+    setPaysCount(getVal(kpisMerges?.pays_count, kpisInit?.pays_count, forcerManuel));
+    setFemmesCount(getVal(kpisMerges?.femmes_count, kpisInit?.femmes_count, forcerManuel));
+    setNbJeunes(getVal(kpisMerges?.nb_jeunes, kpisInit?.nb_jeunes, forcerManuel));
+    setNbAdultes(getVal(kpisMerges?.nb_adultes, kpisInit?.nb_adultes, forcerManuel));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forcerManuel]);
+
+  /**
+   * Badge ambre "auto BDD" : visible en mode Auto BDD quand la valeur auto
+   * diffère de la saisie manuelle (l'auto écrase le manuel).
+   * En mode Manuel, aucun badge (le champ est librement éditable).
+   */
+  const estAutoPaysFront =
+    !forcerManuel &&
+    (kpisMerges?.pays_count ?? null) !== null &&
+    (kpisMerges?.pays_count ?? null) !== (kpisInit?.pays_count ?? null);
+  const estAutoFemmesFront =
+    !forcerManuel &&
+    (kpisMerges?.femmes_count ?? null) !== null &&
+    (kpisMerges?.femmes_count ?? null) !== (kpisInit?.femmes_count ?? null);
+  const estAutoJeunesFront =
+    !forcerManuel &&
+    (kpisMerges?.nb_jeunes ?? null) !== null &&
+    (kpisMerges?.nb_jeunes ?? null) !== (kpisInit?.nb_jeunes ?? null);
+  const estAutoAdultesFront =
+    !forcerManuel &&
+    (kpisMerges?.nb_adultes ?? null) !== null &&
+    (kpisMerges?.nb_adultes ?? null) !== (kpisInit?.nb_adultes ?? null);
+
   const [pending, startTransition] = useTransition();
 
   const handleSave = () => {
@@ -103,39 +139,88 @@ export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, k
         sources_public_pct: sourcesPublicPct ? Number(sourcesPublicPct) : null,
         sources_prive_pct: sourcesPrive ? Number(sourcesPrive) : null,
         note: note || null,
+        forcer_manuel: forcerManuel,
       });
 
       if (res.status === 'erreur') {
         toast.error(`Échec : ${res.message}`);
         return;
       }
-      toast.success(`KPIs contextuels de ${code} enregistrés.`);
+      toast.success(`KPIs contextuels de ${code} enregistrés (source : ${forcerManuel ? 'Manuel' : 'Auto BDD'}).`);
     });
   };
 
   return (
     <section className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
-      <header className="mb-3 flex items-center gap-2">
-        <Globe2 className="size-4 text-emerald-700" aria-hidden />
-        <h2 className="text-sm font-semibold text-emerald-900">
-          KPIs contextuels — page publique Réalisations
-        </h2>
+      <header className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Globe2 className="size-4 text-emerald-700" aria-hidden />
+          <h2 className="text-sm font-semibold text-emerald-900">
+            KPIs contextuels — page publique Réalisations
+          </h2>
+        </div>
+
+        {/* Toggle source prioritaire — visible pour tous les indicateurs */}
+        <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5 text-xs shadow-sm">
+          <button
+            type="button"
+            onClick={() => setForcerManuel(false)}
+            disabled={pending}
+            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-medium transition-colors disabled:opacity-50 ${
+              !forcerManuel
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+            title="Auto BDD : les valeurs calculées depuis la base de données prennent la priorité"
+          >
+            <Cpu className="size-3" aria-hidden />
+            Auto BDD
+          </button>
+          <button
+            type="button"
+            onClick={() => setForcerManuel(true)}
+            disabled={pending}
+            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-medium transition-colors disabled:opacity-50 ${
+              forcerManuel
+                ? 'bg-slate-700 text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+            title="Manuel : votre saisie prend la priorité sur les valeurs automatiques"
+          >
+            <PenLine className="size-3" aria-hidden />
+            Manuel
+          </button>
+        </div>
       </header>
 
-      {estAutoBDD ? (
+      {/* Banner contextuel selon la source active */}
+      {estAutoBDD && !forcerManuel ? (
         <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-100 px-3 py-2 text-xs text-emerald-900">
           <Info className="mt-0.5 size-3.5 shrink-0 text-emerald-700" aria-hidden />
           <span>
-            Cet indicateur est alimenté <strong>automatiquement</strong> depuis la BDD. Les valeurs
-            ici servent de <strong>complément ou fallback</strong> si certains champs auto sont
-            absents (ex.&nbsp;: pays non encore calculé).
+            Source active&nbsp;: <strong>Auto BDD</strong>. Les valeurs calculées depuis la BDD
+            ont la priorité. Les champs avec le badge{' '}
+            <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1 py-0.5 font-medium text-amber-700">
+              <Database className="size-2.5" aria-hidden />
+              auto BDD
+            </span>{' '}
+            reflètent la valeur réelle affichée sur le front. Passez en{' '}
+            <strong>Manuel</strong> pour forcer vos propres chiffres.
+          </span>
+        </div>
+      ) : estAutoBDD && forcerManuel ? (
+        <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+          <PenLine className="mt-0.5 size-3.5 shrink-0 text-slate-500" aria-hidden />
+          <span>
+            Source active&nbsp;: <strong>Manuel</strong>. Votre saisie prend la priorité sur les
+            valeurs auto BDD pour cet indicateur. Les champs vides utilisent la valeur auto en
+            fallback.
           </span>
         </div>
       ) : (
         <p className="text-xs text-emerald-900">
           Ces chiffres complètent la page publique de l&apos;indicateur (pays couverts, femmes,
-          répartition…). Ils sont affichés à des fins de présentation en attendant les données de
-          collecte automatique.
+          répartition…). Aucune source auto disponible — votre saisie sera utilisée directement.
         </p>
       )}
 

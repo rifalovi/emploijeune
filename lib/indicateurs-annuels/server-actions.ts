@@ -211,6 +211,8 @@ const kpisContexteSchema = z.object({
   sources_public_pct: z.coerce.number().int().min(0).max(100).nullable().optional(),
   sources_prive_pct: z.coerce.number().int().min(0).max(100).nullable().optional(),
   note: z.string().max(500).nullable().optional(),
+  /** Source prioritaire : FALSE = auto BDD (défaut), TRUE = saisie manuelle. */
+  forcer_manuel: z.boolean().default(false),
 });
 
 export type KpisContexteResult =

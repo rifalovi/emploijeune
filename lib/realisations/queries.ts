@@ -70,6 +70,11 @@ export type KpisContexte = {
   sources_public_pct: number | null;
   sources_prive_pct: number | null;
   note: string | null;
+  /**
+   * Si TRUE, la saisie manuelle prend la priorité sur les valeurs auto BDD
+   * dans mergerKpisContexte(). Défaut FALSE = auto BDD prioritaire.
+   */
+  forcer_manuel: boolean;
 };
 
 /**
@@ -185,15 +190,31 @@ export async function getKpisContexteAuto(code: string): Promise<KpisContexteAut
 }
 
 /**
- * Fusionne les KPI contextuels selon la règle plateforme :
+ * Fusionne les KPIs contextuels selon la source choisie par l'admin :
+ *
+ * forcerManuel = FALSE (défaut — auto BDD prioritaire) :
  *   1. Auto BDD (prioritaire dès qu'une valeur existe)
- *   2. Saisie manuelle (kpis_contexte_indicateurs) — fallback temporaire
- *   3. null sinon (le front masque ou affiche 0 selon le cas)
+ *   2. Saisie manuelle — fallback si champ auto absent
+ *   3. null sinon
+ *
+ * forcerManuel = TRUE (saisie manuelle prioritaire) :
+ *   1. Saisie manuelle (prioritaire)
+ *   2. Auto BDD — fallback si champ manuel absent
+ *   3. null sinon
  */
 export function mergerKpisContexte(
   auto: KpisContexteAuto,
   manuel: KpisContexte | null,
+  forcerManuel = false,
 ): KpisContexteAuto {
+  if (forcerManuel) {
+    return {
+      pays_count: manuel?.pays_count ?? auto.pays_count ?? null,
+      femmes_count: manuel?.femmes_count ?? auto.femmes_count ?? null,
+      nb_jeunes: manuel?.nb_jeunes ?? auto.nb_jeunes ?? null,
+      nb_adultes: manuel?.nb_adultes ?? auto.nb_adultes ?? null,
+    };
+  }
   return {
     pays_count: auto.pays_count ?? manuel?.pays_count ?? null,
     femmes_count: auto.femmes_count ?? manuel?.femmes_count ?? null,

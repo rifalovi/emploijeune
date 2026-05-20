@@ -277,14 +277,14 @@ export default async function IndicateurRealisationPage({ params }: Props) {
     donneesReelles = valeursPubliees.length > 0;
   }
 
-  // KPIs contextuels — auto BDD prioritaire, fallback saisie manuelle.
-  // Règle plateforme : dès qu'une donnée auto existe, elle remplace la saisie
-  // manuelle. Pas encore de source auto → on lit kpis_contexte_indicateurs.
+  // KPIs contextuels — source déterminée par le flag forcer_manuel de l'admin.
+  // forcer_manuel=FALSE (défaut) : auto BDD prioritaire, saisie manuelle en fallback.
+  // forcer_manuel=TRUE           : saisie manuelle prioritaire, auto BDD en fallback.
   const [kpisContexte, kpisAuto] = await Promise.all([
-    ind.code !== 'A1' ? getKpisContexte(ind.code) : Promise.resolve(null),
+    getKpisContexte(ind.code),
     getKpisContexteAuto(ind.code),
   ]);
-  const kpisFusion = mergerKpisContexte(kpisAuto, kpisContexte);
+  const kpisFusion = mergerKpisContexte(kpisAuto, kpisContexte, kpisContexte?.forcer_manuel ?? false);
 
   const fictif = !donneesReelles;
 
