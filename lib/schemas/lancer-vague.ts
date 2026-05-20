@@ -15,7 +15,7 @@ import { PROJETS_CODES, PAYS_CODES } from '@/lib/schemas/nomenclatures';
 import { VAGUES_ENQUETE_VALUES } from '@/lib/schemas/enquetes/nomenclatures';
 
 export const lancerVagueSchema = z.object({
-  questionnaire: z.enum(['A', 'B']),
+  questionnaire: z.enum(['A', 'B', 'C']),
   vague_enquete: z.enum([...VAGUES_ENQUETE_VALUES] as [string, ...string[]]).default('ponctuelle'),
   /** Filtre projet optionnel — si absent, prend toutes les cibles du périmètre. */
   projet_code: z.enum([...PROJETS_CODES] as [string, ...string[]]).optional(),

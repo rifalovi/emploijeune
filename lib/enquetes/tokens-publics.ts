@@ -12,8 +12,10 @@ import type { Json } from '@/lib/supabase/database.types';
 import {
   soumissionQuestionnaireASchema,
   soumissionQuestionnaireBSchema,
+  soumissionQuestionnaireCSchema,
   type SoumissionQuestionnaireAOutput,
   type SoumissionQuestionnaireBOutput,
+  type SoumissionQuestionnaireCOutput,
 } from '@/lib/schemas/enquetes/schemas';
 import { INDICATEURS_PAR_QUESTIONNAIRE } from '@/lib/schemas/enquetes/nomenclatures';
 
@@ -23,9 +25,9 @@ import { INDICATEURS_PAR_QUESTIONNAIRE } from '@/lib/schemas/enquetes/nomenclatu
 
 const EXPIRATION_PAR_DEFAUT_JOURS = 30;
 
-/** Détail public d'une cible (rendu côté formulaire sans révéler de PII). */
+/** Detail public d'une cible (rendu cote formulaire sans reveler de PII). */
 export type CibleTokenDetail = {
-  questionnaire: 'A' | 'B';
+  questionnaire: 'A' | 'B' | 'C';
   cible_libelle: string;
   /**
    * UUID de la cible (bénéficiaire ou structure). Indispensable côté client
@@ -87,7 +89,7 @@ export async function validerToken(token: string): Promise<ValiderTokenResult> {
   return {
     status: 'valide',
     cible: {
-      questionnaire: data.questionnaire as 'A' | 'B',
+      questionnaire: data.questionnaire as 'A' | 'B' | 'C',
       cible_libelle: cibleLibelle,
       cible_id: cibleId,
       projet_code: data.projet_code,
@@ -119,8 +121,14 @@ export type GenererTokenInput = {
   cibleId: string;
   vagueEnquete?: string;
   expirationJours?: number;
-  /** Email à utiliser pour notification ; si absent, on tente de le déduire de la cible. */
+  /** Email a utiliser pour notification ; si absent, on tente de le deduire de la cible. */
   emailDestinataire?: string;
+  /**
+   * Code questionnaire explicite (A, B ou C).
+   * Si absent : derive de cibleType (beneficiaire->A, structure->B).
+   * Passer 'C' pour un questionnaire C (intermediation) sur beneficiaire.
+   */
+  questionnaire?: 'A' | 'B' | 'C';
 };
 
 /**
@@ -142,7 +150,9 @@ export async function genererTokenEnquete(input: GenererTokenInput): Promise<Gen
   }
 
   const supabase = await createSupabaseServerClient();
-  const questionnaire: 'A' | 'B' = input.cibleType === 'beneficiaire' ? 'A' : 'B';
+  // Questionnaire explicite en priorite ; sinon derive de cibleType (historique).
+  const questionnaire: 'A' | 'B' | 'C' =
+    input.questionnaire ?? (input.cibleType === 'beneficiaire' ? 'A' : 'B');
 
   // Récupère cible (RLS-safe) pour projet + nom + email destinataire potentiel
   let projetCible: string | null = null;
@@ -280,7 +290,10 @@ export type SoumissionPubliqueResult =
  */
 export async function soumettreEnquetePublique(
   token: string,
-  payload: SoumissionQuestionnaireAOutput | SoumissionQuestionnaireBOutput,
+  payload:
+    | SoumissionQuestionnaireAOutput
+    | SoumissionQuestionnaireBOutput
+    | SoumissionQuestionnaireCOutput,
 ): Promise<SoumissionPubliqueResult> {
   if (!/^[0-9a-f]{32}$/.test(token)) return { status: 'erreur_token' };
 
@@ -310,9 +323,13 @@ export async function soumettreEnquetePublique(
     return { status: 'erreur_token' };
   }
 
-  // Étape 3 : validation Zod côté serveur
+  // Etape 3 : validation Zod cote serveur
   const schema =
-    payload.questionnaire === 'A' ? soumissionQuestionnaireASchema : soumissionQuestionnaireBSchema;
+    payload.questionnaire === 'A'
+      ? soumissionQuestionnaireASchema
+      : payload.questionnaire === 'C'
+        ? soumissionQuestionnaireCSchema
+        : soumissionQuestionnaireBSchema;
   const parse = schema.safeParse(payload);
   if (!parse.success) {
     return {
@@ -322,10 +339,12 @@ export async function soumettreEnquetePublique(
   }
   const data = parse.data;
 
-  // Étape 4 : construire les lignes reponses_enquetes
+  // Etape 4 : construire les lignes reponses_enquetes
   const sessionId = crypto.randomUUID();
   const dateCollecte = data.date_collecte.toISOString().slice(0, 10);
-  const beneficiaireId = data.questionnaire === 'A' ? data.cible_id : null;
+  // A et C ciblent les beneficiaires ; B cible les structures.
+  const beneficiaireId =
+    data.questionnaire === 'A' || data.questionnaire === 'C' ? data.cible_id : null;
   const structureId = data.questionnaire === 'B' ? data.cible_id : null;
   const indicateurs = INDICATEURS_PAR_QUESTIONNAIRE[data.questionnaire];
 
@@ -356,6 +375,27 @@ export async function soumettreEnquetePublique(
           break;
         case 'C5':
           donnees = { ...dA.c5 };
+          break;
+      }
+    } else if (data.questionnaire === 'C') {
+      const dC = data as SoumissionQuestionnaireCOutput;
+      switch (code) {
+        case 'C1':
+          donnees = { ...dC.c1 };
+          break;
+        case 'C2':
+          donnees = { ...dC.c2 };
+          break;
+        case 'C4':
+          donnees = { ...dC.c4 };
+          break;
+        case 'C5':
+          donnees = {
+            ...dC.c5,
+            effets_impacts: dC.effets_impacts,
+            observations: dC.observations_libres,
+            temoignage: dC.temoignage,
+          };
           break;
       }
     } else {
@@ -390,6 +430,7 @@ export async function soumettreEnquetePublique(
       vague_enquete: tokenRow.vague_enquete,
       canal_collecte: tokenRow.canal_collecte,
       session_enquete_id: sessionId,
+      questionnaire_code: data.questionnaire,
       lien_public_token: token,
     };
   });

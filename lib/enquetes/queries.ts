@@ -8,7 +8,7 @@ import type { EnqueteFilters } from '@/lib/schemas/enquetes/schemas';
  */
 export type SessionEnqueteDetail = {
   session_id: string;
-  questionnaire: 'A' | 'B' | null;
+  questionnaire: 'A' | 'B' | 'C' | null;
   beneficiaire_id: string | null;
   structure_id: string | null;
   cible_libelle: string | null;
@@ -39,7 +39,7 @@ export async function getSessionEnqueteById(
     .from('reponses_enquetes')
     .select(
       `
-      id, indicateur_code, donnees,
+      id, indicateur_code, donnees, questionnaire_code,
       beneficiaire_id, structure_id, projet_code,
       vague_enquete, canal_collecte, date_collecte,
       created_at, updated_at, created_by, deleted_at,
@@ -71,11 +71,16 @@ export async function getSessionEnqueteById(
     : premiereLigne.projet;
 
   const cible_libelle = ben ? `${ben.prenom} ${ben.nom}` : (str?.nom_structure ?? null);
-  const questionnaire: 'A' | 'B' | null = premiereLigne.beneficiaire_id
-    ? 'A'
-    : premiereLigne.structure_id
-      ? 'B'
-      : null;
+  // Utilise questionnaire_code si disponible (lignes depuis V2 migration C),
+  // sinon fallback sur l'inference historique beneficiaire=A / structure=B.
+  const qCode = (premiereLigne as Record<string, unknown>).questionnaire_code as string | null;
+  const questionnaire: 'A' | 'B' | 'C' | null = qCode
+    ? (qCode as 'A' | 'B' | 'C')
+    : premiereLigne.beneficiaire_id
+      ? 'A'
+      : premiereLigne.structure_id
+        ? 'B'
+        : null;
 
   return {
     session_id: sessionId,
@@ -106,7 +111,7 @@ export type SessionEnqueteListItem = {
   beneficiaire_id: string | null;
   structure_id: string | null;
   cible_libelle: string | null;
-  questionnaire: 'A' | 'B' | null;
+  questionnaire: 'A' | 'B' | 'C' | null;
   projet_code: string | null;
   programme_strategique: string | null;
   vague_enquete: string;

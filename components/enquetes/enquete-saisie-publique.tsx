@@ -12,19 +12,20 @@ import { questionEstVisible } from '@/lib/schemas/enquetes/moteur-regles';
 import {
   soumissionQuestionnaireASchema,
   soumissionQuestionnaireBSchema,
+  soumissionQuestionnaireCSchema,
 } from '@/lib/schemas/enquetes/schemas';
 import { soumettreEnquetePublique } from '@/lib/enquetes/tokens-publics';
 
 export type EnqueteSaisiePubliqueProps = {
   token: string;
-  questionnaire: 'A' | 'B';
+  questionnaire: 'A' | 'B' | 'C';
   cibleId: string;
   cibleLibelle: string;
 };
 
 type PayloadEnquete = Record<string, unknown>;
 
-function payloadInitial(questionnaire: 'A' | 'B'): PayloadEnquete {
+function payloadInitial(questionnaire: 'A' | 'B' | 'C'): PayloadEnquete {
   if (questionnaire === 'A') {
     return {
       consentement_repondant: true,
@@ -34,6 +35,15 @@ function payloadInitial(questionnaire: 'A' | 'B'): PayloadEnquete {
       a5: {},
       f1: {},
       c5: { source_questionnaire: 'A' },
+    };
+  }
+  if (questionnaire === 'C') {
+    return {
+      consentement_repondant: true,
+      c1: {},
+      c2: {},
+      c4: {},
+      c5: { source_questionnaire: 'C' },
     };
   }
   return {
@@ -115,7 +125,11 @@ export function EnqueteSaisiePublique({
     };
 
     const schema =
-      questionnaire === 'A' ? soumissionQuestionnaireASchema : soumissionQuestionnaireBSchema;
+      questionnaire === 'A'
+        ? soumissionQuestionnaireASchema
+        : questionnaire === 'C'
+          ? soumissionQuestionnaireCSchema
+          : soumissionQuestionnaireBSchema;
     const parse = schema.safeParse(payloadAvecMeta);
 
     if (!parse.success) {

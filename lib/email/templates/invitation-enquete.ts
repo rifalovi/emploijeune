@@ -10,14 +10,15 @@ import { boutonCta, escapeHtml, footerTexte, wrapperHtml, type TemplateEmail } f
 export type InvitationEnqueteArgs = {
   cibleLibelle: string;
   nomProjet?: string | null;
-  questionnaire: 'A' | 'B';
+  questionnaire: 'A' | 'B' | 'C';
   url: string;
   expireAt: Date;
 };
 
 export function templateInvitationEnquete(args: InvitationEnqueteArgs): TemplateEmail {
   const subject = `Enquête OIF Emploi Jeunes : votre avis compte`;
-  const dureeMin = args.questionnaire === 'A' ? '5 à 10' : '5 à 8';
+  const dureeMin =
+    args.questionnaire === 'A' ? '5 à 10' : args.questionnaire === 'C' ? '4 à 8' : '5 à 8';
   const dateFr = args.expireAt.toLocaleDateString('fr-FR', { dateStyle: 'long' });
   const projetTxt = args.nomProjet ? ` (projet ${escapeHtml(args.nomProjet)})` : '';
   const projetTexteBrut = args.nomProjet ? ` (projet ${args.nomProjet})` : '';

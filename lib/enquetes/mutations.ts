@@ -6,8 +6,10 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
   soumissionQuestionnaireASchema,
   soumissionQuestionnaireBSchema,
+  soumissionQuestionnaireCSchema,
   type SoumissionQuestionnaireAOutput,
   type SoumissionQuestionnaireBOutput,
+  type SoumissionQuestionnaireCOutput,
 } from '@/lib/schemas/enquetes/schemas';
 import { INDICATEURS_PAR_QUESTIONNAIRE } from '@/lib/schemas/enquetes/nomenclatures';
 import type { Json } from '@/lib/supabase/database.types';
@@ -35,10 +37,17 @@ export type ResultatSoumissionEnquete =
  * encore des réponses d'enquête en V1 (Étape 9 fera l'agrégation).
  */
 export async function soumettreEnquete(
-  payload: SoumissionQuestionnaireAOutput | SoumissionQuestionnaireBOutput,
+  payload:
+    | SoumissionQuestionnaireAOutput
+    | SoumissionQuestionnaireBOutput
+    | SoumissionQuestionnaireCOutput,
 ): Promise<ResultatSoumissionEnquete> {
   const schema =
-    payload.questionnaire === 'A' ? soumissionQuestionnaireASchema : soumissionQuestionnaireBSchema;
+    payload.questionnaire === 'A'
+      ? soumissionQuestionnaireASchema
+      : payload.questionnaire === 'C'
+        ? soumissionQuestionnaireCSchema
+        : soumissionQuestionnaireBSchema;
   const parse = schema.safeParse(payload);
   if (!parse.success) {
     return {
@@ -53,10 +62,9 @@ export async function soumettreEnquete(
 
   const supabase = await createSupabaseServerClient();
 
-  // Récupère le projet_code de la cible pour le copier sur les lignes
-  // (utile pour les filtres / agrégations sans JOIN systématique).
+  // Recupere le projet_code de la cible (beneficiaire pour A/C, structure pour B).
   let projetCible: string | null = null;
-  if (data.questionnaire === 'A') {
+  if (data.questionnaire === 'A' || data.questionnaire === 'C') {
     const { data: b, error } = await supabase
       .from('beneficiaires')
       .select('projet_code')
@@ -67,7 +75,7 @@ export async function soumettreEnquete(
       return {
         status: 'erreur',
         message:
-          'Bénéficiaire introuvable ou hors de votre périmètre. Vérifiez votre accès puis réessayez.',
+          'Beneficiaire introuvable ou hors de votre perimetre. Verifiez votre acces puis reessayez.',
       };
     }
     projetCible = b.projet_code;
@@ -82,7 +90,7 @@ export async function soumettreEnquete(
       return {
         status: 'erreur',
         message:
-          'Structure introuvable ou hors de votre périmètre. Vérifiez votre accès puis réessayez.',
+          'Structure introuvable ou hors de votre perimetre. Verifiez votre acces puis reessayez.',
       };
     }
     projetCible = s.projet_code;
@@ -90,9 +98,11 @@ export async function soumettreEnquete(
 
   const sessionId = randomUUID();
   const dateCollecte = data.date_collecte.toISOString().slice(0, 10);
-  const cibleColumn = data.questionnaire === 'A' ? 'beneficiaire_id' : 'structure_id';
+  // A et C ciblent les beneficiaires ; B cible les structures.
+  const cibleColumn =
+    data.questionnaire === 'A' || data.questionnaire === 'C' ? 'beneficiaire_id' : 'structure_id';
 
-  // Construit les N lignes — 1 par indicateur du questionnaire.
+  // Construit les N lignes -- 1 par indicateur du questionnaire.
   const indicateurs = INDICATEURS_PAR_QUESTIONNAIRE[data.questionnaire];
   type LigneInsert = {
     indicateur_code: string;
@@ -104,6 +114,7 @@ export async function soumettreEnquete(
     vague_enquete: string;
     canal_collecte: string;
     session_enquete_id: string;
+    questionnaire_code: string;
     lien_public_token: null;
   };
 
@@ -134,6 +145,27 @@ export async function soumettreEnquete(
           break;
         case 'C5':
           donnees = { ...dA.c5 };
+          break;
+      }
+    } else if (data.questionnaire === 'C') {
+      const dC = data as SoumissionQuestionnaireCOutput;
+      switch (code) {
+        case 'C1':
+          donnees = { ...dC.c1 };
+          break;
+        case 'C2':
+          donnees = { ...dC.c2 };
+          break;
+        case 'C4':
+          donnees = { ...dC.c4 };
+          break;
+        case 'C5':
+          donnees = {
+            ...dC.c5,
+            effets_impacts: dC.effets_impacts,
+            observations: dC.observations_libres,
+            temoignage: dC.temoignage,
+          };
           break;
       }
     } else {
@@ -168,6 +200,7 @@ export async function soumettreEnquete(
       vague_enquete: data.vague_enquete,
       canal_collecte: data.canal_collecte,
       session_enquete_id: sessionId,
+      questionnaire_code: data.questionnaire,
       lien_public_token: null,
     } as LigneInsert;
   });
@@ -196,6 +229,7 @@ export async function soumettreEnquete(
         | 'sms'
         | 'whatsapp',
       session_enquete_id: l.session_enquete_id,
+      questionnaire_code: l.questionnaire_code,
     })),
   );
 

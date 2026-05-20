@@ -55,7 +55,7 @@ export async function apercuVagueEnquete(
 
   const supabase = await createSupabaseServerClient();
 
-  if (input.questionnaire === 'A') {
+  if (input.questionnaire === 'A' || input.questionnaire === 'C') {
     let q = supabase
       .from('beneficiaires')
       .select('id, courriel, consentement_recueilli', { count: 'exact' })
@@ -119,7 +119,7 @@ export async function lancerVagueEnquete(raw: unknown): Promise<LancerVagueResul
   type Cible = { id: string; libelle: string; email: string | null };
   let cibles: Cible[] = [];
 
-  if (data.questionnaire === 'A') {
+  if (data.questionnaire === 'A' || data.questionnaire === 'C') {
     let q = supabase
       .from('beneficiaires')
       .select('id, prenom, nom, courriel, consentement_recueilli')
@@ -172,10 +172,12 @@ export async function lancerVagueEnquete(raw: unknown): Promise<LancerVagueResul
     }
 
     const result = await genererTokenEnquete({
-      cibleType: data.questionnaire === 'A' ? 'beneficiaire' : 'structure',
+      cibleType:
+        data.questionnaire === 'A' || data.questionnaire === 'C' ? 'beneficiaire' : 'structure',
       cibleId: cible.id,
       vagueEnquete: data.vague_enquete,
       emailDestinataire,
+      questionnaire: data.questionnaire,
     });
 
     if (result.status === 'succes') {

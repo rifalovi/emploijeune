@@ -35,6 +35,10 @@ import {
   Q_A409_PROPORTION_AUGMENTATION_LIBELLES,
   Q_B211_TYPE_EMPLOI_VALUES,
   Q_B211_TYPE_EMPLOI_LIBELLES,
+  Q_C102_TYPE_INTERMEDIATION_VALUES,
+  Q_C102_TYPE_INTERMEDIATION_LIBELLES,
+  Q_C105_DELAI_PLACEMENT_VALUES,
+  Q_C105_DELAI_PLACEMENT_LIBELLES,
 } from './nomenclatures';
 
 export type QuestionType =
@@ -77,7 +81,7 @@ export type Section = {
 };
 
 export type Questionnaire = {
-  code: 'A' | 'B';
+  code: 'A' | 'B' | 'C';
   titre: string;
   /** Indicateurs cibles (ordre = ordre d'affichage dans la fiche). */
   indicateurs: ReadonlyArray<string>;
@@ -480,8 +484,127 @@ export const QUESTIONNAIRE_B: Questionnaire = {
   ],
 };
 
-/** Accès indexé par code pour rendu dynamique. */
-export const QUESTIONNAIRES: Record<'A' | 'B', Questionnaire> = {
+// =============================================================================
+// QUESTIONNAIRE C -- beneficiaires (intermediation, 11 questions, 2 sections)
+// =============================================================================
+
+export const QUESTIONNAIRE_C: Questionnaire = {
+  code: 'C',
+  titre: 'Questionnaire C \u2013 B\u00e9n\u00e9ficiaires (interm\u00e9diation vers l\'emploi)',
+  indicateurs: ['C1', 'C2', 'C4', 'C5'],
+  introduction:
+    'Enqu\u00eate de suivi adress\u00e9e aux jeunes ayant b\u00e9n\u00e9fici\u00e9 d\'un service d\'interm\u00e9diation vers l\'emploi via un projet OIF. Donn\u00e9es strictement confidentielles, trait\u00e9es de mani\u00e8re anonyme conform\u00e9ment au secret statistique.',
+  sections: [
+    {
+      id: 'C_INTERMEDIATION',
+      titre: 'Acc\u00e8s au service d\'interm\u00e9diation',
+      description: 'Indicateurs C1 (volume b\u00e9n\u00e9ficiaires) et C2 (taux de placement).',
+      questions: [
+        {
+          id: 'C101',
+          type: 'oui_non',
+          libelle:
+            'Avez-vous b\u00e9n\u00e9fici\u00e9 d\'un service d\'interm\u00e9diation vers l\'emploi dans le cadre du projet ?',
+          champ_payload: 'c1.a_beneficie',
+          obligatoire: true,
+        },
+        {
+          id: 'C102',
+          type: 'choix_unique',
+          libelle: 'Quel type de service d\'interm\u00e9diation avez-vous re\u00e7u ?',
+          champ_payload: 'c1.type_intermediation',
+          options: toOptions(Q_C102_TYPE_INTERMEDIATION_VALUES, Q_C102_TYPE_INTERMEDIATION_LIBELLES),
+          affiche_si: { champ_payload: 'c1.a_beneficie', valeur_egale: true },
+        },
+        {
+          id: 'C103',
+          type: 'texte_court',
+          libelle: 'Si autre, merci de pr\u00e9ciser le service re\u00e7u',
+          champ_payload: 'c1.type_intermediation_autre',
+          affiche_si: { champ_payload: 'c1.type_intermediation', valeur_egale: 'AUTRE' },
+        },
+        {
+          id: 'C104',
+          type: 'oui_non',
+          libelle:
+            'Avez-vous \u00e9t\u00e9 plac\u00e9(e) en emploi \u00e0 la suite de ce service d\'interm\u00e9diation ?',
+          champ_payload: 'c2.a_ete_place',
+          obligatoire: true,
+          affiche_si: { champ_payload: 'c1.a_beneficie', valeur_egale: true },
+        },
+        {
+          id: 'C105',
+          type: 'annee',
+          libelle: 'En quelle ann\u00e9e avez-vous acc\u00e9d\u00e9 \u00e0 cet emploi ?',
+          champ_payload: 'c2.annee_placement',
+          affiche_si: { champ_payload: 'c2.a_ete_place', valeur_egale: true },
+        },
+        {
+          id: 'C106',
+          type: 'choix_unique',
+          libelle: 'Quelle est la nature de l\'emploi obtenu apr\u00e8s l\'interm\u00e9diation ?',
+          champ_payload: 'c2.nature_emploi',
+          options: toOptions(Q_A405_NATURE_ACTIVITE_VALUES, Q_A405_NATURE_ACTIVITE_LIBELLES),
+          affiche_si: { champ_payload: 'c2.a_ete_place', valeur_egale: true },
+        },
+      ],
+    },
+    {
+      id: 'C_DELAI_SATISFACTION',
+      titre: 'D\u00e9lai d\'acc\u00e8s et satisfaction',
+      description: 'Indicateurs C4 (d\u00e9lai moyen) et C5 (satisfaction).',
+      questions: [
+        {
+          id: 'C201',
+          type: 'choix_unique',
+          libelle:
+            'Quel est le d\u00e9lai estim\u00e9 entre le d\u00e9but de l\'accompagnement et votre placement en emploi ?',
+          champ_payload: 'c4.delai_placement',
+          options: toOptions(Q_C105_DELAI_PLACEMENT_VALUES, Q_C105_DELAI_PLACEMENT_LIBELLES),
+          affiche_si: { champ_payload: 'c2.a_ete_place', valeur_egale: true },
+          aide: 'Indicateur C4 \u2013 d\u00e9lai moyen entre accompagnement et placement.',
+        },
+        {
+          id: 'C202',
+          type: 'echelle',
+          libelle: '\u00cates-vous satisfait(e) du service d\'interm\u00e9diation re\u00e7u ?',
+          champ_payload: 'c5.satisfaction',
+          options: toOptions(ECHELLE_SATISFACTION_VALUES, ECHELLE_SATISFACTION_LIBELLES),
+          obligatoire: true,
+        },
+        {
+          id: 'C203',
+          type: 'texte_long',
+          libelle: 'Si non satisfait(e), pourquoi ?',
+          champ_payload: 'c5.raison_insatisfaction',
+          affiche_si: { champ_payload: 'c5.satisfaction', valeur_egale: 'PAS_DU_TOUT' },
+        },
+        {
+          id: 'C301',
+          type: 'texte_long',
+          libelle: 'Quels sont les principaux effets et impacts constat\u00e9s \u00e0 la suite de l\'appui ?',
+          champ_payload: 'effets_impacts',
+        },
+        {
+          id: 'C302',
+          type: 'texte_long',
+          libelle: 'Avez-vous des observations ou suggestions ?',
+          champ_payload: 'observations_libres',
+        },
+        {
+          id: 'C303',
+          type: 'texte_long',
+          libelle: 'Avez-vous un t\u00e9moignage \u00e0 partager ?',
+          champ_payload: 'temoignage',
+        },
+      ],
+    },
+  ],
+};
+
+/** Acces indexe par code pour rendu dynamique. */
+export const QUESTIONNAIRES: Record<'A' | 'B' | 'C', Questionnaire> = {
   A: QUESTIONNAIRE_A,
   B: QUESTIONNAIRE_B,
+  C: QUESTIONNAIRE_C,
 };

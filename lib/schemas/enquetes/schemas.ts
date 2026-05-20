@@ -27,6 +27,8 @@ import {
   Q_A408_EVOLUTION_REVENU_VALUES,
   Q_A409_PROPORTION_AUGMENTATION_VALUES,
   Q_B211_TYPE_EMPLOI_VALUES,
+  Q_C102_TYPE_INTERMEDIATION_VALUES,
+  Q_C105_DELAI_PLACEMENT_VALUES,
   VAGUES_ENQUETE_VALUES,
   CANAUX_COLLECTE_VALUES,
 } from './nomenclatures';
@@ -218,15 +220,15 @@ export const f1Schema = z.object({
 });
 
 /**
- * Indicateur C5 — Satisfaction / utilité (dérivé).
- * Source A : Q A209 + A210. Source B : Q B304.
+ * Indicateur C5 — Satisfaction / utilite (derive).
+ * Source A : Q A209 + A210. Source B : Q B304. Source C : Q C202 + C203.
  */
 export const c5Schema = z
   .object({
     satisfaction: z.enum([...ECHELLE_SATISFACTION_VALUES] as [string, ...string[]]),
     raison_insatisfaction: optionalString(2000),
-    /** 'A' ou 'B' — utilisé en aval pour traçabilité de la dérivation. */
-    source_questionnaire: z.enum(['A', 'B']),
+    /** 'A', 'B' ou 'C' -- utilise en aval pour tracabilite de la derivation. */
+    source_questionnaire: z.enum(['A', 'B', 'C']),
   })
   .superRefine((data, ctx) => {
     if (data.satisfaction === 'PAS_DU_TOUT' && !data.raison_insatisfaction) {
@@ -352,7 +354,81 @@ export const b4Schema = z
   });
 
 // =============================================================================
-// Schémas de soumission complète (questionnaire entier)
+// QUESTIONNAIRE C -- schemas par indicateur
+// =============================================================================
+
+/**
+ * Indicateur C1 -- Volume de beneficiaires ayant beneficie d'une intermediation.
+ * Source : Q C101, C102, C103.
+ */
+export const c1Schema = z
+  .object({
+    a_beneficie: z.boolean(), // Q C101
+    type_intermediation: z
+      .enum([...Q_C102_TYPE_INTERMEDIATION_VALUES] as [string, ...string[]])
+      .optional(), // Q C102
+    type_intermediation_autre: optionalString(200), // Q C103 (si AUTRE)
+  })
+  .superRefine((data, ctx) => {
+    if (data.a_beneficie && !data.type_intermediation) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['type_intermediation'],
+        message: 'Type d\'intermediation obligatoire si vous avez beneficie du service',
+      });
+    }
+    if (data.type_intermediation === 'AUTRE' && !data.type_intermediation_autre) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['type_intermediation_autre'],
+        message: 'Precisez le type d\'intermediation lorsque vous choisissez Autre',
+      });
+    }
+  });
+
+/**
+ * Indicateur C2 -- Taux de placement apres intermediation.
+ * Source : Q C104, C105, C106.
+ */
+export const c2Schema = z
+  .object({
+    a_ete_place: z.boolean(), // Q C104
+    annee_placement: optionalAnneeRecente, // Q C105 (si place)
+    nature_emploi: z
+      .enum([...Q_A405_NATURE_ACTIVITE_VALUES] as [string, ...string[]])
+      .optional(), // Q C106 (si place)
+  })
+  .superRefine((data, ctx) => {
+    if (data.a_ete_place) {
+      if (!data.annee_placement) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['annee_placement'],
+          message: 'Annee de placement obligatoire',
+        });
+      }
+      if (!data.nature_emploi) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['nature_emploi'],
+          message: 'Nature de l\'emploi obligatoire',
+        });
+      }
+    }
+  });
+
+/**
+ * Indicateur C4 -- Delai moyen entre accompagnement et placement.
+ * Source : Q C201.
+ */
+export const c4Schema = z.object({
+  delai_placement: z
+    .enum([...Q_C105_DELAI_PLACEMENT_VALUES] as [string, ...string[]])
+    .optional(), // Q C201 (si place)
+});
+
+// =============================================================================
+// Schemas de soumission complete (questionnaire entier)
 // =============================================================================
 
 /** Champs métadonnées partagés entre toutes les soumissions. */
@@ -386,7 +462,7 @@ export const soumissionQuestionnaireASchema = baseSoumission.extend({
 });
 
 /**
- * Soumission Questionnaire B : agrège B2/B3/B4/C5 + métadonnées
+ * Soumission Questionnaire B : agrege B2/B3/B4/C5 + metadonnees
  * (cible_id = structure UUID).
  */
 export const soumissionQuestionnaireBSchema = baseSoumission.extend({
@@ -397,10 +473,24 @@ export const soumissionQuestionnaireBSchema = baseSoumission.extend({
   c5: c5Schema,
 });
 
+/**
+ * Soumission Questionnaire C : agrege C1/C2/C4/C5 + metadonnees
+ * (cible_id = beneficiaire UUID, comme A).
+ */
+export const soumissionQuestionnaireCSchema = baseSoumission.extend({
+  questionnaire: z.literal('C'),
+  c1: c1Schema,
+  c2: c2Schema,
+  c4: c4Schema,
+  c5: c5Schema,
+});
+
 export type SoumissionQuestionnaireA = z.input<typeof soumissionQuestionnaireASchema>;
 export type SoumissionQuestionnaireAOutput = z.output<typeof soumissionQuestionnaireASchema>;
 export type SoumissionQuestionnaireB = z.input<typeof soumissionQuestionnaireBSchema>;
 export type SoumissionQuestionnaireBOutput = z.output<typeof soumissionQuestionnaireBSchema>;
+export type SoumissionQuestionnaireC = z.input<typeof soumissionQuestionnaireCSchema>;
+export type SoumissionQuestionnaireCOutput = z.output<typeof soumissionQuestionnaireCSchema>;
 
 // =============================================================================
 // Filtres de la liste enquêtes (utilisés par /enquetes en 6c)
@@ -421,7 +511,7 @@ export const enqueteFiltersSchema = z.object({
     .optional(),
 
   questionnaire: z
-    .union([z.enum(['A', 'B']), z.literal('tous'), z.literal(''), z.null(), z.undefined()])
+    .union([z.enum(['A', 'B', 'C']), z.literal('tous'), z.literal(''), z.null(), z.undefined()])
     .transform((v) => (v === '' || v === null || v === 'tous' ? undefined : v))
     .optional(),
 

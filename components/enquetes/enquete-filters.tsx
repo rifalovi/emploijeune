@@ -90,6 +90,7 @@ export function EnqueteFilters({ projets }: EnqueteFiltersProps) {
           options={[
             { code: 'A', libelle: 'A – Bénéficiaires' },
             { code: 'B', libelle: 'B – Structures' },
+            { code: 'C', libelle: 'C – Bénéficiaires (intermédiation)' },
           ]}
           onChange={(v) => setParams({ questionnaire: v })}
         />

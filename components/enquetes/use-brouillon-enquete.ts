@@ -32,7 +32,7 @@ type StoredDraft<T> = {
 };
 
 export function useBrouillonEnquete<T extends Record<string, unknown>>(
-  questionnaire: 'A' | 'B',
+  questionnaire: 'A' | 'B' | 'C',
   cibleId: string,
   initial: T,
 ): {

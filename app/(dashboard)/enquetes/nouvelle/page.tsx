@@ -12,24 +12,27 @@ export const metadata: Metadata = {
 };
 
 type PageProps = {
-  searchParams: Promise<{ cible_type?: string; cible_id?: string }>;
+  searchParams: Promise<{ cible_type?: string; cible_id?: string; questionnaire?: string }>;
 };
 
 /**
  * Page de saisie d'un nouveau questionnaire d'enquête (Étape 6d).
  *
  * Paramètres URL requis :
- *   - cible_type=beneficiaire → questionnaire A (indicateurs A2/A3/A4/A5/F1/C5)
+ *   - cible_type=beneficiaire → questionnaire A par défaut, ou C si ?questionnaire=C
  *   - cible_type=structure   → questionnaire B (indicateurs B2/B3/B4/C5)
  *   - cible_id=UUID
  *
+ * Paramètre optionnel :
+ *   - questionnaire=C → force le questionnaire C (intermédiation) sur une
+ *     fiche bénéficiaire (utile depuis le bouton CTA de la fiche bénéficiaire)
+ *
  * Sans paramètres : affiche une carte d'aide indiquant comment lancer
- * une enquête depuis une fiche bénéficiaire ou structure (CTA pages
- * détail à brancher en 6e).
+ * une enquête depuis une fiche bénéficiaire ou structure.
  */
 export default async function NouvelleEnquetePage({ searchParams }: PageProps) {
   await requireUtilisateurValide();
-  const { cible_type, cible_id } = await searchParams;
+  const { cible_type, cible_id, questionnaire: questionnaireParam } = await searchParams;
 
   if (!cible_type || !cible_id) {
     return <SansCible />;
@@ -42,6 +45,19 @@ export default async function NouvelleEnquetePage({ searchParams }: PageProps) {
     !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(cible_id)
   ) {
     notFound();
+  }
+
+  // Détermine le questionnaire :
+  //   - structure → toujours B
+  //   - beneficiaire + ?questionnaire=C → C (intermédiation vers l'emploi)
+  //   - beneficiaire sinon → A (insertion / formation)
+  let questionnaire: 'A' | 'B' | 'C';
+  if (cible_type === 'structure') {
+    questionnaire = 'B';
+  } else if (questionnaireParam === 'C') {
+    questionnaire = 'C';
+  } else {
+    questionnaire = 'A';
   }
 
   // Vérifie l'accès RLS à la cible (si l'utilisateur ne la voit pas, 404
@@ -68,8 +84,6 @@ export default async function NouvelleEnquetePage({ searchParams }: PageProps) {
   }
 
   if (!cibleLibelle) notFound();
-
-  const questionnaire: 'A' | 'B' = cible_type === 'beneficiaire' ? 'A' : 'B';
 
   return (
     <div className="space-y-6">

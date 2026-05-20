@@ -32,11 +32,12 @@ import {
 import {
   soumissionQuestionnaireASchema,
   soumissionQuestionnaireBSchema,
+  soumissionQuestionnaireCSchema,
 } from '@/lib/schemas/enquetes/schemas';
 import { soumettreEnquete } from '@/lib/enquetes/mutations';
 
 export type EnqueteSaisieProps = {
-  questionnaire: 'A' | 'B';
+  questionnaire: 'A' | 'B' | 'C';
   cibleId: string;
   cibleLibelle: string;
 };
@@ -55,9 +56,9 @@ export type EnqueteSaisieProps = {
 
 type PayloadEnquete = Record<string, unknown>;
 
-// Valeurs par défaut pour ne pas avoir des champs `undefined` dans le payload
-// initial — facilite la lecture dans le moteur de règles `affiche_si`.
-function payloadInitial(questionnaire: 'A' | 'B'): PayloadEnquete {
+// Valeurs par defaut pour ne pas avoir des champs `undefined` dans le payload
+// initial -- facilite la lecture dans le moteur de regles `affiche_si`.
+function payloadInitial(questionnaire: 'A' | 'B' | 'C'): PayloadEnquete {
   if (questionnaire === 'A') {
     return {
       consentement_repondant: true,
@@ -67,6 +68,15 @@ function payloadInitial(questionnaire: 'A' | 'B'): PayloadEnquete {
       a5: {},
       f1: {},
       c5: { source_questionnaire: 'A' },
+    };
+  }
+  if (questionnaire === 'C') {
+    return {
+      consentement_repondant: true,
+      c1: {},
+      c2: {},
+      c4: {},
+      c5: { source_questionnaire: 'C' },
     };
   }
   return {
@@ -148,7 +158,11 @@ export function EnqueteSaisie({ questionnaire, cibleId, cibleLibelle }: EnqueteS
     };
 
     const schema =
-      questionnaire === 'A' ? soumissionQuestionnaireASchema : soumissionQuestionnaireBSchema;
+      questionnaire === 'A'
+        ? soumissionQuestionnaireASchema
+        : questionnaire === 'C'
+          ? soumissionQuestionnaireCSchema
+          : soumissionQuestionnaireBSchema;
     const parse = schema.safeParse(payloadAvecMeta);
 
     if (!parse.success) {

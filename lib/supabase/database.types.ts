@@ -973,6 +973,7 @@ export type Database = {
           indicateur_code: string
           lien_public_token: string | null
           projet_code: string | null
+          questionnaire_code: string | null
           session_enquete_id: string | null
           structure_id: string | null
           updated_at: string
@@ -991,6 +992,7 @@ export type Database = {
           indicateur_code: string
           lien_public_token?: string | null
           projet_code?: string | null
+          questionnaire_code?: string | null
           session_enquete_id?: string | null
           structure_id?: string | null
           updated_at?: string
@@ -1009,6 +1011,7 @@ export type Database = {
           indicateur_code?: string
           lien_public_token?: string | null
           projet_code?: string | null
+          questionnaire_code?: string | null
           session_enquete_id?: string | null
           structure_id?: string | null
           updated_at?: string
@@ -1052,7 +1055,7 @@ export type Database = {
           cible_type: 'beneficiaire' | 'structure'
           beneficiaire_id: string | null
           structure_id: string | null
-          questionnaire: 'A' | 'B'
+          questionnaire: 'A' | 'B' | 'C'
           vague_enquete: Database["public"]["Enums"]["vague_enquete"]
           canal_collecte: Database["public"]["Enums"]["canal_collecte"]
           projet_code: string | null
@@ -1070,7 +1073,7 @@ export type Database = {
           cible_type: 'beneficiaire' | 'structure'
           beneficiaire_id?: string | null
           structure_id?: string | null
-          questionnaire: 'A' | 'B'
+          questionnaire: 'A' | 'B' | 'C'
           vague_enquete?: Database["public"]["Enums"]["vague_enquete"]
           canal_collecte?: Database["public"]["Enums"]["canal_collecte"]
           projet_code?: string | null
@@ -1088,7 +1091,7 @@ export type Database = {
           cible_type?: 'beneficiaire' | 'structure'
           beneficiaire_id?: string | null
           structure_id?: string | null
-          questionnaire?: 'A' | 'B'
+          questionnaire?: 'A' | 'B' | 'C'
           vague_enquete?: Database["public"]["Enums"]["vague_enquete"]
           canal_collecte?: Database["public"]["Enums"]["canal_collecte"]
           projet_code?: string | null
@@ -1429,7 +1432,7 @@ export type Database = {
           id: string
           nom: string
           description: string | null
-          questionnaire: 'A' | 'B'
+          questionnaire: 'A' | 'B' | 'C'
           type_vague: string
           mode_selection: 'toutes' | 'filtres' | 'manuelle'
           filtres: Json
@@ -1451,7 +1454,7 @@ export type Database = {
           id?: string
           nom: string
           description?: string | null
-          questionnaire: 'A' | 'B'
+          questionnaire: 'A' | 'B' | 'C'
           type_vague: string
           mode_selection: 'toutes' | 'filtres' | 'manuelle'
           filtres?: Json
@@ -1473,7 +1476,7 @@ export type Database = {
           id?: string
           nom?: string
           description?: string | null
-          questionnaire?: 'A' | 'B'
+          questionnaire?: 'A' | 'B' | 'C'
           type_vague?: string
           mode_selection?: 'toutes' | 'filtres' | 'manuelle'
           filtres?: Json

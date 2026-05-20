@@ -190,6 +190,48 @@ export const Q_A409_PROPORTION_AUGMENTATION_LIBELLES: Record<
 };
 
 // =============================================================================
+// QUESTIONNAIRE C — beneficiaires (intermediation, 11 questions, 2 sections)
+// =============================================================================
+
+/** Q C102 — Type de service d'intermediation recu. */
+export const Q_C102_TYPE_INTERMEDIATION_VALUES = [
+  'SPE_PUBLIC',     // Service public de l'emploi (ANPE, ANEJ, OFPE, etc.)
+  'CABINET_PRIVE',  // Cabinet de placement prive / consultant
+  'PLATEFORME_NUM', // Plateforme numerique (job board, appli mobile)
+  'RESEAU_PROF',    // Reseau professionnel / bouche-a-oreille
+  'ONG_ASSO',       // ONG ou association d'accompagnement
+  'AUTRE',          // Autre
+] as const;
+export type Q_C102_TypeIntermediation = (typeof Q_C102_TYPE_INTERMEDIATION_VALUES)[number];
+
+export const Q_C102_TYPE_INTERMEDIATION_LIBELLES: Record<Q_C102_TypeIntermediation, string> = {
+  SPE_PUBLIC: 'Service public de l\'emploi (ANPE, ANEJ, OFPE, etc.)',
+  CABINET_PRIVE: 'Cabinet de placement prive ou consultant RH',
+  PLATEFORME_NUM: 'Plateforme numerique (job board, application mobile)',
+  RESEAU_PROF: 'Reseau professionnel (reseau de diplomes, bouche-a-oreille)',
+  ONG_ASSO: 'ONG ou association d\'accompagnement a l\'emploi',
+  AUTRE: 'Autre',
+};
+
+/** Q C105 — Delai entre accompagnement et placement (indicateur C4). */
+export const Q_C105_DELAI_PLACEMENT_VALUES = [
+  'MOINS_1_MOIS',
+  'DE_1_A_3_MOIS',
+  'DE_3_A_6_MOIS',
+  'DE_6_A_12_MOIS',
+  'PLUS_12_MOIS',
+] as const;
+export type Q_C105_DelaiPlacement = (typeof Q_C105_DELAI_PLACEMENT_VALUES)[number];
+
+export const Q_C105_DELAI_PLACEMENT_LIBELLES: Record<Q_C105_DelaiPlacement, string> = {
+  MOINS_1_MOIS: 'Moins de 1 mois',
+  DE_1_A_3_MOIS: 'De 1 a 3 mois',
+  DE_3_A_6_MOIS: 'De 3 a 6 mois',
+  DE_6_A_12_MOIS: 'De 6 a 12 mois',
+  PLUS_12_MOIS: 'Plus de 12 mois',
+};
+
+// =============================================================================
 // QUESTIONNAIRE B — structures (22 questions, 3 sections)
 // =============================================================================
 
@@ -221,17 +263,20 @@ export const Q_B211_TYPE_EMPLOI_LIBELLES: Record<Q_B211_TypeEmploi, string> = {
 export const INDICATEURS_PAR_QUESTIONNAIRE = {
   A: ['A2', 'A3', 'A4', 'A5', 'F1', 'C5'] as const,
   B: ['B2', 'B3', 'B4', 'C5'] as const,
+  C: ['C1', 'C2', 'C4', 'C5'] as const,
 } as const;
 
 export type CodeQuestionnaire = keyof typeof INDICATEURS_PAR_QUESTIONNAIRE;
 export type IndicateurCible =
   | (typeof INDICATEURS_PAR_QUESTIONNAIRE)['A'][number]
-  | (typeof INDICATEURS_PAR_QUESTIONNAIRE)['B'][number];
+  | (typeof INDICATEURS_PAR_QUESTIONNAIRE)['B'][number]
+  | (typeof INDICATEURS_PAR_QUESTIONNAIRE)['C'][number];
 
 /** Libellés humains des questionnaires (UI). */
 export const QUESTIONNAIRE_LIBELLES: Record<CodeQuestionnaire, string> = {
-  A: 'Questionnaire A – Bénéficiaires (formation et insertion)',
-  B: 'Questionnaire B – Structures (survie et emplois)',
+  A: 'Questionnaire A \u2013 B\u00e9n\u00e9ficiaires (formation et insertion)',
+  B: 'Questionnaire B \u2013 Structures (survie et emplois)',
+  C: 'Questionnaire C \u2013 B\u00e9n\u00e9ficiaires (interm\u00e9diation vers l\'emploi)',
 };
 
 // =============================================================================

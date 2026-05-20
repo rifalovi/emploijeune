@@ -77,7 +77,7 @@ export const creerCampagneSchema = z
       .max(2000, 'La description est trop longue (max 2000 caractères)')
       .optional()
       .transform((v) => (v && v.trim() !== '' ? v.trim() : undefined)),
-    questionnaire: z.enum(['A', 'B']),
+    questionnaire: z.enum(['A', 'B', 'C']),
     type_vague: z.enum([...VAGUES_ENQUETE_VALUES] as [string, ...string[]]).default('ponctuelle'),
     mode_selection: z.enum([...MODES_SELECTION] as [string, ...string[]]),
     filtres: z.record(z.string(), z.unknown()).default({}),
@@ -149,9 +149,15 @@ export type LancerCampagneResult =
  * Génère un libellé descriptif de la strate à partir des filtres.
  * Ex: « Bénéficiaires PROJ_A14 + Mali + 2024 + Formés »
  */
-export function resumerStrate(questionnaire: 'A' | 'B', filtres: Record<string, unknown>): string {
+export function resumerStrate(questionnaire: 'A' | 'B' | 'C', filtres: Record<string, unknown>): string {
   const morceaux: string[] = [];
-  morceaux.push(questionnaire === 'A' ? 'Bénéficiaires' : 'Structures');
+  morceaux.push(
+    questionnaire === 'A'
+      ? 'Bénéficiaires'
+      : questionnaire === 'C'
+        ? 'Bénéficiaires (intermédiation)'
+        : 'Structures',
+  );
 
   const projets = (filtres.projets as string[] | undefined) ?? [];
   if (projets.length > 0) morceaux.push(projets.join(', '));
@@ -160,10 +166,10 @@ export function resumerStrate(questionnaire: 'A' | 'B', filtres: Record<string, 
   if (pays.length > 0) morceaux.push(pays.join(', '));
 
   const annees =
-    (filtres[questionnaire === 'A' ? 'annees' : 'annees_appui'] as number[] | undefined) ?? [];
+    (filtres[questionnaire === 'B' ? 'annees_appui' : 'annees'] as number[] | undefined) ?? [];
   if (annees.length > 0) morceaux.push(annees.join(', '));
 
-  if (questionnaire === 'A') {
+  if (questionnaire === 'A' || questionnaire === 'C') {
     const sexe = filtres.sexe as string | undefined;
     if (sexe) morceaux.push(sexe === 'F' ? 'Femmes' : sexe === 'M' ? 'Hommes' : 'Autre');
 
