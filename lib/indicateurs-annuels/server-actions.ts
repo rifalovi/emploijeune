@@ -243,7 +243,7 @@ export async function enregistrerKpisContexte(
       indicateur_code: code,
       ...champs,
       updated_at: new Date().toISOString(),
-      updated_by: utilisateur.id,
+      updated_by: utilisateur.user_id,
     },
     { onConflict: 'indicateur_code' },
   );
