@@ -85,8 +85,8 @@ export async function enregistrerSaisieValeur(
   payload: z.infer<typeof saisieSchema>,
 ): Promise<SaisieValeurResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
-    return { status: 'erreur', message: 'Réservé aux administrateurs SCS et super_admin.' };
+  if (!utilisateur || utilisateur.role !== 'super_admin') {
+    return { status: 'erreur', message: 'Réservé au super_admin.' };
   }
 
   const parsed = saisieSchema.safeParse(payload);
@@ -136,8 +136,8 @@ export async function supprimerSaisieValeur(
   payload: z.infer<typeof suppressionSchema>,
 ): Promise<SaisieValeurResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
-    return { status: 'erreur', message: 'Réservé aux administrateurs SCS et super_admin.' };
+  if (!utilisateur || utilisateur.role !== 'super_admin') {
+    return { status: 'erreur', message: 'Réservé au super_admin.' };
   }
 
   const parsed = suppressionSchema.safeParse(payload);
@@ -173,8 +173,8 @@ export async function basculerPubliSaisieValeur(
   payload: z.infer<typeof publicationSchema>,
 ): Promise<SaisieValeurResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
-    return { status: 'erreur', message: 'Réservé aux administrateurs SCS et super_admin.' };
+  if (!utilisateur || utilisateur.role !== 'super_admin') {
+    return { status: 'erreur', message: 'Réservé au super_admin.' };
   }
 
   const parsed = publicationSchema.safeParse(payload);
@@ -225,8 +225,8 @@ export async function enregistrerKpisContexte(
   payload: z.infer<typeof kpisContexteSchema>,
 ): Promise<KpisContexteResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
-    return { status: 'erreur', message: 'Réservé aux administrateurs SCS et super_admin.' };
+  if (!utilisateur || utilisateur.role !== 'super_admin') {
+    return { status: 'erreur', message: 'Réservé au super_admin.' };
   }
 
   const parsed = kpisContexteSchema.safeParse(payload);
@@ -285,8 +285,8 @@ export async function basculerMasquageAnnee(
   payload: z.infer<typeof masquageAnneeSchema>,
 ): Promise<MasquageAnneeResult> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
-    return { status: 'erreur', message: 'Réservé aux administrateurs SCS et super_admin.' };
+  if (!utilisateur || utilisateur.role !== 'super_admin') {
+    return { status: 'erreur', message: 'Réservé au super_admin.' };
   }
 
   const parsed = masquageAnneeSchema.safeParse(payload);
@@ -295,11 +295,13 @@ export async function basculerMasquageAnnee(
   }
 
   const { code, annee, masquer } = parsed.data;
-  // Utilise le client admin : la RPC n'est pas encore dans les types générés
-  // (sera résolu après `supabase gen types` post-migration)
-  const admin = createSupabaseAdminClient();
+  // Utilise le client SERVEUR (pas admin) : la RPC SECURITY DEFINER vérifie
+  // auth.uid() — le client admin (service_role) ne transmet pas le token
+  // utilisateur, ce qui ferait retourner 'non_authentifie' par la RPC.
+  // L'autorisation est déjà vérifiée ci-dessus (getCurrentUtilisateur).
+  const supabase = await createSupabaseServerClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (admin as any).rpc('masquer_annee_indicateur', {
+  const { data, error } = await (supabase as any).rpc('masquer_annee_indicateur', {
     p_code: code,
     p_annee: annee,
     p_masquer: masquer,

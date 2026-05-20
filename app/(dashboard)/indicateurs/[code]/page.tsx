@@ -193,8 +193,8 @@ export default async function IndicateurDetailPage({ params }: Props) {
         />
       )}
 
-      {/* Saisie manuelle des valeurs — admin_scs / super_admin */}
-      {(utilisateur.role === 'admin_scs' || isSuperAdmin) && (
+      {/* Saisie manuelle des valeurs — super_admin uniquement */}
+      {isSuperAdmin && (
         <SaisieValeursClient
           code={ind.code}
           valeursExistantes={valeurs.valeurs_par_annee}
@@ -206,8 +206,8 @@ export default async function IndicateurDetailPage({ params }: Props) {
         />
       )}
 
-      {/* KPIs contextuels pour la page publique Réalisations — admin_scs / super_admin */}
-      {(utilisateur.role === 'admin_scs' || isSuperAdmin) && (
+      {/* KPIs contextuels pour la page publique Réalisations — super_admin uniquement */}
+      {isSuperAdmin && (
         <SaisieContexteKpisClient
           code={ind.code}
           typeInd={INDICATEUR_TYPE_MAP[ind.code] ?? 'count'}
