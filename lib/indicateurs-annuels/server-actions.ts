@@ -255,3 +255,66 @@ export async function enregistrerKpisContexte(
 
   return { status: 'succes', code };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Masquage d'années auto-BDD (A1 / B1 / B4)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const masquageAnneeSchema = z.object({
+  code: z.enum(['A1', 'B1', 'B4']),
+  annee: z.number().int().min(2020).max(2040),
+  masquer: z.boolean(),
+});
+
+export type MasquageAnneeResult =
+  | { status: 'succes'; code: string; annee: number; masque: boolean }
+  | { status: 'erreur'; message: string };
+
+/**
+ * Masque ou démasque une année auto-BDD (A1/B1/B4) de la page publique.
+ *
+ * - Les admins voient toujours toutes les années (avec badge "masqué").
+ * - Le public ne reçoit pas les années masquées dans la RPC.
+ *
+ * Cas d'usage : masquer une année partielle (ex. 2026 avec seulement
+ * 2 bénéficiaires en cours d'année) pour éviter un chiffre trompeur.
+ *
+ * 🟡 Risque modéré : invalide le cache de la page publique (revalidatePath).
+ */
+export async function basculerMasquageAnnee(
+  payload: z.infer<typeof masquageAnneeSchema>,
+): Promise<MasquageAnneeResult> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
+    return { status: 'erreur', message: 'Réservé aux administrateurs SCS et super_admin.' };
+  }
+
+  const parsed = masquageAnneeSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { status: 'erreur', message: parsed.error.issues[0]?.message ?? 'Payload invalide.' };
+  }
+
+  const { code, annee, masquer } = parsed.data;
+  // Utilise le client admin : la RPC n'est pas encore dans les types générés
+  // (sera résolu après `supabase gen types` post-migration)
+  const admin = createSupabaseAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (admin as any).rpc('masquer_annee_indicateur', {
+    p_code: code,
+    p_annee: annee,
+    p_masquer: masquer,
+  });
+
+  if (error) return { status: 'erreur', message: (error as { message: string }).message };
+
+  const res = (data ?? null) as { erreur?: string; succes?: boolean } | null;
+  if (res?.erreur) return { status: 'erreur', message: res.erreur };
+
+  // Invalider le cache de la page publique ET de l'admin
+  const pilier = code[0]?.toLowerCase() ?? 'a';
+  revalidatePath(`/realisations/${pilier}/${code.toLowerCase()}`);
+  revalidatePath('/realisations');
+  revalidatePath('/');
+
+  return { status: 'succes', code, annee, masque: masquer };
+}

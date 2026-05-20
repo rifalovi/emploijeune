@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import { toast } from 'sonner';
 import {
   Plus,
@@ -9,14 +9,17 @@ import {
   Loader2,
   Pencil,
   EyeOff,
+  Eye,
   CheckCircle2,
   AlertTriangle,
+  PenLine,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   enregistrerSaisieValeur,
   supprimerSaisieValeur,
   basculerPubliSaisieValeur,
+  basculerMasquageAnnee,
 } from '@/lib/indicateurs-annuels/server-actions';
 import type { ValeurAnnee, SaisieIndicateurBrute } from '@/lib/indicateurs-annuels/types';
 
@@ -35,6 +38,11 @@ type Props = {
   /** Année min/max autorisées. */
   anneeMin: number;
   anneeMax: number;
+  /**
+   * Années masquées du front public pour les indicateurs auto-BDD (A1/B1/B4).
+   * Ces années restent visibles pour l'admin mais sont cachées aux visiteurs.
+   */
+  anneesMasquees?: number[];
 };
 
 /**
@@ -56,13 +64,17 @@ export function SaisieValeursClient({
   estTaux,
   anneeMin,
   anneeMax,
+  anneesMasquees = [],
 }: Props) {
+  // Seuls A1, B1, B4 supportent le masquage par année
+  const supporteMasquage = ['A1', 'B1', 'B4'].includes(code);
   const [annee, setAnnee] = useState<number>(anneeMax);
   const [numerateur, setNumerateur] = useState<string>('');
   const [denominateur, setDenominateur] = useState<string>('');
   const [valeurDirecte, setValeurDirecte] = useState<string>('');
   const [note, setNote] = useState<string>('');
   const [pending, startTransition] = useTransition();
+  const formRef = useRef<HTMLDivElement>(null);
 
   const handleSave = () => {
     if (!estTaux && !valeurDirecte && !numerateur) {
@@ -125,6 +137,45 @@ export function SaisieValeursClient({
           : `Saisie ${code} ${anneeABasculer} dépubliée (brouillon).`,
       );
     });
+  };
+
+  const handleToggleMasquage = (anneeACibler: number, estMasquee: boolean) => {
+    if (!['A1', 'B1', 'B4'].includes(code)) return;
+    startTransition(async () => {
+      const res = await basculerMasquageAnnee({
+        code: code as 'A1' | 'B1' | 'B4',
+        annee: anneeACibler,
+        masquer: !estMasquee,
+      });
+      if (res.status === 'erreur') {
+        toast.error(`Échec : ${res.message}`);
+        return;
+      }
+      toast.success(
+        !estMasquee
+          ? `Année ${anneeACibler} masquée du front public.`
+          : `Année ${anneeACibler} réactivée sur le front public.`,
+      );
+    });
+  };
+
+  // Bascule une ligne auto BDD en mode manuel : pré-remplit le formulaire
+  // et scrolle dessus pour que l'admin puisse ajuster ou dépublier.
+  const handleBasculerManuel = (v: ValeurAnnee) => {
+    setAnnee(v.annee);
+    if (estTaux) {
+      setNumerateur(v.numerateur !== null && v.numerateur !== undefined ? String(v.numerateur) : '');
+      setDenominateur(
+        v.denominateur !== null && v.denominateur !== undefined ? String(v.denominateur) : '',
+      );
+      setValeurDirecte('');
+    } else {
+      setValeurDirecte(v.valeur !== null && v.valeur !== undefined ? String(v.valeur) : '');
+      setNumerateur('');
+      setDenominateur('');
+    }
+    setNote('');
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   };
 
   // Pre-fill quand on change d'année :
@@ -304,41 +355,100 @@ export function SaisieValeursClient({
               {lignesAuto
                 .slice()
                 .sort((a, b) => a.annee - b.annee)
-                .map((v) => (
-                  <tr key={`auto-${v.annee}`} className="bg-slate-50/60 text-slate-500">
-                    <td className="px-2 py-1.5 font-mono">{v.annee}</td>
-                    <td className="px-2 py-1.5 text-right tabular-nums">
-                      {v.numerateur ?? '—'}
-                    </td>
-                    <td className="px-2 py-1.5 text-right tabular-nums">
-                      {v.denominateur ?? '—'}
-                    </td>
-                    <td className="px-2 py-1.5 text-right font-semibold tabular-nums">
-                      {v.valeur !== null
-                        ? estTaux
-                          ? `${v.valeur} %`
-                          : v.valeur.toLocaleString('fr-FR')
-                        : '—'}
-                    </td>
-                    <td className="px-2 py-1.5 text-center">
-                      <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-                        auto BDD
-                      </span>
-                    </td>
-                    {/* Pas de toggle ni suppression pour les lignes auto */}
-                    <td className="px-2 py-1.5 text-center text-[10px] italic text-slate-400">
-                      calculé auto
-                    </td>
-                    <td className="px-2 py-1.5" />
-                  </tr>
-                ))}
+                .map((v) => {
+                  const estMasquee = anneesMasquees.includes(v.annee) || v.masque === true;
+                  return (
+                    <tr
+                      key={`auto-${v.annee}`}
+                      className={estMasquee ? 'bg-red-50/40 text-slate-400' : 'bg-slate-50/60 text-slate-500'}
+                    >
+                      <td className="px-2 py-1.5 font-mono">
+                        <span className="flex items-center gap-1">
+                          {v.annee}
+                          {estMasquee && (
+                            <span className="inline-flex items-center gap-0.5 rounded bg-red-100 px-1 py-0.5 text-[10px] font-medium text-red-600">
+                              <EyeOff className="size-2.5" aria-hidden />
+                              masqué
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 text-right tabular-nums">{v.numerateur ?? '—'}</td>
+                      <td className="px-2 py-1.5 text-right tabular-nums">{v.denominateur ?? '—'}</td>
+                      <td className="px-2 py-1.5 text-right font-semibold tabular-nums">
+                        {v.valeur !== null
+                          ? estTaux
+                            ? `${v.valeur} %`
+                            : v.valeur.toLocaleString('fr-FR')
+                          : '—'}
+                      </td>
+                      <td className="px-2 py-1.5 text-center">
+                        <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                          auto BDD
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 text-center text-[10px] italic text-slate-400">
+                        {estMasquee ? (
+                          <span className="text-red-400">masqué front</span>
+                        ) : (
+                          'calculé auto'
+                        )}
+                      </td>
+                      <td className="px-2 py-1.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {/* Masquer / Démasquer — uniquement A1/B1/B4 */}
+                          {supporteMasquage && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleMasquage(v.annee, estMasquee)}
+                              disabled={pending}
+                              title={
+                                estMasquee
+                                  ? `Réafficher l'année ${v.annee} sur le front public`
+                                  : `Masquer l'année ${v.annee} du front public`
+                              }
+                              className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium disabled:opacity-50 ${
+                                estMasquee
+                                  ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                  : 'bg-red-50 text-red-500 hover:bg-red-100'
+                              }`}
+                            >
+                              {estMasquee ? (
+                                <>
+                                  <Eye className="size-2.5" aria-hidden />
+                                  Afficher
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff className="size-2.5" aria-hidden />
+                                  Masquer
+                                </>
+                              )}
+                            </button>
+                          )}
+                          {/* Saisir manuellement */}
+                          <button
+                            type="button"
+                            onClick={() => handleBasculerManuel(v)}
+                            disabled={pending}
+                            title="Créer une saisie manuelle pour cette année"
+                            className="inline-flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-100 disabled:opacity-50"
+                          >
+                            <PenLine className="size-2.5" aria-hidden />
+                            Saisir
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
       )}
 
       {/* Formulaire de saisie */}
-      <div className="mt-4 space-y-3 rounded-lg border border-blue-100 bg-white p-3">
+      <div ref={formRef} className="mt-4 space-y-3 rounded-lg border border-blue-100 bg-white p-3">
         <p className="text-xs font-semibold text-blue-900">
           <Plus className="mr-1 inline size-3" aria-hidden />
           Ajouter / mettre à jour une saisie

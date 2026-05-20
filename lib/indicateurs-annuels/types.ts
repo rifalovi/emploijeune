@@ -26,6 +26,11 @@ const valeurAnneeSchema = z.object({
   source: z.enum(['auto', 'saisie', 'mixte']).optional(),
   /** État de publication — uniquement renvoyé pour les saisies manuelles. */
   publie: z.boolean().optional(),
+  /**
+   * TRUE si l'admin a masqué cette année du front public (A1/B1/B4 uniquement).
+   * L'admin voit toujours la ligne ; le public ne la reçoit pas dans la RPC.
+   */
+  masque: z.boolean().optional(),
 });
 
 const indicateurSchema = z.object({

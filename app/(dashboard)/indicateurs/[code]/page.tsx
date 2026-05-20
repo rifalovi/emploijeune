@@ -202,6 +202,7 @@ export default async function IndicateurDetailPage({ params }: Props) {
           estTaux={INDICATEURS_TAUX.has(ind.code)}
           anneeMin={payload.annee_min}
           anneeMax={payload.annee_max}
+          anneesMasquees={conf?.annees_masquees ?? []}
         />
       )}
 

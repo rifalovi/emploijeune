@@ -25,15 +25,22 @@ export type ConfigIndicateur = {
   indicateur_code: string;
   visu_activee: boolean;
   visu_forcee: boolean;
+  /** Années masquées du front public pour les indicateurs auto-BDD (A1/B1/B4). */
+  annees_masquees: number[];
 };
 
 export async function getConfigIndicateurs(): Promise<ConfigIndicateur[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('indicateurs_config')
-    .select('indicateur_code, visu_activee, visu_forcee');
+    .select('indicateur_code, visu_activee, visu_forcee, annees_masquees');
   if (error || !data) return [];
-  return data as ConfigIndicateur[];
+  // Cast via unknown : la colonne annees_masquees sera ajoutée par migration
+  // (les types générés seront mis à jour après application de la migration)
+  return (data as unknown as ConfigIndicateur[]).map((c) => ({
+    ...c,
+    annees_masquees: (c.annees_masquees as number[] | null) ?? [],
+  }));
 }
 
 /**
