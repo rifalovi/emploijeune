@@ -86,3 +86,125 @@ export async function getKpisContexte(code: string): Promise<KpisContexte | null
     .maybeSingle();
   return (data as KpisContexte | null) ?? null;
 }
+
+// ─── KPIs contextuels auto-calculés depuis la BDD ────────────────────────────
+
+export type KpisContexteAuto = {
+  pays_count: number | null;
+  femmes_count: number | null;
+  nb_jeunes: number | null;
+  nb_adultes: number | null;
+};
+
+const EMPTY_AUTO: KpisContexteAuto = {
+  pays_count: null,
+  femmes_count: null,
+  nb_jeunes: null,
+  nb_adultes: null,
+};
+
+/** Jeune (18-34) / Adulte (35+) — priorité tranche_age_declaree, fallback date_naissance. */
+function classifierTrancheAge(
+  tranche_age_declaree: string | null | undefined,
+  date_naissance: string | null | undefined,
+): 'Jeune' | 'Adulte' | null {
+  if (tranche_age_declaree === 'Jeune' || tranche_age_declaree === 'Adulte') {
+    return tranche_age_declaree;
+  }
+  if (date_naissance) {
+    const naissance = new Date(date_naissance);
+    if (isNaN(naissance.getTime())) return null;
+    const today = new Date();
+    const age =
+      today.getFullYear() -
+      naissance.getFullYear() -
+      (today < new Date(today.getFullYear(), naissance.getMonth(), naissance.getDate()) ? 1 : 0);
+    if (age >= 18 && age <= 34) return 'Jeune';
+    if (age >= 35) return 'Adulte';
+  }
+  return null;
+}
+
+/**
+ * Calcule automatiquement les KPI contextuels (pays/femmes/jeunes/adultes)
+ * depuis la BDD selon l'indicateur. Champs `null` quand aucune donnée auto
+ * disponible → permet à `mergerKpisContexte()` de basculer sur la saisie manuelle.
+ *
+ * Mapping :
+ *   A1                  → beneficiaires (tous)
+ *   A2 / A3             → beneficiaires WHERE statut_code='FORMATION_ACHEVEE'
+ *   A4 / A5             → beneficiaires (tous, proxy en attendant collecte fine)
+ *   B*                  → structures (pays_code uniquement)
+ *   C*, D*, F1          → pas de source auto → fallback complet sur manuel
+ */
+export async function getKpisContexteAuto(code: string): Promise<KpisContexteAuto> {
+  const admin = createSupabaseAdminClient();
+
+  if (code.startsWith('A')) {
+    const FILTRE_STATUT: Record<string, string | null> = {
+      A1: null,
+      A2: 'FORMATION_ACHEVEE',
+      A3: 'FORMATION_ACHEVEE',
+      A4: null,
+      A5: null,
+    };
+    const filtre = FILTRE_STATUT[code] ?? null;
+    let q = admin
+      .from('beneficiaires')
+      .select('pays_code, sexe, tranche_age_declaree, date_naissance')
+      .is('deleted_at', null);
+    if (filtre) q = q.eq('statut_code', filtre);
+    const { data } = await q;
+    if (!data || data.length === 0) return EMPTY_AUTO;
+
+    const pays = new Set(
+      data.map((r) => r.pays_code).filter((c): c is string => Boolean(c)),
+    ).size;
+    const femmes = data.filter((r) => r.sexe === 'F').length;
+    let jeunes = 0;
+    let adultes = 0;
+    for (const r of data) {
+      const t = classifierTrancheAge(r.tranche_age_declaree, r.date_naissance);
+      if (t === 'Jeune') jeunes++;
+      else if (t === 'Adulte') adultes++;
+    }
+    return {
+      pays_count: pays > 0 ? pays : null,
+      femmes_count: femmes > 0 ? femmes : null,
+      nb_jeunes: jeunes > 0 ? jeunes : null,
+      nb_adultes: adultes > 0 ? adultes : null,
+    };
+  }
+
+  if (code.startsWith('B')) {
+    const { data } = await admin
+      .from('structures')
+      .select('pays_code')
+      .is('deleted_at', null);
+    if (!data || data.length === 0) return EMPTY_AUTO;
+    const pays = new Set(
+      data.map((r) => r.pays_code).filter((c): c is string => Boolean(c)),
+    ).size;
+    return { ...EMPTY_AUTO, pays_count: pays > 0 ? pays : null };
+  }
+
+  return EMPTY_AUTO;
+}
+
+/**
+ * Fusionne les KPI contextuels selon la règle plateforme :
+ *   1. Auto BDD (prioritaire dès qu'une valeur existe)
+ *   2. Saisie manuelle (kpis_contexte_indicateurs) — fallback temporaire
+ *   3. null sinon (le front masque ou affiche 0 selon le cas)
+ */
+export function mergerKpisContexte(
+  auto: KpisContexteAuto,
+  manuel: KpisContexte | null,
+): KpisContexteAuto {
+  return {
+    pays_count: auto.pays_count ?? manuel?.pays_count ?? null,
+    femmes_count: auto.femmes_count ?? manuel?.femmes_count ?? null,
+    nb_jeunes: auto.nb_jeunes ?? manuel?.nb_jeunes ?? null,
+    nb_adultes: auto.nb_adultes ?? manuel?.nb_adultes ?? null,
+  };
+}

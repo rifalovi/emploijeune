@@ -31,6 +31,8 @@ import { getAnalysePubliee } from '@/lib/analyses-indicateurs/queries';
 import {
   getValeursPubliees,
   getKpisContexte,
+  getKpisContexteAuto,
+  mergerKpisContexte,
   agregerTaux,
   agregerTotal,
   type ValeurPubliee,
@@ -276,10 +278,14 @@ export default async function IndicateurRealisationPage({ params }: Props) {
     donneesReelles = valeursPubliees.length > 0;
   }
 
-  // KPIs contextuels chargés pour tous (en parallèle si possible, ou ici
-  // pour les indicateurs hors A1 — A1 le charge déjà ci-dessus).
-  const kpisContexte: KpisContexte | null =
-    ind.code !== 'A1' ? await getKpisContexte(ind.code) : null;
+  // KPIs contextuels — auto BDD prioritaire, fallback saisie manuelle.
+  // Règle plateforme : dès qu'une donnée auto existe, elle remplace la saisie
+  // manuelle. Pas encore de source auto → on lit kpis_contexte_indicateurs.
+  const [kpisContexte, kpisAuto] = await Promise.all([
+    ind.code !== 'A1' ? getKpisContexte(ind.code) : Promise.resolve(null),
+    getKpisContexteAuto(ind.code),
+  ]);
+  const kpisFusion = mergerKpisContexte(kpisAuto, kpisContexte);
 
   const fictif = !donneesReelles;
 
@@ -296,8 +302,8 @@ export default async function IndicateurRealisationPage({ params }: Props) {
             denominateur: m.denominateur,
             labelNumerateur: base?.labelNumerateur ?? 'Réalisés',
             labelDenominateur: base?.labelDenominateur ?? 'Prévus',
-            femmes: kpisContexte?.femmes_count ?? 0,
-            pays: kpisContexte?.pays_count ?? 0,
+            femmes: kpisFusion.femmes_count ?? 0,
+            pays: kpisFusion.pays_count ?? 0,
           };
         })()
       : undefined;
@@ -309,10 +315,10 @@ export default async function IndicateurRealisationPage({ params }: Props) {
           return total !== null
             ? {
                 total,
-                femmes: kpisContexte?.femmes_count ?? 0,
-                jeunes: kpisContexte?.nb_jeunes ?? 0,
-                adultes: kpisContexte?.nb_adultes ?? 0,
-                pays: kpisContexte?.pays_count ?? 0,
+                femmes: kpisFusion.femmes_count ?? 0,
+                jeunes: kpisFusion.nb_jeunes ?? 0,
+                adultes: kpisFusion.nb_adultes ?? 0,
+                pays: kpisFusion.pays_count ?? 0,
               }
             : undefined;
         })()
@@ -332,7 +338,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
             montantLibelle,
             sourcesPublic: kpisContexte?.sources_public_pct ?? 0,
             sourcesPrive: kpisContexte?.sources_prive_pct ?? 0,
-            pays: kpisContexte?.pays_count ?? 0,
+            pays: kpisFusion.pays_count ?? 0,
           };
         })()
       : undefined;
@@ -351,8 +357,8 @@ export default async function IndicateurRealisationPage({ params }: Props) {
             participantsTotal: kpisContexte?.participants_count ?? 0,
             ayantProgresse: kpisContexte?.ayant_progresse ?? 0,
             gainMoyen: kpisContexte?.gain_moyen ?? 0,
-            femmes: kpisContexte?.femmes_count ?? 0,
-            pays: kpisContexte?.pays_count ?? 0,
+            femmes: kpisFusion.femmes_count ?? 0,
+            pays: kpisFusion.pays_count ?? 0,
           };
         })()
       : undefined;
@@ -420,7 +426,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
               trancheAge={trancheAge}
               fictifCount={!fictif && fictifCountReel ? fictifCountReel : FICTIF_COUNT[ind.code]}
               fictif={fictif}
-              kpisContexte={kpisContexte}
+              kpisFusion={kpisFusion}
             />
           )}
 
@@ -575,7 +581,7 @@ function KpisCount({
   trancheAge,
   fictifCount,
   fictif,
-  kpisContexte,
+  kpisFusion,
 }: {
   ind: ReturnType<typeof indicateurParCode> & object;
   pilierData: (typeof PILIERS)[CodePilier];
@@ -583,7 +589,7 @@ function KpisCount({
   trancheAge: Awaited<ReturnType<typeof getRepartitionTrancheAge>>;
   fictifCount: DonneesCount | undefined;
   fictif: boolean;
-  kpisContexte: KpisContexte | null;
+  kpisFusion: Awaited<ReturnType<typeof getKpisContexteAuto>>;
 }) {
   // Configuration métier issue du référentiel — fallback rétro-compatible
   // (« Bénéficiaires » / « personnes » / ventilation visible) pour les
@@ -602,22 +608,22 @@ function KpisCount({
       ? (kpisReels?.beneficiaires_total ?? 0)
       : (fictifCount?.total ?? 0);
   const femmes = isA1 && !fictif
-    ? (kpisReels?.beneficiaires_femmes ?? kpisContexte?.femmes_count ?? 0)
+    ? (kpisReels?.beneficiaires_femmes ?? kpisFusion.femmes_count ?? 0)
     : (fictifCount?.femmes ?? 0);
   const jeunes = isA1 && !fictif
-    ? (trancheAge?.jeunes ?? kpisContexte?.nb_jeunes ?? 0)
+    ? (trancheAge?.jeunes ?? kpisFusion.nb_jeunes ?? 0)
     : (fictifCount?.jeunes ?? 0);
   const adultes = isA1 && !fictif
-    ? (trancheAge?.adultes ?? kpisContexte?.nb_adultes ?? 0)
+    ? (trancheAge?.adultes ?? kpisFusion.nb_adultes ?? 0)
     : (fictifCount?.adultes ?? 0);
-  // paysCount :
-  //  - A1 réel → auto BDD, fallback kpisContexte
-  //  - B1 réel → kpisContexte (pas de champ dans kpisReels)
-  //  - Autres  → fictifCount.pays (calculé depuis saisies ou fictif)
+  // paysCount — règle plateforme : auto BDD > saisie manuelle > 0.
+  //  - A1 réel → kpisReels.pays_total (auto) puis fusion
+  //  - B1 réel → kpisFusion (auto structures puis manuel)
+  //  - Autres  → fictifCount.pays (déjà fusionné en amont)
   const paysCount = isA1 && !fictif
-    ? (kpisReels?.pays_total ?? kpisContexte?.pays_count ?? 0)
+    ? (kpisReels?.pays_total ?? kpisFusion.pays_count ?? 0)
     : isB1 && !fictif
-      ? (kpisContexte?.pays_count ?? fictifCount?.pays ?? 0)
+      ? (kpisFusion.pays_count ?? fictifCount?.pays ?? 0)
       : (fictifCount?.pays ?? 0);
   const femmesPct = total > 0 ? Math.round((femmes / total) * 100) : 0;
   const jeunesAdultes = jeunes + adultes;
