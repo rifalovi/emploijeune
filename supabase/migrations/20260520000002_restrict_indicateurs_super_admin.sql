@@ -10,6 +10,13 @@
 --
 -- 🟢 Risque zéro : les server actions Next.js ont déjà été mises à jour.
 --    Cette migration renforce la sécurité côté base (défense en profondeur).
+--
+-- ⚠️  NOMS EXACTS des fonctions en base (à ne pas confondre) :
+--     - enregistrer_valeur_indicateur_saisie  (créée en 20260512300001)
+--     - supprimer_valeur_indicateur_saisie    (créée en 20260512300001)
+--     - basculer_publi_saisie_valeur           (créée en 20260512400001)
+--     - masquer_annee_indicateur              (créée en 20260520000001)
+--     - toggle_indicateur_visu                (créée antérieurement)
 -- =============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -32,15 +39,20 @@ AS $$
   );
 $$;
 
+-- Restreindre is_super_admin aux seuls appels internes (depuis d'autres fonctions)
+REVOKE EXECUTE ON FUNCTION public.is_super_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_super_admin() TO authenticated;
+
 -- ─────────────────────────────────────────────────────────────────────────────
--- 1. enregistrer_saisie_indicateur — super_admin uniquement
+-- 1. enregistrer_valeur_indicateur_saisie — super_admin uniquement
+--    (signature INTEGER pour num/denom : correspond à la migration 20260512300001)
 -- ─────────────────────────────────────────────────────────────────────────────
 
-CREATE OR REPLACE FUNCTION public.enregistrer_saisie_indicateur(
+CREATE OR REPLACE FUNCTION public.enregistrer_valeur_indicateur_saisie(
   p_code             TEXT,
   p_annee            INTEGER,
-  p_numerateur       NUMERIC DEFAULT NULL,
-  p_denominateur     NUMERIC DEFAULT NULL,
+  p_numerateur       INTEGER DEFAULT NULL,
+  p_denominateur     INTEGER DEFAULT NULL,
   p_valeur_directe   NUMERIC DEFAULT NULL,
   p_note             TEXT    DEFAULT NULL
 )
@@ -49,35 +61,53 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_uid UUID;
 BEGIN
-  IF auth.uid() IS NULL THEN
+  v_uid := auth.uid();
+  IF v_uid IS NULL THEN
     RETURN jsonb_build_object('erreur', 'non_authentifie');
   END IF;
   IF NOT public.is_super_admin() THEN
     RETURN jsonb_build_object('erreur', 'reserve_super_admin');
   END IF;
 
+  -- Validation : au moins une valeur fournie
+  IF p_numerateur IS NULL AND p_denominateur IS NULL AND p_valeur_directe IS NULL THEN
+    RETURN jsonb_build_object('erreur', 'aucune_valeur_fournie');
+  END IF;
+
+  -- Validation : indicateur existant
+  IF NOT EXISTS (SELECT 1 FROM public.indicateurs_config WHERE indicateur_code = p_code) THEN
+    RETURN jsonb_build_object('erreur', 'indicateur_inconnu', 'code', p_code);
+  END IF;
+
+  -- Validation année
+  IF p_annee < 2020 OR p_annee > EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER + 1 THEN
+    RETURN jsonb_build_object('erreur', 'annee_invalide', 'annee', p_annee);
+  END IF;
+
   INSERT INTO public.valeurs_indicateurs_saisies
-    (indicateur_code, annee, numerateur, denominateur, valeur_directe, note, updated_by)
+    (indicateur_code, annee, numerateur, denominateur, valeur_directe, note, created_by, updated_by)
   VALUES
-    (p_code, p_annee, p_numerateur, p_denominateur, p_valeur_directe, p_note, auth.uid())
+    (p_code, p_annee, p_numerateur, p_denominateur, p_valeur_directe, p_note, v_uid, v_uid)
   ON CONFLICT (indicateur_code, annee) DO UPDATE SET
     numerateur     = EXCLUDED.numerateur,
     denominateur   = EXCLUDED.denominateur,
     valeur_directe = EXCLUDED.valeur_directe,
     note           = EXCLUDED.note,
     updated_at     = NOW(),
-    updated_by     = auth.uid();
+    updated_by     = v_uid;
 
   RETURN jsonb_build_object('succes', TRUE, 'code', p_code, 'annee', p_annee);
 END;
 $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 2. supprimer_saisie_indicateur — super_admin uniquement
+-- 2. supprimer_valeur_indicateur_saisie — super_admin uniquement
 -- ─────────────────────────────────────────────────────────────────────────────
 
-CREATE OR REPLACE FUNCTION public.supprimer_saisie_indicateur(
+CREATE OR REPLACE FUNCTION public.supprimer_valeur_indicateur_saisie(
   p_code  TEXT,
   p_annee INTEGER
 )
@@ -87,9 +117,11 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
+  v_uid      UUID;
   v_affected INTEGER;
 BEGIN
-  IF auth.uid() IS NULL THEN
+  v_uid := auth.uid();
+  IF v_uid IS NULL THEN
     RETURN jsonb_build_object('erreur', 'non_authentifie');
   END IF;
   IF NOT public.is_super_admin() THEN
@@ -151,6 +183,7 @@ $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. masquer_annee_indicateur — super_admin uniquement
+--    (déjà créée avec super_admin check dans 20260520000001 — on confirme)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION public.masquer_annee_indicateur(
@@ -223,17 +256,19 @@ BEGIN
 END;
 $$;
 
--- Révoquer l'accès execute aux roles non-admin pour ces fonctions sensibles
-REVOKE EXECUTE ON FUNCTION public.enregistrer_saisie_indicateur FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.supprimer_saisie_indicateur FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.basculer_publi_saisie_valeur FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.masquer_annee_indicateur FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.toggle_indicateur_visu FROM PUBLIC;
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Permissions : révoquer PUBLIC, ré-accorder aux utilisateurs authentifiés
+-- (la vérification super_admin se fait à l'intérieur de chaque fonction)
+-- ─────────────────────────────────────────────────────────────────────────────
 
--- Ré-autoriser uniquement les utilisateurs authentifiés (la vérification
--- super_admin se fait à l'intérieur de chaque fonction via is_super_admin())
-GRANT EXECUTE ON FUNCTION public.enregistrer_saisie_indicateur TO authenticated;
-GRANT EXECUTE ON FUNCTION public.supprimer_saisie_indicateur TO authenticated;
-GRANT EXECUTE ON FUNCTION public.basculer_publi_saisie_valeur TO authenticated;
-GRANT EXECUTE ON FUNCTION public.masquer_annee_indicateur TO authenticated;
-GRANT EXECUTE ON FUNCTION public.toggle_indicateur_visu TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.enregistrer_valeur_indicateur_saisie(TEXT, INTEGER, INTEGER, INTEGER, NUMERIC, TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.supprimer_valeur_indicateur_saisie(TEXT, INTEGER) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.basculer_publi_saisie_valeur(TEXT, INTEGER, BOOLEAN) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.masquer_annee_indicateur(TEXT, INTEGER, BOOLEAN) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.toggle_indicateur_visu(TEXT, BOOLEAN, BOOLEAN) FROM PUBLIC;
+
+GRANT EXECUTE ON FUNCTION public.enregistrer_valeur_indicateur_saisie(TEXT, INTEGER, INTEGER, INTEGER, NUMERIC, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.supprimer_valeur_indicateur_saisie(TEXT, INTEGER) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.basculer_publi_saisie_valeur(TEXT, INTEGER, BOOLEAN) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.masquer_annee_indicateur(TEXT, INTEGER, BOOLEAN) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.toggle_indicateur_visu(TEXT, BOOLEAN, BOOLEAN) TO authenticated;
