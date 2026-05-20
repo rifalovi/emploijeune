@@ -149,9 +149,9 @@ function MarkdownSimple({ contenu, couleur }: { contenu: string; couleur: string
 
   // Regex pré-compilées
   const ESTLISTE_RE = /^\s*[-*]\s+(.+)$/; // capture l'item sans le préfixe ni l'indentation
-  // Aussi `—+` (em-dash U+2014) qui apparaît parfois comme séparateur typo,
-  // pas seulement les --- ASCII / *** / ___.
-  const ESTHR_RE = /^\s*(?:-{3,}|\*{3,}|_{3,}|–+)\s*$/;
+  // Lignes composées uniquement de tirets ASCII, étoiles, underscores,
+  // demi-tirets (en-dash) OU longs tirets (em-dash U+2014) → ignorées.
+  const ESTHR_RE = /^\s*(?:-{3,}|\*{3,}|_{3,}|–+|—+)\s*$/;
   // Accepte H1 à H4 — Claude génère parfois un H1 unique en tête de
   // réponse ; sans cette tolérance le `#` resterait visible en texte brut.
   // Tous mappés sur H3 (le bloc parent porte déjà un H2).
@@ -249,6 +249,9 @@ function escapeHtml(text: string): string {
 function formatInline(text: string): string {
   const escaped = escapeHtml(text);
   return escaped
+    // Supprime les longs tirets (em-dash U+2014 et en-dash U+2013)
+    // qui apparaissent comme séparateurs typographiques dans les analyses IA.
+    .replace(/\s*[—–]\s*/g, ' ')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
 }

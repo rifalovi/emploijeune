@@ -23,6 +23,7 @@ import {
 import { LogoOIF } from '@/components/branding/logo-oif';
 import { CarrouselHero } from '@/components/landing/carrousel-hero';
 import { HeaderPublic } from '@/components/landing/header-public';
+import { CadreCommunFan } from '@/components/landing/cadre-commun-fan';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
@@ -598,91 +599,8 @@ function CadreCommun() {
             <span style={{ color: '#B8A000' }}>Intermédiation</span>
           </div>
 
-          {/* SVG fan */}
-          <svg
-            viewBox="0 0 480 280"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full drop-shadow-sm"
-            aria-hidden
-          >
-            {/* Secteur A — Formation (teal) : 180° → 135° */}
-            <path
-              d="M15,265 A225,225 0 0,0 80.9,105.9 L184.8,209.8 A78,78 0 0,1 162,265 Z"
-              fill="#A8D8D5"
-              stroke="white"
-              strokeWidth="4"
-            />
-            {/* Secteur B — Activités économiques (vert) : 135° → 90° */}
-            <path
-              d="M80.9,105.9 A225,225 0 0,0 240,40 L240,187 A78,78 0 0,1 184.8,209.8 Z"
-              fill="#B8E0B0"
-              stroke="white"
-              strokeWidth="4"
-            />
-            {/* Secteur C — Intermédiation (jaune-vert) : 90° → 45° */}
-            <path
-              d="M240,40 A225,225 0 0,0 399.1,105.9 L295.2,209.8 A78,78 0 0,1 240,187 Z"
-              fill="#E8D87A"
-              stroke="white"
-              strokeWidth="4"
-            />
-            {/* Secteur D — Écosystèmes (orange) : 45° → 0° */}
-            <path
-              d="M399.1,105.9 A225,225 0 0,0 465,265 L318,265 A78,78 0 0,1 295.2,209.8 Z"
-              fill="#F5C4A0"
-              stroke="white"
-              strokeWidth="4"
-            />
-
-            {/* Cercle central blanc */}
-            <circle cx="240" cy="265" r="74" fill="white" />
-
-            {/* Pastilles catégories — positions au centre de chaque secteur (r=152) */}
-            {/* A (157.5°): x=99.6, y=206.8 */}
-            <circle cx="100" cy="207" r="26" fill="#0098A0" />
-            <text x="100" y="212" textAnchor="middle" fontSize="15" fontWeight="bold" fill="white">
-              A
-            </text>
-            {/* B (112.5°): x=181.8, y=124.6 */}
-            <circle cx="182" cy="125" r="26" fill="#5BAD4E" />
-            <text x="182" y="130" textAnchor="middle" fontSize="15" fontWeight="bold" fill="white">
-              B
-            </text>
-            {/* C (67.5°): x=298.2, y=124.6 */}
-            <circle cx="298" cy="125" r="26" fill="#B8A000" />
-            <text x="298" y="130" textAnchor="middle" fontSize="15" fontWeight="bold" fill="white">
-              C
-            </text>
-            {/* D (22.5°): x=380.4, y=206.8 */}
-            <circle cx="380" cy="207" r="26" fill="#D96030" />
-            <text x="380" y="212" textAnchor="middle" fontSize="15" fontWeight="bold" fill="white">
-              D
-            </text>
-
-            {/* Texte central */}
-            <text
-              x="240"
-              y="257"
-              textAnchor="middle"
-              fontSize="8"
-              fill="#64748b"
-              letterSpacing="0.1em"
-              fontWeight="600"
-            >
-              CADRE COMMUN
-            </text>
-            <text
-              x="240"
-              y="270"
-              textAnchor="middle"
-              fontSize="8"
-              fill="#94a3b8"
-              letterSpacing="0.08em"
-            >
-              DE MESURE
-            </text>
-          </svg>
+          {/* SVG fan interactif (hover tooltips) */}
+          <CadreCommunFan />
 
           {/* Labels bas du diagramme */}
           <div className="mt-1 grid grid-cols-2 gap-x-4 px-4 text-center text-[11px] font-semibold">

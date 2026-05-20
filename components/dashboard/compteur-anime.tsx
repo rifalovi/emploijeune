@@ -30,9 +30,11 @@ export function CompteurAnime({
   /** Délai avant démarrage (synchronisé avec stagger CSS). Défaut 0. */
   delaiMs?: number;
 }) {
-  // Initial state = valeur cible : SSR + premier paint affichent le bon
-  // chiffre, l'animation rejoue à 0 → cible uniquement côté client.
-  const [valeurCourante, setValeurCourante] = useState<number>(valeur);
+  // Initial state = valeur cible arrondie : SSR + premier paint affichent le bon
+  // chiffre entier, l'animation rejoue à 0 → cible uniquement côté client.
+  // Math.round() ici évite d'afficher des décimales si le backend renvoie
+  // un float (ex. SUM sur NUMERIC retourne 16179538.22 au lieu de 16179538).
+  const [valeurCourante, setValeurCourante] = useState<number>(Math.round(valeur));
   const ref = useRef<HTMLSpanElement>(null);
   const aDemarreRef = useRef(false);
   const animationIdRef = useRef<number | null>(null);

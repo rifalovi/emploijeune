@@ -13,7 +13,6 @@ import { ChartProgrammesPie } from '@/components/dashboard/chart-programmes-pie'
 import { ChartTrancheAge } from '@/components/dashboard/chart-tranche-age';
 import { ActiviteRecenteFeed } from '@/components/dashboard/activite-recente-feed';
 import { SelecteurPeriode } from '@/components/dashboard/selecteur-periode';
-import { ToggleDevise } from '@/components/dashboard/toggle-devise';
 import {
   kpiAdminScsSchema,
   kpiContributeurSchema,
@@ -127,7 +126,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           <h2 className="text-lg font-semibold">Indicateurs OIF stratégiques</h2>
           <div className="flex flex-wrap items-center gap-4">
             <SelecteurPeriode valeur={periode} />
-            <ToggleDevise />
           </div>
         </div>
 
