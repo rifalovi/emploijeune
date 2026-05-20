@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Users, Inbox } from 'lucide-react';
+import { Users, Inbox, FileText } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { compterDemandesEnAttente } from '@/lib/demandes-acces/queries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,6 +76,26 @@ export default async function AdminPage() {
               {nbDemandesEnAttente === 0
                 ? 'Aucune demande en attente.'
                 : `${nbDemandesEnAttente} demande${nbDemandesEnAttente > 1 ? 's' : ''} en attente de traitement.`}
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link
+          href="/admin/documents-publics"
+          className="hover:bg-accent/30 rounded-lg transition-colors"
+        >
+          <Card className="h-full">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <FileText aria-hidden className="text-primary size-6" />
+                <div>
+                  <CardTitle className="text-base">Documents publics</CardTitle>
+                  <CardDescription>Note de cadrage, rapports — PDF téléchargeables</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="text-muted-foreground text-xs">
+              Uploadez les PDF affichés en téléchargement sur les pages publiques.
             </CardContent>
           </Card>
         </Link>

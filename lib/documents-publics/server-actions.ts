@@ -8,12 +8,12 @@ import { readServerEnv } from '@/lib/supabase/env';
 
 /**
  * Server actions — gestion des documents PDF publics téléchargeables
- * (note de cadrage, etc.). Réservé super_admin.
+ * (note de cadrage, etc.). Réservé admin_scs + super_admin.
  *
  * Le bucket Supabase Storage `documents-publics` est public en lecture,
- * écriture super_admin via RLS. On utilise quand même le service_role
- * client pour simplifier la gestion d'erreurs et bypass d'éventuels soucis
- * de cookies/session côté server action.
+ * écriture admin_scs/super_admin via RLS. On utilise quand même le
+ * service_role client pour simplifier la gestion d'erreurs et bypass
+ * d'éventuels soucis de cookies/session côté server action.
  */
 
 type Resultat = { status: 'succes' } | { status: 'erreur'; message: string };
@@ -40,8 +40,8 @@ export async function uploaderDocumentPublic(payload: {
 }): Promise<Resultat> {
   const utilisateur = await getCurrentUtilisateur();
   if (!utilisateur) return { status: 'erreur', message: 'non_authentifie' };
-  if (utilisateur.role !== 'super_admin') {
-    return { status: 'erreur', message: 'reserve_super_admin' };
+  if (utilisateur.role !== 'super_admin' && utilisateur.role !== 'admin_scs') {
+    return { status: 'erreur', message: 'reserve_admin' };
   }
 
   const parsed = uploadSchema.safeParse(payload);
@@ -121,15 +121,15 @@ export async function uploaderDocumentPublic(payload: {
   }
 
   revalidatePath('/referentiels');
-  revalidatePath('/super-admin/documents-publics');
+  revalidatePath('/admin/documents-publics');
   return { status: 'succes' };
 }
 
 export async function supprimerDocumentPublic(cle: string): Promise<Resultat> {
   const utilisateur = await getCurrentUtilisateur();
   if (!utilisateur) return { status: 'erreur', message: 'non_authentifie' };
-  if (utilisateur.role !== 'super_admin') {
-    return { status: 'erreur', message: 'reserve_super_admin' };
+  if (utilisateur.role !== 'super_admin' && utilisateur.role !== 'admin_scs') {
+    return { status: 'erreur', message: 'reserve_admin' };
   }
 
   const supabase = createSupabaseAdminClient();
@@ -157,6 +157,6 @@ export async function supprimerDocumentPublic(cle: string): Promise<Resultat> {
   if (error) return { status: 'erreur', message: error.message };
 
   revalidatePath('/referentiels');
-  revalidatePath('/super-admin/documents-publics');
+  revalidatePath('/admin/documents-publics');
   return { status: 'succes' };
 }
