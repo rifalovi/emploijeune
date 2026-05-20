@@ -36,7 +36,7 @@ export type NavGroupDef = {
 
 export const HOME_NAV_ITEM: NavItem = {
   href: '/dashboard',
-  label: 'Accueil',
+  label: 'Tableau de bord',
   icon: Home,
   roles: ['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire', 'lecteur'],
 };

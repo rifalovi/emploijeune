@@ -1,4 +1,4 @@
-import { UserCheck, ShieldCheck, AlertTriangle, Upload } from 'lucide-react';
+import { UserCheck, ShieldCheck, Upload } from 'lucide-react';
 import { KpiCard } from './kpi-card';
 import type { KpiAdminScs } from '@/lib/kpis/types';
 
@@ -7,7 +7,7 @@ export function DashboardAdminScs({ data }: { data: KpiAdminScs }) {
   const imports = data.imports_recents;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <KpiCard
         titre="Comptes à valider"
         valeur={data.comptes_en_attente}
@@ -29,15 +29,7 @@ export function DashboardAdminScs({ data }: { data: KpiAdminScs }) {
         href="/beneficiaires?filtre=sans_consentement"
         alerte={rgpd.alerte}
       />
-      <KpiCard
-        titre="Alertes qualité"
-        valeur={data.alertes_qualite}
-        sousTexte="Incohérences à corriger (consentement sans date, dates manquantes, etc.)"
-        icone={AlertTriangle}
-        href="/admin/alertes-qualite"
-        alerte={data.alertes_qualite > 0}
-      />
-      <KpiCard
+<KpiCard
         titre="Imports récents (7 j)"
         valeur={imports.total}
         sousTexte={
