@@ -151,29 +151,29 @@ function HeroAvecCarrousel({
 }) {
   return (
     <CarrouselHero slides={SLIDES} hauteurClass="h-[70vh] min-h-[560px]">
-      <div className="relative z-10 mx-auto max-w-5xl text-center text-white">
+      <div className="relative z-10 mx-auto w-full max-w-4xl px-4 text-center text-white">
         <Badge
           variant="outline"
-          className="mb-6 border-white/40 bg-white/10 text-white backdrop-blur-sm"
+          className="mb-6 max-w-xs whitespace-normal border-white/40 bg-white/10 text-center text-white backdrop-blur-sm sm:max-w-none sm:whitespace-nowrap"
         >
-          Plateforme officielle SCS : Organisation Internationale de la Francophonie
+          Plateforme OIF · Emploi Jeunes Francophones
         </Badge>
-        <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
           Suivi-évaluation des projets
           <br />
           <span style={{ color: COULEUR_ACCENT }}>emploi jeunes</span> de la Francophonie
         </h1>
-        <p className="mx-auto mt-6 max-w-3xl text-lg text-white/90 md:text-xl">
+        <p className="mx-auto mt-5 max-w-2xl text-base text-white/90 sm:text-lg md:text-xl">
           Une plateforme institutionnelle dédiée au pilotage opérationnel et stratégique des
           programmes OIF d&apos;insertion économique des jeunes francophones.
         </p>
         {kpis && (
-          <p className="mt-4 text-base text-white/80">
+          <p className="mt-4 text-sm text-white/80 sm:text-base">
             <strong className="text-white">
               {kpis.beneficiaires_total.toLocaleString('fr-FR')}
             </strong>{' '}
             personnes accompagnées dans <strong className="text-white">{kpis.pays_total}</strong>{' '}
-            pays : période {kpis.annee_couverture_min} à {kpis.annee_couverture_max}.
+            pays · période {kpis.annee_couverture_min}–{kpis.annee_couverture_max}.
           </p>
         )}
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
