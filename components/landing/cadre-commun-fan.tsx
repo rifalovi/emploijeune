@@ -58,22 +58,7 @@ export function CadreCommunFan() {
   const secteurActif = SECTEURS.find((s) => s.code === actif) ?? null;
 
   return (
-    <div className="relative">
-      {/* Bulle tooltip */}
-      {secteurActif && (
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center"
-          aria-live="polite"
-        >
-          <div
-            className="rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-lg"
-            style={{ backgroundColor: secteurActif.couleur }}
-          >
-            {secteurActif.code} — {secteurActif.titre}
-          </div>
-        </div>
-      )}
-
+    <div className="flex flex-col items-center gap-3">
       <svg
         viewBox="0 0 480 280"
         fill="none"
@@ -139,6 +124,25 @@ export function CadreCommunFan() {
           DE MESURE
         </text>
       </svg>
+
+      {/* Label sous le SVG — hauteur réservée pour éviter le layout shift.
+          Concept : on n'utilise pas d'absolute overlay (risque de stacking context
+          derrière le filtre drop-shadow du SVG). Un bloc statique sous le SVG
+          est plus fiable cross-browser et accessible (aria-live). */}
+      <div className="flex min-h-[36px] w-full items-center justify-center" aria-live="polite">
+        {secteurActif ? (
+          <span
+            className="rounded-xl px-4 py-1.5 text-sm font-semibold text-white shadow-md"
+            style={{ backgroundColor: secteurActif.couleur }}
+          >
+            {secteurActif.code} — {secteurActif.titre}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">
+            Survolez un cadre pour en savoir plus
+          </span>
+        )}
+      </div>
     </div>
   );
 }

@@ -219,11 +219,11 @@ function HeroAvecCarrousel({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// KPI compteurs
+// KPI compteurs — Design institutionnel stat-bar
 // ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Couleurs cycliques pour les cartes d'indicateurs dynamiques.
- * Reprend la palette des programmes stratégiques + accent doré.
+ * Couleurs cycliques pour les statistiques (palette OIF).
  */
 const COULEURS_COMPTEURS = [
   PROGRAMMES_STRATEGIQUES.PS1.principale,
@@ -232,21 +232,43 @@ const COULEURS_COMPTEURS = [
   COULEUR_ACCENT,
 ];
 
+/**
+ * Icône associée à la catégorie d'indicateur (lettre du code CMR).
+ */
 function iconePourCode(code: string): typeof Users {
   switch (code.charAt(0)) {
-    case 'A':
-      return GraduationCap;
-    case 'B':
-      return Briefcase;
-    case 'C':
-      return Network;
-    case 'D':
-      return Target;
-    case 'F':
-      return Sparkles;
-    default:
-      return Users;
+    case 'A': return GraduationCap;
+    case 'B': return Briefcase;
+    case 'C': return Network;
+    case 'D': return Target;
+    case 'F': return Sparkles;
+    default:  return Users;
   }
+}
+
+/**
+ * Formate un nombre vers une forme compacte pour éviter les retours à la ligne
+ * dans une grille étroite à 6 colonnes.
+ *
+ *   16 179 538  →  { principal: "16,2", suffixe: "M" }
+ *    5 531      →  { principal: "5 531", suffixe: "" }
+ *
+ * Concept : le séparateur de milliers français est un espace insécable
+ * (\u00a0 ou \u202f). On les retire pour parser proprement, puis on
+ * réapplique une notation abrégée uniquement si ≥ 1 000 000.
+ */
+function formatCompact(valeur: string): { principal: string; suffixe: string } {
+  if (valeur === '—') return { principal: '—', suffixe: '' };
+  const n = parseFloat(valeur.replace(/[\s\u00a0\u202f]/g, '').replace(',', '.'));
+  if (isNaN(n)) return { principal: valeur, suffixe: '' };
+  if (n >= 1_000_000) {
+    const m = n / 1_000_000;
+    const fmt = m % 1 < 0.05
+      ? m.toFixed(0)
+      : m.toFixed(1).replace('.', ',');
+    return { principal: fmt, suffixe: '\u202fM' };
+  }
+  return { principal: valeur, suffixe: '' };
 }
 
 function KpiCompteurs({
@@ -258,71 +280,99 @@ function KpiCompteurs({
 }) {
   if (!kpis) return null;
   const afficherIndicateurs = indicateurs.length > 0;
-  const gridCols =
-    indicateurs.length >= 6
-      ? 'md:grid-cols-3 lg:grid-cols-6'
-      : indicateurs.length === 5
-        ? 'md:grid-cols-3 lg:grid-cols-5'
-        : 'md:grid-cols-4';
+
+  /* Grille de repli si aucun indicateur dynamique configuré */
+  const fallback: Array<{ valeur: string; libelle: string; icone: typeof Users; couleur: string }> = [
+    { valeur: kpis.beneficiaires_total.toLocaleString('fr-FR'), libelle: 'Bénéficiaires accompagnés', icone: Users, couleur: PROGRAMMES_STRATEGIQUES.PS1.principale },
+    { valeur: kpis.structures_total.toLocaleString('fr-FR'),    libelle: 'Structures appuyées',       icone: Building2, couleur: PROGRAMMES_STRATEGIQUES.PS3.principale },
+    { valeur: kpis.pays_total.toString(),                        libelle: "Pays d'intervention",       icone: Globe2,    couleur: PROGRAMMES_STRATEGIQUES.PS2.principale },
+    { valeur: `${kpis.beneficiaires_femmes_pct}\u00a0%`,         libelle: 'de femmes accompagnées',    icone: Heart,     couleur: COULEUR_ACCENT },
+  ];
+
+  const items = afficherIndicateurs
+    ? indicateurs.map((ind, i) => ({
+        valeur: ind.valeur !== null ? ind.valeur.toLocaleString('fr-FR') : '—',
+        libelle: ind.labelMetrique,
+        icone: iconePourCode(ind.code),
+        couleur: COULEURS_COMPTEURS[i % COULEURS_COMPTEURS.length] ?? COULEUR_ACCENT,
+      }))
+    : fallback;
+
+  /* Grille responsive : 2 cols mobile → 3 cols md → n cols lg */
+  const lgCols =
+    items.length >= 6 ? 'lg:grid-cols-6'
+    : items.length === 5 ? 'lg:grid-cols-5'
+    : 'lg:grid-cols-4';
+
   return (
-    <section className="border-b bg-white py-16 md:py-20">
+    <section className="border-b bg-[#F8FAFC] py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
+
+        {/* En-tête */}
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-            Données agrégées des projets emploi Jeunes OIF
+          <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#0E4F88]/15 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-[#0E4F88]">
+            <span className="size-1.5 rounded-full bg-[#0E4F88]" aria-hidden />
+            Résultats consolidés OIF
+          </p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
+            Données agrégées des projets emploi Jeunes
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
-            Période {kpis.annee_couverture_min} à {kpis.annee_couverture_max}.
+            Période {kpis.annee_couverture_min}–{kpis.annee_couverture_max} · Chiffres anonymisés conformes RGPD.
           </p>
         </div>
-        {afficherIndicateurs ? (
-          <div className={cn('mt-12 grid grid-cols-2 gap-4', gridCols)}>
-            {indicateurs.map((ind, i) => (
+
+        {/* Panneau stat-bar institutionnel */}
+        <div className="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md">
+
+          {/* Barre de couleur dégradée en haut — signature OIF */}
+          <div
+            className="h-1 w-full"
+            style={{
+              background: `linear-gradient(to right, ${PROGRAMMES_STRATEGIQUES.PS1.principale} 0%, ${PROGRAMMES_STRATEGIQUES.PS3.principale} 40%, ${PROGRAMMES_STRATEGIQUES.PS2.principale} 70%, ${COULEUR_ACCENT} 100%)`,
+            }}
+          />
+
+          {/* Grille des statistiques avec séparateurs */}
+          <div
+            className={cn(
+              'grid grid-cols-2 md:grid-cols-3',
+              lgCols,
+              '[&>*]:border-b [&>*]:border-slate-100',
+              'lg:[&>*]:border-b-0',
+              '[&>*:nth-child(2n)]:border-r-0 [&>*]:border-r [&>*]:border-slate-100',
+              'md:[&>*:nth-child(2n)]:border-r md:[&>*:nth-child(3n)]:border-r-0',
+              'lg:[&>*]:border-r lg:[&>*:last-child]:border-r-0',
+            )}
+          >
+            {items.map(({ valeur, libelle, icone, couleur }, i) => (
               <CompteurCarte
-                key={ind.code}
-                valeur={ind.valeur !== null ? ind.valeur.toLocaleString('fr-FR') : '—'}
-                libelle={ind.labelMetrique}
-                icone={iconePourCode(ind.code)}
-                couleur={COULEURS_COMPTEURS[i % COULEURS_COMPTEURS.length] ?? COULEUR_ACCENT}
+                key={i}
+                valeur={valeur}
+                libelle={libelle}
+                icone={icone}
+                couleur={couleur}
               />
             ))}
           </div>
-        ) : (
-          <div className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4">
-            <CompteurCarte
-              valeur={kpis.beneficiaires_total.toLocaleString('fr-FR')}
-              libelle="Bénéficiaires accompagnés"
-              icone={Users}
-              couleur={PROGRAMMES_STRATEGIQUES.PS1.principale}
-            />
-            <CompteurCarte
-              valeur={kpis.structures_total.toLocaleString('fr-FR')}
-              libelle="Structures appuyées"
-              icone={Building2}
-              couleur={PROGRAMMES_STRATEGIQUES.PS3.principale}
-            />
-            <CompteurCarte
-              valeur={kpis.pays_total.toString()}
-              libelle="Pays d'intervention"
-              icone={Globe2}
-              couleur={PROGRAMMES_STRATEGIQUES.PS2.principale}
-            />
-            <CompteurCarte
-              valeur={`${kpis.beneficiaires_femmes_pct}\u00a0%`}
-              libelle="de femmes accompagnées"
-              icone={Heart}
-              couleur={COULEUR_ACCENT}
-            />
-          </div>
-        )}
-        <p className="text-muted-foreground mt-8 text-center text-xs">
-          Aucune donnée nominative : chiffres anonymisés conformes RGPD.
-        </p>
+        </div>
+
       </div>
     </section>
   );
 }
 
+/**
+ * Cellule de statistique — design institutionnel.
+ *
+ * Concept :
+ *   • `formatCompact` abrège les grands nombres (16 M) pour éviter le retour
+ *     à la ligne dans la grille étroite.
+ *   • L'icône est dans un carré arrondi (rounded-xl) plutôt qu'un cercle :
+ *     plus proche du style des rapports institutionnels ONU/OIF.
+ *   • `tabular-nums` aligne les chiffres sur la même largeur de colonne.
+ *   • `tracking-widest` sur le libellé donne le registre "légende de rapport".
+ */
 function CompteurCarte({
   valeur,
   libelle,
@@ -334,25 +384,33 @@ function CompteurCarte({
   icone: typeof Users;
   couleur: string;
 }) {
+  const { principal, suffixe } = formatCompact(valeur);
   return (
-    <Card className="group overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
-      <div className="h-1 w-full" style={{ backgroundColor: couleur }} />
-      <CardContent className="p-5 text-center">
-        <div
-          className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full transition-transform group-hover:scale-110"
-          style={{ backgroundColor: `${couleur}1a`, color: couleur }}
-        >
-          <Icone aria-hidden className="size-6" />
-        </div>
-        <div
-          className="text-xl leading-tight font-bold break-words tabular-nums sm:text-2xl md:text-3xl"
-          style={{ color: couleur }}
-        >
-          {valeur}
-        </div>
-        <p className="text-muted-foreground mt-2 text-xs leading-snug font-medium">{libelle}</p>
-      </CardContent>
-    </Card>
+    <div className="group flex flex-col items-center gap-3 px-4 py-8 text-center transition-colors duration-150 hover:bg-slate-50">
+
+      {/* Icône */}
+      <div
+        className="flex size-11 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110"
+        style={{ backgroundColor: `${couleur}18`, color: couleur }}
+      >
+        <Icone aria-hidden className="size-5" />
+      </div>
+
+      {/* Valeur compacte + suffixe M/K */}
+      <div className="flex items-baseline leading-none" style={{ color: couleur }}>
+        <span className="text-3xl font-extrabold tabular-nums tracking-tight">
+          {principal}
+        </span>
+        {suffixe && (
+          <span className="text-xl font-bold">{suffixe}</span>
+        )}
+      </div>
+
+      {/* Libellé style "légende rapport" */}
+      <p className="max-w-[120px] text-[10px] font-semibold uppercase leading-tight tracking-widest text-slate-400">
+        {libelle}
+      </p>
+    </div>
   );
 }
 
