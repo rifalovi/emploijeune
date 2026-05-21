@@ -192,19 +192,18 @@ export function CollectePubliqueClient({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Collecte publique</h1>
-          <p className="text-muted-foreground text-sm">
-            Liens réutilisables pour l&apos;enregistrement sans compte — Type A (bénéficiaires),
-            Type B (structures), Type C (questionnaire intermédiation) ou Type D (acteurs
-            institutionnels / écosystèmes)
+          <p className="text-muted-foreground mt-1 text-sm">
+            Liens réutilisables sans compte — Type A (bénéficiaires), B (structures),
+            C (intermédiation) ou D (écosystèmes).
           </p>
         </div>
         {peutCreer && (
           <Button
             onClick={() => setDialogCreation(true)}
-            className="bg-[#5D0073] hover:bg-[#4a005c]"
+            className="w-full shrink-0 bg-[#5D0073] hover:bg-[#4a005c] sm:w-auto"
           >
             <Plus className="mr-2 size-4" />
             Nouveau lien
@@ -300,12 +299,12 @@ export function CollectePubliqueClient({
         {/* ===== Onglet SOUMISSIONS ===== */}
         <TabsContent value="soumissions" className="mt-4">
           {/* Filtres */}
-          <div className="mb-4 flex gap-3">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <Select
               value={filtreStatut}
               onValueChange={(v) => setFiltreStatut(v as typeof filtreStatut)}
             >
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -317,7 +316,7 @@ export function CollectePubliqueClient({
             </Select>
 
             <Select value={filtreLien} onValueChange={(v) => setFiltreLien(v ?? '')}>
-              <SelectTrigger className="w-64">
+              <SelectTrigger className="w-full sm:w-56">
                 <SelectValue placeholder="Tous les liens" />
               </SelectTrigger>
               <SelectContent>
@@ -335,6 +334,7 @@ export function CollectePubliqueClient({
               size="sm"
               onClick={rafraichirSoumissions}
               disabled={isPending}
+              className="w-full sm:w-auto"
             >
               Actualiser
             </Button>
