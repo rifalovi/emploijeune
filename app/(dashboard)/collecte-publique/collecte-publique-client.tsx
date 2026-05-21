@@ -347,16 +347,16 @@ export function CollectePubliqueClient({
               </CardContent>
             </Card>
           ) : (
-            <div className="rounded-md border">
+            <div className="overflow-x-auto rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Lien</TableHead>
-                    <TableHead>Données principales</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="whitespace-nowrap">Type</TableHead>
+                    <TableHead className="whitespace-nowrap">Lien</TableHead>
+                    <TableHead className="whitespace-nowrap">Données principales</TableHead>
+                    <TableHead className="whitespace-nowrap">Date</TableHead>
+                    <TableHead className="whitespace-nowrap">Statut</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

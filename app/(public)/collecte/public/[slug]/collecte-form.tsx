@@ -407,7 +407,7 @@ function FormulaireBeneficiaire({
           <CardTitle className="text-base">Vos informations personnelles</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="prenom">
                 Prénom <span className="text-destructive">*</span>
@@ -432,7 +432,7 @@ function FormulaireBeneficiaire({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>
                 Sexe <span className="text-destructive">*</span>
@@ -614,7 +614,7 @@ function FormulaireBeneficiaire({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="telephone">Téléphone</Label>
               <Input id="telephone" placeholder="+22676123456" {...register('telephone')} />
@@ -800,7 +800,7 @@ function FormulaireStructure({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>
                 Type de structure <span className="text-destructive">*</span>
@@ -858,7 +858,7 @@ function FormulaireStructure({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>
                 Statut <span className="text-destructive">*</span>
@@ -916,7 +916,7 @@ function FormulaireStructure({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>
                 Pays <span className="text-destructive">*</span>
@@ -1023,7 +1023,7 @@ function FormulaireStructure({
           <CardTitle className="text-base">Responsable / Porteur</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="porteur_nom">
                 Nom <span className="text-destructive">*</span>
@@ -1071,7 +1071,7 @@ function FormulaireStructure({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="telephone_b">Téléphone</Label>
               <Input id="telephone_b" placeholder="+22676123456" {...register('telephone')} />
@@ -1311,7 +1311,7 @@ function FormulaireIntermediationC({
           <CardTitle className="text-base">Vos informations personnelles</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="prenom_c">
                 Prénom <span className="text-destructive">*</span>
@@ -1336,7 +1336,7 @@ function FormulaireIntermediationC({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>
                 Sexe <span className="text-destructive">*</span>
@@ -1447,7 +1447,7 @@ function FormulaireIntermediationC({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="tel_c">Téléphone</Label>
               <Input id="tel_c" placeholder="+22676123456" {...register('telephone')} />
@@ -1868,7 +1868,7 @@ function FormulaireEcosystemesD({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="porteur_nom_d">
                 Nom du référent <span className="text-destructive">*</span>
@@ -1946,7 +1946,7 @@ function FormulaireEcosystemesD({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="tel_d">Téléphone</Label>
               <Input id="tel_d" placeholder="+22676123456" {...register('telephone')} />
@@ -2112,7 +2112,7 @@ function FormulaireEcosystemesD({
 
           {d2Forme === 'oui' && (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="d2_nb">Nombre total d&apos;acteurs formés</Label>
                   <Input

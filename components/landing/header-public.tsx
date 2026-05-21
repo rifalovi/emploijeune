@@ -111,18 +111,19 @@ export function HeaderPublic({ isAuthenticated }: { isAuthenticated: boolean }) 
         </div>
       </div>
 
-      {/* Onglets mobile (sous le header) */}
+      {/* Onglets mobile (sous le header) — grid 4 colonnes pour garantir l'absence
+          de débordement même sur écrans ultra-étroits (320px). */}
       <nav aria-label="Navigation publique mobile" className="border-t bg-slate-50/80 md:hidden">
-        <ul className="mx-auto flex max-w-7xl items-center justify-around px-2 py-1.5">
+        <ul className="mx-auto grid max-w-7xl grid-cols-4 gap-1 px-2 py-1.5">
           {onglets.map((o) => {
             const active = o.matches(pathname);
             return (
-              <li key={o.href}>
+              <li key={o.href} className="min-w-0">
                 <Link
                   href={o.href}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                    'flex items-center justify-center truncate rounded-md px-1.5 py-1.5 text-[11px] font-medium transition-colors',
                     active ? 'bg-[#0E4F88] text-white' : 'text-slate-600 hover:bg-slate-100',
                   )}
                 >
