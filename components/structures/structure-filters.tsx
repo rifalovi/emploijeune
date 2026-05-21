@@ -96,7 +96,7 @@ export function StructureFilters({ projets, pays, annees }: StructureFiltersProp
       </div>
 
       {/* Ligne 2 : filtres dropdown (8 filtres en grille adaptative) */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
         <FilterSelect
           id="projet_code"
           label="Projet"

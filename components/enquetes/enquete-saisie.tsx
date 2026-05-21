@@ -325,18 +325,24 @@ export function EnqueteSaisie({ questionnaire, cibleId, cibleLibelle }: EnqueteS
             </>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={handleEffacerBrouillon}
             disabled={pending}
+            className="w-full sm:w-auto"
           >
             <Trash2 aria-hidden className="size-4" />
             Effacer le brouillon
           </Button>
-          <Button type="button" onClick={handleSoumettre} disabled={pending}>
+          <Button
+            type="button"
+            onClick={handleSoumettre}
+            disabled={pending}
+            className="w-full sm:w-auto"
+          >
             <Send aria-hidden className="size-4" />
             {pending ? 'Soumission…' : 'Soumettre l’enquête'}
           </Button>
