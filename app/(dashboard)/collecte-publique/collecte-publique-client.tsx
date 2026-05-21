@@ -212,7 +212,7 @@ export function CollectePubliqueClient({
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="pt-4">
             <p className="text-muted-foreground text-xs">Liens actifs</p>
@@ -613,7 +613,7 @@ function LienCard({
   return (
     <Card className={lien.statut === 'inactif' ? 'opacity-60' : ''}>
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <Badge variant={lien.type === 'B' ? 'secondary' : 'default'} className="shrink-0">
               {lien.type === 'A'
@@ -675,7 +675,7 @@ function LienCard({
         </div>
 
         {/* Stats */}
-        <div className="flex gap-4 text-xs">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
           <span className="text-muted-foreground">
             Total : <strong>{lien.nb_total}</strong>
           </span>
@@ -705,7 +705,7 @@ function LienCard({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {lien.nb_total > 0 && (
             <Button variant="outline" size="sm" onClick={() => onVoirSoumissions(lien.id)}>
               <Eye className="mr-1 size-4" />
@@ -734,7 +734,7 @@ function LienCard({
             <Button
               variant="ghost"
               size="sm"
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive ml-auto"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive sm:ml-auto"
               disabled={isPending}
               onClick={() => onSupprimer(lien)}
             >
