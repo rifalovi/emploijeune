@@ -1463,17 +1463,6 @@ function FormulaireIntermediationC({
             </div>
           </div>
 
-          <div className="flex items-start gap-3 rounded-lg border p-4">
-            <Checkbox
-              id="consent_c"
-              checked={consentement}
-              onCheckedChange={(v) => setValue('consentement', v === true)}
-            />
-            <Label htmlFor="consent_c" className="cursor-pointer text-sm leading-relaxed">
-              J&apos;accepte que mes informations de contact soient conservées par l&apos;OIF aux
-              fins de suivi du projet et ne soient pas transmises à des tiers.
-            </Label>
-          </div>
         </CardContent>
       </Card>
 
@@ -1658,6 +1647,18 @@ function FormulaireIntermediationC({
           {erreur}
         </div>
       )}
+
+      <div className="flex items-start gap-3 rounded-lg border p-4">
+        <Checkbox
+          id="consent_c"
+          checked={consentement}
+          onCheckedChange={(v) => setValue('consentement', v === true)}
+        />
+        <Label htmlFor="consent_c" className="cursor-pointer text-sm leading-relaxed">
+          J&apos;accepte que mes informations de contact soient conservées par l&apos;OIF aux fins
+          de suivi du projet et ne soient pas transmises à des tiers.
+        </Label>
+      </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button
@@ -1962,17 +1963,6 @@ function FormulaireEcosystemesD({
             </div>
           </div>
 
-          <div className="flex items-start gap-3 rounded-lg border p-4">
-            <Checkbox
-              id="consent_d"
-              checked={consentement}
-              onCheckedChange={(v) => setValue('consentement', v === true)}
-            />
-            <Label htmlFor="consent_d" className="cursor-pointer text-sm leading-relaxed">
-              J&apos;accepte que les informations de contact de l&apos;institution soient conservées
-              par l&apos;OIF aux fins de suivi du projet.
-            </Label>
-          </div>
         </CardContent>
       </Card>
 
@@ -2239,6 +2229,18 @@ function FormulaireEcosystemesD({
           {erreur}
         </div>
       )}
+
+      <div className="flex items-start gap-3 rounded-lg border p-4">
+        <Checkbox
+          id="consent_d"
+          checked={consentement}
+          onCheckedChange={(v) => setValue('consentement', v === true)}
+        />
+        <Label htmlFor="consent_d" className="cursor-pointer text-sm leading-relaxed">
+          J&apos;accepte que les informations de contact de l&apos;institution soient conservées
+          par l&apos;OIF aux fins de suivi du projet.
+        </Label>
+      </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button
