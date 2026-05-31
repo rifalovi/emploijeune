@@ -13,6 +13,7 @@ import {
   Database,
   LineChart,
   HelpCircle,
+  Activity,
   type LucideIcon,
 } from 'lucide-react';
 import type { RoleUtilisateur } from '@/lib/supabase/auth';
@@ -110,6 +111,12 @@ export const NAV_GROUPS: NavGroupDef[] = [
         href: '/admin',
         label: 'Administration',
         icon: Settings,
+        roles: ['super_admin', 'admin_scs'],
+      },
+      {
+        href: '/admin/qualite-donnees',
+        label: 'Qualité des données',
+        icon: Activity,
         roles: ['super_admin', 'admin_scs'],
       },
       {
