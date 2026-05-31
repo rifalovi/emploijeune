@@ -121,7 +121,7 @@ export async function importerBeneficiairesExcel(
   const estCsv = input.fichierNom.toLowerCase().endsWith('.csv');
   const parse = estCsv
     ? await parseCsv(input.fichierBuffer, HEADERS_ATTENDUS)
-    : await parseExcelFlexible(input.fichierBuffer, HEADERS_ATTENDUS, input.nomOnglet);
+    : await parseExcelFlexible(input.fichierBuffer, HEADERS_ATTENDUS, input.nomOnglet, 'beneficiaires');
   if (parse.erreursStructure.length > 0) {
     return {
       status: 'erreur_fichier',

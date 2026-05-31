@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
 
   const buffer = await fichier.arrayBuffer();
   const headers = typeImport === 'structures' ? HEADERS_B1 : HEADERS_BENEFICIAIRES;
-  const { onglets, erreur } = await listerOngletsExcel(buffer, headers);
+  const typeParam = typeImport === 'structures' ? 'structures' as const : 'beneficiaires' as const;
+  const { onglets, erreur } = await listerOngletsExcel(buffer, headers, typeParam);
 
   if (erreur) {
     return NextResponse.json({ erreur }, { status: 400 });

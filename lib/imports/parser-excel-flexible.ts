@@ -64,6 +64,7 @@ export type ParseExcelFlexibleResult = {
 export async function listerOngletsExcel(
   buffer: ArrayBuffer | Buffer,
   enTetesAttendus: ReadonlyArray<string>,
+  typeImport: TypeImport = 'beneficiaires',
 ): Promise<{ onglets: InfoOnglet[]; erreur?: string }> {
   const workbook = new ExcelJS.Workbook();
   const buf = buffer instanceof Buffer ? buffer : Buffer.from(new Uint8Array(buffer));
@@ -107,11 +108,12 @@ export async function listerOngletsExcel(
     const { mapping } = detecterEnTetesFlexibles(headersLus, enTetesAttendus);
     const nbHeadersReconnus = mapping.size;
 
-    // Bonus nom de feuille (+10 si contient un mot-clé pertinent)
+    // Bonus nom de feuille (+5 si contient un mot-clé pertinent pour le type)
     const nomNorm = ws.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const motsClesBenef = ['beneficiaire', 'individu', 'personne', 'jeune'];
-    const motsClesStruct = ['structure', 'entreprise', 'micro', 'organisation'];
-    const bonusNom = [...motsClesBenef, ...motsClesStruct].some((m) => nomNorm.includes(m)) ? 10 : 0;
+    const motsClesA = ['beneficiaire', 'individu', 'personne', 'jeune'];
+    const motsClesB = ['structure', 'entreprise', 'micro', 'organisation'];
+    const motsClesActifs = typeImport === 'structures' ? motsClesB : motsClesA;
+    const bonusNom = motsClesActifs.some((m) => nomNorm.includes(m)) ? 5 : 0;
 
     const scoreBrut = enTetesAttendus.length > 0
       ? Math.round((nbHeadersReconnus / enTetesAttendus.length) * 100)
@@ -127,10 +129,14 @@ export async function listerOngletsExcel(
   return { onglets };
 }
 
+/** Type d'import pour le bonus nom de feuille. */
+export type TypeImport = 'beneficiaires' | 'structures';
+
 export async function parseExcelFlexible(
   buffer: ArrayBuffer | Buffer,
   enTetesAttendus: ReadonlyArray<string>,
   nomOnglet?: string,
+  typeImport: TypeImport = 'beneficiaires',
 ): Promise<ParseExcelFlexibleResult> {
   const workbook = new ExcelJS.Workbook();
   const buf = buffer instanceof Buffer ? buffer : Buffer.from(new Uint8Array(buffer));
@@ -189,10 +195,12 @@ export async function parseExcelFlexible(
       });
       const { mapping } = detecterEnTetesFlexibles(headersLus, enTetesAttendus);
 
-      // Bonus nom de feuille
+      // Bonus nom de feuille (+5 si contient un mot-clé pertinent pour le type)
       const nomNorm = sheet.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      const motsCles = ['beneficiaire', 'individu', 'structure', 'entreprise', 'micro', 'jeune'];
-      const bonusNom = motsCles.some((m) => nomNorm.includes(m)) ? 1 : 0;
+      const motsClesA = ['beneficiaire', 'individu', 'personne', 'jeune'];
+      const motsClesB = ['structure', 'entreprise', 'micro', 'organisation'];
+      const motsCles = typeImport === 'structures' ? motsClesB : motsClesA;
+      const bonusNom = motsCles.some((m) => nomNorm.includes(m)) ? 5 : 0;
 
       const nbLignesDonnees = Math.max(0, sheet.rowCount - ligneTete);
       const score = mapping.size + bonusNom;

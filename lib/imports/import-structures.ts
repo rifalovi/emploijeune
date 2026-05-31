@@ -45,7 +45,7 @@ export async function importerStructuresExcel(
   const estCsv = input.fichierNom.toLowerCase().endsWith('.csv');
   const { lignes, erreursStructure } = estCsv
     ? await parseCsv(input.fichierBuffer, HEADERS_B1)
-    : await parseExcelFlexible(input.fichierBuffer, HEADERS_B1, input.nomOnglet);
+    : await parseExcelFlexible(input.fichierBuffer, HEADERS_B1, input.nomOnglet, 'structures');
 
   if (erreursStructure.length > 0) {
     return {

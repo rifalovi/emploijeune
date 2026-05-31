@@ -148,9 +148,8 @@ export function ZoneUploadImport({
           const { onglets: liste } = await res.json() as { onglets: InfoOnglet[] };
           if (liste.length > 1) {
             setOnglets(liste);
-            // Présélectionner l'onglet avec le meilleur score
-            const meilleur = liste.reduce((a, b) => (b.score > a.score ? b : a), liste[0]!);
-            setOngletChoisi(meilleur.nom);
+            // Par défaut : auto-détection (chaîne vide = backend choisit)
+            setOngletChoisi('');
           }
         }
       } catch {
@@ -399,10 +398,11 @@ export function ZoneUploadImport({
                 className="w-full rounded border border-blue-300 bg-white px-3 py-1.5 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 disabled={pending}
               >
+                <option value="">Auto-détecter (recommandé)</option>
                 {onglets.map((o) => (
                   <option key={o.nom} value={o.nom}>
                     {o.nom} — {o.nbLignes} lignes, {o.nbHeadersReconnus} colonnes reconnues
-                    {o.score >= 50 ? ' (recommandé)' : ''}
+                    {o.score >= 50 ? ' *' : ''}
                   </option>
                 ))}
               </select>
