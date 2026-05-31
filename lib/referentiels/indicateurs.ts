@@ -254,6 +254,8 @@ export const INDICATEURS: Indicateur[] = [
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
     observationRattachement:
       "Il concerne les projets visant à renforcer l'employabilité ou l'auto-emploi des jeunes à l'issue d'un parcours de formation. Il est également pertinent pour les interventions menées dans des filières telles que le tourisme, l'agriculture ou les innovations vertes. Cet indicateur prendra en compte non seulement l'accès à l'emploi, mais aussi, le cas échéant, l'amélioration de la situation professionnelle des bénéficiaires déjà en activité au moment de leur entrée dans le dispositif.",
+    labelMetrique: "Taux d'insertion professionnelle à 6/12 mois",
+    unitePrincipale: '%',
   },
 
   // ─────────────────────────── CATÉGORIE B ───────────────────────────
