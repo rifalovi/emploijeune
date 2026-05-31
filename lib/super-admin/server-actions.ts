@@ -582,3 +582,47 @@ export async function creerCompteAvecMotPasseDefini(
 
   return { status: 'succes', user_id: newUserId, email: parsed.data.email };
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase 7 — Maintenance plateforme (purge + recalcul)
+// ─────────────────────────────────────────────────────────────────────────
+
+type PurgeResult = {
+  success: boolean;
+  effectifs_avant: Record<string, number>;
+  message: string;
+};
+
+type RecalculResult = {
+  success: boolean;
+  resultats: Record<string, number>;
+};
+
+export async function purgerDonneesMetier(): Promise<Resultat<PurgeResult>> {
+  const garde = await exigerSuperAdmin();
+  if ('erreur' in garde) return { status: 'erreur', message: garde.erreur };
+
+  const supabase = await createSupabaseServerClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)('purger_donnees_metier_v1');
+
+  if (error) return { status: 'erreur', message: error.message };
+
+  revalidatePath('/super-admin/maintenance');
+  revalidatePath('/', 'layout');
+  return { status: 'succes', data: data as PurgeResult };
+}
+
+export async function recalculerIndicateurs(): Promise<Resultat<RecalculResult>> {
+  const garde = await exigerSuperAdmin();
+  if ('erreur' in garde) return { status: 'erreur', message: garde.erreur };
+
+  const supabase = await createSupabaseServerClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)('recalculer_indicateurs_v1');
+
+  if (error) return { status: 'erreur', message: error.message };
+
+  revalidatePath('/', 'layout');
+  return { status: 'succes', data: data as RecalculResult };
+}
