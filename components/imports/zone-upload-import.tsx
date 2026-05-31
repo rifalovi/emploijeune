@@ -73,6 +73,12 @@ export function ZoneUploadImport({
   const [pending, startTransition] = useTransition();
   const [analyserAvecIA, setAnalyserAvecIA] = useState(false);
 
+  // Multi-onglets
+  type InfoOnglet = { nom: string; nbLignes: number; nbColonnes: number; nbHeadersReconnus: number; score: number };
+  const [onglets, setOnglets] = useState<InfoOnglet[]>([]);
+  const [ongletChoisi, setOngletChoisi] = useState<string>('');
+  const [chargementOnglets, setChargementOnglets] = useState(false);
+
   // État du popup "Réessayer avec l'IA"
   type SuggestionIA = {
     fichierEnCours: File;
@@ -111,18 +117,47 @@ export function ZoneUploadImport({
     return null;
   };
 
-  const handleFichierSelectionne = (f: File) => {
+  const handleFichierSelectionne = async (f: File) => {
     const err = validerFichier(f);
     if (err) {
       toast.error(err);
       return;
     }
     setFichier(f);
+    setOnglets([]);
+    setOngletChoisi('');
+
     // Active automatiquement l'IA si fichier non-Excel (PDF/DOCX/TXT)
     if (estFichierIA(f) && iaActivable) {
       setAnalyserAvecIA(true);
     } else {
       setAnalyserAvecIA(false);
+    }
+
+    // Détection multi-onglets pour les fichiers Excel
+    const nom = f.name.toLowerCase();
+    const estExcel = nom.endsWith('.xlsx') || nom.endsWith('.xlsm') || nom.endsWith('.xlsb');
+    if (estExcel) {
+      setChargementOnglets(true);
+      try {
+        const fd = new FormData();
+        fd.append('fichier', f);
+        fd.append('type', endpoint.includes('structures') ? 'structures' : 'beneficiaires');
+        const res = await fetch('/api/imports/onglets', { method: 'POST', body: fd, credentials: 'same-origin' });
+        if (res.ok) {
+          const { onglets: liste } = await res.json() as { onglets: InfoOnglet[] };
+          if (liste.length > 1) {
+            setOnglets(liste);
+            // Présélectionner l'onglet avec le meilleur score
+            const meilleur = liste.reduce((a, b) => (b.score > a.score ? b : a), liste[0]!);
+            setOngletChoisi(meilleur.nom);
+          }
+        }
+      } catch {
+        // Pas bloquant — on continue sans sélection d'onglet
+      } finally {
+        setChargementOnglets(false);
+      }
     }
   };
 
@@ -141,6 +176,7 @@ export function ZoneUploadImport({
     startTransition(async () => {
       const formData = new FormData();
       formData.append('fichier', fichier);
+      if (ongletChoisi) formData.append('onglet', ongletChoisi);
 
       try {
         const response = await fetch(endpointEffectif, {
@@ -351,17 +387,42 @@ export function ZoneUploadImport({
             </div>
           )}
 
+          {/* Sélection d'onglet — visible si le fichier Excel a plusieurs onglets */}
+          {onglets.length > 1 && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <p className="mb-2 text-xs font-medium text-blue-800">
+                Ce fichier contient {onglets.length} onglets. Sélectionnez celui à importer :
+              </p>
+              <select
+                value={ongletChoisi}
+                onChange={(e) => setOngletChoisi(e.target.value)}
+                className="w-full rounded border border-blue-300 bg-white px-3 py-1.5 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                disabled={pending}
+              >
+                {onglets.map((o) => (
+                  <option key={o.nom} value={o.nom}>
+                    {o.nom} — {o.nbLignes} lignes, {o.nbHeadersReconnus} colonnes reconnues
+                    {o.score >= 50 ? ' (recommandé)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {chargementOnglets && (
+            <p className="text-xs text-slate-400">Analyse des onglets en cours...</p>
+          )}
+
           <div className="flex items-center justify-between gap-2">
             {templateLabel && (
               <p className="text-muted-foreground text-xs">
-                💡 {templateLabel} – utilisez le bouton « Exporter vers Excel » de la liste pour
+                {templateLabel} — utilisez le bouton Exporter vers Excel de la liste pour
                 récupérer un modèle.
               </p>
             )}
             <Button
               type="button"
               onClick={handleLancerImport}
-              disabled={!fichier || pending}
+              disabled={!fichier || pending || chargementOnglets}
               className="gap-2"
             >
               {pending ? (

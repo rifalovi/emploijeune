@@ -53,6 +53,8 @@ export type ImporterBeneficiairesInput = {
   fichierTaille: number;
   /** SHA-256 hex du fichier (optionnel, pour détecter les re-imports). */
   fichierHash?: string;
+  /** Nom de l'onglet à importer (multi-onglets). Si absent, auto-détection. */
+  nomOnglet?: string;
 };
 
 /** Headers attendus (alignés sur Template OIF, étendus avec tranche_age_declaree). */
@@ -115,11 +117,11 @@ export async function importerBeneficiairesExcel(
     };
   }
 
-  // 1. Parsing flexible : CSV ou Excel selon l'extension
+  // 1. Parsing flexible : CSV ou Excel selon l'extension, avec sélection d'onglet
   const estCsv = input.fichierNom.toLowerCase().endsWith('.csv');
   const parse = estCsv
     ? await parseCsv(input.fichierBuffer, HEADERS_ATTENDUS)
-    : await parseExcelFlexible(input.fichierBuffer, HEADERS_ATTENDUS);
+    : await parseExcelFlexible(input.fichierBuffer, HEADERS_ATTENDUS, input.nomOnglet);
   if (parse.erreursStructure.length > 0) {
     return {
       status: 'erreur_fichier',

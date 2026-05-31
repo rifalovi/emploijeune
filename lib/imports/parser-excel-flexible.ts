@@ -22,6 +22,17 @@ import type { ErreurImport } from './types';
 const PLAFOND_LIGNES = 50000;
 const HORIZON_LIGNE_ENTETE = 15;
 
+/** Infos d'un onglet Excel pour la sélection multi-onglets. */
+export type InfoOnglet = {
+  nom: string;
+  nbLignes: number;
+  nbColonnes: number;
+  /** Nombre d'en-têtes attendus qui matchent (fuzzy) — sert au scoring. */
+  nbHeadersReconnus: number;
+  /** Score 0-100 : pertinence estimée de cet onglet pour l'import. */
+  score: number;
+};
+
 export type ParseExcelFlexibleResult = {
   /**
    * Lignes de données mappées sur les en-têtes canoniques (template officiel).
@@ -45,9 +56,70 @@ export type ParseExcelFlexibleResult = {
   erreursStructure: ErreurImport[];
 };
 
+/**
+ * Liste les onglets d'un fichier Excel avec un score de pertinence pour l'import.
+ * Le score est basé sur le nombre d'en-têtes reconnus par le smart-mapper.
+ * L'onglet avec le meilleur score est le candidat auto-détecté.
+ */
+export async function listerOngletsExcel(
+  buffer: ArrayBuffer | Buffer,
+  enTetesAttendus: ReadonlyArray<string>,
+): Promise<{ onglets: InfoOnglet[]; erreur?: string }> {
+  const workbook = new ExcelJS.Workbook();
+  const buf = buffer instanceof Buffer ? buffer : Buffer.from(new Uint8Array(buffer));
+
+  try {
+    await workbook.xlsx.load(buf as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+  } catch (err) {
+    return { onglets: [], erreur: `Fichier illisible : ${err instanceof Error ? err.message : 'format invalide'}` };
+  }
+
+  const onglets: InfoOnglet[] = [];
+  for (const ws of workbook.worksheets) {
+    const nbLignes = ws.rowCount;
+    const nbColonnes = ws.columnCount;
+
+    // Détecter la ligne d'en-tête (même algo que parseExcelFlexible)
+    const horizonMax = Math.min(HORIZON_LIGNE_ENTETE, ws.rowCount);
+    let meilleureLigne = 1;
+    let meilleurScore = 0;
+    for (let r = 1; r <= horizonMax; r++) {
+      const row = ws.getRow(r);
+      let cellulesNonVides = 0;
+      const valeursUniques = new Set<string>();
+      row.eachCell({ includeEmpty: false }, (cell) => {
+        const v = extraireValeurCellule(cell);
+        const s = v !== null && v !== undefined ? String(v).trim() : '';
+        if (s !== '') { cellulesNonVides++; valeursUniques.add(s); }
+      });
+      if (cellulesNonVides > 1 && valeursUniques.size === 1) continue;
+      if (cellulesNonVides > meilleurScore) { meilleurScore = cellulesNonVides; meilleureLigne = r; }
+    }
+
+    // Lire les en-têtes et scorer avec le smart-mapper
+    const headerRow = ws.getRow(meilleureLigne);
+    const headersLus: Array<string | null> = [];
+    headerRow.eachCell({ includeEmpty: true }, (cell) => {
+      const v = extraireValeurCellule(cell);
+      headersLus.push(typeof v === 'string' && v.trim() ? v.trim() : v !== null ? String(v).trim() || null : null);
+    });
+
+    const { mapping } = detecterEnTetesFlexibles(headersLus, enTetesAttendus);
+    const nbHeadersReconnus = mapping.size;
+    const score = enTetesAttendus.length > 0
+      ? Math.round((nbHeadersReconnus / enTetesAttendus.length) * 100)
+      : 0;
+
+    onglets.push({ nom: ws.name, nbLignes, nbColonnes, nbHeadersReconnus, score });
+  }
+
+  return { onglets };
+}
+
 export async function parseExcelFlexible(
   buffer: ArrayBuffer | Buffer,
   enTetesAttendus: ReadonlyArray<string>,
+  nomOnglet?: string,
 ): Promise<ParseExcelFlexibleResult> {
   const workbook = new ExcelJS.Workbook();
   const buf = buffer instanceof Buffer ? buffer : Buffer.from(new Uint8Array(buffer));
@@ -71,7 +143,27 @@ export async function parseExcelFlexible(
     };
   }
 
-  const ws = workbook.worksheets[0];
+  // Sélection de l'onglet : par nom si spécifié, sinon auto-détection du meilleur
+  let ws = nomOnglet
+    ? workbook.worksheets.find((s) => s.name === nomOnglet)
+    : undefined;
+
+  if (!ws && !nomOnglet && workbook.worksheets.length > 1) {
+    // Auto-détection : scorer chaque onglet et prendre le meilleur
+    let bestScore = -1;
+    for (const sheet of workbook.worksheets) {
+      const headerRow = sheet.getRow(1);
+      const headersLus: Array<string | null> = [];
+      headerRow.eachCell({ includeEmpty: true }, (cell) => {
+        const v = extraireValeurCellule(cell);
+        headersLus.push(typeof v === 'string' && v.trim() ? v.trim() : null);
+      });
+      const { mapping } = detecterEnTetesFlexibles(headersLus, enTetesAttendus);
+      if (mapping.size > bestScore) { bestScore = mapping.size; ws = sheet; }
+    }
+  }
+
+  if (!ws) ws = workbook.worksheets[0];
   if (!ws) {
     return {
       lignes: [],

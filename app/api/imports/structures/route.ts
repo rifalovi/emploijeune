@@ -26,10 +26,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const buffer = await fichier.arrayBuffer();
+    const nomOnglet = (formData.get('onglet') as string) || undefined;
     const result = await importerStructuresExcel({
       fichierBuffer: buffer,
       fichierNom: fichier.name,
       fichierTaille: fichier.size,
+      nomOnglet,
     });
     return NextResponse.json(result);
   } catch (erreur) {

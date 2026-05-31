@@ -19,6 +19,8 @@ export type ImporterStructuresInput = {
   fichierBuffer: ArrayBuffer | Buffer;
   fichierNom: string;
   fichierTaille: number;
+  /** Nom de l'onglet à importer (multi-onglets). Si absent, auto-détection. */
+  nomOnglet?: string;
 };
 
 export async function importerStructuresExcel(
@@ -39,11 +41,11 @@ export async function importerStructuresExcel(
     };
   }
 
-  // Parsing flexible : CSV ou Excel selon l'extension, avec mapping flou des en-têtes
+  // Parsing flexible : CSV ou Excel selon l'extension, avec sélection d'onglet
   const estCsv = input.fichierNom.toLowerCase().endsWith('.csv');
   const { lignes, erreursStructure } = estCsv
     ? await parseCsv(input.fichierBuffer, HEADERS_B1)
-    : await parseExcelFlexible(input.fichierBuffer, HEADERS_B1);
+    : await parseExcelFlexible(input.fichierBuffer, HEADERS_B1, input.nomOnglet);
 
   if (erreursStructure.length > 0) {
     return {
