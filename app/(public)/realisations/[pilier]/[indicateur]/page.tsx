@@ -548,7 +548,7 @@ function BlocRepartition({
               </div>
               <BarreRepartition
                 gauche={{
-                  label: 'Jeunes (18-34 ans)',
+                  label: 'Jeunes (15-34 ans)',
                   valeur: jeunes,
                   pct: jeunesPct,
                   couleur: '#0198E9',

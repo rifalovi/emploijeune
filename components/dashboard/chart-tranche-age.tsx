@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Users } from 'lucide-react';
 import type { RepartitionTrancheAge } from '@/lib/landing/queries';
 
-const COULEUR_JEUNE = '#0198E9'; // PS1 cyan – jeunes 18-34
+const COULEUR_JEUNE = '#0198E9'; // PS1 cyan – jeunes 15-34
 const COULEUR_ADULTE = '#5D0073'; // PS2 violet – adultes 35+
 const COULEUR_NR = '#e2e8f0'; // gris clair – non renseigné
 
@@ -17,7 +17,7 @@ const COULEUR_NR = '#e2e8f0'; // gris clair – non renseigné
  *   - Compteurs détaillés en dessous
  *   - Badge « Indicateur clé » OIF
  *
- * Indicateur important : la définition OIF distingue « Jeunes (18-34 ans) »
+ * Indicateur important : la définition OIF distingue « Jeunes (15-34 ans) »
  * cibles prioritaires et « Adultes (35 ans et +) ».
  */
 export function ChartTrancheAge({ data }: { data: RepartitionTrancheAge }) {
@@ -25,7 +25,7 @@ export function ChartTrancheAge({ data }: { data: RepartitionTrancheAge }) {
   const nr_pct = total > 0 ? Math.round((non_renseigne / total) * 100) : 0;
 
   const segments = [
-    { label: 'Jeunes (18-34 ans)', valeur: jeunes, pct: jeunes_pct, couleur: COULEUR_JEUNE },
+    { label: 'Jeunes (15-34 ans)', valeur: jeunes, pct: jeunes_pct, couleur: COULEUR_JEUNE },
     { label: 'Adultes (35 ans et +)', valeur: adultes, pct: adultes_pct, couleur: COULEUR_ADULTE },
     ...(non_renseigne > 0
       ? [{ label: 'Non renseigné', valeur: non_renseigne, pct: nr_pct, couleur: COULEUR_NR }]

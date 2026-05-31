@@ -134,32 +134,42 @@ export async function getIndicateursVitrine(): Promise<IndicateurVitrine[]> {
 export async function getRepartitionTrancheAge(): Promise<RepartitionTrancheAge | null> {
   try {
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase
-      .from('beneficiaires')
-      .select('tranche_age_declaree, date_naissance')
-      .is('deleted_at', null);
 
-    if (error || !data) return null;
+    /* Agrégation SQL côté serveur : pas de LIMIT, pas de transfert de
+       toutes les lignes. Supabase PostgREST impose un max de 1000 lignes
+       par défaut sur les SELECT — ici on utilise un RPC-like approach via
+       des comptages HEAD pour éviter ce plafond. */
+    const [totalRes, jeunesRes, adultesRes] = await Promise.all([
+      supabase
+        .from('beneficiaires')
+        .select('id', { count: 'exact', head: true })
+        .is('deleted_at', null),
+      supabase
+        .from('beneficiaires')
+        .select('id', { count: 'exact', head: true })
+        .is('deleted_at', null)
+        .eq('tranche_age_declaree', 'Jeune'),
+      supabase
+        .from('beneficiaires')
+        .select('id', { count: 'exact', head: true })
+        .is('deleted_at', null)
+        .eq('tranche_age_declaree', 'Adulte'),
+    ]);
 
-    let jeunes = 0;
-    let adultes = 0;
-    let non_renseigne = 0;
-    const total = data.length;
+    const total = totalRes.count ?? 0;
+    const jeunes = jeunesRes.count ?? 0;
+    const adultes = adultesRes.count ?? 0;
+    const non_renseigne = total - jeunes - adultes;
 
-    for (const r of data) {
-      const tranche = classifierTrancheAge(r.tranche_age_declaree, r.date_naissance);
-      if (tranche === 'Jeune') jeunes++;
-      else if (tranche === 'Adulte') adultes++;
-      else non_renseigne++;
-    }
+    if (total === 0) return null;
 
     return {
       jeunes,
       adultes,
       non_renseigne,
       total,
-      jeunes_pct: total > 0 ? Math.round((jeunes / total) * 100) : 0,
-      adultes_pct: total > 0 ? Math.round((adultes / total) * 100) : 0,
+      jeunes_pct: Math.round((jeunes / total) * 100),
+      adultes_pct: Math.round((adultes / total) * 100),
     };
   } catch {
     return null;
