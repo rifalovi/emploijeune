@@ -135,10 +135,11 @@ export default async function QualiteDonneesPage() {
                   />
                 </div>
 
-                {/* Note contextuelle pour date_naissance */}
-                {ind.champ === 'date_naissance' && pct === 0 && (
+                {/* Note contextuelle pour consentement RGPD */}
+                {ind.champ === 'consentement' && manquants > 0 && manquants <= 30 && (
                   <p className="text-[10px] leading-snug text-slate-400 italic">
-                    Donnée non collectée à l&apos;import — non critique pour les indicateurs actuels.
+                    {manquants} manquant{manquants > 1 ? 's' : ''} — tous au statut INSCRIT
+                    (en attente de finalisation du dossier).
                   </p>
                 )}
 

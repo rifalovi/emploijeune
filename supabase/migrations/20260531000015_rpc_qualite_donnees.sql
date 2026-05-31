@@ -78,13 +78,13 @@ BEGIN
 
     UNION ALL
 
-    -- Date de naissance
+    -- Consentement RGPD
     SELECT 5, jsonb_build_object(
-      'champ', 'date_naissance',
-      'libelle', 'Date de naissance',
+      'champ', 'consentement',
+      'libelle', 'Consentement RGPD',
       'total', v_total,
       'complets', (SELECT COUNT(*) FROM public.beneficiaires
-                   WHERE deleted_at IS NULL AND date_naissance IS NOT NULL),
+                   WHERE deleted_at IS NULL AND consentement_date IS NOT NULL),
       'alertes_ouvertes', 0
     )
 
