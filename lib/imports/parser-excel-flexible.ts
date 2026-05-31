@@ -19,7 +19,7 @@ import type { ErreurImport } from './types';
  *      est `inseree`, `incomplete` ou `rejetee` selon le détail).
  */
 
-const PLAFOND_LIGNES = 5000;
+const PLAFOND_LIGNES = 50000;
 const HORIZON_LIGNE_ENTETE = 15;
 
 export type ParseExcelFlexibleResult = {

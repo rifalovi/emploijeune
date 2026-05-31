@@ -25,7 +25,7 @@ export type ParseExcelResult = {
   erreursStructure: ErreurImport[];
 };
 
-const PLAFOND_LIGNES = 5000;
+const PLAFOND_LIGNES = 50000;
 
 export async function parseExcel(
   buffer: ArrayBuffer | Buffer,
