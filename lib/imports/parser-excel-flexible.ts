@@ -106,11 +106,22 @@ export async function listerOngletsExcel(
 
     const { mapping } = detecterEnTetesFlexibles(headersLus, enTetesAttendus);
     const nbHeadersReconnus = mapping.size;
-    const score = enTetesAttendus.length > 0
+
+    // Bonus nom de feuille (+10 si contient un mot-clé pertinent)
+    const nomNorm = ws.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const motsClesBenef = ['beneficiaire', 'individu', 'personne', 'jeune'];
+    const motsClesStruct = ['structure', 'entreprise', 'micro', 'organisation'];
+    const bonusNom = [...motsClesBenef, ...motsClesStruct].some((m) => nomNorm.includes(m)) ? 10 : 0;
+
+    const scoreBrut = enTetesAttendus.length > 0
       ? Math.round((nbHeadersReconnus / enTetesAttendus.length) * 100)
       : 0;
+    const score = Math.min(scoreBrut + bonusNom, 100);
 
-    onglets.push({ nom: ws.name, nbLignes, nbColonnes, nbHeadersReconnus, score });
+    // Nb de lignes de données (après l'en-tête)
+    const nbLignesDonnees = Math.max(0, nbLignes - meilleureLigne);
+
+    onglets.push({ nom: ws.name, nbLignes: nbLignesDonnees, nbColonnes, nbHeadersReconnus, score });
   }
 
   return { onglets };
@@ -149,17 +160,65 @@ export async function parseExcelFlexible(
     : undefined;
 
   if (!ws && !nomOnglet && workbook.worksheets.length > 1) {
-    // Auto-détection : scorer chaque onglet et prendre le meilleur
+    // Auto-détection : scorer chaque onglet avec détection en-tête 15 lignes,
+    // bonus nom de feuille, et minimum 10 lignes de données.
     let bestScore = -1;
+    const feuillesInfos: string[] = [];
     for (const sheet of workbook.worksheets) {
-      const headerRow = sheet.getRow(1);
+      // Détection en-tête (même algo que le parser principal)
+      const horizonMax = Math.min(HORIZON_LIGNE_ENTETE, sheet.rowCount);
+      let ligneTete = 1;
+      let meilleurScoreLigne = 0;
+      for (let r = 1; r <= horizonMax; r++) {
+        const row = sheet.getRow(r);
+        let nonVides = 0;
+        const vals = new Set<string>();
+        row.eachCell({ includeEmpty: false }, (cell) => {
+          const v = extraireValeurCellule(cell);
+          const s = v !== null && v !== undefined ? String(v).trim() : '';
+          if (s) { nonVides++; vals.add(s); }
+        });
+        if (nonVides > 1 && vals.size === 1) continue;
+        if (nonVides > meilleurScoreLigne) { meilleurScoreLigne = nonVides; ligneTete = r; }
+      }
+
       const headersLus: Array<string | null> = [];
-      headerRow.eachCell({ includeEmpty: true }, (cell) => {
+      sheet.getRow(ligneTete).eachCell({ includeEmpty: true }, (cell) => {
         const v = extraireValeurCellule(cell);
         headersLus.push(typeof v === 'string' && v.trim() ? v.trim() : null);
       });
       const { mapping } = detecterEnTetesFlexibles(headersLus, enTetesAttendus);
-      if (mapping.size > bestScore) { bestScore = mapping.size; ws = sheet; }
+
+      // Bonus nom de feuille
+      const nomNorm = sheet.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const motsCles = ['beneficiaire', 'individu', 'structure', 'entreprise', 'micro', 'jeune'];
+      const bonusNom = motsCles.some((m) => nomNorm.includes(m)) ? 1 : 0;
+
+      const nbLignesDonnees = Math.max(0, sheet.rowCount - ligneTete);
+      const score = mapping.size + bonusNom;
+      feuillesInfos.push(`${sheet.name} (${nbLignesDonnees} lignes, ${mapping.size} colonnes)`);
+
+      // Minimum 10 lignes de données pour être candidat
+      if (nbLignesDonnees >= 10 && score > bestScore) {
+        bestScore = score;
+        ws = sheet;
+      }
+    }
+
+    // Si aucun onglet n'a au moins 3 colonnes reconnues → erreur descriptive
+    if (bestScore < 3) {
+      return {
+        lignes: [],
+        headersMappesAuto: {},
+        headersNonReconnus: [],
+        ligneEnTeteDetectee: 0,
+        erreursStructure: [{
+          ligne: 0,
+          colonne: null,
+          valeur: null,
+          message: `Aucune feuille reconnue dans ce fichier Excel. Feuilles trouvées : ${feuillesInfos.join(', ')}. Sélectionnez manuellement l'onglet à importer.`,
+        }],
+      };
     }
   }
 
