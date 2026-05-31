@@ -10,8 +10,8 @@ import {
   normaliserCodeProjet,
   normaliserDomaineFormation,
   normaliserSexe,
-  normaliserTrancheAge,
 } from './smart-mapper';
+import { resoudreTrancheAge } from './tranche-age-resolver';
 
 /**
  * Phase 2 du sprint Import IA — extraction de bénéficiaires depuis des
@@ -180,7 +180,7 @@ export async function extraireAvecIA(
   }
 
   // 4. Normaliser les valeurs via smart-mapper
-  const lignesNormalisees = lignesBrutes.map(normaliserLigneExtraite);
+  const lignesNormalisees = await Promise.all(lignesBrutes.map(normaliserLigneExtraite));
 
   // 5. Calculer le score de confiance global
   const confiance = calculerConfianceGlobale(lignesNormalisees);
@@ -306,12 +306,13 @@ function parserReponseClaude(texte: string): LigneBrute[] | null {
   return parsed.filter((item) => item && typeof item === 'object') as LigneBrute[];
 }
 
-function normaliserLigneExtraite(brute: LigneBrute): LigneExtraite {
+async function normaliserLigneExtraite(brute: LigneBrute): Promise<LigneExtraite> {
   // Normalisation via smart-mapper réutilisé (Phase 1)
   const projet = normaliserCodeProjet(brute.projet);
   const pays = normaliserCodePays(brute.pays);
   const sexe = normaliserSexe(brute.sexe);
-  const tranche = normaliserTrancheAge(brute.tranche_age);
+  const trancheResult = await resoudreTrancheAge(brute.tranche_age);
+  const tranche = trancheResult?.categorie ?? null;
   const domaine = normaliserDomaineFormation(brute.domaine_formation);
 
   // Mapping vers les en-têtes du Template (pour passage direct au pipeline

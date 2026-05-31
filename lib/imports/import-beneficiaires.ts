@@ -10,13 +10,13 @@ import {
   normaliserCodeProjet,
   normaliserCodePays,
   normaliserSexe,
-  normaliserTrancheAge,
   normaliserDomaineFormation,
   normaliserModalite,
   normaliserStatut,
   normaliserConsentement,
   fusionnerBeneficiaires,
 } from './smart-mapper';
+import { resoudreTrancheAge } from './tranche-age-resolver';
 import type {
   LigneRapportImport,
   RapportImportEnrichi,
@@ -91,6 +91,7 @@ type RecordNormalise = {
   partenaire_accompagnement: string | null;
   fonction_actuelle: string | null;
   tranche_age_declaree: 'Jeune' | 'Adulte' | null;
+  tranche_age_precise_id: string | null;
   consentement_recueilli: boolean;
 };
 
@@ -320,7 +321,9 @@ async function traiterLigne(args: {
   }
 
   const trancheBrut = donnees["Tranche d'âge déclarée"];
-  const tranche = normaliserTrancheAge(trancheBrut);
+  const trancheResult = await resoudreTrancheAge(trancheBrut);
+  const tranche = trancheResult?.categorie ?? null;
+  const tranchePreciseId = trancheResult?.tranche_precise_id ?? null;
   if (trancheBrut && tranche && String(trancheBrut).trim() !== tranche) {
     mappagesAuto.push(`${trancheBrut} → ${tranche} (tranche)`);
   }
@@ -447,6 +450,7 @@ async function traiterLigne(args: {
     partenaire_accompagnement: partenaire,
     fonction_actuelle: fonction,
     tranche_age_declaree: tranche,
+    tranche_age_precise_id: tranchePreciseId,
     consentement_recueilli: consentementFinal,
   };
 
@@ -494,6 +498,7 @@ async function traiterLigne(args: {
       .from('beneficiaires')
       .update({
         ...fusionne,
+        ...(record.tranche_age_precise_id ? { tranche_age_precise_id: record.tranche_age_precise_id } : {}),
       } as never)
       .eq('id', (doublon as { id: string }).id);
 
@@ -569,6 +574,7 @@ async function traiterLigne(args: {
     source_import: 'excel_v1',
     created_by: createdBy,
     ...(importSessionId ? { import_session_id: importSessionId } : {}),
+    ...(record.tranche_age_precise_id ? { tranche_age_precise_id: record.tranche_age_precise_id } : {}),
   } as never);
 
   if (insertError) {
