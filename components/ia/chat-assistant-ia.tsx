@@ -41,7 +41,10 @@ export function ChatAssistantIa() {
       });
 
       if (res.status === 'erreur') {
-        toast.error(`Erreur IA : ${res.message}`);
+        /* Le serveur retourne déjà un message lisible et catégorisé
+         * (cf. lib/ia/server-actions.ts catch block). On affiche tel quel,
+         * avec une durée plus longue car les erreurs IA méritent d'être lues. */
+        toast.error(res.message, { duration: 8000 });
         // On retire le dernier message user pour éviter de polluer le contexte
         // si la requête a échoué pour une raison de config / quota.
         setMessages(messages);

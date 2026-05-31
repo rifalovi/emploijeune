@@ -201,7 +201,31 @@ export async function analyser(payload: z.infer<typeof analyserSchema>): Promise
       tokens_utilises: reponse.usage?.input_tokens ?? undefined,
     };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Erreur inconnue';
+    /* Transforme l'erreur Anthropic brute en message lisible côté UI.
+     * Concept : le SDK Anthropic lève des `APIError` avec un `status` HTTP.
+     * Sans cette traduction, le client affichait le JSON brut
+     * `{"type":"error","error":{"type":"authentication_error",...}}`. */
+    const status = (e as { status?: number } | null)?.status;
+    let msg: string;
+    if (status === 401) {
+      msg =
+        "Service IA momentanément indisponible : la configuration côté serveur doit être mise à jour. Contactez un super-administrateur.";
+    } else if (status === 429) {
+      msg =
+        "Limite d'usage de l'IA atteinte. Patientez quelques minutes avant de réessayer.";
+    } else if (status === 529) {
+      msg =
+        "L'IA est surchargée pour le moment. Réessayez dans quelques instants.";
+    } else if (status && status >= 500) {
+      msg = "Service IA temporairement indisponible. Réessayez dans un instant.";
+    } else {
+      msg = e instanceof Error ? e.message : 'Erreur inconnue.';
+    }
+    /* Trace serveur pour debug (la clé brute reste cachée du client) */
+    console.error('[assistant-ia] Échec Claude', {
+      status,
+      raw: e instanceof Error ? e.message : String(e),
+    });
     return { status: 'erreur', code: 'erreur_ia', message: msg };
   }
 }
