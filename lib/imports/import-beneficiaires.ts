@@ -26,25 +26,31 @@ import type {
 } from './types';
 
 /**
- * Import en masse de bénéficiaires depuis un fichier Excel — pipeline tolérant
- * (Phase C du sprint « absorber le maximum, signaler le reste »).
+ * PHILOSOPHIE DE L'IMPORT — TOLÉRER + ALERTER
  *
- * Stratégie « absorber le maximum, signaler le reste » :
- *   1. Parsing flexible : la ligne d'en-tête est auto-détectée, les en-têtes
- *      sont mappés sur le template via fuzzy matching (synonymes + mots-clés).
- *   2. Normalisation par ligne : P14→PROJ_A14, "Cameroun"→CMR, "H"→M, etc.
- *   3. Décision par ligne :
- *        - REJETÉE si champs vraiment bloquants impossibles à inférer
- *          (pas de pays reconnu).
- *        - DOUBLON_IDENTIQUE si une fiche existe déjà et que rien à enrichir.
- *        - ENRICHIE si doublon existe et qu'on peut combler ses NULL.
- *        - INCOMPLÈTE si insérée mais avec des champs obligatoires manquants
- *          (domaine de formation, prénom anonyme INCONNU, etc.) → à compléter
- *          via une campagne de collecte.
- *        - INSERÉE si tout est plein et bien normalisé.
- *   4. Doublons détectés par courriel (si présent) puis par clé faible
- *      (projet + pays + sexe + année + tranche d'âge).
- *   5. Rapport enrichi par statut, pour pilotage post-import.
+ * Le pipeline d'import est délibérément TOLÉRANT plutôt que STRICT :
+ * - Pays non reconnu → ZZZ + alerte qualité (pas de rejet)
+ * - Domaine non reconnu → AUTRE (pas de rejet)
+ * - Tranche d'âge absente → NULL + alerte qualité
+ *
+ * Les anomalies remontent ensuite via les UI :
+ *   - /admin/qualite-donnees (dashboard global)
+ *   - /super-admin/nettoyage-donnees/pays-inconnus (résolution ZZZ)
+ *   - /admin/alertes-qualite (workflow par anomalie)
+ *
+ * REJETER une ligne est réservé aux cas vraiment irrécupérables :
+ * - Prénom + Nom tous deux vides (pas de personne identifiable)
+ * - Année d'appui aberrante (avant 2000 ou après 2100)
+ * - Doublons stricts non résolvables
+ *
+ * Tout le reste passe en base avec marquage d'anomalie.
+ *
+ * Pipeline :
+ *   1. Parsing flexible (auto-détection en-tête + mapping flou)
+ *   2. Normalisation par ligne (codes projets, pays, sexe, etc.)
+ *   3. Décision : INSERÉE / ENRICHIE / INCOMPLÈTE / DOUBLON / REJETÉE
+ *   4. Doublons par courriel (clé forte) puis par clé faible
+ *   5. Rapport enrichi par statut pour pilotage post-import
  */
 
 export type ImporterBeneficiairesInput = {
@@ -315,7 +321,7 @@ async function traiterLigne(args: {
   }
 
   const paysBrut = donnees['Code pays bénéficiaire *'];
-  const pays = normaliserCodePays(paysBrut);
+  let pays = normaliserCodePays(paysBrut);
   if (paysBrut && pays && String(paysBrut).trim().toUpperCase() !== pays) {
     mappagesAuto.push(`${paysBrut} → ${pays} (pays)`);
   }
@@ -335,7 +341,13 @@ async function traiterLigne(args: {
   }
 
   const domaineBrut = donnees['Domaine de formation *'];
-  const domaine = normaliserDomaineFormation(domaineBrut);
+  let domaine = normaliserDomaineFormation(domaineBrut);
+  if (!domaine) {
+    domaine = 'AUTRE';
+    if (domaineBrut) {
+      alertes.push(`Domaine de formation « ${String(domaineBrut)} » non reconnu → AUTRE.`);
+    }
+  }
   if (domaineBrut && domaine && String(domaineBrut).trim() !== domaine) {
     mappagesAuto.push(`${domaineBrut} → ${domaine} (domaine)`);
   }
@@ -360,24 +372,13 @@ async function traiterLigne(args: {
   const partenaire = nettoyerString(donnees["Partenaire d'accompagnement"]);
   const fonction = nettoyerString(donnees['Fonction / Statut actuel']);
 
-  // 2. Rejet bloquant : sans pays, on ne peut rien faire
+  // 2. Pays non reconnu → fallback ZZZ (tolérer + alerter)
   if (!pays) {
-    return {
-      numero_ligne: numLigne,
-      statut: 'rejetee',
-      mappages_auto: mappagesAuto,
-      champs_manquants: champsManquants,
-      champs_mis_a_jour: champsMisAJour,
-      alertes,
-      erreurs: [
-        {
-          ligne: numLigne,
-          colonne: 'Code pays bénéficiaire *',
-          valeur: paysBrut ? String(paysBrut) : null,
-          message: `Pays non reconnu${paysBrut ? ` : « ${String(paysBrut)} »` : ' (vide)'}. La ligne ne peut pas être importée sans un pays valide.`,
-        },
-      ],
-    };
+    pays = 'ZZZ';
+    alertes.push(
+      `Pays non reconnu${paysBrut ? ` : « ${String(paysBrut)} »` : ' (vide)'} → marqué ZZZ. À corriger via /super-admin/nettoyage-donnees/pays-inconnus.`,
+    );
+    champsManquants.push('pays_code');
   }
 
   // Projet : rejet si projet inconnu (le brief autorisait un fallback

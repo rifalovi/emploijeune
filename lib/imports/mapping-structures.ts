@@ -50,7 +50,7 @@ export function mapLigneVersStructure(donneesBrut: Record<string, unknown>): {
   const erreurs: Array<{ colonne: string; valeur: string | null; message: string }> = [];
 
   const projet = lireCodeOuLibelle(donnees['Code projet *'], PROJETS_CODES, {});
-  const pays = lireCodeOuLibelle(donnees['Code pays *'], PAYS_CODES, {});
+  let pays = lireCodeOuLibelle(donnees['Code pays *'], PAYS_CODES, {});
   const typeStructure = lireCodeOuLibelle(
     donnees['Type structure *'],
     TYPES_STRUCTURE_CODES,
@@ -87,12 +87,10 @@ export function mapLigneVersStructure(donneesBrut: Record<string, unknown>): {
       valeur: stringify(donnees['Code projet *']),
       message: 'Code projet non reconnu.',
     });
-  if (!pays)
-    erreurs.push({
-      colonne: 'Code pays *',
-      valeur: stringify(donnees['Code pays *']),
-      message: 'Code pays non reconnu.',
-    });
+  if (!pays) {
+    // Fallback ZZZ : tolérer + alerter (cf. Phase 2.4 résolution ZZZ)
+    pays = 'ZZZ';
+  }
   if (!typeStructure)
     erreurs.push({
       colonne: 'Type structure *',
@@ -133,7 +131,6 @@ export function mapLigneVersStructure(donneesBrut: Record<string, unknown>): {
   if (
     erreurs.length > 0 ||
     !projet ||
-    !pays ||
     !typeStructure ||
     !secteur ||
     !statutCreation ||

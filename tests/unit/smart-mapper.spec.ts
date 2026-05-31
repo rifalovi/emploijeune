@@ -52,6 +52,20 @@ describe('normaliserCodePays', () => {
     expect(normaliserCodePays('Bénin')).toBe('BEN');
     expect(normaliserCodePays('RDC')).toBe('COD');
   });
+  it('mappe les variantes Congo', () => {
+    expect(normaliserCodePays('Congo RDC')).toBe('COD');
+    expect(normaliserCodePays('RD Congo')).toBe('COD');
+    expect(normaliserCodePays('R D Congo')).toBe('COD');
+    expect(normaliserCodePays('République Démocratique du Congo')).toBe('COD');
+    expect(normaliserCodePays('Congo Brazzaville')).toBe('COG');
+    expect(normaliserCodePays('République du Congo')).toBe('COG');
+    expect(normaliserCodePays('Congo')).toBe('COG');
+  });
+  it('mappe Centrafrique variantes', () => {
+    expect(normaliserCodePays('Centrafrique')).toBe('CAF');
+    expect(normaliserCodePays('centrafricaine')).toBe('CAF');
+    expect(normaliserCodePays('RCA')).toBe('CAF');
+  });
   it('retourne null pour les inconnus', () => {
     expect(normaliserCodePays('Atlantide')).toBeNull();
     expect(normaliserCodePays(null)).toBeNull();
