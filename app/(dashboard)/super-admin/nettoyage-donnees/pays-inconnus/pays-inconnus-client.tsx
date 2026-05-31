@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Check, X, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Check, X, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,10 +33,10 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
   const [paysBulk, setPaysBulk] = useState('');
   const [pending, startTransition] = useTransition();
 
-  // Map pays_code -> libelle pour le dropdown
+  // Map pays_code -> libellé pour le dropdown
   const paysMap = useMemo(() => new Map(pays.map((p) => [p.code_iso, p.libelle_fr])), [pays]);
 
-  // Map projet -> pays majoritaire suggere
+  // Map projet -> pays majoritaire suggéré
   const suggestedPays = useMemo(() => {
     const m = new Map<string, string>();
     for (const r of resumeProjets) {
@@ -45,7 +45,7 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
     return m;
   }, [resumeProjets]);
 
-  // Retirer une ligne de l'affichage apres correction/ignorement
+  // Retirer une ligne de l'affichage après correction/ignorement
   const retirerLignes = useCallback((ids: Set<string>) => {
     setLignes((prev) => prev.filter((l) => !ids.has(l.id)));
     setSelection((prev) => {
@@ -58,11 +58,11 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
   // ── Actions unitaires ────────────────────────────────────────────────────
 
   const handleCorriger = (beneficiaireId: string, paysCode: string) => {
-    if (!paysCode) { toast.error('Selectionnez un pays.'); return; }
+    if (!paysCode) { toast.error('Sélectionnez un pays.'); return; }
     startTransition(async () => {
       const res = await corrigerPays(beneficiaireId, paysCode);
       if (res.status === 'succes') {
-        toast.success(`Pays corrige en ${paysMap.get(paysCode) ?? paysCode}.`);
+        toast.success(`Pays corrigé en ${paysMap.get(paysCode) ?? paysCode}.`);
         retirerLignes(new Set([beneficiaireId]));
       } else {
         toast.error(res.message);
@@ -74,7 +74,7 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
     startTransition(async () => {
       const res = await ignorerAlerte(beneficiaireId);
       if (res.status === 'succes') {
-        toast.success('Alerte ignoree.');
+        toast.success('Alerte ignorée.');
         retirerLignes(new Set([beneficiaireId]));
       } else {
         toast.error(res.message);
@@ -85,13 +85,13 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
   // ── Actions bulk ─────────────────────────────────────────────────────────
 
   const handleBulkCorriger = () => {
-    if (selection.size === 0) { toast.error('Aucune ligne selectionnee.'); return; }
-    if (!paysBulk) { toast.error('Selectionnez un pays pour la correction groupee.'); return; }
+    if (selection.size === 0) { toast.error('Aucune ligne sélectionnée.'); return; }
+    if (!paysBulk) { toast.error('Sélectionnez un pays pour la correction groupée.'); return; }
     startTransition(async () => {
       const ids = Array.from(selection);
       const res = await corrigerPaysBulk(ids, paysBulk);
       if (res.status === 'succes') {
-        toast.success(`${res.data.corriges} beneficiaire(s) corrige(s).`);
+        toast.success(`${res.data.corriges} bénéficiaire(s) corrigé(s).`);
         retirerLignes(new Set(ids));
       } else {
         toast.error(res.message);
@@ -100,12 +100,12 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
   };
 
   const handleBulkIgnorer = () => {
-    if (selection.size === 0) { toast.error('Aucune ligne selectionnee.'); return; }
+    if (selection.size === 0) { toast.error('Aucune ligne sélectionnée.'); return; }
     startTransition(async () => {
       const ids = Array.from(selection);
       const res = await ignorerAlertesBulk(ids);
       if (res.status === 'succes') {
-        toast.success(`${res.data.ignores} alerte(s) ignoree(s).`);
+        toast.success(`${res.data.ignores} alerte(s) ignorée(s).`);
         retirerLignes(new Set(ids));
       } else {
         toast.error(res.message);
@@ -113,7 +113,7 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
     });
   };
 
-  // ── Selection helpers ────────────────────────────────────────────────────
+  // ── Sélection helpers ──────────────────────────────────────────────────
 
   const toggleSelection = (id: string) => {
     setSelection((prev) => {
@@ -135,14 +135,6 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
     });
   };
 
-  const toggleTout = () => {
-    if (selection.size === lignes.length) {
-      setSelection(new Set());
-    } else {
-      setSelection(new Set(lignes.map((l) => l.id)));
-    }
-  };
-
   // ── Regroupement par projet ──────────────────────────────────────────────
 
   const groupes = useMemo(() => {
@@ -162,7 +154,7 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
         <CardContent className="py-12 text-center">
           <Check className="mx-auto mb-3 size-10 text-emerald-500" />
           <p className="text-lg font-semibold text-slate-700">
-            Tous les pays inconnus ont ete resolus.
+            Tous les pays inconnus ont été résolus.
           </p>
         </CardContent>
       </Card>
@@ -171,7 +163,7 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
 
   return (
     <div className="space-y-6">
-      {/* ── Resume par projet ────────────────────────────────────────────── */}
+      {/* ── Résumé par projet ────────────────────────────────────────────── */}
       <div className="grid gap-3 sm:grid-cols-3">
         {resumeProjets.map((r) => (
           <Card key={r.projet_code} className="border-amber-200 bg-amber-50/50">
@@ -191,20 +183,22 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
                 )}
               </p>
               {r.pays_majoritaire ? (
-                <p>
-                  Pays majoritaire :{' '}
-                  <span className="font-semibold text-emerald-700">
-                    {r.pays_majoritaire.libelle_fr}
-                  </span>{' '}
-                  <span className="text-slate-400">
-                    ({r.pays_majoritaire.pct}%)
-                  </span>
-                  {r.pays_majoritaire.pct < 30 && (
-                    <Badge variant="outline" className="ml-1 border-amber-300 text-amber-700 text-[10px]">
-                      suggestion faible
+                <div>
+                  <p>
+                    Pays majoritaire :{' '}
+                    <span className="font-semibold text-emerald-700">
+                      {r.pays_majoritaire.libelle_fr}
+                    </span>{' '}
+                    <span className="text-slate-400">
+                      ({r.pays_majoritaire.pct}%)
+                    </span>
+                  </p>
+                  {r.pays_majoritaire.pct < 40 && (
+                    <Badge variant="outline" className="mt-1 border-amber-300 text-amber-700 text-[10px]">
+                      Vérifier ligne par ligne
                     </Badge>
                   )}
-                </p>
+                </div>
               ) : (
                 <p className="text-slate-400">Pas de pays majoritaire</p>
               )}
@@ -217,7 +211,7 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
       <div className="sticky top-0 z-10 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
         <span className="text-sm font-medium text-slate-700">
           {selection.size > 0
-            ? `${selection.size} selectionne(s)`
+            ? `${selection.size} sélectionné(s)`
             : `${lignes.length} restant(s)`}
         </span>
 
@@ -238,9 +232,10 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
             size="sm"
             onClick={handleBulkCorriger}
             disabled={pending || selection.size === 0 || !paysBulk}
+            title={!paysBulk ? 'Choisissez un pays' : undefined}
           >
             <Check className="mr-1 size-3.5" />
-            Appliquer a la selection
+            Appliquer à la sélection
           </Button>
           <Button
             size="sm"
@@ -249,7 +244,7 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
             disabled={pending || selection.size === 0}
           >
             <X className="mr-1 size-3.5" />
-            Ignorer la selection
+            Ignorer la sélection
           </Button>
         </div>
       </div>
@@ -269,7 +264,7 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
                 checked={tousSelectionnes}
                 onChange={() => toggleToutProjet(projetCode)}
                 className="size-4 rounded border-slate-300"
-                aria-label={`Selectionner tout ${projetCode}`}
+                aria-label={`Sélectionner tout ${projetCode}`}
               />
               <span className="text-sm font-bold text-slate-800">{projetCode}</span>
               <Badge variant="outline" className="text-xs">{membres.length} lignes</Badge>
@@ -285,14 +280,13 @@ export function PaysInconnusClient({ beneficiaires: initial, resumeProjets, pays
                         checked={tousSelectionnes}
                         onChange={() => toggleToutProjet(projetCode)}
                         className="size-3.5 rounded border-slate-300"
-                        aria-label="Tout selectionner"
+                        aria-label="Tout sélectionner"
                       />
                     </th>
                     <th className="px-3 py-2 text-left">Nom</th>
                     <th className="px-3 py-2 text-left">Sexe</th>
                     <th className="px-3 py-2 text-left">Tranche</th>
-                    <th className="px-3 py-2 text-left">Naissance</th>
-                    <th className="px-3 py-2 text-left">Formation</th>
+                    <th className="px-3 py-2 text-left">Année appui</th>
                     <th className="px-3 py-2 text-left">Pays</th>
                     <th className="px-3 py-2 text-right">Actions</th>
                   </tr>
@@ -372,9 +366,12 @@ function LigneBeneficiaire({
           <span className="text-xs text-slate-400">—</span>
         )}
       </td>
+      {/* Colonne "Année naiss." masquée : 0 bénéficiaires ZZZ n'ont de
+          date_naissance en base. Décommenter si ça change à l'avenir.
       <td className="px-3 py-2 text-slate-600">
         {b.annee_naissance ?? '—'}
       </td>
+      */}
       <td className="px-3 py-2 text-slate-600">
         {b.annee_formation ?? '—'}
       </td>
@@ -400,6 +397,7 @@ function LigneBeneficiaire({
             className="h-7 px-2 text-xs"
             onClick={() => onCorriger(b.id, paysChoisi)}
             disabled={pending || !paysChoisi}
+            title={!paysChoisi ? 'Choisissez un pays' : 'Corriger le pays'}
           >
             <Check className="mr-0.5 size-3" />
             OK
@@ -410,7 +408,7 @@ function LigneBeneficiaire({
             className="h-7 px-2 text-xs text-slate-400 hover:text-red-600"
             onClick={() => onIgnorer(b.id)}
             disabled={pending}
-            title="Ignorer — donnees insuffisantes"
+            title="Marquer non résoluble"
           >
             <X className="size-3" />
           </Button>

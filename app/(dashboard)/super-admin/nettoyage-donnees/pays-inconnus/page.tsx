@@ -36,11 +36,11 @@ export default async function PaysInconnusPage() {
         </span>
         <div>
           <h1 className="text-xl font-bold text-slate-900">
-            Resolution des pays inconnus (ZZZ)
+            Résolution des pays inconnus (ZZZ)
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            {beneficiaires.length} beneficiaire{beneficiaires.length > 1 ? 's' : ''} avec
-            un pays non resolu a l&apos;import. Corrigez le pays ou ignorez les lignes
+            {beneficiaires.length} bénéficiaire{beneficiaires.length > 1 ? 's' : ''} avec
+            un pays non résolu à l&apos;import. Corrigez le pays ou ignorez les lignes
             non exploitables.
           </p>
         </div>
