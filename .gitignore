@@ -85,3 +85,4 @@ Thumbs.db
 
 # Configuration locale Claude Code (sessions dev preview)
 /.claude/
+.vercel
