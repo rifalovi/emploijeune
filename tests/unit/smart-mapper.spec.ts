@@ -89,6 +89,20 @@ describe('normaliserTrancheAge', () => {
     expect(normaliserTrancheAge('35+')).toBe('Adulte');
     expect(normaliserTrancheAge('35 ans et +')).toBe('Adulte');
   });
+  it('mappe les mineurs 15-17 vers Jeune', () => {
+    expect(normaliserTrancheAge('15-17')).toBe('Jeune');
+    expect(normaliserTrancheAge('15-17 ans')).toBe('Jeune');
+    expect(normaliserTrancheAge('mineur')).toBe('Jeune');
+    expect(normaliserTrancheAge('Mineure')).toBe('Jeune');
+    expect(normaliserTrancheAge('jeune mineur')).toBe('Jeune');
+  });
+  it('mappe les tranches fines vers la bonne categorie OIF', () => {
+    expect(normaliserTrancheAge('18-24')).toBe('Jeune');
+    expect(normaliserTrancheAge('25-34')).toBe('Jeune');
+    expect(normaliserTrancheAge('35-44')).toBe('Adulte');
+    expect(normaliserTrancheAge('45-54')).toBe('Adulte');
+    expect(normaliserTrancheAge('55+')).toBe('Adulte');
+  });
   it('null si vide ou inconnu', () => {
     expect(normaliserTrancheAge('')).toBeNull();
     expect(normaliserTrancheAge('senior')).toBeNull();

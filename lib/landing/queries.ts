@@ -77,7 +77,7 @@ function classifierTrancheAge(
       (aujourd_hui < new Date(aujourd_hui.getFullYear(), naissance.getMonth(), naissance.getDate())
         ? 1
         : 0);
-    if (age >= 18 && age <= 34) return 'Jeune';
+    if (age >= 15 && age <= 34) return 'Jeune';
     if (age >= 35) return 'Adulte';
   }
   return null;

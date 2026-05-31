@@ -470,7 +470,7 @@ function FormulaireBeneficiaire({
                       <SelectValue placeholder="Facultatif…" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="jeune">Jeune (18–34 ans)</SelectItem>
+                      <SelectItem value="jeune">Jeune (15–34 ans)</SelectItem>
                       <SelectItem value="adulte">Adulte (35 ans et +)</SelectItem>
                     </SelectContent>
                   </Select>
@@ -1373,7 +1373,7 @@ function FormulaireIntermediationC({
                       <SelectValue placeholder="Facultatif…" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="jeune">Jeune (18–34 ans)</SelectItem>
+                      <SelectItem value="jeune">Jeune (15–34 ans)</SelectItem>
                       <SelectItem value="adulte">Adulte (35 ans et +)</SelectItem>
                     </SelectContent>
                   </Select>

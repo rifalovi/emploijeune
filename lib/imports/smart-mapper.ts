@@ -412,15 +412,33 @@ const SEXE_ALIASES: Record<string, 'F' | 'M' | 'Autre'> = {
 const TRANCHE_AGE_ALIASES: Record<string, 'Jeune' | 'Adulte'> = {
   jeune: 'Jeune',
   j: 'Jeune',
+  '15 17': 'Jeune',
+  '15 17 ans': 'Jeune',
+  'jeune mineur': 'Jeune',
+  mineur: 'Jeune',
+  mineure: 'Jeune',
+  '15 34': 'Jeune',
+  '15 34 ans': 'Jeune',
+  'jeune (15 34 ans)': 'Jeune',
   '18 34': 'Jeune', // ex « 18-34 » après normalisation
   '18 34 ans': 'Jeune',
   'jeune (18 34 ans)': 'Jeune',
+  '18 24': 'Jeune',
+  '18 24 ans': 'Jeune',
+  '25 34': 'Jeune',
+  '25 34 ans': 'Jeune',
   adulte: 'Adulte',
   a: 'Adulte',
   '35+': 'Adulte',
   '35 ans et +': 'Adulte',
   '35 et +': 'Adulte',
   'adulte (35 ans et +)': 'Adulte',
+  '35 44': 'Adulte',
+  '35 44 ans': 'Adulte',
+  '45 54': 'Adulte',
+  '45 54 ans': 'Adulte',
+  '55+': 'Adulte',
+  '55 ans et +': 'Adulte',
 };
 
 /**
