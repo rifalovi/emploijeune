@@ -470,6 +470,257 @@ WHERE b.pays_code = 'ZZZ'
 
 ---
 
+## 7bis. PHASE 7 — Maintenance plateforme (purge + recalcul) — RÉSERVÉ SUPER_ADMIN
+
+**Contexte (validé par VIGNON le 31/05/2026)** : disposer d'un outil unique pour gérer trois scénarios de récupération :
+
+1. La base est corrompue ou contient des données erronées non récupérables → vider proprement.
+2. Réimport d'une base actualisée ou d'un backup → enchaîner avec les imports standards.
+3. Forcer le recalcul de tous les indicateurs pour que la vitrine, le dashboard et les analyses reflètent l'état actuel de la base.
+
+**Précautions absolues** : ce module manipule des opérations destructives. Toute migration ou code lié doit être protégé par RLS `super_admin` UNIQUEMENT, jamais `admin_scs`. Aucun raccourci.
+
+### Tâche 7.1 — RPC de purge des données métier
+
+**Pourquoi** : centraliser la purge dans une seule fonction SQL plutôt que d'appeler plusieurs TRUNCATE dispersés. Une RPC est testable, atomique, et journalisable.
+
+**Où** : `supabase/migrations/20260531000010_maintenance_purge_recalcul.sql`.
+
+**Périmètre (validé)** : 
+- **VIDÉ** : `beneficiaires`, `structures`, `valeurs_indicateurs_saisies`, `alertes_qualite`, `import_sessions`.
+- **PRÉSERVÉ** : `utilisateurs`, `auth.users`, `projets`, `pays_oif`, `config_vitrine_indicateurs`, et toutes les tables de configuration/référentiel.
+
+**RPC** :
+
+```sql
+CREATE OR REPLACE FUNCTION public.purger_donnees_metier_v1()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_compteurs JSONB;
+  v_uid UUID := auth.uid();
+BEGIN
+  /* Garde-fou serveur : seuls les super_admin peuvent appeler.
+     Même si la UI le bloque, on protège aussi côté BDD. */
+  IF NOT public.is_super_admin() THEN
+    RAISE EXCEPTION 'Action réservée aux super-administrateurs.'
+      USING ERRCODE = '42501';
+  END IF;
+
+  /* Snapshot des effectifs AVANT purge — journalisation. */
+  SELECT jsonb_build_object(
+    'beneficiaires',     (SELECT COUNT(*) FROM public.beneficiaires WHERE deleted_at IS NULL),
+    'structures',        (SELECT COUNT(*) FROM public.structures WHERE deleted_at IS NULL),
+    'indicateurs_saisis',(SELECT COUNT(*) FROM public.valeurs_indicateurs_saisies),
+    'alertes_qualite',   (SELECT COUNT(*) FROM public.alertes_qualite),
+    'import_sessions',   (SELECT COUNT(*) FROM public.import_sessions)
+  ) INTO v_compteurs;
+
+  /* Purge dans une transaction. Ordre important pour respecter les FK :
+     1. alertes_qualite (référence beneficiaires/structures)
+     2. valeurs_indicateurs_saisies (autonome)
+     3. import_sessions (référencée par beneficiaires)
+        → on garde l'ordre TRUNCATE CASCADE qui résout les FK
+     4. beneficiaires (FK vers structures et import_sessions)
+     5. structures */
+  TRUNCATE TABLE public.alertes_qualite              RESTART IDENTITY CASCADE;
+  TRUNCATE TABLE public.valeurs_indicateurs_saisies  RESTART IDENTITY CASCADE;
+  TRUNCATE TABLE public.beneficiaires                RESTART IDENTITY CASCADE;
+  TRUNCATE TABLE public.structures                   RESTART IDENTITY CASCADE;
+  TRUNCATE TABLE public.import_sessions              RESTART IDENTITY CASCADE;
+
+  /* Audit log — trace qui a purgé quand et avec quel effectif. */
+  INSERT INTO public.audit_log (action, acteur_id, payload, created_at)
+  VALUES (
+    'purge_donnees_metier',
+    v_uid,
+    jsonb_build_object('effectifs_avant', v_compteurs, 'horodatage', NOW()),
+    NOW()
+  );
+
+  RETURN jsonb_build_object(
+    'success', TRUE,
+    'effectifs_avant', v_compteurs,
+    'message', 'Base vidée. Réimportez vos données puis lancez le recalcul.'
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.purger_donnees_metier_v1() FROM PUBLIC, authenticated;
+GRANT EXECUTE ON FUNCTION public.purger_donnees_metier_v1() TO authenticated;
+/* La RPC se protège elle-même via is_super_admin() — le GRANT n'autorise
+   que l'invocation, pas l'exécution effective si le rôle est insuffisant. */
+```
+
+**Si `audit_log` n'existe pas** : la créer dans la même migration (table simple : id, action, acteur_id, payload jsonb, created_at). Vérifier d'abord son existence dans `lib/supabase/database.types.ts`.
+
+### Tâche 7.2 — RPC de recalcul des indicateurs
+
+**Pourquoi** : après purge + réimport, les RPC d'agrégation (`get_indicateurs_vitrine_v1`, `get_kpis_dashboard_admin_scs`, etc.) calculent à la volée. Mais certaines vues matérialisées ou caches peuvent persister. Cette RPC garantit un état cohérent.
+
+**Où** : même migration 20260531000010.
+
+```sql
+CREATE OR REPLACE FUNCTION public.recalculer_indicateurs_v1()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_resultats JSONB := '{}'::JSONB;
+BEGIN
+  IF NOT public.is_super_admin() THEN
+    RAISE EXCEPTION 'Action réservée aux super-administrateurs.'
+      USING ERRCODE = '42501';
+  END IF;
+
+  /* 1. Si des vues matérialisées existent (à vérifier dans le repo),
+        les rafraîchir ici :
+        REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_xxx;
+     2. Recalcul des alertes qualité : régénérer pays_zzz, pays_null, 
+        tranche_age_null à partir de l'état actuel des bénéficiaires. */
+  
+  -- Reset des alertes qualité auto-générées (on garde les manuelles)
+  DELETE FROM public.alertes_qualite
+  WHERE type IN ('pays_zzz', 'pays_null', 'tranche_age_null');
+
+  -- Régénération pays_zzz
+  INSERT INTO public.alertes_qualite (type, severite, beneficiaire_id, projet_code, message)
+  SELECT 'pays_zzz', 'avertissement', b.id, b.projet_code,
+         'Pays non résolu à l''import (code ZZZ). Correction manuelle requise.'
+  FROM public.beneficiaires b
+  WHERE b.pays_code = 'ZZZ' AND b.deleted_at IS NULL
+  ON CONFLICT DO NOTHING;
+
+  -- Régénération pays_null
+  INSERT INTO public.alertes_qualite (type, severite, beneficiaire_id, projet_code, message)
+  SELECT 'pays_null', 'avertissement', b.id, b.projet_code,
+         'Pays manquant — renseigner.'
+  FROM public.beneficiaires b
+  WHERE b.pays_code IS NULL AND b.deleted_at IS NULL
+  ON CONFLICT DO NOTHING;
+
+  -- Régénération tranche_age_null
+  INSERT INTO public.alertes_qualite (type, severite, beneficiaire_id, projet_code, message)
+  SELECT 'tranche_age_null', 'info', b.id, b.projet_code,
+         'Tranche d''âge non renseignée.'
+  FROM public.beneficiaires b
+  WHERE b.tranche_age_declaree IS NULL AND b.deleted_at IS NULL
+  ON CONFLICT DO NOTHING;
+
+  /* Compteurs après recalcul, pour le retour UI */
+  SELECT jsonb_build_object(
+    'beneficiaires', (SELECT COUNT(*) FROM public.beneficiaires WHERE deleted_at IS NULL),
+    'structures',    (SELECT COUNT(*) FROM public.structures WHERE deleted_at IS NULL),
+    'alertes_generees', (SELECT COUNT(*) FROM public.alertes_qualite WHERE type IN ('pays_zzz','pays_null','tranche_age_null'))
+  ) INTO v_resultats;
+
+  /* Audit log */
+  INSERT INTO public.audit_log (action, acteur_id, payload, created_at)
+  VALUES ('recalcul_indicateurs', auth.uid(), v_resultats, NOW());
+
+  RETURN jsonb_build_object('success', TRUE, 'resultats', v_resultats);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.recalculer_indicateurs_v1() FROM PUBLIC, authenticated;
+GRANT EXECUTE ON FUNCTION public.recalculer_indicateurs_v1() TO authenticated;
+```
+
+### Tâche 7.3 — Page UI `/super-admin/maintenance`
+
+**Où** : `app/(dashboard)/super-admin/maintenance/page.tsx` + `components/super-admin/maintenance-client.tsx`.
+
+**Layout** : deux cartes côte à côte sur desktop, empilées sur mobile.
+
+**Carte 1 — « Vider la base de données »** (rouge, signal danger) :
+- Description claire des tables qui seront vidées (liste à puces).
+- Tableau des effectifs actuels (compté côté serveur dans le RSC parent).
+- Bouton rouge « Vider la base… » qui ouvre un modal.
+
+**Modal de purge (3 étapes)** :
+1. **Étape 1 — Lecture** : récap des tables, des effectifs, et de l'irréversibilité. Bouton « J'ai compris, continuer ».
+2. **Étape 2 — Confirmation** : checkbox « Je confirme avoir lu et compris que cette action est irréversible. Aucun backup automatique n'est créé. ». Bouton « Suivant » désactivé tant que la checkbox est décochée.
+3. **Étape 3 — Mot-clé** : champ texte avec placeholder « Tapez VIDER LA BASE pour confirmer ». Bouton « Vider la base » désactivé tant que la valeur exacte n'est pas saisie (comparaison stricte, casse sensible).
+
+À la soumission : appel server action `purgerDonneesMetier()` qui invoque la RPC. Spinner pendant l'opération. Toast succès avec le récap des effectifs vidés. `revalidatePath('/super-admin/maintenance')` + `revalidatePath('/accueil')` pour reset la vitrine.
+
+**Carte 2 — « Forcer la mise à jour des indicateurs »** (orange, signal action manuelle) :
+- Description : « Recalcule toutes les agrégations (vitrine, dashboard, analyses) et régénère les alertes qualité automatiques (pays ZZZ, pays NULL, tranche d'âge manquante). À lancer après chaque réimport de données. »
+- Bouton orange « Forcer la mise à jour ».
+
+À la soumission : appel server action `recalculerIndicateurs()` qui invoque la RPC. Spinner. Toast avec le récap des compteurs + alertes générées. Invalidation cache :
+
+```ts
+revalidatePath('/', 'layout');  // invalide tout l'arbre
+```
+
+### Tâche 7.4 — Server actions
+
+**Où** : `lib/super-admin/server-actions.ts` (ou créer si absent).
+
+```ts
+'use server';
+
+export async function purgerDonneesMetier() {
+  const utilisateur = await getCurrentUtilisateur();
+  if (utilisateur?.role !== 'super_admin') {
+    return { status: 'erreur', message: 'Accès refusé.' };
+  }
+  
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('purger_donnees_metier_v1');
+  
+  if (error) {
+    return { status: 'erreur', message: error.message };
+  }
+  
+  revalidatePath('/super-admin/maintenance');
+  revalidatePath('/accueil');
+  return { status: 'succes', ...data };
+}
+
+export async function recalculerIndicateurs() {
+  const utilisateur = await getCurrentUtilisateur();
+  if (utilisateur?.role !== 'super_admin') {
+    return { status: 'erreur', message: 'Accès refusé.' };
+  }
+  
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('recalculer_indicateurs_v1');
+  
+  if (error) {
+    return { status: 'erreur', message: error.message };
+  }
+  
+  /* Invalidation complète du cache Next.js : vitrine, dashboard, 
+     analyses, réalisations. La layer 'layout' purge tout l'arbre. */
+  revalidatePath('/', 'layout');
+  return { status: 'succes', ...data };
+}
+```
+
+### Tâche 7.5 — Lien dans la sidebar super_admin
+
+**Où** : `components/layout/` (composant de navigation latérale).
+
+**Comment** : ajouter une entrée « Maintenance » dans le groupe super_admin, avec icône `AlertTriangle` (rouge atténué) pour signaler la sensibilité. Tooltip : « Purge et recalcul — accès restreint ».
+
+### Critères d'acceptation Phase 7
+
+1. La RPC `purger_donnees_metier_v1` refuse l'appel d'un utilisateur non-super_admin (test : se connecter en admin_scs et tenter d'appeler → erreur 42501).
+2. Après purge, `SELECT COUNT(*) FROM beneficiaires` retourne 0.
+3. Le modal de purge ne permet pas de cliquer le bouton final tant que les 3 étapes ne sont pas franchies (checkbox + mot-clé exact).
+4. Après recalcul, les alertes auto-générées sont conformes à l'état actuel de la base.
+5. Le compteur de bénéficiaires sur la page d'accueil reflète l'état actuel après purge+import+recalcul (test : purger → réimporter 100 lignes → recalculer → vitrine affiche 100).
+6. Chaque appel des deux RPC laisse une trace dans `audit_log`.
+
+---
+
 ## 8. Livrables attendus
 
 | Livrable | Localisation | Phase |
@@ -485,6 +736,9 @@ WHERE b.pays_code = 'ZZZ'
 | Pays NOT NULL (conditionnel) | `supabase/migrations/20260531000004_pays_code_not_null.sql` | 3.2 |
 | Page Qualité des données | `app/(dashboard)/admin/qualite-donnees/page.tsx` | 4.1 |
 | Tests régression (manuel) | Captures dans un commit msg ou doc dédié | 5 |
+| **Migration purge + recalcul** | `supabase/migrations/20260531000010_maintenance_purge_recalcul.sql` | **7** |
+| **Page Maintenance super-admin** | `app/(dashboard)/super-admin/maintenance/page.tsx` | **7** |
+| **Server actions maintenance** | `lib/super-admin/server-actions.ts` | **7** |
 
 ---
 
@@ -502,6 +756,7 @@ WHERE b.pays_code = 'ZZZ'
 10. ~~**Phase 3.1**~~ — non prioritaire, complétude tranche déjà à 98,5%.
 11. **Phase 3.2** (NOT NULL pays) → après résolution des ZZZ + 4 NULL.
 12. **Phase 4.2** (alerte auto) → finition.
+13. **Phase 7** (maintenance plateforme) → **chantier indépendant**, peut être fait en parallèle ou après les phases complétude. Recommandé : après Phase 2.0 (table alertes_qualite créée).
 
 ---
 
@@ -510,10 +765,13 @@ WHERE b.pays_code = 'ZZZ'
 - **Aucune migration appliquée sans test sur une branche** Supabase de preview (créer via `mcp__supabase__create_branch` si disponible).
 - **Tous les UPDATE en masse** doivent être dans une transaction (`BEGIN ... COMMIT`) avec un compte de lignes modifiées en sortie.
 - **Aucun fichier sensible** versionné : `rapports/` doit être dans `.gitignore` si les exports contiennent des données réelles.
-- **Tests TypeScript** doivent passer (`npx tsc --noEmit`) avant chaque commit.
+- **Build production avant chaque push** — exécuter `npm run build` (pas seulement `npx tsc --noEmit`) avant `git push`. ESLint en mode production détecte les unused imports/vars que TypeScript laisse passer. Cas vécu : le 31/05/2026, l'import `Check` non utilisé dans `maintenance-client.tsx` a bloqué 9 déploiements Vercel consécutifs sans qu'aucun signal local ne l'indique.
 - **Aucun emoji** dans les commits (cf. préférences utilisateur).
 - **Messages de commit en français**, format conventionnel : `feat(scope): ...` / `fix(scope): ...` / `chore(scope): ...`.
 - **Documenter chaque migration** avec un en-tête expliquant le pourquoi (concept) et le quoi (mécanique).
+- **Migrations idempotentes** — toute migration qui insère des données (`INSERT`) doit utiliser `ON CONFLICT DO NOTHING` ou équivalent, pour pouvoir être ré-exécutée sans dégât. Toute migration qui ajoute du schéma (`CREATE TABLE`, `CREATE INDEX`, etc.) doit utiliser `IF NOT EXISTS`.
+- **Vérification post-apply obligatoire** — après chaque migration, exécuter une requête SQL `SELECT` qui prouve que le changement est effectif (compte de lignes insérées, présence d'une nouvelle colonne, etc.). Ne JAMAIS se contenter de « migration créée et commit poussé » : une migration peut être dans le repo sans avoir tourné sur prod (cas vécu le 31/05/2026 sur la Phase 2.3 — 4 alertes pays_null qui auraient dû être créées ne l'étaient pas). Reporter le résultat de la vérif dans le message du commit ou en sortie de tool.
+- **Audit régulier de l'écart repo/prod** — exécuter périodiquement `SELECT name, executed_at FROM supabase_migrations.schema_migrations ORDER BY executed_at DESC LIMIT 30` et comparer avec `ls supabase/migrations/` pour détecter toute divergence.
 
 ---
 

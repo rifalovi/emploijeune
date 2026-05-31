@@ -252,7 +252,7 @@ export async function ignorerAlerte(
 
   const supabase = await createSupabaseServerClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.rpc as any)('ignorer_alerte_pays_zzz', {
+  const { error } = await (supabase.rpc as any)('ignorer_alerte_pays_zzz', {
     p_beneficiaire_id: beneficiaireId,
     p_note: note ?? 'Donnees insuffisantes pour resoudre',
   });

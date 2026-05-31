@@ -58,31 +58,6 @@ export type RepartitionTrancheAge = {
   adultes_pct: number;
 };
 
-function classifierTrancheAge(
-  tranche_age_declaree: string | null | undefined,
-  date_naissance: string | null | undefined,
-): 'Jeune' | 'Adulte' | null {
-  // Priorité 1 : tranche déclarée lors de l'import
-  if (tranche_age_declaree === 'Jeune' || tranche_age_declaree === 'Adulte') {
-    return tranche_age_declaree;
-  }
-  // Priorité 2 : calcul depuis la date de naissance
-  if (date_naissance) {
-    const naissance = new Date(date_naissance);
-    if (isNaN(naissance.getTime())) return null;
-    const aujourd_hui = new Date();
-    const age =
-      aujourd_hui.getFullYear() -
-      naissance.getFullYear() -
-      (aujourd_hui < new Date(aujourd_hui.getFullYear(), naissance.getMonth(), naissance.getDate())
-        ? 1
-        : 0);
-    if (age >= 15 && age <= 34) return 'Jeune';
-    if (age >= 35) return 'Adulte';
-  }
-  return null;
-}
-
 /**
  * Indicateurs sélectionnés pour la vitrine publique.
  *
