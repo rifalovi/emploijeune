@@ -231,7 +231,15 @@ const STATUT_CREATION_OPTIONS = [
 // Composant principal
 // =============================================================================
 
-export function CollecteForm({ lien }: { lien: InfoLienPublic }) {
+export type TrancheAgeOption = { id: string; libelle: string; categorie_oif: string };
+
+export function CollecteForm({
+  lien,
+  tranchesAge = [],
+}: {
+  lien: InfoLienPublic;
+  tranchesAge?: TrancheAgeOption[];
+}) {
   const [etat, setEtat] = useState<'formulaire' | 'succes' | 'erreur'>('formulaire');
   const [erreurMessage, setErreurMessage] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -286,6 +294,7 @@ export function CollecteForm({ lien }: { lien: InfoLienPublic }) {
         onSubmit={handleSubmit}
         onSubmitEtNouveau={handleSubmitEtNouveau}
         confirmationNouveau={confirmationNouveau}
+        tranchesAge={tranchesAge}
       />
     );
   }
@@ -324,6 +333,7 @@ export function CollecteForm({ lien }: { lien: InfoLienPublic }) {
       onSubmit={handleSubmit}
       onSubmitEtNouveau={handleSubmitEtNouveau}
       confirmationNouveau={confirmationNouveau}
+      tranchesAge={tranchesAge}
     />
   );
 }
@@ -354,6 +364,7 @@ function FormulaireBeneficiaire({
   onSubmit,
   onSubmitEtNouveau,
   confirmationNouveau,
+  tranchesAge = [],
 }: {
   lien: InfoLienPublic;
   isPending: boolean;
@@ -361,6 +372,7 @@ function FormulaireBeneficiaire({
   onSubmit: (d: Record<string, unknown>) => void;
   onSubmitEtNouveau: (d: Record<string, unknown>) => void;
   confirmationNouveau: boolean;
+  tranchesAge?: TrancheAgeOption[];
 }) {
   const {
     register,
@@ -470,8 +482,18 @@ function FormulaireBeneficiaire({
                       <SelectValue placeholder="Facultatif…" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="jeune">Jeune (15–34 ans)</SelectItem>
-                      <SelectItem value="adulte">Adulte (35 ans et +)</SelectItem>
+                      {tranchesAge.length > 0 ? (
+                        tranchesAge.map((t) => (
+                          <SelectItem key={t.id} value={t.libelle}>
+                            {t.libelle} ({t.categorie_oif})
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <>
+                          <SelectItem value="jeune">Jeune (15–34 ans)</SelectItem>
+                          <SelectItem value="adulte">Adulte (35 ans et +)</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 )}
@@ -729,6 +751,7 @@ function FormulaireStructure({
   onSubmit,
   onSubmitEtNouveau,
   confirmationNouveau,
+  tranchesAge = [],
 }: {
   lien: InfoLienPublic;
   isPending: boolean;
@@ -736,6 +759,7 @@ function FormulaireStructure({
   onSubmit: (d: Record<string, unknown>) => void;
   onSubmitEtNouveau: (d: Record<string, unknown>) => void;
   confirmationNouveau: boolean;
+  tranchesAge?: TrancheAgeOption[];
 }) {
   const {
     register,
@@ -1373,8 +1397,18 @@ function FormulaireIntermediationC({
                       <SelectValue placeholder="Facultatif…" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="jeune">Jeune (15–34 ans)</SelectItem>
-                      <SelectItem value="adulte">Adulte (35 ans et +)</SelectItem>
+                      {tranchesAge.length > 0 ? (
+                        tranchesAge.map((t) => (
+                          <SelectItem key={t.id} value={t.libelle}>
+                            {t.libelle} ({t.categorie_oif})
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <>
+                          <SelectItem value="jeune">Jeune (15–34 ans)</SelectItem>
+                          <SelectItem value="adulte">Adulte (35 ans et +)</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 )}

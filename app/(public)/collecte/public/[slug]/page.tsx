@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { LogoOIF } from '@/components/branding/logo-oif';
 import { Card, CardContent } from '@/components/ui/card';
 import { validerLienSlug } from '@/lib/collecte-publique/actions';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { CollecteForm } from './collecte-form';
 
 export const metadata: Metadata = {
@@ -17,7 +18,15 @@ type PageProps = {
 
 export default async function CollectePubliquePage({ params }: PageProps) {
   const { slug } = await params;
-  const validation = await validerLienSlug(slug);
+  const [validation, tranchesAge] = await Promise.all([
+    validerLienSlug(slug),
+    (async () => {
+      const supabase = await createSupabaseServerClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase.rpc as any)('get_tranches_age_actives_v1');
+      return (data ?? []) as Array<{ id: string; libelle: string; categorie_oif: string }>;
+    })(),
+  ]);
 
   const typeLabel =
     validation.status === 'valide'
@@ -56,7 +65,7 @@ export default async function CollectePubliquePage({ params }: PageProps) {
               <strong>Note :</strong> Votre soumission sera examinée par un coordinateur OIF avant
               d&apos;être intégrée dans la plateforme. Aucun compte n&apos;est requis.
             </div>
-            <CollecteForm lien={validation.lien} />
+            <CollecteForm lien={validation.lien} tranchesAge={tranchesAge} />
           </>
         ) : (
           <ErreurLien status={validation.status} />

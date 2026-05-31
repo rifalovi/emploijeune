@@ -11,6 +11,7 @@ import {
   LayoutGrid,
   MapPinOff,
   Wrench,
+  Layers,
 } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 
@@ -42,6 +43,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     { href: '/super-admin/analyses-indicateurs', label: 'Analyses IA', icon: Sparkles },
     { href: '/super-admin/affichage-public', label: 'Affichage public', icon: LayoutGrid },
     { href: '/super-admin/nettoyage-donnees/pays-inconnus', label: 'Pays inconnus', icon: MapPinOff },
+    { href: '/super-admin/referentiels/tranches-age', label: 'Tranches d\'age', icon: Layers },
     { href: '/super-admin/maintenance', label: 'Maintenance', icon: Wrench },
   ];
 
