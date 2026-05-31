@@ -91,11 +91,11 @@ export default async function VitrinePubliquePage() {
       <HeaderPublic isAuthenticated={isAuthenticated} />
       <HeroAvecCarrousel kpis={kpis} isAuthenticated={isAuthenticated} />
       <Programmes />
-      <KpiCompteurs kpis={kpis} indicateurs={indicateursVitrine} />
       <Methodologie />
       <CadreCommun />
       <Pourquoi />
       <Citations />
+      <KpiCompteurs kpis={kpis} indicateurs={indicateursVitrine} />
       <CtaFinal isAuthenticated={isAuthenticated} />
       <FooterPublic />
     </div>
@@ -290,12 +290,26 @@ function KpiCompteurs({
   ];
 
   const items = afficherIndicateurs
-    ? indicateurs.map((ind, i) => ({
-        valeur: ind.valeur !== null ? ind.valeur.toLocaleString('fr-FR') : '—',
-        libelle: ind.labelMetrique,
-        icone: iconePourCode(ind.code),
-        couleur: COULEURS_COMPTEURS[i % COULEURS_COMPTEURS.length] ?? COULEUR_ACCENT,
-      }))
+    ? indicateurs.map((ind, i) => {
+        /* Concept : si l'indicateur est un taux (unite = '%'), on affiche
+         * la valeur avec son suffixe pourcentage et SANS abréviation compacte
+         * (un taux ne peut pas dépasser 100, donc pas besoin de 'M'/'K'). */
+        const estTaux = ind.unite === '%';
+        let valeur: string;
+        if (ind.valeur === null) {
+          valeur = '—';
+        } else if (estTaux) {
+          valeur = `${ind.valeur.toLocaleString('fr-FR', { maximumFractionDigits: 1 })}\u00a0%`;
+        } else {
+          valeur = ind.valeur.toLocaleString('fr-FR');
+        }
+        return {
+          valeur,
+          libelle: ind.labelMetrique,
+          icone: iconePourCode(ind.code),
+          couleur: COULEURS_COMPTEURS[i % COULEURS_COMPTEURS.length] ?? COULEUR_ACCENT,
+        };
+      })
     : fallback;
 
   /* Grille responsive : 2 cols mobile → 3 cols md → n cols lg */
@@ -649,22 +663,14 @@ function CadreCommun() {
           </p>
         </div>
 
-        {/* ── Diagramme en éventail ── */}
-        <div className="mx-auto mt-10 max-w-xl">
-          {/* Labels au-dessus du diagramme */}
-          <div className="mb-1 grid grid-cols-2 gap-x-4 px-4 text-center text-[11px] font-semibold">
-            <span style={{ color: '#5BAD4E' }}>Activités Économiques</span>
-            <span style={{ color: '#B8A000' }}>Intermédiation</span>
-          </div>
-
-          {/* SVG fan interactif (hover tooltips) */}
+        {/* ── Diagramme en éventail avec légendes latérales ──
+            Le composant CadreCommunFan gère lui-même la mise en page en
+            3 colonnes (label A gauche / SVG centre / label D droite) avec
+            les labels B et C au-dessus du SVG. Sur mobile, bascule en
+            colonne unique. La max-w est élargie pour donner de la place
+            aux labels sur les côtés. */}
+        <div className="mx-auto mt-10 max-w-4xl">
           <CadreCommunFan />
-
-          {/* Labels bas du diagramme */}
-          <div className="mt-1 grid grid-cols-2 gap-x-4 px-4 text-center text-[11px] font-semibold">
-            <span style={{ color: '#0098A0' }}>Formation et Compétences</span>
-            <span style={{ color: '#D96030' }}>Écosystèmes d&apos;Emploi</span>
-          </div>
 
           {/* Marqueur transversal F1 */}
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-center shadow-sm">
