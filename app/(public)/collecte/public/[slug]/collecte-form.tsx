@@ -308,6 +308,7 @@ export function CollecteForm({
         onSubmit={handleSubmit}
         onSubmitEtNouveau={handleSubmitEtNouveau}
         confirmationNouveau={confirmationNouveau}
+        tranchesAge={tranchesAge}
       />
     );
   }
@@ -333,7 +334,6 @@ export function CollecteForm({
       onSubmit={handleSubmit}
       onSubmitEtNouveau={handleSubmitEtNouveau}
       confirmationNouveau={confirmationNouveau}
-      tranchesAge={tranchesAge}
     />
   );
 }
@@ -751,7 +751,6 @@ function FormulaireStructure({
   onSubmit,
   onSubmitEtNouveau,
   confirmationNouveau,
-  tranchesAge = [],
 }: {
   lien: InfoLienPublic;
   isPending: boolean;
@@ -759,7 +758,6 @@ function FormulaireStructure({
   onSubmit: (d: Record<string, unknown>) => void;
   onSubmitEtNouveau: (d: Record<string, unknown>) => void;
   confirmationNouveau: boolean;
-  tranchesAge?: TrancheAgeOption[];
 }) {
   const {
     register,
@@ -1259,6 +1257,7 @@ function FormulaireIntermediationC({
   onSubmit,
   onSubmitEtNouveau,
   confirmationNouveau,
+  tranchesAge = [],
 }: {
   lien: InfoLienPublic;
   isPending: boolean;
@@ -1266,6 +1265,7 @@ function FormulaireIntermediationC({
   onSubmit: (d: Record<string, unknown>) => void;
   onSubmitEtNouveau: (d: Record<string, unknown>) => void;
   confirmationNouveau: boolean;
+  tranchesAge?: TrancheAgeOption[];
 }) {
   const {
     register,
