@@ -16,9 +16,10 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
-  if (!fichier.name.toLowerCase().endsWith('.xlsx')) {
+  const ext = fichier.name.toLowerCase().split('.').pop() ?? '';
+  if (!['xlsx', 'xlsm', 'xlsb', 'csv'].includes(ext)) {
     return NextResponse.json(
-      { erreur: 'Seuls les fichiers .xlsx sont acceptés.' },
+      { erreur: 'Formats acceptés : .xlsx, .xlsm ou .csv.' },
       { status: 400 },
     );
   }

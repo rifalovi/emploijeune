@@ -5,8 +5,9 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { revalidatePath } from 'next/cache';
 import { structureInsertSchema } from '@/lib/schemas/structure';
-import { parseExcel } from './parser-excel';
-import { HEADERS_B1, HEADERS_B1_OBLIGATOIRES, mapLigneVersStructure } from './mapping-structures';
+import { parseExcelFlexible } from './parser-excel-flexible';
+import { parseCsv } from './parser-csv';
+import { HEADERS_B1, mapLigneVersStructure } from './mapping-structures';
 import type { ErreurImport, ResultatImport } from './types';
 
 /**
@@ -38,11 +39,11 @@ export async function importerStructuresExcel(
     };
   }
 
-  const { lignes, erreursStructure } = await parseExcel(
-    input.fichierBuffer,
-    HEADERS_B1,
-    HEADERS_B1_OBLIGATOIRES,
-  );
+  // Parsing flexible : CSV ou Excel selon l'extension, avec mapping flou des en-têtes
+  const estCsv = input.fichierNom.toLowerCase().endsWith('.csv');
+  const { lignes, erreursStructure } = estCsv
+    ? await parseCsv(input.fichierBuffer, HEADERS_B1)
+    : await parseExcelFlexible(input.fichierBuffer, HEADERS_B1);
 
   if (erreursStructure.length > 0) {
     return {

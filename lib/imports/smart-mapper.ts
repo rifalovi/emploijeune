@@ -141,6 +141,87 @@ const HEADER_SYNONYMES: Record<string, string> = {
   'jeune (18-34 ans)': "Tranche d'âge déclarée",
   'adulte (35 ans et +)': "Tranche d'âge déclarée",
   'jeune (18-34 ans)/*adulte (35 ans et +)1': "Tranche d'âge déclarée",
+
+  // ─── Synonymes structures (B1) ────────────────────────────────────────
+
+  // → 'Code pays *' (les synonymes partagés "pays", "code pays" matchent
+  //   aussi 'Code pays bénéficiaire *' — le smart-mapper choisit selon
+  //   le contexte des enTetesAttendus passés au parser)
+  'pays structure': 'Code pays *',
+
+  // → 'Nom structure *'
+  'nom structure': 'Nom structure *',
+  'nom des micro entreprises': 'Nom structure *',
+  'nom de la structure': 'Nom structure *',
+  'nom entreprise': 'Nom structure *',
+  'raison sociale': 'Nom structure *',
+  entreprise: 'Nom structure *',
+
+  // → 'Type structure *'
+  'type structure': 'Type structure *',
+  'type de structure': 'Type structure *',
+  'forme juridique': 'Type structure *',
+
+  // → 'Secteur activité *'
+  'secteur activite': 'Secteur activité *',
+  "secteur d'activite": 'Secteur activité *',
+  'secteur d activite': 'Secteur activité *',
+  'domaine d activite': 'Secteur activité *',
+
+  // → 'Statut création *'
+  'statut creation': 'Statut création *',
+  'statut de creation': 'Statut création *',
+
+  // → 'Intitulé initiative'
+  'intitule initiative': 'Intitulé initiative',
+  'intitule de l initiative': 'Intitulé initiative',
+  initiative: 'Intitulé initiative',
+
+  // → 'Année appui *'
+  'annee appui': 'Année appui *',
+  "annee d'appui": 'Année appui *',
+  'annee de l appui': 'Année appui *',
+
+  // → 'Nature appui *'
+  'nature appui': 'Nature appui *',
+  "nature de l'appui": 'Nature appui *',
+  'type appui': 'Nature appui *',
+  "type d'appui": 'Nature appui *',
+
+  // → 'Montant appui'
+  'montant appui': 'Montant appui',
+  montant: 'Montant appui',
+  'montant de l appui': 'Montant appui',
+
+  // → 'Devise'
+  devise: 'Devise',
+  monnaie: 'Devise',
+  currency: 'Devise',
+
+  // → 'Porteur – prénom'
+  'porteur prenom': 'Porteur – prénom',
+  'prenom du porteur': 'Porteur – prénom',
+  'prenom porteur': 'Porteur – prénom',
+
+  // → 'Porteur – nom *'
+  'porteur nom': 'Porteur – nom *',
+  'nom du porteur': 'Porteur – nom *',
+  'nom porteur': 'Porteur – nom *',
+
+  // → 'Porteur – sexe *'
+  'porteur sexe': 'Porteur – sexe *',
+  'sexe du porteur': 'Porteur – sexe *',
+  'sexe porteur': 'Porteur – sexe *',
+
+  // → 'Emplois créés'
+  'emplois crees': 'Emplois créés',
+  'emplois directs': 'Emplois créés',
+  'nombre emplois': 'Emplois créés',
+
+  // → 'Organisation appui'
+  'organisation appui': 'Organisation appui',
+  'organisme d appui': 'Organisation appui',
+  'structure d accompagnement': 'Organisation appui',
 };
 
 /**
@@ -178,6 +259,15 @@ const HEADER_KEYWORDS: Array<{ motCle: string; cible: string }> = [
   { motCle: 'formation', cible: 'Domaine de formation *' },
   { motCle: 'statut', cible: 'Statut *' },
   { motCle: 'age', cible: "Tranche d'âge déclarée" },
+  // Structures (B1) — keywords
+  { motCle: 'entreprise', cible: 'Nom structure *' },
+  { motCle: 'raison sociale', cible: 'Nom structure *' },
+  { motCle: 'micro entreprise', cible: 'Nom structure *' },
+  { motCle: 'montant', cible: 'Montant appui' },
+  { motCle: 'devise', cible: 'Devise' },
+  { motCle: 'emplois', cible: 'Emplois créés' },
+  { motCle: 'porteur', cible: 'Porteur – nom *' },
+  { motCle: 'appui', cible: 'Année appui *' },
 ];
 
 /**
@@ -239,18 +329,19 @@ export function detecterEnTetesFlexibles(
       continue;
     }
 
-    // 2. Synonyme direct
+    // 2. Synonyme direct (vérifie que la cible est dans les headers attendus
+    //    pour éviter les conflits bénéficiaires/structures)
     const synonymeCible = HEADER_SYNONYMES[norme];
-    if (synonymeCible) {
+    if (synonymeCible && (headersAttendus.includes(synonymeCible) || !attendusNormalises.size)) {
       mapping.set(lu, synonymeCible);
       headersMappesAuto[lu] = synonymeCible;
       continue;
     }
 
-    // 3. Match par mot-clé (fallback)
+    // 3. Match par mot-clé (fallback — vérifie aussi que la cible est attendue)
     let matchKeyword: string | null = null;
     for (const { motCle, cible } of HEADER_KEYWORDS) {
-      if (norme.includes(motCle)) {
+      if (norme.includes(motCle) && (headersAttendus.includes(cible) || !attendusNormalises.size)) {
         matchKeyword = cible;
         break;
       }
