@@ -91,15 +91,16 @@ export function ZoneUploadImport({
 
   const validerFichier = (f: File): string | null => {
     const nom = f.name.toLowerCase();
-    // Accepter .xlsx ET .xlsm (format envoyé par les coordonnateurs OIF)
+    // Accepter .xlsx, .xlsm, .csv (format envoyé par les coordonnateurs OIF)
     const estExcel = nom.endsWith('.xlsx') || nom.endsWith('.xlsm') || nom.endsWith('.xlsb');
+    const estCsv = nom.endsWith('.csv');
     const estIA = estFichierIA(f);
 
-    if (!estExcel && !estIA) {
+    if (!estExcel && !estCsv && !estIA) {
       if (iaActivable) {
-        return 'Format attendu : .xlsx ou .xlsm (Excel) ou .pdf / .docx / .txt (analyse IA).';
+        return 'Format attendu : .xlsx, .xlsm, .csv (données) ou .pdf / .docx / .txt (analyse IA).';
       }
-      return 'Format attendu : .xlsx ou .xlsm (Excel).';
+      return 'Format attendu : .xlsx, .xlsm ou .csv.';
     }
     if (estIA && !iaActivable) {
       return "Le format détecté requiert l'analyse IA, désactivée pour votre rôle. Demandez l'activation au super_admin.";
@@ -286,8 +287,8 @@ export function ZoneUploadImport({
               type="file"
               accept={
                 iaActivable
-                  ? '.xlsx,.xlsm,.pdf,.docx,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12'
-                  : '.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12'
+                  ? '.xlsx,.xlsm,.csv,.pdf,.docx,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,text/csv'
+                  : '.xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,text/csv'
               }
               className="hidden"
               onChange={(e) => {
@@ -313,7 +314,7 @@ export function ZoneUploadImport({
                 <Upload className="text-muted-foreground size-8" aria-hidden />
                 <p className="text-sm">
                   Glissez votre fichier{' '}
-                  {iaActivable ? '(.xlsx, .xlsm, .pdf, .docx, .txt) ' : '.xlsx ou .xlsm '}
+                  {iaActivable ? '(.xlsx, .xlsm, .csv, .pdf, .docx, .txt) ' : '(.xlsx, .xlsm, .csv) '}
                   ici ou cliquez pour parcourir
                 </p>
                 <p className="text-muted-foreground text-xs">Maximum {MAX_TAILLE_MO} MB</p>

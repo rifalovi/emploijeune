@@ -27,23 +27,22 @@ export async function POST(request: NextRequest) {
   // coordonnateurs OIF, ex. « Base de sondage P6 »). Les deux formats sont
   // identiques structurellement (ZIP + XML) et lus par openpyxl / exceljs.
   const extFichier = fichier.name.toLowerCase().split('.').pop() ?? '';
-  if (!['xlsx', 'xlsm', 'xlsb'].includes(extFichier)) {
+  if (!['xlsx', 'xlsm', 'xlsb', 'csv'].includes(extFichier)) {
     return NextResponse.json(
-      { erreur: 'Seuls les fichiers .xlsx et .xlsm sont acceptés.' },
+      { erreur: 'Formats acceptés : .xlsx, .xlsm ou .csv.' },
       { status: 400 },
     );
   }
 
   // Vérification du type MIME côté serveur (en plus de l'extension).
-  // Normalisation en minuscules : certains navigateurs/OS envoient
-  // "macroenabled" (tout minuscule) au lieu de "macroEnabled" — la
-  // comparaison doit être insensible à la casse.
   const MIME_TYPES_ACCEPTES = [
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
     'application/vnd.ms-excel.sheet.macroenabled.12', // .xlsm (minuscules — Chrome/macOS)
-    'application/vnd.ms-excel.sheet.macroenabled.12'.replace('macroenabled', 'macroEnabled'), // .xlsm (casse mixte — spec officielle)
+    'application/vnd.ms-excel.sheet.macroenabled.12'.replace('macroenabled', 'macroEnabled'), // .xlsm (casse mixte)
     'application/vnd.ms-excel.sheet.binary.macroenabled.12', // .xlsb
     'application/vnd.ms-excel.sheet.binary.macroEnabled.12', // .xlsb (casse mixte)
+    'text/csv', // .csv
+    'text/plain', // certains OS classent les .csv en text/plain
     'application/octet-stream', // certains navigateurs/OS envoient ce type générique
     'application/zip', // xlsx/xlsm sont des zips — accepté comme fallback
     '', // type vide (certains OS)
@@ -52,7 +51,7 @@ export async function POST(request: NextRequest) {
   if (fichier.type && !MIME_TYPES_ACCEPTES.map((m) => m.toLowerCase()).includes(mimeNormalise)) {
     return NextResponse.json(
       {
-        erreur: `Type MIME non accepté : ${fichier.type}. Utilisez un fichier .xlsx ou .xlsm valide.`,
+        erreur: `Type MIME non accepté : ${fichier.type}. Formats acceptés : .xlsx, .xlsm ou .csv.`,
       },
       { status: 400 },
     );

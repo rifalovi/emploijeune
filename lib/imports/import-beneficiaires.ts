@@ -6,6 +6,7 @@ import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { revalidatePath } from 'next/cache';
 import { beneficiaireImportSchema } from '@/lib/schemas/beneficiaire';
 import { parseExcelFlexible } from './parser-excel-flexible';
+import { parseCsv } from './parser-csv';
 import {
   normaliserCodeProjet,
   normaliserCodePays,
@@ -114,8 +115,11 @@ export async function importerBeneficiairesExcel(
     };
   }
 
-  // 1. Parsing flexible : auto-détection de la ligne d'en-tête + mapping flou
-  const parse = await parseExcelFlexible(input.fichierBuffer, HEADERS_ATTENDUS);
+  // 1. Parsing flexible : CSV ou Excel selon l'extension
+  const estCsv = input.fichierNom.toLowerCase().endsWith('.csv');
+  const parse = estCsv
+    ? await parseCsv(input.fichierBuffer, HEADERS_ATTENDUS)
+    : await parseExcelFlexible(input.fichierBuffer, HEADERS_ATTENDUS);
   if (parse.erreursStructure.length > 0) {
     return {
       status: 'erreur_fichier',
