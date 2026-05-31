@@ -223,17 +223,24 @@ async function extraireTexteFichier(
     }
 
     case 'xlsx': {
-      // ExcelJS : conversion en texte tabulaire lisible par Claude.
-      // Chaque feuille est rendue avec les en-têtes en première ligne,
-      // puis les données séparées par des tabulations.
+      // ExcelJS : auto-détection de la meilleure feuille bénéficiaires,
+      // puis conversion en texte tabulaire pour Claude Haiku.
+      // Avant : envoyait TOUTES les feuilles concaténées → context overflow.
+      // Après : envoie SEULEMENT la feuille la mieux scorée.
+      const { choisirMeilleureFeuille } = await import('./choisir-feuille');
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buf as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+
+      const { ws: meilleure } = choisirMeilleureFeuille(workbook, 'beneficiaires');
+      const feuillesCibles = meilleure ? [meilleure] : [workbook.worksheets[0]!];
+
       const lignes: string[] = [];
-      workbook.eachSheet((worksheet) => {
+      for (const worksheet of feuillesCibles) {
+        if (!worksheet) continue;
         lignes.push(`=== Feuille : ${worksheet.name} ===`);
         worksheet.eachRow({ includeEmpty: false }, (row) => {
           const valeurs = (row.values as (ExcelJS.CellValue | null)[])
-            .slice(1) // ExcelJS commence à l'index 1
+            .slice(1)
             .map((v) => {
               if (v === null || v === undefined) return '';
               if (typeof v === 'object' && 'text' in v) return String((v as { text: string }).text);
@@ -243,7 +250,7 @@ async function extraireTexteFichier(
             });
           lignes.push(valeurs.join('\t'));
         });
-      });
+      }
       return lignes.join('\n');
     }
   }

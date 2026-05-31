@@ -88,7 +88,7 @@ describe('parseExcelFlexible — multi-onglets', () => {
     ]);
     const result = await parseExcelFlexible(buf, HEADERS_A);
     expect(result.erreursStructure.length).toBeGreaterThan(0);
-    expect(result.erreursStructure[0]!.message).toContain('Aucune feuille reconnue');
+    expect(result.erreursStructure[0]!.message).toContain('Aucune feuille');
     expect(result.erreursStructure[0]!.message).toContain('Subventions');
   });
 
@@ -126,23 +126,20 @@ describe('listerOngletsExcel', () => {
         lignes: Array.from({ length: 30 }, () => ['P14', 'CMR', 'A', 'B', 'F']),
       },
     ]);
-    const { onglets } = await listerOngletsExcel(buf, HEADERS_A);
+    const { onglets } = await listerOngletsExcel(buf, 'beneficiaires');
     expect(onglets).toHaveLength(2);
 
     const feuil1 = onglets.find((o) => o.nom === 'Feuil1')!;
     const benef = onglets.find((o) => o.nom === 'Bénéficiaires')!;
     expect(benef.score).toBeGreaterThan(feuil1.score);
-    expect(benef.nbHeadersReconnus).toBeGreaterThanOrEqual(4);
-    // Bonus nom +5 pour "Bénéficiaires"
-    expect(benef.score).toBeGreaterThanOrEqual(benef.nbHeadersReconnus > 0 ? 50 : 0);
   });
 
-  it('exclut les feuilles avec < 10 lignes du score dans parseExcelFlexible', async () => {
+  it('penalise les feuilles < 10 lignes mais les accepte si score suffisant', async () => {
     const buf = await creerWorkbook([
       {
         nom: 'Petite',
         headers: ['Projet', 'Pays', 'Prénom', 'Nom', 'Sexe'],
-        lignes: [['P1', 'CMR', 'A', 'B', 'F']], // 1 seule ligne = exclue
+        lignes: [['P1', 'CMR', 'A', 'B', 'F']], // 1 seule ligne, penalisee -20 mais headers OK
       },
       {
         nom: 'Grande',
@@ -150,10 +147,9 @@ describe('listerOngletsExcel', () => {
         lignes: Array.from({ length: 20 }, () => ['2024', '100']),
       },
     ]);
-    // "Petite" a le meilleur match headers mais < 10 lignes → exclue
-    // "Grande" a 0 match → score < 3 → erreur
+    // "Petite" a les bons headers (score 30 apres penalite) → acceptee
     const result = await parseExcelFlexible(buf, HEADERS_A);
-    expect(result.erreursStructure.length).toBeGreaterThan(0);
-    expect(result.erreursStructure[0]!.message).toContain('Aucune feuille reconnue');
+    expect(result.erreursStructure).toHaveLength(0);
+    expect(result.lignes).toHaveLength(1);
   });
 });

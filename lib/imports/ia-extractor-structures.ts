@@ -213,10 +213,17 @@ async function extraireTexteFichier(
     }
 
     case 'xlsx': {
+      // Auto-détection de la meilleure feuille structures.
+      const { choisirMeilleureFeuille } = await import('./choisir-feuille');
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buf as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+
+      const { ws: meilleure } = choisirMeilleureFeuille(workbook, 'structures');
+      const feuillesCibles = meilleure ? [meilleure] : [workbook.worksheets[0]!];
+
       const lignes: string[] = [];
-      workbook.eachSheet((worksheet) => {
+      for (const worksheet of feuillesCibles) {
+        if (!worksheet) continue;
         lignes.push(`=== Feuille : ${worksheet.name} ===`);
         worksheet.eachRow({ includeEmpty: false }, (row) => {
           const valeurs = (row.values as (ExcelJS.CellValue | null)[]).slice(1).map((v) => {
@@ -228,7 +235,7 @@ async function extraireTexteFichier(
           });
           lignes.push(valeurs.join('\t'));
         });
-      });
+      }
       return lignes.join('\n');
     }
   }

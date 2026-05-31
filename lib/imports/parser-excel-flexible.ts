@@ -1,5 +1,7 @@
 import ExcelJS from 'exceljs';
 import { detecterEnTetesFlexibles } from './smart-mapper';
+import { choisirMeilleureFeuille, formaterErreurFeuilles } from './choisir-feuille';
+import type { TypeImport } from './choisir-feuille';
 import type { ErreurImport } from './types';
 
 /**
@@ -58,14 +60,13 @@ export type ParseExcelFlexibleResult = {
 
 /**
  * Liste les onglets d'un fichier Excel avec un score de pertinence pour l'import.
- * Le score est basé sur le nombre d'en-têtes reconnus par le smart-mapper.
- * L'onglet avec le meilleur score est le candidat auto-détecté.
+ * Utilise le module partagé choisir-feuille.ts pour le scoring.
  */
 export async function listerOngletsExcel(
   buffer: ArrayBuffer | Buffer,
-  enTetesAttendus: ReadonlyArray<string>,
   typeImport: TypeImport = 'beneficiaires',
 ): Promise<{ onglets: InfoOnglet[]; erreur?: string }> {
+  const { detecterFeuilles } = await import('./choisir-feuille');
   const workbook = new ExcelJS.Workbook();
   const buf = buffer instanceof Buffer ? buffer : Buffer.from(new Uint8Array(buffer));
 
@@ -75,62 +76,19 @@ export async function listerOngletsExcel(
     return { onglets: [], erreur: `Fichier illisible : ${err instanceof Error ? err.message : 'format invalide'}` };
   }
 
-  const onglets: InfoOnglet[] = [];
-  for (const ws of workbook.worksheets) {
-    const nbLignes = ws.rowCount;
-    const nbColonnes = ws.columnCount;
-
-    // Détecter la ligne d'en-tête (même algo que parseExcelFlexible)
-    const horizonMax = Math.min(HORIZON_LIGNE_ENTETE, ws.rowCount);
-    let meilleureLigne = 1;
-    let meilleurScore = 0;
-    for (let r = 1; r <= horizonMax; r++) {
-      const row = ws.getRow(r);
-      let cellulesNonVides = 0;
-      const valeursUniques = new Set<string>();
-      row.eachCell({ includeEmpty: false }, (cell) => {
-        const v = extraireValeurCellule(cell);
-        const s = v !== null && v !== undefined ? String(v).trim() : '';
-        if (s !== '') { cellulesNonVides++; valeursUniques.add(s); }
-      });
-      if (cellulesNonVides > 1 && valeursUniques.size === 1) continue;
-      if (cellulesNonVides > meilleurScore) { meilleurScore = cellulesNonVides; meilleureLigne = r; }
-    }
-
-    // Lire les en-têtes et scorer avec le smart-mapper
-    const headerRow = ws.getRow(meilleureLigne);
-    const headersLus: Array<string | null> = [];
-    headerRow.eachCell({ includeEmpty: true }, (cell) => {
-      const v = extraireValeurCellule(cell);
-      headersLus.push(typeof v === 'string' && v.trim() ? v.trim() : v !== null ? String(v).trim() || null : null);
-    });
-
-    const { mapping } = detecterEnTetesFlexibles(headersLus, enTetesAttendus);
-    const nbHeadersReconnus = mapping.size;
-
-    // Bonus nom de feuille (+5 si contient un mot-clé pertinent pour le type)
-    const nomNorm = ws.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const motsClesA = ['beneficiaire', 'individu', 'personne', 'jeune'];
-    const motsClesB = ['structure', 'entreprise', 'micro', 'organisation'];
-    const motsClesActifs = typeImport === 'structures' ? motsClesB : motsClesA;
-    const bonusNom = motsClesActifs.some((m) => nomNorm.includes(m)) ? 5 : 0;
-
-    const scoreBrut = enTetesAttendus.length > 0
-      ? Math.round((nbHeadersReconnus / enTetesAttendus.length) * 100)
-      : 0;
-    const score = Math.min(scoreBrut + bonusNom, 100);
-
-    // Nb de lignes de données (après l'en-tête)
-    const nbLignesDonnees = Math.max(0, nbLignes - meilleureLigne);
-
-    onglets.push({ nom: ws.name, nbLignes: nbLignesDonnees, nbColonnes, nbHeadersReconnus, score });
-  }
+  const detections = detecterFeuilles(workbook, typeImport);
+  const onglets: InfoOnglet[] = detections.map((d) => ({
+    nom: d.nom,
+    nbLignes: d.lignesDonnees,
+    nbColonnes: d.colonnesReconnues.length,
+    nbHeadersReconnus: d.colonnesReconnues.length,
+    score: d.score,
+  }));
 
   return { onglets };
 }
 
-/** Type d'import pour le bonus nom de feuille. */
-export type TypeImport = 'beneficiaires' | 'structures';
+export { type TypeImport } from './choisir-feuille';
 
 export async function parseExcelFlexible(
   buffer: ArrayBuffer | Buffer,
@@ -160,61 +118,14 @@ export async function parseExcelFlexible(
     };
   }
 
-  // Sélection de l'onglet : par nom si spécifié, sinon auto-détection du meilleur
-  let ws = nomOnglet
-    ? workbook.worksheets.find((s) => s.name === nomOnglet)
-    : undefined;
+  // Sélection de l'onglet : par nom si spécifié, sinon auto-détection via le module partagé
+  let ws: ExcelJS.Worksheet | undefined;
 
-  if (!ws && !nomOnglet && workbook.worksheets.length > 1) {
-    // Auto-détection : scorer chaque onglet avec détection en-tête 15 lignes,
-    // bonus nom de feuille, et minimum 10 lignes de données.
-    let bestScore = -1;
-    const feuillesInfos: string[] = [];
-    for (const sheet of workbook.worksheets) {
-      // Détection en-tête (même algo que le parser principal)
-      const horizonMax = Math.min(HORIZON_LIGNE_ENTETE, sheet.rowCount);
-      let ligneTete = 1;
-      let meilleurScoreLigne = 0;
-      for (let r = 1; r <= horizonMax; r++) {
-        const row = sheet.getRow(r);
-        let nonVides = 0;
-        const vals = new Set<string>();
-        row.eachCell({ includeEmpty: false }, (cell) => {
-          const v = extraireValeurCellule(cell);
-          const s = v !== null && v !== undefined ? String(v).trim() : '';
-          if (s) { nonVides++; vals.add(s); }
-        });
-        if (nonVides > 1 && vals.size === 1) continue;
-        if (nonVides > meilleurScoreLigne) { meilleurScoreLigne = nonVides; ligneTete = r; }
-      }
-
-      const headersLus: Array<string | null> = [];
-      sheet.getRow(ligneTete).eachCell({ includeEmpty: true }, (cell) => {
-        const v = extraireValeurCellule(cell);
-        headersLus.push(typeof v === 'string' && v.trim() ? v.trim() : null);
-      });
-      const { mapping } = detecterEnTetesFlexibles(headersLus, enTetesAttendus);
-
-      // Bonus nom de feuille (+5 si contient un mot-clé pertinent pour le type)
-      const nomNorm = sheet.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      const motsClesA = ['beneficiaire', 'individu', 'personne', 'jeune'];
-      const motsClesB = ['structure', 'entreprise', 'micro', 'organisation'];
-      const motsCles = typeImport === 'structures' ? motsClesB : motsClesA;
-      const bonusNom = motsCles.some((m) => nomNorm.includes(m)) ? 5 : 0;
-
-      const nbLignesDonnees = Math.max(0, sheet.rowCount - ligneTete);
-      const score = mapping.size + bonusNom;
-      feuillesInfos.push(`${sheet.name} (${nbLignesDonnees} lignes, ${mapping.size} colonnes)`);
-
-      // Minimum 10 lignes de données pour être candidat
-      if (nbLignesDonnees >= 10 && score > bestScore) {
-        bestScore = score;
-        ws = sheet;
-      }
-    }
-
-    // Si aucun onglet n'a au moins 3 colonnes reconnues → erreur descriptive
-    if (bestScore < 3) {
+  if (nomOnglet) {
+    ws = workbook.worksheets.find((s) => s.name === nomOnglet);
+  } else if (workbook.worksheets.length > 1) {
+    const { ws: meilleure, detections } = choisirMeilleureFeuille(workbook, typeImport);
+    if (!meilleure) {
       return {
         lignes: [],
         headersMappesAuto: {},
@@ -224,10 +135,11 @@ export async function parseExcelFlexible(
           ligne: 0,
           colonne: null,
           valeur: null,
-          message: `Aucune feuille reconnue dans ce fichier Excel. Feuilles trouvées : ${feuillesInfos.join(', ')}. Sélectionnez manuellement l'onglet à importer.`,
+          message: formaterErreurFeuilles(typeImport, detections),
         }],
       };
     }
+    ws = meilleure;
   }
 
   if (!ws) ws = workbook.worksheets[0];
