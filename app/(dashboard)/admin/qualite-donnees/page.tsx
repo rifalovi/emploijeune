@@ -135,6 +135,13 @@ export default async function QualiteDonneesPage() {
                   />
                 </div>
 
+                {/* Note contextuelle pour date_naissance */}
+                {ind.champ === 'date_naissance' && pct === 0 && (
+                  <p className="text-[10px] leading-snug text-slate-400 italic">
+                    Donnée non collectée à l&apos;import — non critique pour les indicateurs actuels.
+                  </p>
+                )}
+
                 {/* Footer : manquants + lien */}
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500">
