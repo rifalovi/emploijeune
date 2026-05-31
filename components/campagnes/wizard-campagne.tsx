@@ -508,7 +508,7 @@ export function WizardCampagne({ projets, pays }: WizardCampagneProps) {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="toutes">Toutes</SelectItem>
-                          <SelectItem value="Jeune">Jeunes (18–34 ans)</SelectItem>
+                          <SelectItem value="Jeune">Jeunes (15–34 ans)</SelectItem>
                           <SelectItem value="Adulte">Adultes (35 ans et +)</SelectItem>
                         </SelectContent>
                       </Select>

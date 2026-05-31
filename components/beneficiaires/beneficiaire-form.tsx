@@ -396,7 +396,7 @@ export function BeneficiaireForm({
                       <div className="flex gap-2">
                         {(
                           [
-                            { valeur: 'Jeune', libelle: 'Jeune (18–34 ans)' },
+                            { valeur: 'Jeune', libelle: 'Jeune (15–34 ans)' },
                             { valeur: 'Adulte', libelle: 'Adulte (35 ans et +)' },
                           ] as const
                         ).map(({ valeur, libelle }) => (

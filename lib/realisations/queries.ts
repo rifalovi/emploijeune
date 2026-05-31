@@ -108,7 +108,7 @@ const EMPTY_AUTO: KpisContexteAuto = {
   nb_adultes: null,
 };
 
-/** Jeune (18-34) / Adulte (35+) — priorité tranche_age_declaree, fallback date_naissance. */
+/** Jeune (15-34) / Adulte (35+) — priorité tranche_age_declaree, fallback date_naissance. */
 function classifierTrancheAge(
   tranche_age_declaree: string | null | undefined,
   date_naissance: string | null | undefined,
@@ -124,7 +124,7 @@ function classifierTrancheAge(
       today.getFullYear() -
       naissance.getFullYear() -
       (today < new Date(today.getFullYear(), naissance.getMonth(), naissance.getDate()) ? 1 : 0);
-    if (age >= 18 && age <= 34) return 'Jeune';
+    if (age >= 15 && age <= 34) return 'Jeune';
     if (age >= 35) return 'Adulte';
   }
   return null;

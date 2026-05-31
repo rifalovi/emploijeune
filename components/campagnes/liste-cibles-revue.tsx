@@ -163,7 +163,7 @@ export function ListeCiblesRevue({
                               l.tranche_age_declaree === 'Jeune' ? '#0198E955' : '#5D007355',
                           }}
                         >
-                          {l.tranche_age_declaree === 'Jeune' ? 'Jeune 18–34' : 'Adulte 35+'}
+                          {l.tranche_age_declaree === 'Jeune' ? 'Jeune 15–34' : 'Adulte 35+'}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-[10px] italic">–</span>

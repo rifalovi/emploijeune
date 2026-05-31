@@ -56,38 +56,50 @@ describe('calculerTrancheAge', () => {
 
   it('accepte une chaîne ISO', () => {
     // 2000-01-01 sur 2026-04-23 → 26 ans
-    expect(calculerTrancheAge('2000-01-01', ref)).toBe('18-34 ans');
+    expect(calculerTrancheAge('2000-01-01', ref)).toBe('15-34 ans');
   });
 
-  // ===== Tranche Mineur (<18) =====
+  // ===== Tranche Mineur (<15) =====
 
   it('classe 0 an → Mineur', () => {
     const n = new Date('2026-01-01');
-    expect(calculerTrancheAge(n, ref)).toBe('Mineur (<18)');
+    expect(calculerTrancheAge(n, ref)).toBe('Mineur (<15)');
   });
 
-  it('classe 17 ans → Mineur (borne sup)', () => {
-    // 2009-04-01 sur 2026-04-23 → 17 ans et 22 jours
+  it('classe 14 ans → Mineur (borne sup)', () => {
+    // 2012-04-01 sur 2026-04-23 → 14 ans
+    const n = new Date('2012-04-01');
+    expect(calculerTrancheAge(n, ref)).toBe('Mineur (<15)');
+  });
+
+  // ===== Tranche 15-34 ans =====
+
+  it('classe 15 ans pile → 15-34 ans (borne inf)', () => {
+    // 2011-04-23 sur 2026-04-23 → exactement 15 ans
+    const n = new Date('2011-04-23');
+    expect(calculerTrancheAge(n, ref)).toBe('15-34 ans');
+  });
+
+  it('classe 17 ans → 15-34 ans (mineur inclus)', () => {
+    // 2009-04-01 sur 2026-04-23 → 17 ans
     const n = new Date('2009-04-01');
-    expect(calculerTrancheAge(n, ref)).toBe('Mineur (<18)');
+    expect(calculerTrancheAge(n, ref)).toBe('15-34 ans');
   });
 
-  // ===== Tranche 18-34 ans =====
-
-  it('classe 18 ans pile → 18-34 ans (borne inf)', () => {
+  it('classe 18 ans pile → 15-34 ans', () => {
     // 2008-04-23 sur 2026-04-23 → exactement 18 ans
     const n = new Date('2008-04-23');
-    expect(calculerTrancheAge(n, ref)).toBe('18-34 ans');
+    expect(calculerTrancheAge(n, ref)).toBe('15-34 ans');
   });
 
   it('classe 30 ans → 18-34 ans', () => {
     const n = new Date('1996-04-23');
-    expect(calculerTrancheAge(n, ref)).toBe('18-34 ans');
+    expect(calculerTrancheAge(n, ref)).toBe('15-34 ans');
   });
 
   it('classe 34 ans → 18-34 ans (borne sup)', () => {
     const n = new Date('1991-05-01');
-    expect(calculerTrancheAge(n, ref)).toBe('18-34 ans');
+    expect(calculerTrancheAge(n, ref)).toBe('15-34 ans');
   });
 
   // ===== Tranche 35-60 ans =====

@@ -6,14 +6,12 @@
  * Source : docs/specifications/questionnaires/Questionnaire EmploiJeunes_ Indicateurs A_V2.docx
  *
  * Tranches officielles OIF :
- *   - 18-34 ans (jeunes selon définition OIF/ONU)
+ *   - 15-34 ans (jeunes selon définition OIF élargie, inclut les mineurs 15-17)
  *   - 35-60 ans (adultes)
  *   - +60 ans (seniors)
  *
  * Ajouts plateforme V1 pour traçabilité :
- *   - « Mineur (<18) » : cas rare mais possible, signale une anomalie de saisie
- *     (la cible opérationnelle OIF est 15-29 / élargi 15-35 — cf. note méthodo),
- *     ce libellé attire l'attention sur les lignes atypiques
+ *   - « Mineur (<15) » : cas rare, signale une anomalie de saisie
  *   - « Non renseigné » : date_naissance nulle ou invalide
  *
  * Fonction pure : testable sans mock, déterministe pour une paire
@@ -21,8 +19,8 @@
  */
 
 export const TRANCHES_AGE = [
-  'Mineur (<18)',
-  '18-34 ans',
+  'Mineur (<15)',
+  '15-34 ans',
   '35-60 ans',
   '+60 ans',
   'Non renseigné',
@@ -39,7 +37,7 @@ export type TrancheAgeDeclaree = 'Jeune' | 'Adulte';
  * Questionnaire A V2 (question 105).
  *
  * Mapping :
- *   « Jeune »  (18-34 ans) → '18-34 ans'
+ *   « Jeune »  (15-34 ans) → '15-34 ans'
  *   « Adulte » (35 ans et +) → '35-60 ans'  ← convention : on ne peut pas
  *     distinguer 35-60 et +60 depuis la base OIF (catégorie trop large).
  *     Un badge visuel "(déclaré)" est recommandé côté UI pour signaler
@@ -50,7 +48,7 @@ export function trancheAgeDepuisDeclaree(
 ): TrancheAge | null {
   if (!declaree) return null;
   const v = declaree.trim().toLowerCase();
-  if (v === 'jeune') return '18-34 ans';
+  if (v === 'jeune') return '15-34 ans';
   if (v === 'adulte') return '35-60 ans';
   return null;
 }
@@ -76,8 +74,8 @@ export function calculerTrancheAge(
     const naissance = dateNaissance instanceof Date ? dateNaissance : new Date(dateNaissance);
     if (!isNaN(naissance.getTime())) {
       const age = calculerAge(naissance, dateReference);
-      if (age < 18) return 'Mineur (<18)';
-      if (age <= 34) return '18-34 ans';
+      if (age < 15) return 'Mineur (<15)';
+      if (age <= 34) return '15-34 ans';
       if (age <= 60) return '35-60 ans';
       return '+60 ans';
     }

@@ -45,7 +45,7 @@ export async function getKpisPublics(): Promise<KpisPublics | null> {
  * Double source, par ordre de priorité :
  *   1. `tranche_age_declaree` ('Jeune' | 'Adulte') — valeur déclarée à l'import OIF.
  *   2. `date_naissance` — calcul automatique si la tranche n'est pas renseignée :
- *      18-34 ans → Jeune, 35 ans et + → Adulte.
+ *      15-34 ans → Jeune, 35 ans et + → Adulte.
  *
  * Agrégat anonymisé — aucune donnée nominative retournée.
  */

@@ -2,13 +2,13 @@
  * Badge visuel OIF pour la tranche d'âge d'un bénéficiaire.
  *
  * Deux niveaux d'entrée possibles :
- *  - `trancheCalculee` : résultat de `calculerTrancheAge()` ('18-34 ans', '35-60 ans', …)
+ *  - `trancheCalculee` : résultat de `calculerTrancheAge()` ('15-34 ans', '35-60 ans', …)
  *    Utilisé dans BeneficiaireTable où on a la date de naissance.
  *  - `trancheDeclaree` : valeur brute base OIF ('Jeune' | 'Adulte' | null)
  *    Utilisé dans EnqueteTable / ListeCiblesRevue où on n'a que la donnée déclarée.
  *
  * Palette OIF (alignée sur les programmes stratégiques) :
- *   Jeune (18-34)  → cyan   #0198E9  (PS1 — Éducation / Emploi)
+ *   Jeune (15-34)  → cyan   #0198E9  (PS1 — Éducation / Emploi)
  *   Adulte (35-60) → violet #5D0073  (PS2 — Francophonie économique)
  *   Senior (+60)   → gris ardoise  (hors cible opérationnelle)
  *   Mineur         → ambre  (anomalie de saisie)
@@ -61,10 +61,10 @@ export function TrancheAgeCalculeeBadge({ tranche, estDeclaree }: TrancheCalcule
 }
 
 const TRANCHE_CALCULEE_META: Record<TrancheAge, { couleur: string; libelle: string }> = {
-  '18-34 ans': { couleur: JEUNE_COLOR, libelle: 'Jeune 18–34' },
+  '15-34 ans': { couleur: JEUNE_COLOR, libelle: 'Jeune 15–34' },
   '35-60 ans': { couleur: ADULTE_COLOR, libelle: 'Adulte 35–60' },
   '+60 ans': { couleur: SENIOR_COLOR, libelle: 'Senior 60+' },
-  'Mineur (<18)': { couleur: MINEUR_COLOR, libelle: 'Mineur <18' },
+  'Mineur (<15)': { couleur: MINEUR_COLOR, libelle: 'Mineur <15' },
   'Non renseigné': { couleur: SENIOR_COLOR, libelle: '–' },
 };
 
@@ -80,7 +80,7 @@ export function TrancheAgeDeclareesBadge({ tranche }: TrancheDeclareeProps) {
   }
 
   const couleur = tranche === 'Jeune' ? JEUNE_COLOR : ADULTE_COLOR;
-  const libelle = tranche === 'Jeune' ? 'Jeune 18–34' : 'Adulte 35+';
+  const libelle = tranche === 'Jeune' ? 'Jeune 15–34' : 'Adulte 35+';
 
   return (
     <Badge

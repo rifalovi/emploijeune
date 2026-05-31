@@ -777,7 +777,7 @@ const SEXE_LIBELLES: Record<string, string> = {
   Autre: 'Autre / Non précisé',
 };
 const TRANCHE_AGE_LIBELLES: Record<string, string> = {
-  jeune: 'Jeune (18–34 ans)',
+  jeune: 'Jeune (15–34 ans)',
   adulte: 'Adulte (35 ans et +)',
 };
 const DOMAINE_LIBELLES: Record<string, string> = {

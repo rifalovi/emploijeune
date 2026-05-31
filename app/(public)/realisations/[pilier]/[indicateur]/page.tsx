@@ -703,7 +703,7 @@ function KpisCount({
           />
           <KpiCard
             icone={Baby}
-            label="Jeunes (18-34 ans)"
+            label="Jeunes (15-34 ans)"
             valeur={jeunes}
             couleur="#0198E9"
             sousTitre={`${jeunesPct}\u00a0% des jeunes+adultes`}

@@ -252,7 +252,7 @@ export function SaisieContexteKpisClient({ code, typeInd, afficherVentilateur, k
           {afficherVentilateur && typeInd === 'count' && (
             <>
               <Field
-                label="Jeunes (18-34 ans)"
+                label="Jeunes (15-34 ans)"
                 value={nbJeunes}
                 onChange={setNbJeunes}
                 placeholder="ex. 1500"
