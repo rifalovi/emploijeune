@@ -128,7 +128,9 @@ describe('modifierBeneficiaire', () => {
     expect(res.status).toBe('erreur_validation');
   });
 
-  it('doublon : si find_beneficiaire_doublon renvoie une fiche → statut doublon', async () => {
+  it('doublon desactive : la RPC find_beneficiaire_doublon n est plus appelee', async () => {
+    // La detection doublon est desactivee (date_naissance non collectee).
+    // Meme si rpcResult contient une fiche, le code ne passe plus par la RPC.
     rpcResult = {
       data: [
         {
@@ -142,11 +144,8 @@ describe('modifierBeneficiaire', () => {
       error: null,
     };
     const res = await modifierBeneficiaire(payloadValide);
-    expect(res.status).toBe('doublon');
-    if (res.status !== 'doublon') throw new Error('unreachable');
-    expect(res.ficheExistante.id).toBe('22222222-2222-4222-8222-222222222222');
-    // Aucun revalidate ne doit avoir été appelé (pas d'écriture)
-    expect(revalidatePath).not.toHaveBeenCalled();
+    // Le resultat est succes car le doublon n est plus detecte en amont.
+    expect(res.status).toBe('succes');
   });
 
   it('erreur RLS (code 42501) → statut erreur_rls', async () => {
