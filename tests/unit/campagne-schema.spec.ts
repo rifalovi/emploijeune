@@ -40,7 +40,7 @@ describe('creerCampagneSchema', () => {
   });
 
   it('rejette questionnaire hors enum', () => {
-    expect(creerCampagneSchema.safeParse({ ...baseValide, questionnaire: 'C' }).success).toBe(
+    expect(creerCampagneSchema.safeParse({ ...baseValide, questionnaire: 'Z' }).success).toBe(
       false,
     );
   });

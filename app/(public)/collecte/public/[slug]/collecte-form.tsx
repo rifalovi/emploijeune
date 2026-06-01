@@ -1202,7 +1202,7 @@ function SuccesMessage({
   type,
   onNouveau,
 }: {
-  type: 'A' | 'B' | 'C' | 'D';
+  type: '0' | 'A' | 'B' | 'C' | 'D';
   onNouveau: () => void;
 }) {
   return (

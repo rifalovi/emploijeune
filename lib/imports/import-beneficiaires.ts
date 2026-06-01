@@ -395,13 +395,13 @@ async function traiterLigne(args: {
     if (match) {
       const candidat = `PROJ_A${match[1]}`;
       if ((PROJETS_CODES as readonly string[]).includes(candidat)) {
-        projetFinal = candidat;
+        projetFinal = candidat as typeof projet;
         alertes.push(`Code projet absent → inféré du nom de fichier : ${candidat}`);
       }
     }
   }
   if (!projetFinal && codeProjetDefaut) {
-    projetFinal = codeProjetDefaut;
+    projetFinal = codeProjetDefaut as typeof projet;
     alertes.push(`Code projet absent → défaut appliqué : ${codeProjetDefaut}`);
   }
   if (!projetFinal) {

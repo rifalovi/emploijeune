@@ -105,7 +105,7 @@ function urlLien(slug: string): string {
 // =============================================================================
 
 const creerLienSchema = z.object({
-  type: z.enum(['A', 'B', 'C', 'D']),
+  type: z.enum(['0', 'A', 'B', 'C', 'D']),
   label: z.string().trim().min(1, 'Le libellé est obligatoire').max(200),
   projet_code: z.string().nullable().optional(),
   expire_dans_jours: z.coerce.number().int().min(1).max(365).nullable().optional(),

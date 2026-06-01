@@ -247,11 +247,11 @@ describe('Soumission Questionnaire B', () => {
     expect(soumissionQuestionnaireBSchema.safeParse(baseSoumissionB).success).toBe(true);
   });
 
-  it('rejette si C5 source = A (incohérence)', () => {
+  it('rejette si C5 source invalide', () => {
     expect(
       soumissionQuestionnaireBSchema.safeParse({
         ...baseSoumissionB,
-        c5: { satisfaction: 'SATISFAIT', source_questionnaire: 'C' },
+        c5: { satisfaction: 'SATISFAIT', source_questionnaire: 'Z' },
       }).success,
     ).toBe(false);
   });
