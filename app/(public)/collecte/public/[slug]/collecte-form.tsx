@@ -26,6 +26,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertCircle, CheckCircle2, Loader2, PlusCircle, Send } from 'lucide-react';
 import { soumettreCollectePublique } from '@/lib/collecte-publique/actions';
 import type { InfoLienPublic } from '@/lib/collecte-publique/actions';
+import { FormulaireUnifie } from './formulaire-unifie';
 import {
   PROJETS_CODES,
   SEXE_VALUES,
@@ -284,6 +285,20 @@ export function CollecteForm({
     });
   };
 
+  if (lien.type === '0') {
+    return (
+      <FormulaireUnifie
+        key={formKey}
+        lien={lien}
+        isPending={isPending}
+        erreur={erreurMessage}
+        onSubmit={handleSubmit}
+        onSubmitEtNouveau={handleSubmitEtNouveau}
+        confirmationNouveau={confirmationNouveau}
+        tranchesAge={tranchesAge}
+      />
+    );
+  }
   if (lien.type === 'A') {
     return (
       <FormulaireBeneficiaire

@@ -28,7 +28,7 @@ import { z } from 'zod';
 // Types publics
 // =============================================================================
 
-export type TypeCollecte = 'A' | 'B' | 'C' | 'D';
+export type TypeCollecte = '0' | 'A' | 'B' | 'C' | 'D';
 
 export type LienCollecte = {
   id: string;
@@ -477,7 +477,68 @@ export async function validerSoumission(soumissionId: string): Promise<ValiderSo
   // Insertion selon le type
   let entiteId: string | null = null;
 
-  if (soumission.type === 'A') {
+  if (soumission.type === '0') {
+    // Type 0 — formulaire unifié. Le routing dépend de meta.categorie.
+    const meta = (donnees['meta'] ?? {}) as Record<string, unknown>;
+    const cat = (meta['categorie'] as string) ?? 'beneficiaire';
+
+    // Stocker la catégorie dans la colonne dédiée
+    await admin
+      .from('soumissions_collecte')
+      .update({ categorie_repondant: cat } as never)
+      .eq('id', soumission.id);
+
+    if (cat === 'beneficiaire') {
+      const payload = {
+        prenom: (donnees['prenom'] as string) ?? '',
+        nom: (donnees['nom'] as string) ?? '',
+        sexe: (donnees['sexe'] as 'F' | 'M' | 'Autre') ?? 'M',
+        projet_code: projetCode ?? (donnees['projet_code'] as string) ?? '',
+        pays_code: (donnees['pays_code'] as string) || 'ZZZ',
+        domaine_formation_code: 'AUTRE',
+        annee_formation: new Date().getFullYear(),
+        statut_code: 'INSCRIT',
+        consentement_recueilli: Boolean(donnees['consentement']),
+        source_import: 'formulaire_web' as const,
+        tranche_age_declaree: (donnees['tranche_age_declaree'] as string | null) ?? null,
+      };
+      const { data: ben, error: benError } = await admin
+        .from('beneficiaires')
+        .insert(payload as never)
+        .select('id')
+        .single();
+      if (benError || !ben) {
+        return { status: 'erreur_inconnue', message: benError?.message ?? 'Erreur insertion bénéficiaire.' };
+      }
+      entiteId = ben.id;
+    } else if (cat === 'structure') {
+      const payload = {
+        nom_structure: (donnees['nom_structure'] as string) ?? '',
+        projet_code: projetCode ?? (donnees['projet_code'] as string) ?? '',
+        pays_code: (donnees['pays_code'] as string) || 'ZZZ',
+        type_structure_code: 'AUTRE',
+        secteur_activite_code: 'AUTRE',
+        statut_creation_code: 'CREATION',
+        nature_appui_code: 'FORMATION',
+        annee_appui: new Date().getFullYear(),
+        porteur_nom: (donnees['porteur_nom'] as string) ?? '',
+        porteur_sexe: (donnees['porteur_sexe'] as string) ?? 'M',
+        consentement_recueilli: Boolean(donnees['consentement']),
+        source_import: 'formulaire_web' as const,
+      };
+      const { data: str, error: strError } = await admin
+        .from('structures')
+        .insert(payload as never)
+        .select('id')
+        .single();
+      if (strError || !str) {
+        return { status: 'erreur_inconnue', message: strError?.message ?? 'Erreur insertion structure.' };
+      }
+      entiteId = str.id;
+    }
+    // acteur_institutionnel : pas d'insertion dans beneficiaires/structures,
+    // seulement la soumission est conservée pour analyse.
+  } else if (soumission.type === 'A') {
     // Bénéficiaire — colonnes alignées sur le schéma initial (migrations 20260422 + 20260511).
     // `source_import` est un enum public.source_import qui n'inclut PAS
     // 'collecte_publique_v1' → on utilise 'formulaire_web' (sémantique adjacente).

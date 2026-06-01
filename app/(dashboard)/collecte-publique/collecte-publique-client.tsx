@@ -23,6 +23,7 @@ import {
   User,
   Building2,
   Trash2,
+  Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -616,13 +617,15 @@ function LienCard({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <Badge variant={lien.type === 'B' ? 'secondary' : 'default'} className="shrink-0">
-              {lien.type === 'A'
-                ? 'Type A – Bénéf.'
-                : lien.type === 'C'
-                  ? 'Type C – Intermédiation'
-                  : lien.type === 'D'
-                    ? 'Type D – Écosystèmes'
-                    : 'Type B – Structure'}
+              {lien.type === '0'
+                ? 'Type 0 – Unifié'
+                : lien.type === 'A'
+                  ? 'Type A – Bénéf.'
+                  : lien.type === 'C'
+                    ? 'Type C – Intermédiation'
+                    : lien.type === 'D'
+                      ? 'Type D – Écosystèmes'
+                      : 'Type B – Structure'}
             </Badge>
             <div className="min-w-0">
               <CardTitle className="truncate text-sm">
@@ -1143,6 +1146,12 @@ function DialogCreerLien({
                   <div className="flex items-center gap-2">
                     <Building2 className="size-4 text-[#0198E9]" />
                     <span>Type D — Acteurs institutionnels / écosystèmes (questionnaire D)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="0">
+                  <div className="flex items-center gap-2">
+                    <Layers className="size-4 text-[#0E4F88]" />
+                    <span>Type 0 — Formulaire unifié (toutes catégories)</span>
                   </div>
                 </SelectItem>
               </SelectContent>

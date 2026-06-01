@@ -1696,7 +1696,7 @@ export type Database = {
         Row: {
           id: string
           slug: string
-          type: 'A' | 'B' | 'C' | 'D'
+          type: '0' | 'A' | 'B' | 'C' | 'D'
           label: string
           projet_code: string | null
           statut: 'actif' | 'inactif' | 'expire'
@@ -1709,7 +1709,7 @@ export type Database = {
         Insert: {
           id?: string
           slug: string
-          type: 'A' | 'B' | 'C' | 'D'
+          type: '0' | 'A' | 'B' | 'C' | 'D'
           label?: string
           projet_code?: string | null
           statut?: 'actif' | 'inactif' | 'expire'
@@ -1722,7 +1722,7 @@ export type Database = {
         Update: {
           id?: string
           slug?: string
-          type?: 'A' | 'B' | 'C' | 'D'
+          type?: '0' | 'A' | 'B' | 'C' | 'D'
           label?: string
           projet_code?: string | null
           statut?: 'actif' | 'inactif' | 'expire'
@@ -1738,7 +1738,7 @@ export type Database = {
         Row: {
           id: string
           lien_id: string
-          type: 'A' | 'B' | 'C' | 'D'
+          type: '0' | 'A' | 'B' | 'C' | 'D'
           donnees: Json
           statut: 'en_attente' | 'valide' | 'rejete'
           motif_rejet: string | null
@@ -1746,13 +1746,14 @@ export type Database = {
           valide_at: string | null
           entite_creee_id: string | null
           ip_address: string | null
+          categorie_repondant: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           lien_id: string
-          type: 'A' | 'B' | 'C' | 'D'
+          type: '0' | 'A' | 'B' | 'C' | 'D'
           donnees?: Json
           statut?: 'en_attente' | 'valide' | 'rejete'
           motif_rejet?: string | null
@@ -1760,13 +1761,14 @@ export type Database = {
           valide_at?: string | null
           entite_creee_id?: string | null
           ip_address?: string | null
+          categorie_repondant?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           lien_id?: string
-          type?: 'A' | 'B' | 'C' | 'D'
+          type?: '0' | 'A' | 'B' | 'C' | 'D'
           donnees?: Json
           statut?: 'en_attente' | 'valide' | 'rejete'
           motif_rejet?: string | null
