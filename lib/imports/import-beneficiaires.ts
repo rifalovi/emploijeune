@@ -18,6 +18,7 @@ import {
   fusionnerBeneficiaires,
 } from './smart-mapper';
 import { resoudreTrancheAge } from './tranche-age-resolver';
+import { PROJETS_CODES } from '@/lib/schemas/nomenclatures';
 import type {
   LigneRapportImport,
   RapportImportEnrichi,
@@ -61,6 +62,8 @@ export type ImporterBeneficiairesInput = {
   fichierHash?: string;
   /** Nom de l'onglet à importer (multi-onglets). Si absent, auto-détection. */
   nomOnglet?: string;
+  /** Code projet à appliquer par défaut si absent des cellules. */
+  codeProjetDefaut?: string;
 };
 
 /** Headers attendus (alignés sur Template OIF, étendus avec tranche_age_declaree). */
@@ -176,6 +179,8 @@ export async function importerBeneficiairesExcel(
       adminClient,
       createdBy: utilisateur.user_id,
       importSessionId,
+      nomFichier: input.fichierNom,
+      codeProjetDefaut: input.codeProjetDefaut,
     });
     lignesRapport.push(ligneInfo);
 
@@ -306,8 +311,10 @@ async function traiterLigne(args: {
   adminClient: AdminClient;
   createdBy: string;
   importSessionId?: string | null;
+  nomFichier?: string;
+  codeProjetDefaut?: string;
 }): Promise<LigneRapportImport> {
-  const { numLigne, donnees, adminClient, createdBy, importSessionId } = args;
+  const { numLigne, donnees, adminClient, createdBy, importSessionId, nomFichier, codeProjetDefaut } = args;
   const mappagesAuto: string[] = [];
   const champsManquants: string[] = [];
   const champsMisAJour: string[] = [];
@@ -381,47 +388,39 @@ async function traiterLigne(args: {
     champsManquants.push('pays_code');
   }
 
-  // Projet : rejet si projet inconnu (le brief autorisait un fallback
-  // PROJ_A06 mais on préfère échouer explicitement pour signaler le
-  // problème à l'utilisateur — un fallback aveugle masquerait des
-  // mauvaises saisies en prod).
-  const projetFinal = projet;
-  if (!projetFinal) {
-    if (projetBrut) {
-      return {
-        numero_ligne: numLigne,
-        statut: 'rejetee',
-        mappages_auto: mappagesAuto,
-        champs_manquants: champsManquants,
-        champs_mis_a_jour: champsMisAJour,
-        alertes,
-        erreurs: [
-          {
-            ligne: numLigne,
-            colonne: 'Code projet *',
-            valeur: String(projetBrut),
-            message: `Code projet inconnu : « ${String(projetBrut)} ». Vérifiez le code (PROJ_A14, P14…) ou complétez la ligne.`,
-          },
-        ],
-      };
-    } else {
-      return {
-        numero_ligne: numLigne,
-        statut: 'rejetee',
-        mappages_auto: mappagesAuto,
-        champs_manquants: champsManquants,
-        champs_mis_a_jour: champsMisAJour,
-        alertes,
-        erreurs: [
-          {
-            ligne: numLigne,
-            colonne: 'Code projet *',
-            valeur: null,
-            message: 'Code projet manquant (obligatoire).',
-          },
-        ],
-      };
+  // Projet : si absent, tenter l'inférence depuis le nom du fichier puis le défaut.
+  let projetFinal = projet;
+  if (!projetFinal && nomFichier) {
+    const match = nomFichier.match(/\b[Pp](\d{1,2}[a-zA-Z]?)\b/);
+    if (match) {
+      const candidat = `PROJ_A${match[1]}`;
+      if ((PROJETS_CODES as readonly string[]).includes(candidat)) {
+        projetFinal = candidat;
+        alertes.push(`Code projet absent → inféré du nom de fichier : ${candidat}`);
+      }
     }
+  }
+  if (!projetFinal && codeProjetDefaut) {
+    projetFinal = codeProjetDefaut;
+    alertes.push(`Code projet absent → défaut appliqué : ${codeProjetDefaut}`);
+  }
+  if (!projetFinal) {
+    return {
+      numero_ligne: numLigne,
+      statut: 'rejetee',
+      mappages_auto: mappagesAuto,
+      champs_manquants: champsManquants,
+      champs_mis_a_jour: champsMisAJour,
+      alertes,
+      erreurs: [{
+        ligne: numLigne,
+        colonne: 'Code projet *',
+        valeur: projetBrut ? String(projetBrut) : null,
+        message: projetBrut
+          ? `Code projet inconnu : « ${String(projetBrut)} ». Vérifiez le code ou sélectionnez un projet par défaut.`
+          : 'Code projet manquant. Sélectionnez un projet par défaut dans le formulaire d\'import.',
+      }],
+    };
   }
 
   // Si consentement absent mais courriel/téléphone présents : alerte (pas d'erreur)

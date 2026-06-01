@@ -79,6 +79,9 @@ export function ZoneUploadImport({
   const [ongletChoisi, setOngletChoisi] = useState<string>('');
   const [chargementOnglets, setChargementOnglets] = useState(false);
 
+  // Code projet par défaut
+  const [codeProjetDefaut, setCodeProjetDefaut] = useState('');
+
   // État du popup "Réessayer avec l'IA"
   type SuggestionIA = {
     fichierEnCours: File;
@@ -176,6 +179,7 @@ export function ZoneUploadImport({
       const formData = new FormData();
       formData.append('fichier', fichier);
       if (ongletChoisi) formData.append('onglet', ongletChoisi);
+      if (codeProjetDefaut) formData.append('code_projet_defaut', codeProjetDefaut);
 
       try {
         const response = await fetch(endpointEffectif, {
@@ -410,6 +414,32 @@ export function ZoneUploadImport({
           )}
           {chargementOnglets && (
             <p className="text-xs text-slate-400">Analyse des onglets en cours...</p>
+          )}
+
+          {/* Code projet par défaut */}
+          {fichier && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="mb-2 text-xs font-medium text-slate-700">
+                Code projet si absent des cellules :
+              </p>
+              <select
+                value={codeProjetDefaut}
+                onChange={(e) => setCodeProjetDefaut(e.target.value)}
+                className="w-full rounded border border-slate-300 bg-white px-3 py-1.5 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                disabled={pending}
+              >
+                <option value="">Auto-détecter depuis le nom du fichier</option>
+                <option value="PROJ_A06">PROJ_A06</option>
+                <option value="PROJ_A14">PROJ_A14</option>
+                <option value="PROJ_A15">PROJ_A15</option>
+                <option value="PROJ_A16a">PROJ_A16a</option>
+                <option value="PROJ_A16b">PROJ_A16b</option>
+                <option value="PROJ_A17">PROJ_A17</option>
+                <option value="PROJ_A18">PROJ_A18</option>
+                <option value="PROJ_A19">PROJ_A19</option>
+                <option value="PROJ_A20">PROJ_A20</option>
+              </select>
+            </div>
           )}
 
           <div className="flex items-center justify-between gap-2">

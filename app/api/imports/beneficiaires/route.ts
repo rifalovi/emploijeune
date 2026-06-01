@@ -66,11 +66,13 @@ export async function POST(request: NextRequest) {
   try {
     const buffer = await fichier.arrayBuffer();
     const nomOnglet = (formData.get('onglet') as string) || undefined;
+    const codeProjetDefaut = (formData.get('code_projet_defaut') as string) || undefined;
     const result = await importerBeneficiairesExcel({
       fichierBuffer: buffer,
       fichierNom: fichier.name,
       fichierTaille: fichier.size,
       nomOnglet,
+      codeProjetDefaut,
     });
     return NextResponse.json(result);
   } catch (erreur) {

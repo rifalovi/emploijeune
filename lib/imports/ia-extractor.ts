@@ -41,7 +41,7 @@ import { resoudreTrancheAge } from './tranche-age-resolver';
  */
 
 const TIMEOUT_MS = 30_000;
-const MAX_TEXTE_SOURCE = 50_000; // ~12k tokens, raisonnable pour Haiku
+const MAX_TEXTE_SOURCE = 1_000_000; // ~250K tokens, Sonnet 4.6 (1M context)
 const MAX_LIGNES_EXTRAITES = 100;
 
 export type FormatFichier = 'pdf' | 'docx' | 'txt' | 'xlsx';
@@ -127,7 +127,7 @@ export async function extraireAvecIA(
   try {
     response = await client.messages.create(
       {
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-sonnet-4-6-20250514',
         max_tokens: 4096,
         messages: [{ role: 'user', content: prompt }],
       },

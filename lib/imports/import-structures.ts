@@ -21,6 +21,8 @@ export type ImporterStructuresInput = {
   fichierTaille: number;
   /** Nom de l'onglet à importer (multi-onglets). Si absent, auto-détection. */
   nomOnglet?: string;
+  /** Code projet à appliquer par défaut si absent des cellules. */
+  codeProjetDefaut?: string;
 };
 
 export async function importerStructuresExcel(
