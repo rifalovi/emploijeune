@@ -170,8 +170,11 @@ export const PAYS_CODES = [
   'CZE',
   'THA',
   'URY',
-  // Option « Autre (à préciser) »
+  // Option « Autre (à préciser) » — saisie manuelle
   'ZZA',
+  // Pays non résolu à l'import (Phase 2.4) — workflow de correction
+  // manuelle via /super-admin/nettoyage-donnees/pays-inconnus.
+  'ZZZ',
 ] as const;
 export type PaysCode = (typeof PAYS_CODES)[number];
 

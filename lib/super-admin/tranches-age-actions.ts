@@ -27,11 +27,14 @@ type Resultat = { status: 'succes' } | { status: 'erreur'; message: string };
 
 // ── Guard ────────────────────────────────────────────────────────────────────
 
-async function exigerSuperAdmin() {
+async function exigerSuperAdmin(): Promise<
+  | { utilisateur: NonNullable<Awaited<ReturnType<typeof getCurrentUtilisateur>>> }
+  | { erreur: string }
+> {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur) return { erreur: 'non_authentifie' } as const;
-  if (utilisateur.role !== 'super_admin') return { erreur: 'reserve_super_admin' } as const;
-  return { utilisateur } as const;
+  if (!utilisateur) return { erreur: 'non_authentifie' };
+  if (utilisateur.role !== 'super_admin') return { erreur: 'reserve_super_admin' };
+  return { utilisateur };
 }
 
 // ── Queries ──────────────────────────────────────────────────────────────────
