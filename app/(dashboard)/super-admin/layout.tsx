@@ -12,6 +12,8 @@ import {
   MapPinOff,
   Wrench,
   Layers,
+  History,
+  Copy,
 } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 
@@ -44,6 +46,8 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     { href: '/super-admin/affichage-public', label: 'Affichage public', icon: LayoutGrid },
     { href: '/super-admin/nettoyage-donnees/pays-inconnus', label: 'Pays inconnus', icon: MapPinOff },
     { href: '/super-admin/referentiels/tranches-age', label: 'Tranches d\'age', icon: Layers },
+    { href: '/super-admin/import-sessions', label: 'Sessions d\'import', icon: History },
+    { href: '/super-admin/doublons', label: 'Doublons', icon: Copy },
     { href: '/super-admin/maintenance', label: 'Maintenance', icon: Wrench },
   ];
 
