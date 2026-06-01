@@ -50,7 +50,7 @@ BEGIN
   WHERE user_id = v_uid AND actif = TRUE AND deleted_at IS NULL
   LIMIT 1;
 
-  IF v_role NOT IN ('admin_scs', 'editeur_projet', 'contributeur_partenaire') THEN
+  IF v_role NOT IN ('super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire') THEN
     RETURN;
   END IF;
 
@@ -76,7 +76,7 @@ BEGIN
       FROM public.beneficiaires b
       WHERE b.deleted_at IS NULL
         AND (
-          v_role = 'admin_scs'
+          v_role IN ('super_admin', 'admin_scs')
           OR (v_role = 'editeur_projet' AND b.projet_code = ANY(v_projets))
           OR (v_role = 'contributeur_partenaire'
               AND (b.created_by = v_uid OR b.organisation_id = v_org))
@@ -151,7 +151,7 @@ BEGIN
       FROM public.structures s
       WHERE s.deleted_at IS NULL
         AND (
-          v_role = 'admin_scs'
+          v_role IN ('super_admin', 'admin_scs')
           OR (v_role = 'editeur_projet' AND s.projet_code = ANY(v_projets))
           OR (v_role = 'contributeur_partenaire'
               AND (s.created_by = v_uid OR s.organisation_id = v_org))
