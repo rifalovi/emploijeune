@@ -190,8 +190,36 @@ export function ZoneUploadImport({
 
         if (!response.ok) {
           const errPayload = await response.json().catch(() => ({ erreur: response.statusText }));
+
+          // Anti-doublon fichier : le serveur a detecte un import recent identique
+          if (response.status === 409 && errPayload.code === 'fichier_deja_importe') {
+            const date = errPayload.session_precedente?.date
+              ? new Date(errPayload.session_precedente.date).toLocaleString('fr-FR')
+              : 'recemment';
+            const forcer = window.confirm(
+              `Ce fichier semble avoir deja ete importe le ${date}.\n\nVoulez-vous l'importer quand meme ?`,
+            );
+            if (forcer) {
+              // Re-soumettre avec force=true
+              formData.append('force', 'true');
+              const retry = await fetch(endpointEffectif, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+              });
+              if (retry.ok) {
+                const retryResult = (await retry.json()) as ResultatImport | ResultatImportEnrichi;
+                if (retryResult.status === 'succes') {
+                  onRapport(retryResult.rapport);
+                  return;
+                }
+              }
+            }
+            return;
+          }
+
           toast.error('Import impossible', {
-            description: errPayload.erreur ?? response.statusText,
+            description: errPayload.erreur ?? errPayload.message ?? response.statusText,
           });
           return;
         }

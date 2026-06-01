@@ -1,5 +1,7 @@
+import crypto from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { importerStructuresExcel } from '@/lib/imports/import-structures';
 
 export const runtime = 'nodejs';
@@ -26,6 +28,31 @@ export async function POST(request: NextRequest) {
 
   try {
     const buffer = await fichier.arrayBuffer();
+    const bufNode = Buffer.from(buffer);
+    const fichierHash = crypto.createHash('sha256').update(bufNode).digest('hex');
+
+    const force = formData.get('force') === 'true';
+    if (!force) {
+      const supabase = await createSupabaseServerClient();
+      const seuil7j = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: recents } = await supabase
+        .from('import_sessions')
+        .select('id, created_at, created_by')
+        .eq('fichier_hash', fichierHash)
+        .gte('created_at', seuil7j)
+        .neq('statut', 'annule_admin' as never)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (recents && recents.length > 0) {
+        return NextResponse.json({
+          code: 'fichier_deja_importe',
+          session_precedente: { id: recents[0]!.id, date: recents[0]!.created_at },
+          message: 'Ce fichier semble avoir deja ete importe recemment.',
+        }, { status: 409 });
+      }
+    }
+
     const nomOnglet = (formData.get('onglet') as string) || undefined;
     const codeProjetDefaut = (formData.get('code_projet_defaut') as string) || undefined;
     const result = await importerStructuresExcel({
