@@ -14,7 +14,7 @@
 
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { User, Building2, Landmark, ChevronLeft, Send } from 'lucide-react';
+import { User, Building2, ChevronLeft, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +25,7 @@ import type { TrancheAgeOption } from './collecte-form';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type Categorie = 'beneficiaire' | 'structure' | 'acteur_institutionnel';
+type Categorie = 'beneficiaire' | 'structure';
 
 type Props = {
   lien: InfoLienPublic;
@@ -67,9 +67,6 @@ export function FormulaireUnifie({
       secteur_activite: '',
       porteur_nom: '',
       porteur_sexe: '',
-      // Acteur institutionnel
-      organisation: '',
-      fonction: '',
       // Commun
       pays: lien.projet_code ? '' : '',
       consentement: false,
@@ -95,28 +92,21 @@ export function FormulaireUnifie({
         <p className="text-center text-sm font-medium text-slate-700">
           Quelle catégorie vous correspond ?
         </p>
-        <div className="grid gap-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {([
             {
               id: 'beneficiaire' as Categorie,
               icon: User,
-              titre: 'Bénéficiaire individuel',
-              desc: 'Vous avez reçu une formation, un accompagnement ou un appui à l\'insertion professionnelle.',
+              titre: 'Je suis une personne',
+              desc: 'Beneficiaire ayant recu une formation, un accompagnement ou un appui a l\'insertion professionnelle via l\'OIF.',
               couleur: '#5D0073',
             },
             {
               id: 'structure' as Categorie,
               icon: Building2,
-              titre: 'Structure / Micro-entreprise',
-              desc: 'Votre organisation a bénéficié d\'un appui (subvention, formation, accompagnement).',
+              titre: 'Je represente une structure',
+              desc: 'Organisation, entreprise ou association ayant beneficie d\'un appui (subvention, formation, accompagnement).',
               couleur: '#0198E9',
-            },
-            {
-              id: 'acteur_institutionnel' as Categorie,
-              icon: Landmark,
-              titre: 'Acteur institutionnel',
-              desc: 'Vous représentez une institution publique, un organisme de formation ou un partenaire de l\'écosystème emploi.',
-              couleur: '#0E4F88',
             },
           ]).map((opt) => (
             <button
@@ -158,9 +148,8 @@ export function FormulaireUnifie({
 
         {/* Badge catégorie */}
         <div className="rounded-lg border bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-600">
-          {categorie === 'beneficiaire' && '👤 Bénéficiaire individuel'}
-          {categorie === 'structure' && '🏢 Structure / Micro-entreprise'}
-          {categorie === 'acteur_institutionnel' && '🏛 Acteur institutionnel'}
+          {categorie === 'beneficiaire' && 'Personne / Beneficiaire individuel'}
+          {categorie === 'structure' && 'Structure / Organisation'}
         </div>
 
         {/* ── Champs bénéficiaire ──────────────────────────────────── */}
@@ -258,22 +247,6 @@ export function FormulaireUnifie({
                     )}
                   />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ── Champs acteur institutionnel ──────────────────────── */}
-        {categorie === 'acteur_institutionnel' && (
-          <Card>
-            <CardContent className="space-y-4 pt-4">
-              <div className="space-y-1.5">
-                <Label>Organisation <span className="text-destructive">*</span></Label>
-                <Input {...register('organisation', { required: true })} placeholder="Nom de l'organisation" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Fonction</Label>
-                <Input {...register('fonction')} placeholder="Votre fonction" />
               </div>
             </CardContent>
           </Card>

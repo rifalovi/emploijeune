@@ -536,8 +536,6 @@ export async function validerSoumission(soumissionId: string): Promise<ValiderSo
       }
       entiteId = str.id;
     }
-    // acteur_institutionnel : pas d'insertion dans beneficiaires/structures,
-    // seulement la soumission est conservée pour analyse.
   } else if (soumission.type === 'A') {
     // Bénéficiaire — colonnes alignées sur le schéma initial (migrations 20260422 + 20260511).
     // `source_import` est un enum public.source_import qui n'inclut PAS

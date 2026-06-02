@@ -429,7 +429,7 @@ export const QUESTIONNAIRE_B: Questionnaire = {
         {
           id: 'B212',
           type: 'nombre_entier',
-          libelle: 'Quel est le nombre de jeunes (18 à 34 ans) rémunérés sur l’activité ?',
+          libelle: 'Quel est le nombre de jeunes (15 à 34 ans) rémunérés sur l’activité ?',
           champ_payload: 'b3.jeunes_remuneres',
           affiche_si: { champ_payload: 'b2.a_activite_economique', valeur_egale: true },
         },
