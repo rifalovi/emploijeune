@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 async function exigerSuperAdmin() {
   const u = await requireUtilisateurValide();
@@ -20,7 +20,7 @@ function err(e: unknown): Err {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function db() { return (await createSupabaseServerClient()) as any; }
+function db() { return createSupabaseAdminClient() as any; }
 
 // ── Sauvegarder / créer un bloc (upsert) ─────────────────────────────────────
 
@@ -35,7 +35,7 @@ export async function sauvegarderBloc(params: {
 }): Promise<Ok | Err> {
   try {
     await exigerSuperAdmin();
-    const supabase = await db();
+    const supabase = db();
     const { error } = await supabase.from('contenu_pages').upsert(
       {
         page_key: params.page_key,
@@ -61,7 +61,7 @@ export async function sauvegarderBloc(params: {
 export async function mettreAJourValeur(id: string, valeur: string): Promise<Ok | Err> {
   try {
     await exigerSuperAdmin();
-    const supabase = await db();
+    const supabase = db();
     const { data, error } = await supabase
       .from('contenu_pages')
       .update({ valeur })
@@ -82,7 +82,7 @@ export async function mettreAJourValeur(id: string, valeur: string): Promise<Ok 
 export async function mettreAJourType(id: string, type_contenu: TypeContenu): Promise<Ok | Err> {
   try {
     await exigerSuperAdmin();
-    const supabase = await db();
+    const supabase = db();
     const { data, error } = await supabase
       .from('contenu_pages')
       .update({ type_contenu })
@@ -103,7 +103,7 @@ export async function mettreAJourType(id: string, type_contenu: TypeContenu): Pr
 export async function supprimerBloc(id: string): Promise<Ok | Err> {
   try {
     await exigerSuperAdmin();
-    const supabase = await db();
+    const supabase = db();
     const { data } = await supabase
       .from('contenu_pages')
       .delete()
@@ -122,7 +122,7 @@ export async function supprimerBloc(id: string): Promise<Ok | Err> {
 export async function supprimerSection(page_key: string, section_key: string): Promise<Ok | Err> {
   try {
     await exigerSuperAdmin();
-    const supabase = await db();
+    const supabase = db();
     const { error } = await supabase
       .from('contenu_pages')
       .delete()
@@ -145,7 +145,7 @@ export async function renommerSection(
 ): Promise<Ok | Err> {
   try {
     await exigerSuperAdmin();
-    const supabase = await db();
+    const supabase = db();
     const { error } = await supabase
       .from('contenu_pages')
       .update({ section_key: nouveau_key })
@@ -166,7 +166,7 @@ export async function reordonnerBlocs(
 ): Promise<Ok | Err> {
   try {
     await exigerSuperAdmin();
-    const supabase = await db();
+    const supabase = db();
     for (const b of blocs) {
       await supabase.from('contenu_pages').update({ ordre: b.ordre }).eq('id', b.id);
     }
@@ -181,7 +181,7 @@ export async function reordonnerBlocs(
 export async function toggleActifBloc(id: string, actif: boolean): Promise<Ok | Err> {
   try {
     await exigerSuperAdmin();
-    const supabase = await db();
+    const supabase = db();
     const { data, error } = await supabase
       .from('contenu_pages')
       .update({ actif })
