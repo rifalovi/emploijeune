@@ -58,5 +58,6 @@ export async function getPagesCms(): Promise<string[]> {
   const { data } = await supabase
     .from('contenu_pages')
     .select('page_key');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return [...new Set(((data ?? []) as any[]).map((r) => r.page_key as string))].sort();
 }

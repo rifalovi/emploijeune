@@ -16,7 +16,6 @@ import type { ContenuBloc } from '@/lib/contenu-pages/queries';
 import type { TypeContenu } from '@/lib/contenu-pages/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -105,7 +104,7 @@ export function ContenuPagesClient({ pages, pageActive, blocs }: Props) {
   const toggleSection = (key: string) =>
     setOuvertes((prev) => {
       const n = new Set(prev);
-      n.has(key) ? n.delete(key) : n.add(key);
+      if (n.has(key)) { n.delete(key); } else { n.add(key); }
       return n;
     });
 
@@ -223,7 +222,6 @@ export function ContenuPagesClient({ pages, pageActive, blocs }: Props) {
         sectionKeys.map((sectionKey) => (
           <SectionCard
             key={sectionKey}
-            pageKey={pageActive}
             sectionKey={sectionKey}
             blocs={sections[sectionKey] ?? []}
             ouverte={ouvertes.has(sectionKey)}
@@ -363,7 +361,6 @@ export function ContenuPagesClient({ pages, pageActive, blocs }: Props) {
 // ── SectionCard ───────────────────────────────────────────────────────────────
 
 function SectionCard({
-  pageKey,
   sectionKey,
   blocs,
   ouverte,
@@ -373,7 +370,6 @@ function SectionCard({
   onAjouterBloc,
   onRefresh,
 }: {
-  pageKey: string;
   sectionKey: string;
   blocs: ContenuBloc[];
   ouverte: boolean;
@@ -452,7 +448,6 @@ function SectionCard({
                   <BlocRow
                     key={bloc.id}
                     bloc={bloc}
-                    pageKey={pageKey}
                     onDeplacerHaut={() => handleDeplacer(bloc, 'up')}
                     onDeplacerBas={() => handleDeplacer(bloc, 'down')}
                     onRefresh={onRefresh}
@@ -479,14 +474,12 @@ function SectionCard({
 
 function BlocRow({
   bloc,
-  pageKey,
   onDeplacerHaut,
   onDeplacerBas,
   onRefresh,
   isPendingParent,
 }: {
   bloc: ContenuBloc;
-  pageKey: string;
   onDeplacerHaut: () => void;
   onDeplacerBas: () => void;
   onRefresh: () => void;
