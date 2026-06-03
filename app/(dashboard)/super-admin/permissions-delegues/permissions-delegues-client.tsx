@@ -61,7 +61,7 @@ function AdminCard({
       } else {
         toast.success(
           nouvelleValeur
-            ? `${modules[module].label} activé pour ${admin.prenom} ${admin.nom}`
+            ? `${modules[module].label} activé pour ${admin.nom_complet}`
             : `${modules[module].label} désactivé`,
           { duration: 2000 }
         );
@@ -74,17 +74,14 @@ function AdminCard({
       {/* En-tête */}
       <div className="flex items-center gap-3 border-b bg-slate-50 px-4 py-3">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-600">
-          {admin.prenom[0]?.toUpperCase() ?? '?'}{admin.nom[0]?.toUpperCase() ?? ''}
+          {admin.nom_complet[0]?.toUpperCase() ?? '?'}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">
-            {admin.prenom} {admin.nom}
+            {admin.nom_complet}
           </p>
           <p className="text-muted-foreground truncate text-xs">{admin.email}</p>
         </div>
-        {admin.organisation && (
-          <span className="text-muted-foreground shrink-0 text-xs">{admin.organisation}</span>
-        )}
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
             actifs > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'
