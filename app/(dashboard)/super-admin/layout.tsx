@@ -14,6 +14,7 @@ import {
   Layers,
   History,
   Copy,
+  FileText,
 } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 
@@ -44,6 +45,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     { href: '/super-admin/base-connaissance', label: 'Base de connaissance', icon: BookOpen },
     { href: '/super-admin/analyses-indicateurs', label: 'Analyses IA', icon: Sparkles },
     { href: '/super-admin/affichage-public', label: 'Affichage public', icon: LayoutGrid },
+    { href: '/super-admin/contenu-pages', label: 'Contenu pages', icon: FileText },
     { href: '/super-admin/nettoyage-donnees/pays-inconnus', label: 'Pays inconnus', icon: MapPinOff },
     { href: '/super-admin/referentiels/tranches-age', label: 'Tranches d\'age', icon: Layers },
     { href: '/super-admin/import-sessions', label: 'Sessions d\'import', icon: History },

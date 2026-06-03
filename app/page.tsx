@@ -31,6 +31,8 @@ import { PROGRAMMES_STRATEGIQUES } from '@/lib/design/oif/programmes';
 import { getKpisPublics, getIndicateursVitrine } from '@/lib/landing/queries';
 import type { IndicateurVitrine } from '@/lib/landing/queries';
 import { getAuthUser } from '@/lib/supabase/auth';
+import { getContenuPage } from '@/lib/contenu-pages/queries';
+import type { ContenuMap } from '@/lib/contenu-pages/queries';
 import { cn } from '@/lib/utils';
 
 /**
@@ -60,6 +62,11 @@ export const metadata: Metadata = {
 /** Couleur accent dorée (V1.5.0 polish) — utilisée pour les highlights chaleureux. */
 const COULEUR_ACCENT = '#F5A623';
 
+/** Lit un bloc de contenu avec fallback sur la valeur par défaut. */
+function c(contenu: ContenuMap, key: string, fallback: string): string {
+  return contenu.get(key) ?? fallback;
+}
+
 const SLIDES = [
   {
     src: '/assets/carrousel/dclic-1.jpg',
@@ -78,10 +85,11 @@ const SLIDES = [
 ];
 
 export default async function VitrinePubliquePage() {
-  const [kpis, indicateursVitrine, user] = await Promise.all([
+  const [kpis, indicateursVitrine, user, contenu] = await Promise.all([
     getKpisPublics(),
     getIndicateursVitrine(),
     getAuthUser(),
+    getContenuPage('accueil'),
   ]);
   const isAuthenticated = Boolean(user);
 
@@ -89,15 +97,15 @@ export default async function VitrinePubliquePage() {
     <div className="bg-background min-h-screen">
       {isAuthenticated && <BandeauAuthentifie />}
       <HeaderPublic isAuthenticated={isAuthenticated} />
-      <HeroAvecCarrousel kpis={kpis} isAuthenticated={isAuthenticated} />
-      <Programmes />
-      <Methodologie />
-      <CadreCommun />
-      <Pourquoi />
-      <Citations />
-      <KpiCompteurs kpis={kpis} indicateurs={indicateursVitrine} />
-      <CtaFinal isAuthenticated={isAuthenticated} />
-      <FooterPublic />
+      <HeroAvecCarrousel kpis={kpis} isAuthenticated={isAuthenticated} contenu={contenu} />
+      <Programmes contenu={contenu} />
+      <Methodologie contenu={contenu} />
+      <CadreCommun contenu={contenu} />
+      <Pourquoi contenu={contenu} />
+      <Citations contenu={contenu} />
+      <KpiCompteurs kpis={kpis} indicateurs={indicateursVitrine} contenu={contenu} />
+      <CtaFinal isAuthenticated={isAuthenticated} contenu={contenu} />
+      <FooterPublic contenu={contenu} />
     </div>
   );
 }
@@ -145,10 +153,25 @@ function BandeauAuthentifie() {
 function HeroAvecCarrousel({
   kpis,
   isAuthenticated,
+  contenu,
 }: {
   kpis: Awaited<ReturnType<typeof getKpisPublics>>;
   isAuthenticated: boolean;
+  contenu: ContenuMap;
 }) {
+  const titre = c(contenu, 'hero.titre', 'Suivi-évaluation des projets emploi jeunes de la Francophonie');
+  const accent = c(contenu, 'hero.accent', 'emploi jeunes');
+  const sousTitre = c(contenu, 'hero.sous_titre', 'Une plateforme institutionnelle dédiée au pilotage opérationnel et stratégique des programmes OIF d\'insertion économique des jeunes francophones.');
+  const ctaPrincipal = c(contenu, 'hero.cta_principal', 'Demander un accès');
+  const ctaSecondaire = c(contenu, 'hero.cta_secondaire', 'Se connecter');
+  const badge = c(contenu, 'hero.badge', 'Plateforme OIF · Emploi Jeunes Francophones');
+
+  // Reconstruit le titre en repérant l'accent dans le texte
+  const accentIdx = titre.toLowerCase().indexOf(accent.toLowerCase());
+  const titreParts = accentIdx >= 0
+    ? [titre.slice(0, accentIdx), accent, titre.slice(accentIdx + accent.length)]
+    : [titre, '', ''];
+
   return (
     <CarrouselHero slides={SLIDES} hauteurClass="h-[70vh] min-h-[560px]">
       <div className="relative z-10 mx-auto w-full max-w-4xl px-4 text-center text-white">
@@ -156,16 +179,15 @@ function HeroAvecCarrousel({
           variant="outline"
           className="mb-6 max-w-xs whitespace-normal border-white/40 bg-white/10 text-center text-white backdrop-blur-sm sm:max-w-none sm:whitespace-nowrap"
         >
-          Plateforme OIF · Emploi Jeunes Francophones
+          {badge}
         </Badge>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
-          Suivi-évaluation des projets
-          <br />
-          <span style={{ color: COULEUR_ACCENT }}>emploi jeunes</span> de la Francophonie
+          {titreParts[0]}
+          {titreParts[1] && <span style={{ color: COULEUR_ACCENT }}>{titreParts[1]}</span>}
+          {titreParts[2]}
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-base text-white/90 sm:text-lg md:text-xl">
-          Une plateforme institutionnelle dédiée au pilotage opérationnel et stratégique des
-          programmes OIF d&apos;insertion économique des jeunes francophones.
+          {sousTitre}
         </p>
         {kpis && (
           <p className="mt-4 text-sm text-white/80 sm:text-base">
@@ -198,7 +220,7 @@ function HeroAvecCarrousel({
                   'gap-2 bg-white text-[#0E4F88] shadow-lg hover:bg-blue-50',
                 )}
               >
-                Demander un accès
+                {ctaPrincipal}
                 <ArrowRight aria-hidden className="size-4" />
               </Link>
               <Link
@@ -208,7 +230,7 @@ function HeroAvecCarrousel({
                   'border-white bg-white/10 text-white backdrop-blur-sm hover:bg-white/25',
                 )}
               >
-                Se connecter
+                {ctaSecondaire}
               </Link>
             </>
           )}
@@ -274,19 +296,21 @@ function formatCompact(valeur: string): { principal: string; suffixe: string } {
 function KpiCompteurs({
   kpis,
   indicateurs,
+  contenu,
 }: {
   kpis: Awaited<ReturnType<typeof getKpisPublics>>;
   indicateurs: IndicateurVitrine[];
+  contenu: ContenuMap;
 }) {
   if (!kpis) return null;
   const afficherIndicateurs = indicateurs.length > 0;
 
   /* Grille de repli si aucun indicateur dynamique configuré */
   const fallback: Array<{ valeur: string; libelle: string; icone: typeof Users; couleur: string }> = [
-    { valeur: kpis.beneficiaires_total.toLocaleString('fr-FR'), libelle: 'Bénéficiaires accompagnés', icone: Users, couleur: PROGRAMMES_STRATEGIQUES.PS1.principale },
-    { valeur: kpis.structures_total.toLocaleString('fr-FR'),    libelle: 'Structures appuyées',       icone: Building2, couleur: PROGRAMMES_STRATEGIQUES.PS3.principale },
-    { valeur: kpis.pays_total.toString(),                        libelle: "Pays d'intervention",       icone: Globe2,    couleur: PROGRAMMES_STRATEGIQUES.PS2.principale },
-    { valeur: `${kpis.beneficiaires_femmes_pct}\u00a0%`,         libelle: 'de femmes accompagnées',    icone: Heart,     couleur: COULEUR_ACCENT },
+    { valeur: kpis.beneficiaires_total.toLocaleString('fr-FR'), libelle: c(contenu, 'kpi_compteurs.label_benef', 'Bénéficiaires accompagnés'), icone: Users, couleur: PROGRAMMES_STRATEGIQUES.PS1.principale },
+    { valeur: kpis.structures_total.toLocaleString('fr-FR'),    libelle: c(contenu, 'kpi_compteurs.label_struct', 'Structures appuyées'),       icone: Building2, couleur: PROGRAMMES_STRATEGIQUES.PS3.principale },
+    { valeur: kpis.pays_total.toString(),                        libelle: c(contenu, 'kpi_compteurs.label_pays', "Pays d'intervention"),       icone: Globe2,    couleur: PROGRAMMES_STRATEGIQUES.PS2.principale },
+    { valeur: `${kpis.beneficiaires_femmes_pct}\u00a0%`,         libelle: c(contenu, 'kpi_compteurs.label_femmes', 'de femmes accompagnées'),    icone: Heart,     couleur: COULEUR_ACCENT },
   ];
 
   const items = afficherIndicateurs
@@ -329,7 +353,7 @@ function KpiCompteurs({
             Résultats consolidés OIF
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-            Données agrégées des projets emploi Jeunes
+            {c(contenu, 'kpi_compteurs.titre', 'Données agrégées des projets emploi Jeunes')}
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
             Période {kpis.annee_couverture_min}–{kpis.annee_couverture_max} · Chiffres anonymisés conformes RGPD.
@@ -431,23 +455,23 @@ function CompteurCarte({
 // ─────────────────────────────────────────────────────────────────────────────
 // Programmes stratégiques
 // ─────────────────────────────────────────────────────────────────────────────
-function Programmes() {
+function Programmes({ contenu }: { contenu: ContenuMap }) {
   const programmes = [
     {
       code: 'PS1' as const,
-      titre: 'Cultures et éducation',
+      titre: c(contenu, 'programmes.ps1_titre', 'Cultures et éducation'),
       description: PROGRAMMES_STRATEGIQUES.PS1.libelle,
       icone: BookOpen,
     },
     {
       code: 'PS2' as const,
-      titre: 'Démocratie et gouvernance',
+      titre: c(contenu, 'programmes.ps2_titre', 'Démocratie et gouvernance'),
       description: PROGRAMMES_STRATEGIQUES.PS2.libelle,
       icone: Vote,
     },
     {
       code: 'PS3' as const,
-      titre: 'Développement durable',
+      titre: c(contenu, 'programmes.ps3_titre', 'Développement durable'),
       description: PROGRAMMES_STRATEGIQUES.PS3.libelle,
       icone: Leaf,
     },
@@ -461,13 +485,13 @@ function Programmes() {
             variant="outline"
             style={{ color: COULEUR_ACCENT, borderColor: `${COULEUR_ACCENT}66` }}
           >
-            Programmation 2024-2027
+            {c(contenu, 'programmes.badge', 'Programmation 2024-2027')}
           </Badge>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-            Les trois programmes stratégiques de l&apos;OIF
+            {c(contenu, 'programmes.titre', "Les trois programmes stratégiques de l'OIF")}
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
-            Trois axes complémentaires qui structurent l&apos;action de la Francophonie.
+            {c(contenu, 'programmes.sous_titre', "Trois axes complémentaires qui structurent l'action de la Francophonie.")}
           </p>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -510,37 +534,32 @@ function Programmes() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Méthodologie OIF (V1.5.0 — extraits de la note méthodologique V2)
 // ─────────────────────────────────────────────────────────────────────────────
-function Methodologie() {
+function Methodologie({ contenu }: { contenu: ContenuMap }) {
   // Source : Cadre de mesure du rendement emploi V2, section 4 "Principes directeurs".
   const principes = [
     {
-      titre: 'Cohérence',
-      description:
-        "Les indicateurs sont interprétés de manière homogène d'un projet à l'autre afin de permettre des comparaisons, des agrégations et des analyses transversales.",
+      titre: c(contenu, 'methodologie.p1_titre', 'Cohérence'),
+      description: c(contenu, 'methodologie.p1_texte', "Les indicateurs sont interprétés de manière homogène d'un projet à l'autre afin de permettre des comparaisons, des agrégations et des analyses transversales."),
       icone: Target,
     },
     {
-      titre: 'Souplesse encadrée',
-      description:
-        "Le cadre commun fixe une structure partagée, mais laisse à chaque projet la possibilité de mobiliser les indicateurs les plus pertinents au regard de sa logique d'intervention, sans application uniforme ni mécanique.",
+      titre: c(contenu, 'methodologie.p2_titre', 'Souplesse encadrée'),
+      description: c(contenu, 'methodologie.p2_texte', "Le cadre commun fixe une structure partagée, mais laisse à chaque projet la possibilité de mobiliser les indicateurs les plus pertinents au regard de sa logique d'intervention, sans application uniforme ni mécanique."),
       icone: Leaf,
     },
     {
-      titre: 'Traçabilité',
-      description:
-        'Tout résultat renseigné est adossé à des données vérifiables, à des définitions explicites et à des sources identifiables.',
+      titre: c(contenu, 'methodologie.p3_titre', 'Traçabilité'),
+      description: c(contenu, 'methodologie.p3_texte', 'Tout résultat renseigné est adossé à des données vérifiables, à des définitions explicites et à des sources identifiables.'),
       icone: History,
     },
     {
-      titre: 'Fiabilisation progressive',
-      description:
-        "Respect de règles minimales d'harmonisation et de qualité des données, ainsi qu'un phasage des restitutions : première consolidation en juin, étape approfondie à l'automne, notamment pour les indicateurs C et D.",
+      titre: c(contenu, 'methodologie.p4_titre', 'Fiabilisation progressive'),
+      description: c(contenu, 'methodologie.p4_texte', "Respect de règles minimales d'harmonisation et de qualité des données, ainsi qu'un phasage des restitutions : première consolidation en juin, étape approfondie à l'automne, notamment pour les indicateurs C et D."),
       icone: TrendingUp,
     },
     {
-      titre: 'Responsabilité partagée',
-      description:
-        "La collecte mobilise l'ensemble des parties prenantes : unités chefs de file pour les bases nominatives, partenaires de mise en œuvre, gestionnaires de plateformes de formation, et SCS pour les enquêtes d'approfondissement.",
+      titre: c(contenu, 'methodologie.p5_titre', 'Responsabilité partagée'),
+      description: c(contenu, 'methodologie.p5_texte', "La collecte mobilise l'ensemble des parties prenantes : unités chefs de file pour les bases nominatives, partenaires de mise en œuvre, gestionnaires de plateformes de formation, et SCS pour les enquêtes d'approfondissement."),
       icone: Users,
     },
   ];
@@ -552,14 +571,13 @@ function Methodologie() {
             variant="outline"
             style={{ color: COULEUR_ACCENT, borderColor: `${COULEUR_ACCENT}66` }}
           >
-            Principes directeurs
+            {c(contenu, 'methodologie.badge', 'Principes directeurs')}
           </Badge>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-            Notre méthodologie de suivi-évaluation
+            {c(contenu, 'methodologie.titre', 'Notre méthodologie de suivi-évaluation')}
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
-            Cinq principes structurants pour la mise en œuvre du Cadre Commun de mesure du
-            rendement.
+            {c(contenu, 'methodologie.sous_titre', 'Cinq principes structurants pour la mise en œuvre du Cadre Commun de mesure du rendement.')}
           </p>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -610,13 +628,13 @@ function Methodologie() {
 //   Centre : (240, 265) | R externe : 225 | R interne : 78
 //   Secteur A 180→135° | B 135→90° | C 90→45° | D 45→0°
 // ─────────────────────────────────────────────────────────────────────────────
-function CadreCommun() {
+function CadreCommun({ contenu }: { contenu: ContenuMap }) {
   const CATEGORIE_CMR = [
     {
       code: 'A',
       couleur: '#0098A0',
       fillSvg: '#A8D8D5',
-      titre: 'Formation, compétences et insertion',
+      titre: c(contenu, 'cadre_commun.cat_a_titre', 'Formation, compétences et insertion'),
       description:
         "Indicateurs relatifs au nombre de personnes formées, à l'achèvement des formations, à la certification, au gain de compétences et à l'insertion professionnelle à moyen terme.",
       icone: GraduationCap,
@@ -625,16 +643,15 @@ function CadreCommun() {
       code: 'B',
       couleur: '#5BAD4E',
       fillSvg: '#B8E0B0',
-      titre: 'Activités économiques, entrepreneuriat et emploi',
-      description:
-        'Indicateurs relatifs aux activités économiques appuyées, à la survie des structures soutenues, aux emplois créés ou maintenus et aux emplois indirects estimés.',
+      titre: c(contenu, 'cadre_commun.cat_b_titre', 'Activités économiques, entrepreneuriat et emploi'),
+      description: c(contenu, 'cadre_commun.cat_b_texte', "Indicateurs relatifs aux activités économiques appuyées, à la survie des structures soutenues, aux emplois créés ou maintenus et aux emplois indirects estimés."),
       icone: Building2,
     },
     {
       code: 'C',
       couleur: '#B8A000',
       fillSvg: '#E8D87A',
-      titre: 'Intermédiation et accès aux opportunités',
+      titre: c(contenu, 'cadre_commun.cat_c_titre', 'Intermédiation et accès aux opportunités'),
       description:
         "Indicateurs relatifs aux mises en relation effectives, à leur conversion en opportunités, aux emplois obtenus, au délai d'accès à l'opportunité et à l'utilité perçue de l'appui.",
       icone: Network,
@@ -655,11 +672,10 @@ function CadreCommun() {
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-            Architecture du Cadre Commun
+            {c(contenu, 'cadre_commun.titre', 'Architecture du Cadre Commun')}
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
-            Quatre catégories d&apos;indicateurs et un marqueur transversal, partagés par tous les
-            projets emploi jeunes OIF.
+            {c(contenu, 'cadre_commun.sous_titre', "Quatre catégories d'indicateurs et un marqueur transversal, partagés par tous les projets emploi jeunes OIF.")}
           </p>
         </div>
 
@@ -675,14 +691,13 @@ function CadreCommun() {
           {/* Marqueur transversal F1 */}
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-center shadow-sm">
             <p className="text-[10px] font-bold tracking-widest text-amber-600 uppercase">
-              Marqueur transversal · F1
+              {c(contenu, 'cadre_commun.f1_badge', 'Marqueur transversal · F1')}
             </p>
             <p className="mt-0.5 text-sm font-semibold text-amber-900">
-              Langue française et employabilité
+              {c(contenu, 'cadre_commun.f1_titre', 'Langue française et employabilité')}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
-              Améliorer l&apos;employabilité grâce à la maîtrise du français — angle d&apos;analyse
-              intégrable à tous les projets.
+              {c(contenu, 'cadre_commun.f1_texte', "Améliorer l'employabilité grâce à la maîtrise du français — angle d'analyse intégrable à tous les projets.")}
             </p>
           </div>
         </div>
@@ -727,25 +742,22 @@ function CadreCommun() {
 // Portée du Cadre Commun — définitions OIF emploi / employabilité / jeunesse
 // Source : Cadre de mesure du rendement emploi V2, section 2.
 // ─────────────────────────────────────────────────────────────────────────────
-function Pourquoi() {
+function Pourquoi({ contenu }: { contenu: ContenuMap }) {
   const definitions = [
     {
       icone: Users,
-      titre: 'Jeunesse',
-      description:
-        "Le cadre s'applique conformément aux définitions adoptées par l'OIF en matière de jeunesse, dans le but d'assurer un langage commun et une cohérence d'action entre l'ensemble des projets.",
+      titre: c(contenu, 'portee.def1_titre', 'Jeunesse'),
+      description: c(contenu, 'portee.def1_texte', "Le cadre s'applique conformément aux définitions adoptées par l'OIF en matière de jeunesse, dans le but d'assurer un langage commun et une cohérence d'action entre l'ensemble des projets."),
     },
     {
       icone: Briefcase,
-      titre: 'Emploi',
-      description:
-        "Toute activité exercée en contrepartie d'une rémunération ou d'un profit (monétaire ou en nature), qu'elle soit salariée ou indépendante, formelle ou informelle, incluant l'auto-emploi et l'entrepreneuriat. Les dispositifs de formation rémunérés (apprentissage, alternance, stage rémunéré) sont inclus. Les expériences non rémunérées sont reconnues comme leviers d'employabilité sans être assimilées à de l'emploi.",
+      titre: c(contenu, 'portee.def2_titre', 'Emploi'),
+      description: c(contenu, 'portee.def2_texte', "Toute activité exercée en contrepartie d'une rémunération ou d'un profit (monétaire ou en nature), qu'elle soit salariée ou indépendante, formelle ou informelle, incluant l'auto-emploi et l'entrepreneuriat. Les dispositifs de formation rémunérés (apprentissage, alternance, stage rémunéré) sont inclus. Les expériences non rémunérées sont reconnues comme leviers d'employabilité sans être assimilées à de l'emploi."),
     },
     {
       icone: Sparkles,
-      titre: 'Employabilité',
-      description:
-        "La capacité d'un jeune à accéder à un emploi, à s'y maintenir et à y progresser, grâce à un socle de compétences (fondamentales, techniques, numériques et transversales), d'expériences et de ressources (information, orientation, intermédiation, réseaux, accompagnement), dans un environnement favorable levant les principaux obstacles.",
+      titre: c(contenu, 'portee.def3_titre', 'Employabilité'),
+      description: c(contenu, 'portee.def3_texte', "La capacité d'un jeune à accéder à un emploi, à s'y maintenir et à y progresser, grâce à un socle de compétences (fondamentales, techniques, numériques et transversales), d'expériences et de ressources (information, orientation, intermédiation, réseaux, accompagnement), dans un environnement favorable levant les principaux obstacles."),
     },
   ];
   return (
@@ -753,13 +765,10 @@ function Pourquoi() {
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-            Portée du Cadre Commun
+            {c(contenu, 'portee.titre', 'Portée du Cadre Commun')}
           </h2>
           <p className="text-muted-foreground mt-3 text-base leading-relaxed">
-            Référence commune pour tous les projets de l&apos;OIF qui contribuent à
-            l&apos;amélioration de l&apos;employabilité des jeunes, à leur accès à l&apos;emploi, à
-            l&apos;auto-emploi, aux activités génératrices de revenus ou à l&apos;environnement
-            favorable à leur insertion économique.
+            {c(contenu, 'portee.sous_titre', "Référence commune pour tous les projets de l'OIF qui contribuent à l'amélioration de l'employabilité des jeunes, à leur accès à l'emploi, à l'auto-emploi, aux activités génératrices de revenus ou à l'environnement favorable à leur insertion économique.")}
           </p>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -788,25 +797,24 @@ function Pourquoi() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Citations institutionnelles (V1.6.0 polish)
 // ─────────────────────────────────────────────────────────────────────────────
-function Citations() {
+function Citations({ contenu }: { contenu: ContenuMap }) {
   const citations = [
     {
-      texte:
-        'Le suivi-évaluation rigoureux de nos projets emploi jeunes est la condition de leur impact mesurable et de leur soutenabilité dans la durée.',
-      auteur: 'Cadre commun de mesure du rendement',
-      fonction: 'Document méthodologique OIF',
+      texte: c(contenu, 'citations.c1_texte', "Le suivi-évaluation rigoureux de nos projets emploi jeunes est la condition de leur impact mesurable et de leur soutenabilité dans la durée."),
+      auteur: c(contenu, 'citations.c1_auteur', 'Cadre commun de mesure du rendement'),
+      fonction: c(contenu, 'citations.c1_fonction', 'Document méthodologique OIF'),
     },
     {
       texte:
         "L'apport du français à l'employabilité reste un marqueur transversal de toutes nos interventions : c'est notre signature francophone.",
-      auteur: 'Note mÃ©thodologique',
-      fonction: 'Service de Conception et Suivi (SCS)',
+      auteur: c(contenu, 'citations.c2_auteur', 'Note mÃ©thodologique'),
+      fonction: c(contenu, 'citations.c2_fonction', 'Service de Conception et Suivi (SCS)'),
     },
     {
       texte:
         "Cibler une strate précise – un projet, un pays, une cohorte – plutôt qu'envoyer en masse : c'est ce qui distingue une collecte propre d'un envoi en masse.",
-      auteur: 'Méthodologie OIF',
-      fonction: 'Approche stratifiée des collectes',
+      auteur: c(contenu, 'citations.c3_auteur', 'Méthodologie OIF'),
+      fonction: c(contenu, 'citations.c3_fonction', 'Approche stratifiée des collectes'),
     },
   ];
   return (
@@ -817,13 +825,13 @@ function Citations() {
             variant="outline"
             style={{ color: COULEUR_ACCENT, borderColor: `${COULEUR_ACCENT}66` }}
           >
-            Méthodologie & vision
+            {c(contenu, 'citations.badge', 'Méthodologie & vision')}
           </Badge>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0E4F88] md:text-4xl">
-            Ce qui guide notre démarche
+            {c(contenu, 'citations.titre', 'Ce qui guide notre démarche')}
           </h2>
           <p className="text-muted-foreground mt-3 text-base">
-            Trois principes méthodologiques qui structurent notre approche du suivi-évaluation.
+            {c(contenu, 'citations.sous_titre', 'Trois principes méthodologiques qui structurent notre approche du suivi-évaluation.')}
           </p>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -859,7 +867,7 @@ function Citations() {
 // ─────────────────────────────────────────────────────────────────────────────
 // CTA final
 // ─────────────────────────────────────────────────────────────────────────────
-function CtaFinal({ isAuthenticated }: { isAuthenticated: boolean }) {
+function CtaFinal({ isAuthenticated, contenu }: { isAuthenticated: boolean; contenu: ContenuMap }) {
   return (
     <section
       className="relative overflow-hidden py-20 text-white md:py-24"
@@ -870,12 +878,12 @@ function CtaFinal({ isAuthenticated }: { isAuthenticated: boolean }) {
       <div className="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-8">
         <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
           {isAuthenticated
-            ? 'Reprenez votre travail dans votre espace'
+            ? c(contenu, 'cta_final.titre_auth', 'Reprenez votre travail dans votre espace')
             : 'Partenaire de mise en œuvre, bailleur ou représentant institutionnel\u00a0?'}
         </h2>
         <p className="mt-4 text-lg text-blue-50 md:text-xl">
           {isAuthenticated
-            ? 'Tableaux de bord, indicateurs OIF, lancement de campagnes : tout est dans votre espace de travail.'
+            ? c(contenu, 'cta_final.sous_titre_auth', 'Tableaux de bord, indicateurs OIF, lancement de campagnes : tout est dans votre espace de travail.')
             : 'Demandez un accès pour piloter vos projets de mise en œuvre, ou consulter les indicateurs agrégés en lecture seule.'}
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -933,7 +941,7 @@ function CtaFinal({ isAuthenticated }: { isAuthenticated: boolean }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Footer
 // ─────────────────────────────────────────────────────────────────────────────
-function FooterPublic() {
+function FooterPublic({ contenu }: { contenu: ContenuMap }) {
   return (
     <footer className="border-t bg-gray-50 py-12 text-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
@@ -941,46 +949,45 @@ function FooterPublic() {
           <div>
             <LogoOIF size="sm" withProtectedSpace={false} />
             <p className="text-muted-foreground mt-4 text-xs leading-relaxed">
-              Service de Conception et Suivi (SCS) : Organisation Internationale de la Francophonie.
-              Plateforme officielle de suivi-évaluation des projets emploi jeunes.
+              {c(contenu, 'footer.description', 'Service de Conception et Suivi (SCS) : Organisation Internationale de la Francophonie. Plateforme officielle de suivi-évaluation des projets emploi jeunes.')}
             </p>
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Plateforme</h3>
+            <h3 className="font-semibold text-gray-900">{c(contenu, 'footer.nav_titre', 'Plateforme')}</h3>
             <ul className="text-muted-foreground mt-4 space-y-2 text-xs">
               <li>
                 <Link href="/connexion" className="hover:text-foreground">
-                  Se connecter
+                  {c(contenu, 'footer.nav_connexion', 'Se connecter')}
                 </Link>
               </li>
               <li>
                 <Link href="/demande-acces" className="hover:text-foreground">
-                  Demander un accès
+                  {c(contenu, 'footer.nav_demande', 'Demander un accès')}
                 </Link>
               </li>
               <li>
                 <Link href="/contact" className="hover:text-foreground">
-                  Nous contacter
+                  {c(contenu, 'footer.nav_contact', 'Nous contacter')}
                 </Link>
               </li>
               <li>
                 <Link href="/documents" className="hover:text-foreground">
-                  Documents publics
+                  {c(contenu, 'footer.nav_documents', 'Documents publics')}
                 </Link>
               </li>
             </ul>
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Contact RGPD</h3>
+            <h3 className="font-semibold text-gray-900">{c(contenu, 'footer.rgpd_titre', 'Contact RGPD')}</h3>
             <ul className="text-muted-foreground mt-4 space-y-2 text-xs">
-              <li>SCS : Service de Conception et Suivi des projets</li>
+              <li>{c(contenu, 'footer.rgpd_ligne1', 'SCS : Service de Conception et Suivi des projets')}</li>
               <li>
-                <a href="mailto:projets@francophonie.org" className="hover:text-foreground">
-                  projets@francophonie.org
+                <a href={`mailto:${c(contenu, 'footer.rgpd_email', 'projets@francophonie.org')}`} className="hover:text-foreground">
+                  {c(contenu, 'footer.rgpd_email', 'projets@francophonie.org')}
                 </a>
               </li>
               <li>
-                Données traitées conformément au RGPD : accès limité aux personnes habilitées.
+                {c(contenu, 'footer.rgpd_ligne2', 'Données traitées conformément au RGPD : accès limité aux personnes habilitées.')}
               </li>
             </ul>
           </div>
