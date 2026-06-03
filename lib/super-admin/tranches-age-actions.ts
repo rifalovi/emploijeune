@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
+import { hasPermission } from '@/lib/super-admin/permissions';
 
 /**
  * Server Actions CRUD — tranches d'âge précises.
@@ -33,8 +34,12 @@ async function exigerSuperAdmin(): Promise<
 > {
   const utilisateur = await getCurrentUtilisateur();
   if (!utilisateur) return { erreur: 'non_authentifie' };
-  if (utilisateur.role !== 'super_admin') return { erreur: 'reserve_super_admin' };
-  return { utilisateur };
+  if (utilisateur.role === 'super_admin') return { utilisateur };
+  if (utilisateur.role === 'admin_scs') {
+    const ok = await hasPermission(utilisateur.id, 'referentiels');
+    if (ok) return { utilisateur };
+  }
+  return { erreur: 'reserve_super_admin' };
 }
 
 // ── Queries ──────────────────────────────────────────────────────────────────

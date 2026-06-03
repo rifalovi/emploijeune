@@ -45,6 +45,18 @@ export async function exigerAccesModule(module: ModuleKey): Promise<void> {
   notFound();
 }
 
+// -- Guard server action (throw Error au lieu de notFound) --------------------
+
+export async function exigerAccesModuleAction(module: ModuleKey): Promise<void> {
+  const u = await requireUtilisateurValide();
+  if (u.role === 'super_admin') return;
+  if (u.role === 'admin_scs') {
+    const ok = await hasPermission(u.id, module);
+    if (ok) return;
+  }
+  throw new Error('Acces non autorise.');
+}
+
 // -- Lire toutes les permissions pour un utilisateur --------------------------
 
 export async function getPermissionsUtilisateur(userId: string): Promise<Set<ModuleKey>> {

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
+import { hasPermission } from '@/lib/super-admin/permissions';
 
 export type SessionImport = {
   id: string;
@@ -31,20 +32,36 @@ type Resultat<T = void> = T extends void
   ? { status: 'succes' } | { status: 'erreur'; message: string }
   : { status: 'succes'; data: T } | { status: 'erreur'; message: string };
 
-async function exigerSuperAdmin(): Promise<
+type Garde =
   | { utilisateur: NonNullable<Awaited<ReturnType<typeof getCurrentUtilisateur>>> }
-  | { erreur: string }
-> {
+  | { erreur: string };
+
+async function exigerAccesImportSessions(): Promise<Garde> {
   const u = await getCurrentUtilisateur();
   if (!u) return { erreur: 'non_authentifie' };
-  if (u.role !== 'super_admin') return { erreur: 'reserve_super_admin' };
-  return { utilisateur: u };
+  if (u.role === 'super_admin') return { utilisateur: u };
+  if (u.role === 'admin_scs') {
+    const ok = await hasPermission(u.id, 'import_sessions');
+    if (ok) return { utilisateur: u };
+  }
+  return { erreur: 'reserve_super_admin' };
+}
+
+async function exigerAccesDoublons(): Promise<Garde> {
+  const u = await getCurrentUtilisateur();
+  if (!u) return { erreur: 'non_authentifie' };
+  if (u.role === 'super_admin') return { utilisateur: u };
+  if (u.role === 'admin_scs') {
+    const ok = await hasPermission(u.id, 'doublons');
+    if (ok) return { utilisateur: u };
+  }
+  return { erreur: 'reserve_super_admin' };
 }
 
 // ── Queries ──────────────────────────────────────────────────────────────────
 
 export async function listerSessionsImports(limite = 100): Promise<SessionImport[]> {
-  const garde = await exigerSuperAdmin();
+  const garde = await exigerAccesImportSessions();
   if ('erreur' in garde) return [];
 
   const supabase = await createSupabaseServerClient();
@@ -54,7 +71,7 @@ export async function listerSessionsImports(limite = 100): Promise<SessionImport
 }
 
 export async function detecterDoublons(): Promise<DoublonGroupe[]> {
-  const garde = await exigerSuperAdmin();
+  const garde = await exigerAccesDoublons();
   if ('erreur' in garde) return [];
 
   const supabase = await createSupabaseServerClient();
@@ -69,7 +86,7 @@ export async function annulerSessionImport(
   sessionId: string,
   motif?: string,
 ): Promise<Resultat<{ lignes_supprimees: number }>> {
-  const garde = await exigerSuperAdmin();
+  const garde = await exigerAccesImportSessions();
   if ('erreur' in garde) return { status: 'erreur', message: garde.erreur };
 
   const supabase = await createSupabaseServerClient();
@@ -88,7 +105,7 @@ export async function annulerSessionImport(
 }
 
 export async function fusionnerDoublons(cle: string): Promise<Resultat<{ fusionnes: number }>> {
-  const garde = await exigerSuperAdmin();
+  const garde = await exigerAccesDoublons();
   if ('erreur' in garde) return { status: 'erreur', message: garde.erreur };
 
   const supabase = await createSupabaseServerClient();
@@ -102,7 +119,7 @@ export async function fusionnerDoublons(cle: string): Promise<Resultat<{ fusionn
 }
 
 export async function fusionnerDoublonsBulk(): Promise<Resultat<{ nb_fusionnes: number }>> {
-  const garde = await exigerSuperAdmin();
+  const garde = await exigerAccesDoublons();
   if ('erreur' in garde) return { status: 'erreur', message: garde.erreur };
 
   const supabase = await createSupabaseServerClient();

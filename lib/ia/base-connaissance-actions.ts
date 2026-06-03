@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
+import { hasPermission } from '@/lib/super-admin/permissions';
 
 /**
  * Server Actions pour la base de connaissance super_admin — V2.2.0.
@@ -24,8 +25,12 @@ async function exigerSuperAdmin(): Promise<GardeSA> {
   try {
     const u = await getCurrentUtilisateur();
     if (!u) return { erreur: 'non_authentifie' };
-    if (u.role !== 'super_admin') return { erreur: 'reserve_super_admin' };
-    return { utilisateur: u };
+    if (u.role === 'super_admin') return { utilisateur: u };
+    if (u.role === 'admin_scs') {
+      const ok = await hasPermission(u.id, 'base_connaissance');
+      if (ok) return { utilisateur: u };
+    }
+    return { erreur: 'reserve_super_admin' };
   } catch (e) {
     return { erreur: e instanceof Error ? e.message : 'erreur_auth' };
   }

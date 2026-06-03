@@ -6,6 +6,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { indicateurParCode } from '@/lib/referentiels/indicateurs';
+import { hasPermission } from '@/lib/super-admin/permissions';
 
 /**
  * Server Actions — Analyses IA par indicateur CMR.
@@ -29,10 +30,13 @@ import { indicateurParCode } from '@/lib/referentiels/indicateurs';
 
 async function exigerSuperAdmin() {
   const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || utilisateur.role !== 'super_admin') {
-    throw new Error('Accès refusé – rôle super_admin requis.');
+  if (!utilisateur) throw new Error('Accès refusé – non authentifié.');
+  if (utilisateur.role === 'super_admin') return utilisateur;
+  if (utilisateur.role === 'admin_scs') {
+    const ok = await hasPermission(utilisateur.id, 'analyses_indicateurs');
+    if (ok) return utilisateur;
   }
-  return utilisateur;
+  throw new Error('Accès refusé – rôle super_admin requis.');
 }
 
 // ─── Prompt système ───────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
+import { hasPermission } from '@/lib/super-admin/permissions';
 
 /**
  * Server actions — Configuration des indicateurs affichés sur la vitrine
@@ -28,7 +29,9 @@ export async function saveConfigVitrine(
   const utilisateur = await getCurrentUtilisateur();
   if (!utilisateur) return { status: 'erreur', message: 'non_authentifie' };
   if (utilisateur.role !== 'super_admin') {
-    return { status: 'erreur', message: 'reserve_super_admin' };
+    if (utilisateur.role !== 'admin_scs') return { status: 'erreur', message: 'reserve_super_admin' };
+    const ok = await hasPermission(utilisateur.id, 'affichage_public');
+    if (!ok) return { status: 'erreur', message: 'reserve_super_admin' };
   }
 
   const parsed = payloadSchema.safeParse(selections);
