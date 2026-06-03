@@ -1,13 +1,12 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 import { MapPinOff } from 'lucide-react';
-import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import {
   listerBeneficiairesZzz,
   getResumeProjets,
   listerPays,
 } from '@/lib/super-admin/nettoyage-pays-actions';
 import { PaysInconnusClient } from './pays-inconnus-client';
+import { exigerAccesModule } from '@/lib/super-admin/permissions';
 
 export const metadata: Metadata = {
   title: 'Pays inconnus (ZZZ) — OIF Emploi Jeunes',
@@ -16,10 +15,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function PaysInconnusPage() {
-  const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
-    redirect('/dashboard');
-  }
+  await exigerAccesModule('nettoyage_donnees');
 
   const [beneficiaires, resumeProjets, pays] = await Promise.all([
     listerBeneficiairesZzz(),

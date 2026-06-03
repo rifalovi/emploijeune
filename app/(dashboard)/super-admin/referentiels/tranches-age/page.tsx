@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 import { Layers } from 'lucide-react';
-import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { listerTranchesAge } from '@/lib/super-admin/tranches-age-actions';
 import { TranchesAgeClient } from './tranches-age-client';
+import { exigerAccesModule } from '@/lib/super-admin/permissions';
 
 export const metadata: Metadata = {
   title: 'Tranches d\'age — OIF Emploi Jeunes',
@@ -12,10 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function TranchesAgePage() {
-  const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || utilisateur.role !== 'super_admin') {
-    redirect('/dashboard');
-  }
+  await exigerAccesModule('referentiels');
 
   const tranches = await listerTranchesAge();
 

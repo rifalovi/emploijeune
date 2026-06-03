@@ -2,10 +2,12 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { INDICATEURS, PILIERS } from '@/lib/referentiels/indicateurs';
 import { AffichagePublicClient } from './affichage-client';
 import type { ConfigIndicateur } from './affichage-client';
+import { exigerAccesModule } from '@/lib/super-admin/permissions';
 
 export const metadata = { title: 'Affichage public — Super Admin' };
 
 export default async function AffichagePublicPage() {
+  await exigerAccesModule('affichage_public');
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from('config_vitrine_indicateurs')

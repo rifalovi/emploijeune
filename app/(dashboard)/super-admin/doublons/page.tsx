@@ -1,16 +1,14 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 import { Copy, CheckCircle2 } from 'lucide-react';
-import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { detecterDoublons } from '@/lib/super-admin/import-sessions-actions';
 import { DoublonsClient } from './doublons-client';
+import { exigerAccesModule } from '@/lib/super-admin/permissions';
 
 export const metadata: Metadata = { title: 'Doublons — OIF Emploi Jeunes' };
 export const dynamic = 'force-dynamic';
 
 export default async function DoublonsPage() {
-  const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || utilisateur.role !== 'super_admin') redirect('/dashboard');
+  await exigerAccesModule('doublons');
 
   const doublons = await detecterDoublons();
 

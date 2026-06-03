@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { FormulaireAjouterNote } from '@/components/super-admin/formulaire-ajouter-note';
 import { ListeNotesConnaissance } from '@/components/super-admin/liste-notes-connaissance';
+import { exigerAccesModule } from '@/lib/super-admin/permissions';
 
 export const metadata: Metadata = {
   title: 'Base de connaissance – Super Administration',
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function BaseConnaissancePage() {
+  await exigerAccesModule('base_connaissance');
   const supabase = await createSupabaseServerClient();
   const { data: notes } = await supabase
     .from('base_connaissance')

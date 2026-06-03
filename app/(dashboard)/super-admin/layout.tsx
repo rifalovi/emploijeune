@@ -15,43 +15,64 @@ import {
   History,
   Copy,
   FileText,
+  KeyRound,
 } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
+import { getPermissionsUtilisateur, type ModuleKey } from '@/lib/super-admin/permissions';
 
 /**
- * Layout du segment /super-admin/* — V2.0.0.
+ * Layout du segment /super-admin/* — V3.0.0.
  *
- * Garde stricte : SEUL le rôle super_admin peut accéder à ces pages. Les
- * autres rôles (y compris admin_scs) reçoivent un 404 standard, exactement
- * comme si la page n'existait pas. Aucune trace UI nulle part pour les
- * autres rôles.
- *
- * Le sous-menu propose les 4 sections exclusives super_admin :
- *   - Tracking & Logs    (lecture étendue audit)
- *   - Utilisateurs       (suspension / bannissement)
- *   - Partenaires        (archivage organisations)
- *   - Modules            (activation/désactivation IA par rôle)
+ * Accès :
+ *   - super_admin : accès complet à tous les items
+ *   - admin_scs   : accès limité aux modules explicitement délégués
+ *   - autres rôles: 404
  */
 export default async function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const utilisateur = await requireUtilisateurValide();
-  if (utilisateur.role !== 'super_admin') notFound();
 
-  const sousMenu = [
-    { href: '/super-admin', label: 'Vue d’ensemble', icon: ShieldAlert, exact: true },
-    { href: '/super-admin/tracking', label: 'Tracking & Logs', icon: Activity },
-    { href: '/super-admin/utilisateurs', label: 'Utilisateurs', icon: Users },
-    { href: '/super-admin/partenaires', label: 'Partenaires', icon: Building2 },
-    { href: '/super-admin/modules', label: 'Modules', icon: Package },
-    { href: '/super-admin/base-connaissance', label: 'Base de connaissance', icon: BookOpen },
-    { href: '/super-admin/analyses-indicateurs', label: 'Analyses IA', icon: Sparkles },
-    { href: '/super-admin/affichage-public', label: 'Affichage public', icon: LayoutGrid },
-    { href: '/super-admin/contenu-pages', label: 'Contenu pages', icon: FileText },
-    { href: '/super-admin/nettoyage-donnees/pays-inconnus', label: 'Pays inconnus', icon: MapPinOff },
-    { href: '/super-admin/referentiels/tranches-age', label: 'Tranches d\'age', icon: Layers },
-    { href: '/super-admin/import-sessions', label: 'Sessions d\'import', icon: History },
-    { href: '/super-admin/doublons', label: 'Doublons', icon: Copy },
-    { href: '/super-admin/maintenance', label: 'Maintenance', icon: Wrench },
+  const isSuperAdmin = utilisateur.role === 'super_admin';
+  const isAdminScs   = utilisateur.role === 'admin_scs';
+
+  if (!isSuperAdmin && !isAdminScs) notFound();
+
+  // Pour admin_scs : récupère ses permissions et bloque si aucune
+  let permissionsAdminScs = new Set<ModuleKey>();
+  if (isAdminScs) {
+    permissionsAdminScs = await getPermissionsUtilisateur(utilisateur.id);
+    if (permissionsAdminScs.size === 0) notFound();
+  }
+
+  // Items réservés au super_admin (jamais délégables)
+  const itemsSuperAdminOnly = [
+    { href: '/super-admin',                          label: 'Vue d\u2019ensemble',      icon: ShieldAlert },
+    { href: '/super-admin/utilisateurs',             label: 'Utilisateurs',             icon: Users },
+    { href: '/super-admin/partenaires',              label: 'Partenaires',              icon: Building2 },
+    { href: '/super-admin/modules',                  label: 'Modules',                  icon: Package },
+    { href: '/super-admin/maintenance',              label: 'Maintenance',              icon: Wrench },
+    { href: '/super-admin/permissions-delegues',     label: 'Permissions d\u00e9l\u00e9gu\u00e9es', icon: KeyRound },
   ];
+
+  // Items délégables (filtrés selon le rôle)
+  const itemsDelegables: { href: string; label: string; icon: React.ElementType; module: ModuleKey }[] = [
+    { href: '/super-admin/tracking',                         label: 'Tracking & Logs',       icon: Activity,   module: 'tracking' },
+    { href: '/super-admin/base-connaissance',                label: 'Base de connaissance',  icon: BookOpen,   module: 'base_connaissance' },
+    { href: '/super-admin/analyses-indicateurs',             label: 'Analyses IA',           icon: Sparkles,   module: 'analyses_indicateurs' },
+    { href: '/super-admin/affichage-public',                 label: 'Affichage public',      icon: LayoutGrid, module: 'affichage_public' },
+    { href: '/super-admin/contenu-pages',                    label: 'Contenu pages',         icon: FileText,   module: 'contenu_pages' },
+    { href: '/super-admin/nettoyage-donnees/pays-inconnus',  label: 'Pays inconnus',         icon: MapPinOff,  module: 'nettoyage_donnees' },
+    { href: '/super-admin/referentiels/tranches-age',        label: "Tranches d'âge",        icon: Layers,     module: 'referentiels' },
+    { href: '/super-admin/import-sessions',                  label: "Sessions d'import",     icon: History,    module: 'import_sessions' },
+    { href: '/super-admin/doublons',                         label: 'Doublons',              icon: Copy,       module: 'doublons' },
+  ];
+
+  const itemsDelegablesVisibles = isSuperAdmin
+    ? itemsDelegables
+    : itemsDelegables.filter((i) => permissionsAdminScs.has(i.module));
+
+  const sousMenu = isSuperAdmin
+    ? [...itemsSuperAdminOnly, ...itemsDelegables]
+    : itemsDelegablesVisibles;
 
   return (
     <div className="space-y-6">
@@ -63,11 +84,14 @@ export default async function SuperAdminLayout({ children }: { children: React.R
           >
             <ShieldAlert className="size-4" aria-hidden />
           </span>
-          <h1 className="text-2xl font-semibold tracking-tight">Super Administration</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {isSuperAdmin ? 'Super Administration' : 'Administration avancée'}
+          </h1>
         </div>
         <p className="text-muted-foreground text-sm">
-          Section exclusive super_admin. Tracking étendu, gestion avancée des utilisateurs,
-          archivage de partenaires, contrôle des modules optionnels.
+          {isSuperAdmin
+            ? 'Section super_admin. Tracking étendu, gestion avancée des utilisateurs, archivage de partenaires, contrôle des modules.'
+            : 'Modules d\u2019administration avancée accessibles sur délégation.'}
         </p>
       </header>
 

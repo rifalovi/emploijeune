@@ -1,16 +1,14 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 import { History } from 'lucide-react';
-import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { listerSessionsImports } from '@/lib/super-admin/import-sessions-actions';
 import { ImportSessionsClient } from './import-sessions-client';
+import { exigerAccesModule } from '@/lib/super-admin/permissions';
 
 export const metadata: Metadata = { title: 'Sessions d\'import — OIF Emploi Jeunes' };
 export const dynamic = 'force-dynamic';
 
 export default async function ImportSessionsPage() {
-  const utilisateur = await getCurrentUtilisateur();
-  if (!utilisateur || utilisateur.role !== 'super_admin') redirect('/dashboard');
+  await exigerAccesModule('import_sessions');
 
   const sessions = await listerSessionsImports(200);
   const nbZombies = sessions.filter((s) => s.est_zombie).length;

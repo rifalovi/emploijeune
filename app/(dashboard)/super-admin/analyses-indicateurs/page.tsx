@@ -10,6 +10,7 @@ import {
 } from '@/lib/analyses-indicateurs/server-actions';
 import { BoutonGenerer, BoutonPublier, BoutonSupprimer } from './boutons-actions';
 import { EditeurAnalyse } from './editeur-analyse';
+import { exigerAccesModule } from '@/lib/super-admin/permissions';
 
 export const metadata: Metadata = {
   title: 'Analyses IA – Super Administration',
@@ -19,6 +20,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function AnalysesIndicateursPage() {
+  await exigerAccesModule('analyses_indicateurs');
   const analyses = await listerAnalysesAdmin();
 
   // Indexer les analyses par code indicateur — on garde la PLUS RÉCENTE.

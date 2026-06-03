@@ -3,6 +3,7 @@ import { Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { listerEvenementsAudit } from '@/lib/super-admin/queries';
+import { exigerAccesModule } from '@/lib/super-admin/permissions';
 
 export const metadata: Metadata = {
   title: 'Tracking & Logs – Super Administration',
@@ -19,6 +20,7 @@ const ACTIONS_COULEURS: Record<string, string> = {
 };
 
 export default async function TrackingPage() {
+  await exigerAccesModule('tracking');
   const events = await listerEvenementsAudit(200);
 
   return (

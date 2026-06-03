@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getContenuPageAdmin, getPagesCms } from '@/lib/contenu-pages/queries';
 import { ContenuPagesClient } from './contenu-pages-client';
+import { exigerAccesModule } from '@/lib/super-admin/permissions';
 
 export const metadata: Metadata = { title: 'Contenu pages — Super Admin' };
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,7 @@ export default async function ContenuPagesPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
+  await exigerAccesModule('contenu_pages');
   const { page: pageParam } = await searchParams;
   const pages = await getPagesCms();
   const pageActive = pageParam ?? pages[0] ?? 'accueil';
