@@ -2,7 +2,6 @@ import 'server-only';
 import { notFound } from 'next/navigation';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 // ── Catalogue des modules délégables ─────────────────────────────────────────
 
@@ -77,9 +76,8 @@ export type AdminScsAvecPermissions = {
 };
 
 export async function getAdminScsAvecPermissions(): Promise<AdminScsAvecPermissions[]> {
-  const supabase = await createSupabaseServerClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
+  const db = createSupabaseAdminClient() as any;
 
   const { data: utilisateurs } = await db
     .from('utilisateurs')
