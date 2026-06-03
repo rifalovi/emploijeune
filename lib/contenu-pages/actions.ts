@@ -66,10 +66,11 @@ export async function mettreAJourValeur(id: string, valeur: string): Promise<Ok 
       .from('contenu_pages')
       .update({ valeur })
       .eq('id', id)
-      .select('page_key')
-      .single();
+      .select('page_key');
     if (error) return { ok: false, message: error.message };
-    revalidatePagesPubliques((data as { page_key: string }).page_key);
+    const row = (data as { page_key: string }[] | null)?.[0];
+    if (!row) return { ok: false, message: 'Ligne introuvable ou accès refusé.' };
+    revalidatePagesPubliques(row.page_key);
     return { ok: true };
   } catch (e) {
     return err(e);
@@ -86,10 +87,11 @@ export async function mettreAJourType(id: string, type_contenu: TypeContenu): Pr
       .from('contenu_pages')
       .update({ type_contenu })
       .eq('id', id)
-      .select('page_key')
-      .single();
+      .select('page_key');
     if (error) return { ok: false, message: error.message };
-    revalidatePagesPubliques((data as { page_key: string }).page_key);
+    const row = (data as { page_key: string }[] | null)?.[0];
+    if (!row) return { ok: false, message: 'Ligne introuvable ou accès refusé.' };
+    revalidatePagesPubliques(row.page_key);
     return { ok: true };
   } catch (e) {
     return err(e);
@@ -106,9 +108,9 @@ export async function supprimerBloc(id: string): Promise<Ok | Err> {
       .from('contenu_pages')
       .delete()
       .eq('id', id)
-      .select('page_key')
-      .single();
-    revalidatePagesPubliques((data as { page_key: string } | null)?.page_key ?? 'accueil');
+      .select('page_key');
+    const row = (data as { page_key: string }[] | null)?.[0];
+    revalidatePagesPubliques(row?.page_key ?? 'accueil');
     return { ok: true };
   } catch (e) {
     return err(e);
@@ -184,10 +186,11 @@ export async function toggleActifBloc(id: string, actif: boolean): Promise<Ok | 
       .from('contenu_pages')
       .update({ actif })
       .eq('id', id)
-      .select('page_key')
-      .single();
+      .select('page_key');
     if (error) return { ok: false, message: error.message };
-    revalidatePagesPubliques((data as { page_key: string }).page_key);
+    const row = (data as { page_key: string }[] | null)?.[0];
+    if (!row) return { ok: false, message: 'Ligne introuvable ou accès refusé.' };
+    revalidatePagesPubliques(row.page_key);
     return { ok: true };
   } catch (e) {
     return err(e);

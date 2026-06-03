@@ -38,6 +38,7 @@ import {
   ArrowUp,
   ArrowDown,
   Pencil,
+  Check,
   Eye,
   EyeOff,
   RefreshCw,
@@ -610,6 +611,18 @@ function BlocRow({
             title={bloc.actif ? 'Désactiver' : 'Activer'}
           >
             {bloc.actif ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5 text-slate-300" />}
+          </button>
+          <button
+            onClick={editingValeur ? saveValeur : startEditValeur}
+            disabled={loading}
+            className={`rounded p-1 transition-colors disabled:opacity-30 ${
+              editingValeur
+                ? 'text-blue-600 hover:text-blue-800'
+                : 'text-slate-400 hover:text-slate-700'
+            }`}
+            title={editingValeur ? 'Enregistrer' : 'Modifier'}
+          >
+            {editingValeur ? <Check className="size-3.5" /> : <Pencil className="size-3.5" />}
           </button>
           <button
             onClick={handleSupprimer}
