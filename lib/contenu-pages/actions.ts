@@ -3,11 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { hasPermission } from '@/lib/super-admin/permissions';
 
-async function exigerSuperAdmin() {
+async function exigerAccesCms() {
   const u = await requireUtilisateurValide();
-  if (u.role !== 'super_admin') throw new Error('Accès réservé au super administrateur.');
-  return u;
+  if (u.role === 'super_admin') return u;
+  if (u.role === 'admin_scs' && await hasPermission(u.id, 'contenu_pages')) return u;
+  throw new Error('Accès non autorisé.');
 }
 
 export type TypeContenu = 'h1' | 'h2' | 'h3' | 'sous_titre' | 'texte' | 'badge' | 'citation' | 'lien';
@@ -34,7 +36,7 @@ export async function sauvegarderBloc(params: {
   actif?: boolean;
 }): Promise<Ok | Err> {
   try {
-    await exigerSuperAdmin();
+    await exigerAccesCms();
     const supabase = db();
     const { error } = await supabase.from('contenu_pages').upsert(
       {
@@ -60,7 +62,7 @@ export async function sauvegarderBloc(params: {
 
 export async function mettreAJourValeur(id: string, valeur: string): Promise<Ok | Err> {
   try {
-    await exigerSuperAdmin();
+    await exigerAccesCms();
     const supabase = db();
     const { data, error } = await supabase
       .from('contenu_pages')
@@ -81,7 +83,7 @@ export async function mettreAJourValeur(id: string, valeur: string): Promise<Ok 
 
 export async function mettreAJourType(id: string, type_contenu: TypeContenu): Promise<Ok | Err> {
   try {
-    await exigerSuperAdmin();
+    await exigerAccesCms();
     const supabase = db();
     const { data, error } = await supabase
       .from('contenu_pages')
@@ -102,7 +104,7 @@ export async function mettreAJourType(id: string, type_contenu: TypeContenu): Pr
 
 export async function supprimerBloc(id: string): Promise<Ok | Err> {
   try {
-    await exigerSuperAdmin();
+    await exigerAccesCms();
     const supabase = db();
     const { data } = await supabase
       .from('contenu_pages')
@@ -121,7 +123,7 @@ export async function supprimerBloc(id: string): Promise<Ok | Err> {
 
 export async function supprimerSection(page_key: string, section_key: string): Promise<Ok | Err> {
   try {
-    await exigerSuperAdmin();
+    await exigerAccesCms();
     const supabase = db();
     const { error } = await supabase
       .from('contenu_pages')
@@ -144,7 +146,7 @@ export async function renommerSection(
   nouveau_key: string
 ): Promise<Ok | Err> {
   try {
-    await exigerSuperAdmin();
+    await exigerAccesCms();
     const supabase = db();
     const { error } = await supabase
       .from('contenu_pages')
@@ -165,7 +167,7 @@ export async function reordonnerBlocs(
   blocs: Array<{ id: string; ordre: number }>
 ): Promise<Ok | Err> {
   try {
-    await exigerSuperAdmin();
+    await exigerAccesCms();
     const supabase = db();
     for (const b of blocs) {
       await supabase.from('contenu_pages').update({ ordre: b.ordre }).eq('id', b.id);
@@ -180,7 +182,7 @@ export async function reordonnerBlocs(
 
 export async function toggleActifBloc(id: string, actif: boolean): Promise<Ok | Err> {
   try {
-    await exigerSuperAdmin();
+    await exigerAccesCms();
     const supabase = db();
     const { data, error } = await supabase
       .from('contenu_pages')
