@@ -24,7 +24,7 @@ export type NavItem = {
   label: string;
   icon: LucideIcon;
   roles: RoleUtilisateur[];
-  conditional?: 'module_ia';
+  conditional?: 'module_ia' | 'admin_delegue';
 };
 
 export type NavGroupDef = {
@@ -132,6 +132,13 @@ export const NAV_GROUPS: NavGroupDef[] = [
         icon: ShieldAlert,
         roles: ['super_admin'],
       },
+      {
+        href: '/super-admin',
+        label: 'Admin. avancée',
+        icon: ShieldAlert,
+        roles: ['admin_scs'],
+        conditional: 'admin_delegue',
+      },
     ],
   },
   {
@@ -153,13 +160,14 @@ export const NAV_GROUPS: NavGroupDef[] = [
 
 export function visibleNavGroups(
   role: RoleUtilisateur,
-  flags: { module_ia?: boolean } = {},
+  flags: { module_ia?: boolean; admin_delegue?: boolean } = {},
 ): Array<{ group: NavGroupDef; items: NavItem[] }> {
   return NAV_GROUPS.map((group) => ({
     group,
     items: group.items.filter((item) => {
       if (!item.roles.includes(role)) return false;
       if (item.conditional === 'module_ia' && !flags.module_ia) return false;
+      if (item.conditional === 'admin_delegue' && !flags.admin_delegue) return false;
       return true;
     }),
   })).filter(({ items }) => items.length > 0);

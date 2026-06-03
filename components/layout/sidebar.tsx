@@ -23,8 +23,8 @@ type SidebarProps = {
   utilisateur: UtilisateurProfile;
   organisationLibelle?: string | null;
   notificationsCount?: number;
-  /** Module IA activé pour le rôle de l'utilisateur courant (V2.0.0). */
   moduleIaActif?: boolean;
+  adminDelegue?: boolean;
 };
 
 function initialsFromName(name: string): string {
@@ -37,8 +37,9 @@ export function Sidebar({
   organisationLibelle,
   notificationsCount,
   moduleIaActif = false,
+  adminDelegue = false,
 }: SidebarProps) {
-  const groups = visibleNavGroups(utilisateur.role, { module_ia: moduleIaActif });
+  const groups = visibleNavGroups(utilisateur.role, { module_ia: moduleIaActif, admin_delegue: adminDelegue });
 
   // Badge de notification sur Administration
   const adminBadges: Record<string, number | undefined> =

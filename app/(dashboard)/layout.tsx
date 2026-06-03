@@ -4,6 +4,7 @@ import { getUtilisateurEffectif } from '@/lib/auth/view-as';
 import { Sidebar } from '@/components/layout/sidebar';
 import { MobileHeader } from '@/components/layout/mobile-header';
 import { BandeauViewAs } from '@/components/admin/bandeau-view-as';
+import { getPermissionsUtilisateur } from '@/lib/super-admin/permissions';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   await requireUtilisateurValide();
@@ -31,9 +32,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
       ? await getNotificationsAdminCount()
       : 0;
 
-  // Module IA actif pour le rôle de l'utilisateur courant (V2.0.0).
-  // Lecture défensive : en cas d'erreur (table pas encore migrée en local),
-  // on retourne FALSE et le module reste invisible.
   let moduleIaActif = false;
   try {
     const supabase = await createSupabaseServerClient();
@@ -42,6 +40,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } catch {
     moduleIaActif = false;
   }
+
+  // Modules délégués : visibles dans la sidebar uniquement si l'admin_scs a ≥1 permission
+  const adminDelegue =
+    utilisateur.role === 'admin_scs' && !effectif.isViewAs
+      ? (await getPermissionsUtilisateur(utilisateur.id)).size > 0
+      : false;
 
   return (
     <div className="bg-background flex min-h-screen flex-col">
@@ -58,6 +62,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           organisationLibelle={organisationLibelle}
           notificationsCount={notificationsCount}
           moduleIaActif={moduleIaActif}
+          adminDelegue={adminDelegue}
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileHeader
