@@ -14,6 +14,7 @@ import {
   LineChart,
   HelpCircle,
   Activity,
+  BarChart2,
   type LucideIcon,
 } from 'lucide-react';
 import type { RoleUtilisateur } from '@/lib/supabase/auth';
@@ -99,6 +100,12 @@ export const NAV_GROUPS: NavGroupDef[] = [
         icon: Sparkles,
         roles: ['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire', 'lecteur'],
         conditional: 'module_ia',
+      },
+      {
+        href: '/collecte-analytique',
+        label: 'Analytique collecte',
+        icon: BarChart2,
+        roles: ['super_admin', 'admin_scs'],
       },
     ],
   },
