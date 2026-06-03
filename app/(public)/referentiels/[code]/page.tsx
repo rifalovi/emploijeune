@@ -10,7 +10,6 @@ import {
   Calendar,
   Database,
   FileText,
-  Info,
   ListChecks,
   ShieldAlert,
   Tag,
@@ -94,7 +93,9 @@ export default async function FicheIndicateurPage({ params }: Props) {
 
       {/* Définition */}
       <Section icon={BookOpen} titre="Définition">
-        <p>{ind.definition}</p>
+        {ind.definition.split('\n').map((paragraphe, i) => (
+          <p key={i} className={i > 0 ? 'mt-3' : undefined}>{paragraphe}</p>
+        ))}
       </Section>
 
       {/* Variables */}
@@ -145,13 +146,6 @@ export default async function FicheIndicateurPage({ params }: Props) {
           ))}
         </div>
       </Section>
-
-      {/* Observation de rattachement — Cadre de mesure V2, section 6 */}
-      {ind.observationRattachement && (
-        <Section icon={Info} titre="Observation de rattachement" couleurAccent={pilier.couleur}>
-          <p>{ind.observationRattachement}</p>
-        </Section>
-      )}
 
       {/* Précautions */}
       <Section icon={ShieldAlert} titre="Précautions méthodologiques" couleurAccent="#dc2626">

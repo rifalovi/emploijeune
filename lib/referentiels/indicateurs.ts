@@ -102,12 +102,6 @@ export type Indicateur = {
    * Défaut : true (rétro-compatible avec A1 et F1).
    */
   afficherVentilateurPersonne?: boolean;
-  /**
-   * Observation de rattachement (Cadre de mesure du rendement emploi V2,
-   * section 6) — précise comment l'indicateur s'articule avec les projets
-   * OIF concernés. Affichée sur la page publique /referentiels/[code].
-   */
-  observationRattachement?: string;
 };
 
 export const INDICATEURS: Indicateur[] = [
@@ -117,7 +111,8 @@ export const INDICATEURS: Indicateur[] = [
     pilier: 'A',
     intitule: 'Nombre de personnes formées',
     definition:
-      "Nombre total de jeunes femmes et hommes ayant effectivement participé à une formation soutenue par l'OIF.",
+      `Nombre total de jeunes femmes et hommes ayant effectivement participé à une formation soutenue par l'OIF.
+Cet indicateur porte sur la formation directe des jeunes. Il se rattache d'abord aux projets qui offrent des parcours de formation ou de renforcement de capacités pour l'insertion économique, le numérique, l'innovation ou les filières durables.`,
     variables: [
       'Identifiant du bénéficiaire',
       'Sexe',
@@ -144,14 +139,13 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Personnes formées',
     unitePrincipale: 'personnes',
     afficherVentilateurPersonne: true,
-    observationRattachement:
-      "Cet indicateur porte sur la formation directe des jeunes. Il se rattache d'abord aux projets qui offrent des parcours de formation ou de renforcement de capacités pour l'insertion économique, le numérique, l'innovation ou les filières durables.",
   },
   {
     code: 'A2',
     pilier: 'A',
     intitule: 'Taux d’achèvement de la formation',
-    definition: 'Proportion de jeunes ayant complété au moins un seuil minimal du parcours prévu.',
+    definition: `Proportion de jeunes ayant complété au moins un seuil minimal du parcours prévu.
+Même logique que pour A1 : cet indicateur suit la complétion des parcours de formation portés par ces projets.`,
     variables: [
       'Nombre total de sessions prévues',
       'Nombre de sessions suivies',
@@ -170,15 +164,14 @@ export const INDICATEURS: Indicateur[] = [
       'Distinguer abandon, absence et non-validation',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
-    observationRattachement:
-      'Même logique que pour A1 : cet indicateur suit la complétion des parcours de formation portés par ces projets.',
   },
   {
     code: 'A3',
     pilier: 'A',
     intitule: 'Taux de certification / attestation',
     definition:
-      'Pourcentage de personnes formées ayant obtenu une certification ou une attestation reconnue.',
+      `Pourcentage de personnes formées ayant obtenu une certification ou une attestation reconnue.
+Les projets où les formations débouchent sur une attestation, une validation ou une reconnaissance formelle.`,
     variables: [
       'Identifiant du bénéficiaire',
       'Type de certification ou attestation',
@@ -197,15 +190,14 @@ export const INDICATEURS: Indicateur[] = [
       'Ne pas compter les jeunes seulement présentés à l’examen',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
-    observationRattachement:
-      'Les projets où les formations débouchent sur une attestation, une validation ou une reconnaissance formelle.',
   },
   {
     code: 'A4',
     pilier: 'A',
     intitule: 'Gain de compétences',
     definition:
-      'Pourcentage de jeunes déclarant une amélioration significative des compétences ciblées.',
+      `Pourcentage de jeunes déclarant une amélioration significative des compétences ciblées.
+Cet indicateur peut couvrir aussi bien les compétences techniques que les compétences entrepreneuriales ou numériques. Il est pertinent pour les projets qui renforcent les capacités des bénéficiaires lorsque l'appui inclut de la formation.`,
     variables: [
       'Score ou niveau avant formation',
       'Score ou niveau après formation',
@@ -223,15 +215,14 @@ export const INDICATEURS: Indicateur[] = [
       'Administrer T0 avant tout apprentissage',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15', 'PROJ_A14'],
-    observationRattachement:
-      "Cet indicateur peut couvrir aussi bien les compétences techniques que les compétences entrepreneuriales ou numériques. Il est pertinent pour les projets qui renforcent les capacités des bénéficiaires lorsque l'appui inclut de la formation.",
   },
   {
     code: 'A5',
     pilier: 'A',
     intitule: 'Taux d’insertion professionnelle à 6/12 mois',
     definition:
-      'Pourcentage de jeunes ayant un emploi ou une activité génératrice de revenu liée aux compétences acquises.',
+      `Pourcentage de jeunes ayant un emploi ou une activité génératrice de revenu liée aux compétences acquises.
+Il concerne les projets visant à renforcer l'employabilité ou l'auto-emploi des jeunes à l'issue d'un parcours de formation. Il est également pertinent pour les interventions menées dans des filières telles que le tourisme, l'agriculture ou les innovations vertes. Cet indicateur prendra en compte non seulement l'accès à l'emploi, mais aussi, le cas échéant, l'amélioration de la situation professionnelle des bénéficiaires déjà en activité au moment de leur entrée dans le dispositif.`,
     variables: [
       'Statut d’emploi',
       'Type d’activité',
@@ -252,8 +243,6 @@ export const INDICATEURS: Indicateur[] = [
       'Ne pas attribuer automatiquement l’insertion à la formation',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
-    observationRattachement:
-      "Il concerne les projets visant à renforcer l'employabilité ou l'auto-emploi des jeunes à l'issue d'un parcours de formation. Il est également pertinent pour les interventions menées dans des filières telles que le tourisme, l'agriculture ou les innovations vertes. Cet indicateur prendra en compte non seulement l'accès à l'emploi, mais aussi, le cas échéant, l'amélioration de la situation professionnelle des bénéficiaires déjà en activité au moment de leur entrée dans le dispositif.",
     labelMetrique: "Taux d'insertion professionnelle à 6/12 mois",
     unitePrincipale: '%',
   },
@@ -263,7 +252,8 @@ export const INDICATEURS: Indicateur[] = [
     code: 'B1',
     pilier: 'B',
     intitule: 'Activités économiques appuyées',
-    definition: 'Nombre de micro-entreprises ou AGR portées par des jeunes et soutenues par l’OIF.',
+    definition: `Nombre de micro-entreprises ou AGR portées par des jeunes et soutenues par l’OIF.
+Cet indicateur vise les AGR et micro-entreprises soutenues. Il correspond surtout aux projets d'appui économique direct, de financement ou d'accompagnement entrepreneurial. Mais également lorsqu'il y a appui au développement d'entreprises.`,
     variables: [
       'Nom ou identifiant de la structure',
       'Type de structure',
@@ -285,14 +275,13 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Structures appuyées',
     unitePrincipale: 'structures',
     afficherVentilateurPersonne: false,
-    observationRattachement:
-      "Cet indicateur vise les AGR et micro-entreprises soutenues. Il correspond surtout aux projets d'appui économique direct, de financement ou d'accompagnement entrepreneurial. Mais également lorsqu'il y a appui au développement d'entreprises.",
   },
   {
     code: 'B2',
     pilier: 'B',
     intitule: 'Taux de survie à 12/24 mois',
-    definition: 'Pourcentage de structures appuyées encore actives après 12 ou 24 mois.',
+    definition: `Pourcentage de structures appuyées encore actives après 12 ou 24 mois.
+Il suit la pérennité des activités économiques soutenues. Il est donc logique pour les projets finançant ou accompagnant des structures économiques.`,
     variables: [
       'Statut actif/inactif',
       'Revenu ou chiffre d’affaires récent',
@@ -310,14 +299,13 @@ export const INDICATEURS: Indicateur[] = [
       'Vérifier les déclarations si possible',
     ],
     projetsConcernes: ['PROJ_A14', 'PROJ_A15', 'PROJ_A19', 'PROJ_A20', 'PROJ_A17'],
-    observationRattachement:
-      'Il suit la pérennité des activités économiques soutenues. Il est donc logique pour les projets finançant ou accompagnant des structures économiques.',
   },
   {
     code: 'B3',
     pilier: 'B',
     intitule: 'Emplois créés ou maintenus',
-    definition: 'Nombre d’emplois occupés par des jeunes dans les structures appuyées.',
+    definition: `Nombre d’emplois occupés par des jeunes dans les structures appuyées.
+Cet indicateur mesure l'effet des projets sur l'emploi au sein des structures appuyées. Il s'applique principalement aux projets à visée économique et entrepreneuriale.`,
     variables: [
       'Nombre d’emplois au départ',
       'Nombre d’emplois au suivi',
@@ -339,14 +327,13 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Emplois créés ou maintenus',
     unitePrincipale: 'emplois',
     afficherVentilateurPersonne: false,
-    observationRattachement:
-      "Cet indicateur mesure l'effet des projets sur l'emploi au sein des structures appuyées. Il s'applique principalement aux projets à visée économique et entrepreneuriale.",
   },
   {
     code: 'B4',
     pilier: 'B',
     intitule: 'Emplois indirects (estimés)',
-    definition: 'Estimation des emplois générés indirectement dans la chaîne de valeur.',
+    definition: `Estimation des emplois générés indirectement dans la chaîne de valeur.
+Cet indicateur est surtout pertinent pour les projets qui agissent sur des chaînes de valeur, des réseaux économiques ou des écosystèmes productifs.`,
     variables: [
       'Type de partenaires ou fournisseurs concernés',
       'Hypothèse de calcul',
@@ -363,8 +350,6 @@ export const INDICATEURS: Indicateur[] = [
       'Ne pas agréger sans distinction aux emplois directs',
     ],
     projetsConcernes: ['PROJ_A17', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
-    observationRattachement:
-      'Cet indicateur est surtout pertinent pour les projets qui agissent sur des chaînes de valeur, des réseaux économiques ou des écosystèmes productifs.',
   },
 
   // ─────────────────────────── CATÉGORIE C ───────────────────────────
@@ -372,7 +357,8 @@ export const INDICATEURS: Indicateur[] = [
     code: 'C1',
     pilier: 'C',
     intitule: 'Mises en relation effectives',
-    definition: 'Nombre de mises en relation documentées facilitées par l’OIF.',
+    definition: `Nombre de mises en relation documentées facilitées par l’OIF.
+L'indicateur renvoie explicitement à des mécanismes de mise en relation, de mentorat, de B2B ou d'orientation. Il correspond d'abord à P17 pour les rencontres économiques et commerciales.`,
     variables: ['Type de mise en relation', 'Date', 'Acteurs impliqués', 'Suite donnée si connue'],
     collecte:
       'Traçabilité obligatoire via une plateforme, un registre d’événement ou une base dédiée.',
@@ -388,14 +374,13 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Mises en relation effectives',
     unitePrincipale: 'mises en relation',
     afficherVentilateurPersonne: false,
-    observationRattachement:
-      "L'indicateur renvoie explicitement à des mécanismes de mise en relation, de mentorat, de B2B ou d'orientation. Il correspond d'abord à P17 pour les rencontres économiques et commerciales.",
   },
   {
     code: 'C2',
     pilier: 'C',
     intitule: 'Taux de conversion en opportunités',
-    definition: 'Pourcentage de mises en relation ayant abouti à une opportunité rémunérée.',
+    definition: `Pourcentage de mises en relation ayant abouti à une opportunité rémunérée.
+Même logique que C1 : on mesure ici l'aboutissement des mises en relation en opportunités rémunérées.`,
     variables: [
       'Type d’opportunité',
       'Date d’obtention',
@@ -413,14 +398,13 @@ export const INDICATEURS: Indicateur[] = [
       'Clarifier la notion de rémunération',
     ],
     projetsConcernes: ['PROJ_A17', 'PROJ_A16a', 'PROJ_A15'],
-    observationRattachement:
-      "Même logique que C1 : on mesure ici l'aboutissement des mises en relation en opportunités rémunérées.",
   },
   {
     code: 'C3',
     pilier: 'C',
     intitule: 'Emplois obtenus',
-    definition: 'Nombre d’emplois ou de stages obtenus grâce à l’intermédiation OIF.',
+    definition: `Nombre d’emplois ou de stages obtenus grâce à l’intermédiation OIF.
+Cet indicateur est cohérent avec les projets qui conduisent à une insertion, à un stage ou à une opportunité professionnelle à travers la formation ou l'intermédiation.`,
     variables: [
       'Type d’opportunité',
       'Durée',
@@ -442,14 +426,13 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Emplois ou stages obtenus',
     unitePrincipale: 'emplois/stages',
     afficherVentilateurPersonne: false,
-    observationRattachement:
-      "Cet indicateur est cohérent avec les projets qui conduisent à une insertion, à un stage ou à une opportunité professionnelle à travers la formation ou l'intermédiation.",
   },
   {
     code: 'C4',
     pilier: 'C',
     intitule: 'Délai d’accès à l’opportunité',
-    definition: 'Temps moyen entre inscription et obtention d’une opportunité.',
+    definition: `Temps moyen entre inscription et obtention d’une opportunité.
+Il suppose généralement une plateforme ou un dispositif formalisé de suivi entre inscription et opportunité. Il est surtout adapté à D-CLIC et aux dispositifs de mise en relation économique de P17.`,
     variables: ['Date d’inscription', 'Date d’obtention de l’opportunité'],
     collecte: 'Collecte automatique ou semi-automatique à partir de la plateforme.',
     calcul: 'Somme des délais individuels divisée par le nombre de cas complets.',
@@ -464,14 +447,13 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Délai moyen d’accès',
     unitePrincipale: 'jours',
     afficherVentilateurPersonne: false,
-    observationRattachement:
-      'Il suppose généralement une plateforme ou un dispositif formalisé de suivi entre inscription et opportunité. Il est surtout adapté à D-CLIC et aux dispositifs de mise en relation économique de P17.',
   },
   {
     code: 'C5',
     pilier: 'C',
     intitule: 'Satisfaction / utilité',
-    definition: 'Pourcentage de jeunes déclarant que l’appui de l’OIF a été déterminant.',
+    definition: `Pourcentage de jeunes déclarant que l’appui de l’OIF a été déterminant.
+Cet indicateur peut être transversal à tout projet offrant un service direct aux jeunes, mais il est particulièrement utile pour les projets d'appui individualisé, de formation ou d'intermédiation.`,
     variables: [
       'Niveau de satisfaction',
       'Utilité perçue',
@@ -488,8 +470,6 @@ export const INDICATEURS: Indicateur[] = [
       'Éviter les questions orientées',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A17', 'PROJ_A20', 'PROJ_A15', 'PROJ_A19'],
-    observationRattachement:
-      "Cet indicateur peut être transversal à tout projet offrant un service direct aux jeunes, mais il est particulièrement utile pour les projets d'appui individualisé, de formation ou d'intermédiation.",
   },
 
   // ─────────────────────────── CATÉGORIE D ───────────────────────────
@@ -497,7 +477,8 @@ export const INDICATEURS: Indicateur[] = [
     code: 'D1',
     pilier: 'D',
     intitule: 'Cadres / dispositifs politiques emploi-jeunes appuyés',
-    definition: 'Nombre de politiques, stratégies ou dispositifs bénéficiant de l’appui OIF.',
+    definition: `Nombre de politiques, stratégies ou dispositifs bénéficiant de l’appui OIF.
+Cet indicateur renvoie à l'appui aux politiques, stratégies ou dispositifs publics. Il se rattache aux projets ayant une dimension de plaidoyer, de structuration sectorielle ou d'accompagnement institutionnel.`,
     variables: [
       'Intitulé du document ou dispositif',
       'Type',
@@ -518,15 +499,14 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Cadres/dispositifs appuyés',
     unitePrincipale: 'dispositifs',
     afficherVentilateurPersonne: false,
-    observationRattachement:
-      "Cet indicateur renvoie à l'appui aux politiques, stratégies ou dispositifs publics. Il se rattache aux projets ayant une dimension de plaidoyer, de structuration sectorielle ou d'accompagnement institutionnel.",
   },
   {
     code: 'D2',
     pilier: 'D',
     intitule: 'Capacités institutionnelles emploi-jeunes renforcées',
     definition:
-      'Pourcentage d’acteurs publics formés déclarant une amélioration de leurs pratiques.',
+      `Pourcentage d’acteurs publics formés déclarant une amélioration de leurs pratiques.
+Cet indicateur cible les acteurs publics formés et l'amélioration de leurs pratiques. Il relève surtout des projets qui combinent accompagnement institutionnel et appui technique.`,
     variables: ['Type d’acteur', 'Compétences renforcées', 'Pratique modifiée', 'Usage effectif'],
     collecte: 'Enquête avant/après, complétée si besoin par des études de cas.',
     calcul:
@@ -542,14 +522,13 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Acteurs institutionnels formés',
     unitePrincipale: 'acteurs',
     afficherVentilateurPersonne: true,
-    observationRattachement:
-      "Cet indicateur cible les acteurs publics formés et l'amélioration de leurs pratiques. Il relève surtout des projets qui combinent accompagnement institutionnel et appui technique.",
   },
   {
     code: 'D3',
     pilier: 'D',
     intitule: 'Effets observables sur l’environnement',
-    definition: 'Changements observables plausiblement liés aux appuis OIF.',
+    definition: `Changements observables plausiblement liés aux appuis OIF.
+Il s'agit d'un indicateur qualitatif transversal, adapté aux projets qui produisent des effets écosystémiques, sectoriels ou territoriaux.`,
     variables: [
       'Type de changement observé',
       'Niveau d’observation',
@@ -566,8 +545,6 @@ export const INDICATEURS: Indicateur[] = [
       'Privilégier des changements concrets, vérifiables et bien décrits',
     ],
     projetsConcernes: ['PROJ_A15', 'PROJ_A17', 'PROJ_A18', 'PROJ_A19', 'PROJ_A20'],
-    observationRattachement:
-      "Il s'agit d'un indicateur qualitatif transversal, adapté aux projets qui produisent des effets écosystémiques, sectoriels ou territoriaux.",
   },
 
   // ─────────────────────────── MARQUEUR F ────────────────────────────
@@ -576,7 +553,8 @@ export const INDICATEURS: Indicateur[] = [
     pilier: 'F',
     intitule: 'Apport du français à l’employabilité',
     definition:
-      'Pourcentage de bénéficiaires déclarant que le français a facilité l’accès ou l’amélioration de l’emploi.',
+      `Pourcentage de bénéficiaires déclarant que le français a facilité l’accès ou l’amélioration de l’emploi.
+Ce marqueur transversal est pertinent pour les projets où le français constitue une compétence professionnelle mobilisable dans l'emploi, l'entrepreneuriat, la relation client, le commerce ou le tourisme.`,
     variables: [
       'Niveau de français avant et après',
       'Usage professionnel du français',
@@ -597,8 +575,6 @@ export const INDICATEURS: Indicateur[] = [
     labelMetrique: 'Bénéficiaires francophones',
     unitePrincipale: 'personnes',
     afficherVentilateurPersonne: true,
-    observationRattachement:
-      "Ce marqueur transversal est pertinent pour les projets où le français constitue une compétence professionnelle mobilisable dans l'emploi, l'entrepreneuriat, la relation client, le commerce ou le tourisme.",
   },
 ];
 
