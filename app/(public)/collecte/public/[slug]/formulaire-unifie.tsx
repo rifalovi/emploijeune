@@ -3,13 +3,10 @@
 /**
  * Formulaire unifie (Type 0) — identite + questionnaire complet.
  *
- * Etapes :
+ * Flux :
  *   1. Categorie (beneficiaire / structure)
- *   2. Identite + questions du questionnaire A ou B + consentement RGPD
- *
- * Les questions sont importees depuis QUESTIONNAIRE_A / QUESTIONNAIRE_B
- * (lib/schemas/enquetes/questionnaires.ts) et rendues dynamiquement
- * avec le systeme affiche_si pour la skip logic.
+ *   2. Q101 RGPD en tete — si Non : message "Fin" + soumission directe
+ *      Si Oui : identite + questionnaire A ou B + bouton Soumettre
  */
 
 import { useState } from 'react';
@@ -25,6 +22,7 @@ import type { InfoLienPublic } from '@/lib/collecte-publique/actions';
 import type { TrancheAgeOption } from './collecte-form';
 import { QUESTIONNAIRE_A, QUESTIONNAIRE_B } from '@/lib/schemas/enquetes/questionnaires';
 import type { Question, Section } from '@/lib/schemas/enquetes/questionnaires';
+import { PAYS_OIF } from '@/lib/schemas/nomenclatures';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,8 +38,8 @@ type Props = {
   tranchesAge?: TrancheAgeOption[];
 };
 
-const SEXE_VALUES = ['F', 'M', 'Autre'] as const;
-const SEXE_LIBELLES: Record<string, string> = { F: 'Feminin', M: 'Masculin', Autre: 'Autre / Non precise' };
+const SEXE_VALUES = ['F', 'M'] as const;
+const SEXE_LIBELLES: Record<string, string> = { F: 'Femme', M: 'Homme' };
 
 // ── Helpers skip logic ───────────────────────────────────────────────────────
 
@@ -65,15 +63,22 @@ function QuestionField({
   register,
   control,
   visible,
+  errors,
 }: {
   question: Question;
   register: ReturnType<typeof useForm>['register'];
   control: ReturnType<typeof useForm>['control'];
   visible: boolean;
+  errors: Record<string, unknown>;
 }) {
   if (!visible) return null;
 
   const path = q.champ_payload;
+  // Acces a l'erreur via chemin plat ou imbrique
+  const fieldError = path.split('.').reduce((acc: unknown, key) => {
+    if (acc && typeof acc === 'object') return (acc as Record<string, unknown>)[key];
+    return undefined;
+  }, errors) as { message?: string } | undefined;
 
   switch (q.type) {
     case 'oui_non':
@@ -98,6 +103,9 @@ function QuestionField({
               </div>
             )}
           />
+          {fieldError?.message && (
+            <p className="text-xs text-destructive">{fieldError.message}</p>
+          )}
         </div>
       );
 
@@ -122,6 +130,9 @@ function QuestionField({
               </Select>
             )}
           />
+          {fieldError?.message && (
+            <p className="text-xs text-destructive">{fieldError.message}</p>
+          )}
         </div>
       );
 
@@ -129,7 +140,10 @@ function QuestionField({
       return (
         <div className="space-y-1.5">
           <Label>{q.libelle} {q.obligatoire && <span className="text-destructive">*</span>}</Label>
-          <Input {...register(path, q.obligatoire ? { required: true } : undefined)} placeholder="Votre reponse" />
+          <Input {...register(path, q.obligatoire ? { required: 'Requis' } : undefined)} placeholder="Votre reponse" />
+          {fieldError?.message && (
+            <p className="text-xs text-destructive">{fieldError.message}</p>
+          )}
         </div>
       );
 
@@ -177,11 +191,13 @@ function SectionRenderer({
   register,
   control,
   values,
+  errors,
 }: {
   section: Section;
   register: ReturnType<typeof useForm>['register'];
   control: ReturnType<typeof useForm>['control'];
   values: Record<string, unknown>;
+  errors: Record<string, unknown>;
 }) {
   const questionsVisibles = section.questions.filter((q) => estVisible(q, values));
   if (questionsVisibles.length === 0) return null;
@@ -202,6 +218,7 @@ function SectionRenderer({
             register={register}
             control={control}
             visible={estVisible(q, values)}
+            errors={errors}
           />
         ))}
       </CardContent>
@@ -223,12 +240,16 @@ export function FormulaireUnifie({
   const [etape, setEtape] = useState(0);
   const [categorie, setCategorie] = useState<Categorie | null>(null);
 
-  const { register, handleSubmit, control, watch } = useForm();
+  const { register, handleSubmit, control, watch, reset, formState: { errors } } = useForm();
 
   const values = watch();
-  const consentement = values.consentement;
+  const consentementRGPD = values.consentement_rgpd as boolean | undefined;
+  const paysCode = values.pays_code as string | undefined;
+  const porteurPaysCode = values.porteur_pays_code as string | undefined;
 
   const questionnaire = categorie === 'structure' ? QUESTIONNAIRE_B : QUESTIONNAIRE_A;
+  const rgpdSection = questionnaire.sections[0] as Section;
+  const autresSections = questionnaire.sections.slice(1);
 
   const construireDonnees = (data: Record<string, unknown>): Record<string, unknown> => ({
     ...data,
@@ -238,6 +259,11 @@ export function FormulaireUnifie({
 
   const soumettre = (data: Record<string, unknown>) => onSubmit(construireDonnees(data));
   const soumettreEtNouveau = (data: Record<string, unknown>) => onSubmitEtNouveau(construireDonnees(data));
+
+  // Soumission directe pour refus de consentement (pas de validation rhf)
+  const soumettreRefus = () => {
+    onSubmit(construireDonnees({ consentement_rgpd: false }));
+  };
 
   // ── Etape 0 : Choix de categorie ──────────────────────────────────────
 
@@ -286,154 +312,254 @@ export function FormulaireUnifie({
     );
   }
 
-  // ── Etape 1 : Identite + questionnaire complet ────────────────────────
+  // ── Etape 1 : RGPD + formulaire complet ──────────────────────────────
 
   return (
     <form onSubmit={handleSubmit(soumettre)} className="space-y-6">
       {/* Navigation */}
       <div className="flex items-center justify-between text-xs text-slate-500">
-        <button type="button" onClick={() => setEtape(0)} className="flex items-center gap-1 hover:text-slate-700">
-          <ChevronLeft className="size-3" /> Changer de categorie
-        </button>
+        <Button type="button" variant="outline" size="sm" onClick={() => { setEtape(0); reset(); }} className="flex items-center gap-1">
+          <ChevronLeft className="size-4" /> Changer de catégorie
+        </Button>
         <span>{questionnaire.titre}</span>
       </div>
 
-      {/* ── Section Identite (beneficiaire) ──────────────────────── */}
-      {categorie === 'beneficiaire' && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Informations generales</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Prenom <span className="text-destructive">*</span></Label>
-                <Input {...register('prenom', { required: true })} placeholder="Prenom" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Nom <span className="text-destructive">*</span></Label>
-                <Input {...register('nom', { required: true })} placeholder="Nom" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Sexe <span className="text-destructive">*</span></Label>
-                <Controller name="sexe" control={control} rules={{ required: true }}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value as string ?? ''}>
-                      <SelectTrigger><SelectValue placeholder="Choisir" /></SelectTrigger>
-                      <SelectContent>
-                        {SEXE_VALUES.map((s) => <SelectItem key={s} value={s}>{SEXE_LIBELLES[s]}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Tranche d&apos;age</Label>
-                <Controller name="tranche_age_declaree" control={control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value as string ?? ''}>
-                      <SelectTrigger><SelectValue placeholder="Facultatif" /></SelectTrigger>
-                      <SelectContent>
-                        {tranchesAge.length > 0
-                          ? tranchesAge.map((t) => <SelectItem key={t.id} value={t.libelle}>{t.libelle} ({t.categorie_oif})</SelectItem>)
-                          : <><SelectItem value="jeune">Jeune (15-34 ans)</SelectItem><SelectItem value="adulte">Adulte (35 ans et +)</SelectItem></>
-                        }
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>E-mail</Label>
-              <Input type="email" {...register('email')} placeholder="votre@email.com" />
-            </div>
+      {/* ── Section RGPD (toujours affichee en premier) ──────────────── */}
+      <SectionRenderer
+        section={rgpdSection}
+        register={register}
+        control={control}
+        values={values}
+        errors={errors as Record<string, unknown>}
+      />
+
+      {/* ── Refus consentement → fin du questionnaire ────────────────── */}
+      {consentementRGPD === false && (
+        <Card className="border-slate-200 bg-slate-50">
+          <CardContent className="pt-6 pb-6 text-center space-y-4">
+            <p className="text-sm text-slate-600">
+              Fin du questionnaire — merci de votre temps.
+            </p>
+            {erreur && (
+              <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{erreur}</p>
+            )}
+            <Button type="button" onClick={soumettreRefus} disabled={isPending} className="gap-2">
+              <Send className="size-4" />
+              {isPending ? 'Envoi en cours...' : 'Terminer'}
+            </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* ── Section Identite (structure) ─────────────────────────── */}
-      {categorie === 'structure' && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Informations generales</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Nom de la structure <span className="text-destructive">*</span></Label>
-              <Input {...register('nom_structure', { required: true })} placeholder="Nom de la structure" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Nom du porteur <span className="text-destructive">*</span></Label>
-                <Input {...register('porteur_nom', { required: true })} placeholder="Nom" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Sexe du porteur <span className="text-destructive">*</span></Label>
-                <Controller name="porteur_sexe" control={control} rules={{ required: true }}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value as string ?? ''}>
-                      <SelectTrigger><SelectValue placeholder="Choisir" /></SelectTrigger>
-                      <SelectContent>
-                        {SEXE_VALUES.map((s) => <SelectItem key={s} value={s}>{SEXE_LIBELLES[s]}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+      {/* ── Consentement donne → afficher le formulaire complet ──────── */}
+      {consentementRGPD === true && (
+        <>
+          {/* ── Identification beneficiaire ─────────────────────────── */}
+          {categorie === 'beneficiaire' && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Informations generales</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Nom <span className="text-destructive">*</span></Label>
+                    <Input {...register('nom', { required: 'Requis' })} placeholder="Nom de famille" />
+                    {errors.nom && (
+                      <p className="text-xs text-destructive">{errors.nom.message as string}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Prenom <span className="text-destructive">*</span></Label>
+                    <Input {...register('prenom', { required: 'Requis' })} placeholder="Prenom" />
+                    {errors.prenom && (
+                      <p className="text-xs text-destructive">{errors.prenom.message as string}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Sexe <span className="text-destructive">*</span></Label>
+                    <Controller name="sexe" control={control} rules={{ required: 'Requis' }}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value as string ?? ''}>
+                          <SelectTrigger><SelectValue placeholder="Choisir" /></SelectTrigger>
+                          <SelectContent>
+                            {SEXE_VALUES.map((s) => <SelectItem key={s} value={s}>{SEXE_LIBELLES[s]}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {errors.sexe && (
+                      <p className="text-xs text-destructive">{errors.sexe.message as string}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Tranche d&apos;age <span className="text-destructive">*</span></Label>
+                    <Controller name="tranche_age_declaree" control={control} rules={{ required: 'Requis' }}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value as string ?? ''}>
+                          <SelectTrigger><SelectValue placeholder="Choisir" /></SelectTrigger>
+                          <SelectContent>
+                            {tranchesAge.length > 0
+                              ? tranchesAge.map((t) => (
+                                  <SelectItem key={t.id} value={t.libelle}>{t.libelle} ({t.categorie_oif})</SelectItem>
+                                ))
+                              : (
+                                <>
+                                  <SelectItem value="15-34 ans">15-34 ans</SelectItem>
+                                  <SelectItem value="35 ans et plus">35 ans et plus</SelectItem>
+                                </>
+                              )
+                            }
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {errors.tranche_age_declaree && (
+                      <p className="text-xs text-destructive">{errors.tranche_age_declaree.message as string}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Pays <span className="text-destructive">*</span></Label>
+                  <Controller name="pays_code" control={control} rules={{ required: 'Requis' }}
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value as string ?? ''}>
+                        <SelectTrigger><SelectValue placeholder="Sélectionner un pays..." /></SelectTrigger>
+                        <SelectContent>
+                          {PAYS_OIF.map((p) => (
+                            <SelectItem key={p.code} value={p.code}>{p.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.pays_code && (
+                    <p className="text-xs text-destructive">{errors.pays_code.message as string}</p>
                   )}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                </div>
+                {paysCode === 'AUTRE' && (
+                  <div className="space-y-1.5">
+                    <Label>Préciser le pays <span className="text-destructive">*</span></Label>
+                    <Input {...register('pays_autre', { required: 'Requis' })} placeholder="Nom du pays" />
+                    {errors.pays_autre && (
+                      <p className="text-xs text-destructive">{errors.pays_autre.message as string}</p>
+                    )}
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <Label>E-mail</Label>
+                  <Input type="email" {...register('email')} placeholder="votre@email.com" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-      {/* ── Sections du questionnaire (A ou B) ──────────────────── */}
-      {questionnaire.sections.map((section) => (
-        <SectionRenderer
-          key={section.id}
-          section={section}
-          register={register}
-          control={control}
-          values={values}
-        />
-      ))}
+          {/* ── Identification structure ─────────────────────────────── */}
+          {categorie === 'structure' && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Informations generales</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Nom de la structure <span className="text-destructive">*</span></Label>
+                  <Input {...register('nom_structure', { required: 'Requis' })} placeholder="Nom de la structure" />
+                  {errors.nom_structure && (
+                    <p className="text-xs text-destructive">{errors.nom_structure.message as string}</p>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Nom du porteur <span className="text-destructive">*</span></Label>
+                    <Input {...register('porteur_nom', { required: 'Requis' })} placeholder="Nom complet" />
+                    {errors.porteur_nom && (
+                      <p className="text-xs text-destructive">{errors.porteur_nom.message as string}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Sexe du porteur <span className="text-destructive">*</span></Label>
+                    <Controller name="porteur_sexe" control={control} rules={{ required: 'Requis' }}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value as string ?? ''}>
+                          <SelectTrigger><SelectValue placeholder="Choisir" /></SelectTrigger>
+                          <SelectContent>
+                            {SEXE_VALUES.map((s) => <SelectItem key={s} value={s}>{SEXE_LIBELLES[s]}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {errors.porteur_sexe && (
+                      <p className="text-xs text-destructive">{errors.porteur_sexe.message as string}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Pays de la structure <span className="text-destructive">*</span></Label>
+                  <Controller name="porteur_pays_code" control={control} rules={{ required: 'Requis' }}
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value as string ?? ''}>
+                        <SelectTrigger><SelectValue placeholder="Sélectionner un pays..." /></SelectTrigger>
+                        <SelectContent>
+                          {PAYS_OIF.map((p) => (
+                            <SelectItem key={p.code} value={p.code}>{p.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.porteur_pays_code && (
+                    <p className="text-xs text-destructive">{errors.porteur_pays_code.message as string}</p>
+                  )}
+                </div>
+                {porteurPaysCode === 'AUTRE' && (
+                  <div className="space-y-1.5">
+                    <Label>Préciser le pays <span className="text-destructive">*</span></Label>
+                    <Input {...register('porteur_pays_autre', { required: 'Requis' })} placeholder="Nom du pays" />
+                    {errors.porteur_pays_autre && (
+                      <p className="text-xs text-destructive">{errors.porteur_pays_autre.message as string}</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-      {/* ── Consentement RGPD ────────────────────────────────────── */}
-      <Card className="border-amber-200 bg-amber-50/50">
-        <CardContent className="pt-4">
-          <label className="flex items-start gap-3 text-sm">
-            <input type="checkbox" {...register('consentement', { required: true })}
-              className="mt-1 size-4 rounded border-amber-300" />
-            <span className="text-slate-700">
-              J&apos;accepte que mes donnees soient traitees par l&apos;OIF dans le cadre
-              du suivi-evaluation des projets Emploi Jeunes, conformement au RGPD.
-              <span className="text-destructive"> *</span>
-            </span>
-          </label>
-        </CardContent>
-      </Card>
+          {/* ── Sections du questionnaire (sans la section RGPD) ────── */}
+          {autresSections.map((section) => (
+            <SectionRenderer
+              key={section.id}
+              section={section}
+              register={register}
+              control={control}
+              values={values}
+              errors={errors as Record<string, unknown>}
+            />
+          ))}
 
-      {erreur && (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{erreur}</p>
-      )}
+          {erreur && (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{erreur}</p>
+          )}
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-        <Button type="submit" disabled={isPending || !consentement} className="gap-2">
-          <Send className="size-4" />
-          {isPending ? 'Envoi en cours...' : 'Soumettre'}
-        </Button>
-        <Button type="button" variant="outline" disabled={isPending || !consentement}
-          onClick={handleSubmit(soumettreEtNouveau)} className="gap-2">
-          <Send className="size-4" />
-          Soumettre et saisir un autre
-        </Button>
-      </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
+            <Button type="submit" disabled={isPending} className="gap-2">
+              <Send className="size-4" />
+              {isPending ? 'Envoi en cours...' : 'Soumettre'}
+            </Button>
+            <Button type="button" variant="outline" disabled={isPending}
+              onClick={handleSubmit(soumettreEtNouveau)} className="gap-2">
+              <Send className="size-4" />
+              Soumettre et saisir un autre
+            </Button>
+          </div>
 
-      {confirmationNouveau && (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-center text-sm text-emerald-700">
-          Soumission enregistree. Vous pouvez en saisir une nouvelle.
-        </p>
+          {confirmationNouveau && (
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-center text-sm text-emerald-700">
+              Soumission enregistree. Vous pouvez en saisir une nouvelle.
+            </p>
+          )}
+        </>
       )}
     </form>
   );

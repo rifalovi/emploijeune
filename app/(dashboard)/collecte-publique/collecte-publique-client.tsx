@@ -68,7 +68,7 @@ import type {
   SoumissionCollecte,
   TypeCollecte,
 } from '@/lib/collecte-publique/actions';
-import { PROJETS_CODES } from '@/lib/schemas/nomenclatures';
+import { PROJETS_CODES, PROJETS_LIBELLES } from '@/lib/schemas/nomenclatures';
 
 // =============================================================================
 // Composant principal
@@ -1187,7 +1187,9 @@ function DialogCreerLien({
                 <SelectItem value="_aucun">Aucun (à renseigner par le participant)</SelectItem>
                 {PROJETS_CODES.map((c) => (
                   <SelectItem key={c} value={c}>
-                    {c}
+                    <span className="font-mono text-xs text-slate-400">{c}</span>
+                    {' — '}
+                    {PROJETS_LIBELLES[c] ?? c}
                   </SelectItem>
                 ))}
               </SelectContent>

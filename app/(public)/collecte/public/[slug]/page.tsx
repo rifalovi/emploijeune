@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { LogoOIF } from '@/components/branding/logo-oif';
 import { Card, CardContent } from '@/components/ui/card';
 import { validerLienSlug } from '@/lib/collecte-publique/actions';
@@ -46,13 +47,15 @@ export default async function CollectePubliquePage({ params }: PageProps) {
       <div className="w-full max-w-2xl">
         {/* En-tête OIF */}
         <div className="mb-8 flex flex-col items-center text-center">
-          <LogoOIF
-            variant="quadri"
-            size="lg"
-            withProtectedSpace
-            priority
-            ariaLabel="Logo officiel de l'Organisation Internationale de la Francophonie"
-          />
+          <Link href="/" aria-label="Retour à l'accueil">
+            <LogoOIF
+              variant="quadri"
+              size="lg"
+              withProtectedSpace
+              priority
+              ariaLabel="Logo officiel de l'Organisation Internationale de la Francophonie"
+            />
+          </Link>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">OIF – Emploi Jeunes</h1>
           <p className="text-muted-foreground mt-1 text-sm">{typeLabel}</p>
           {validation.status === 'valide' && validation.lien.label && (

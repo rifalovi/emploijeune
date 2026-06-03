@@ -54,7 +54,142 @@ export const PROJETS_EMPLOI_JEUNES_CODES = [
 
 export type ProjetCode = (typeof PROJETS_CODES)[number];
 export type ProjetEmploiJeunesCode = (typeof PROJETS_EMPLOI_JEUNES_CODES)[number];
+export const PROJETS_LIBELLES: Record<ProjetCode, string> = {
+  'PROJ_A01a': "La langue française, langue internationale",
+  'PROJ_A01b': "Observatoire de la langue française",
+  'PROJ_A01c': "Création culturelle, artistique et production de connaissance en français",
+  'PROJ_A02':  "La langue française, langue d’enseignement et d’apprentissage",
+  'PROJ_A03':  "Initiative francophone pour la formation à distance des maîtres (IFADEM)",
+  'PROJ_A04':  "Eçole et langues nationales (ELAN)",
+  'PROJ_A05':  "Acquérir des savoirs, découvrir le monde",
+  'PROJ_A06':  "Industries culturelles et découvrabilité : une ambition francophone et mondiale",
+  'PROJ_A07':  "Jeux de la Francophonie",
+  'PROJ_A08':  "Radio Jeunesse Sahel",
+  'PROJ_A09':  "État civil",
+  'PROJ_A10':  "Renforcement de l’État de droit, des droits de l’Homme et de la justice",
+  'PROJ_A11':  "Prévention et lutte contre les désordres de l’information",
+  'PROJ_A12':  "Accompagnement des processus démocratiques",
+  'PROJ_A13':  "Soutien à la paix et à la stabilité",
+  'PROJ_A14':  "La Francophonie avec Elles",
+  'PROJ_A15':  "Innovations et plaidoyers francophones",
+  'PROJ_A16a': "D-CLIC : Formez-vous au numérique",
+  'PROJ_A16b': "Gouvernance numérique",
+  'PROJ_A17':  "Promotion des échanges économiques et commerciaux francophones",
+  'PROJ_A18':  "Accompagnement des transformations structurelles en matière d’environnement et de climat",
+  'PROJ_A19':  "Soutien aux initiatives environnementales dans le Bassin du Congo",
+  'PROJ_A20':  "Promotion du tourisme durable",
+};
 
+
+
+// =============================================================================
+// Pays membres / observateurs OIF — source : francophonie.org/les-membres (2025)
+// Inclut membres de plein droit, associés, observateurs, gouvernements + AUTRE.
+// =============================================================================
+
+export type PaysOIF = { code: string; label: string };
+
+export const PAYS_OIF: ReadonlyArray<PaysOIF> = [
+  // Afrique de l'Ouest
+  { code: 'BEN', label: 'Bénin' },
+  { code: 'BFA', label: 'Burkina Faso' },
+  { code: 'CPV', label: 'Cap-Vert' },
+  { code: 'CIV', label: "Côte d’Ivoire" },
+  { code: 'GMB', label: 'Gambie' },
+  { code: 'GHA', label: 'Ghana' },
+  { code: 'GIN', label: 'Guinée' },
+  { code: 'GNB', label: 'Guinée-Bissau' },
+  { code: 'MLI', label: 'Mali' },
+  { code: 'MRT', label: 'Mauritanie' },
+  { code: 'NER', label: 'Niger' },
+  { code: 'SEN', label: 'Sénégal' },
+  { code: 'SLE', label: 'Sierra Leone' },
+  { code: 'TGO', label: 'Togo' },
+  // Afrique centrale
+  { code: 'CMR', label: 'Cameroun' },
+  { code: 'CAF', label: 'Centrafrique' },
+  { code: 'COM', label: 'Comores' },
+  { code: 'COD', label: 'Congo (RDC)' },
+  { code: 'COG', label: 'Congo (Rép.)' },
+  { code: 'GAB', label: 'Gabon' },
+  { code: 'GNQ', label: 'Guinée équatoriale' },
+  { code: 'STP', label: 'São Tomé-et-Príncipe' },
+  { code: 'TCD', label: 'Tchad' },
+  // Afrique de l'Est et îles
+  { code: 'BDI', label: 'Burundi' },
+  { code: 'DJI', label: 'Djibouti' },
+  { code: 'MDG', label: 'Madagascar' },
+  { code: 'MUS', label: 'Maurice' },
+  { code: 'MOZ', label: 'Mozambique' },
+  { code: 'RWA', label: 'Rwanda' },
+  { code: 'SYC', label: 'Seychelles' },
+  { code: 'TLS', label: 'Timor-Leste' },
+  // Afrique du Nord
+  { code: 'DZA', label: 'Algérie' },
+  { code: 'EGY', label: 'Égypte' },
+  { code: 'MAR', label: 'Maroc' },
+  { code: 'TUN', label: 'Tunisie' },
+  // Moyen-Orient
+  { code: 'LBN', label: 'Liban' },
+  { code: 'ARE', label: 'Émirats arabes unis' },
+  // Asie / Océanie / Pacifique
+  { code: 'KHM', label: 'Cambodge' },
+  { code: 'LAO', label: 'Laos' },
+  { code: 'THA', label: 'Thaïlande' },
+  { code: 'VNM', label: 'Vietnam' },
+  { code: 'VUT', label: 'Vanuatu' },
+  // Caraïbes / Amériques
+  { code: 'ARG', label: 'Argentine' },
+  { code: 'CAN', label: 'Canada' },
+  { code: 'DMA', label: 'Dominique' },
+  { code: 'HTI', label: 'Haïti' },
+  { code: 'MEX', label: 'Mexique' },
+  { code: 'LOU', label: 'Louisiane (gouvernement)' },
+  { code: 'NBR', label: 'Nouveau-Brunswick (gouvernement)' },
+  { code: 'ONT', label: 'Ontario (gouvernement)' },
+  { code: 'QUE', label: 'Québec (gouvernement)' },
+  { code: 'STE', label: 'Sainte-Lucie' },
+  { code: 'URY', label: 'Uruguay' },
+  // Europe de l’Ouest
+  { code: 'AND', label: 'Andorre' },
+  { code: 'AUT', label: 'Autriche' },
+  { code: 'BEL', label: 'Belgique' },
+  { code: 'FRA', label: 'France' },
+  { code: 'FWB', label: 'Fédération Wallonie-Bruxelles (gouvernement)' },
+  { code: 'LUX', label: 'Luxembourg' },
+  { code: 'MCO', label: 'Monaco' },
+  { code: 'CHE', label: 'Suisse' },
+  { code: 'VAO', label: "Val d’Aoste (gouvernement)" },
+  // Europe centrale et orientale
+  { code: 'ALB', label: 'Albanie' },
+  { code: 'ARM', label: 'Arménie' },
+  { code: 'BIH', label: 'Bosnie-Herzégovine' },
+  { code: 'BGR', label: 'Bulgarie' },
+  { code: 'HRV', label: 'Croatie' },
+  { code: 'CYP', label: 'Chypre' },
+  { code: 'CZE', label: 'République tchèque' },
+  { code: 'EST', label: 'Estonie' },
+  { code: 'GEO', label: 'Géorgie' },
+  { code: 'GRC', label: 'Grèce' },
+  { code: 'HUN', label: 'Hongrie' },
+  { code: 'XKX', label: 'Kosovo' },
+  { code: 'LVA', label: 'Lettonie' },
+  { code: 'LTU', label: 'Lituanie' },
+  { code: 'MKD', label: 'Macédoine du Nord' },
+  { code: 'MLT', label: 'Malte' },
+  { code: 'MDA', label: 'Moldavie' },
+  { code: 'MNE', label: 'Monténégro' },
+  { code: 'POL', label: 'Pologne' },
+  { code: 'ROU', label: 'Roumanie' },
+  { code: 'SRB', label: 'Serbie' },
+  { code: 'SVK', label: 'Slovaquie' },
+  { code: 'SVN', label: 'Slovénie' },
+  { code: 'UKR', label: 'Ukraine' },
+  // Asie orientale
+  { code: 'KOR', label: 'Corée du Sud' },
+  // Option générique
+  { code: 'AUTRE', label: 'Autre (à préciser)' },
+];
 // =============================================================================
 // Programmes Stratégiques (3 valeurs)
 // =============================================================================

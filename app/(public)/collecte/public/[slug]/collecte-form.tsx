@@ -29,6 +29,8 @@ import type { InfoLienPublic } from '@/lib/collecte-publique/actions';
 import { FormulaireUnifie } from './formulaire-unifie';
 import {
   PROJETS_CODES,
+  PROJETS_LIBELLES,
+  PAYS_OIF,
   SEXE_VALUES,
   DOMAINES_FORMATION_CODES,
   TYPES_STRUCTURE_CODES,
@@ -50,112 +52,6 @@ import {
   Q_D301_NIVEAU_OBSERVATION_LIBELLES,
 } from '@/lib/schemas/enquetes/nomenclatures';
 
-// =============================================================================
-// États et gouvernements membres de l'OIF — liste complète (~90 entrées, 2025)
-// Source : https://www.francophonie.org/les-membres-de-loif-28
-// Inclut : membres de plein droit, membres associés, observateurs, gouvernements
-// =============================================================================
-const PAYS_OIF: Array<{ code: string; label: string }> = [
-  // Afrique de l'Ouest
-  { code: 'BEN', label: 'Bénin' },
-  { code: 'BFA', label: 'Burkina Faso' },
-  { code: 'CPV', label: 'Cap-Vert' },
-  { code: 'CIV', label: "Côte d'Ivoire" },
-  { code: 'GMB', label: 'Gambie' },
-  { code: 'GHA', label: 'Ghana' },
-  { code: 'GIN', label: 'Guinée' },
-  { code: 'GNB', label: 'Guinée-Bissau' },
-  { code: 'MLI', label: 'Mali' },
-  { code: 'MRT', label: 'Mauritanie' },
-  { code: 'NER', label: 'Niger' },
-  { code: 'SEN', label: 'Sénégal' },
-  { code: 'SLE', label: 'Sierra Leone' },
-  { code: 'TGO', label: 'Togo' },
-  // Afrique centrale
-  { code: 'CMR', label: 'Cameroun' },
-  { code: 'CAF', label: 'Centrafrique' },
-  { code: 'COM', label: 'Comores' },
-  { code: 'COD', label: 'Congo (RDC)' },
-  { code: 'COG', label: 'Congo (Rép.)' },
-  { code: 'GAB', label: 'Gabon' },
-  { code: 'GNQ', label: 'Guinée équatoriale' },
-  { code: 'STP', label: 'São Tomé-et-Príncipe' },
-  { code: 'TCD', label: 'Tchad' },
-  // Afrique de l'Est et îles
-  { code: 'BDI', label: 'Burundi' },
-  { code: 'DJI', label: 'Djibouti' },
-  { code: 'MDG', label: 'Madagascar' },
-  { code: 'MUS', label: 'Maurice' },
-  { code: 'MOZ', label: 'Mozambique' },
-  { code: 'RWA', label: 'Rwanda' },
-  { code: 'SYC', label: 'Seychelles' },
-  { code: 'TLS', label: 'Timor-Leste' },
-  // Afrique du Nord
-  { code: 'DZA', label: 'Algérie' },
-  { code: 'EGY', label: 'Égypte' },
-  { code: 'MAR', label: 'Maroc' },
-  { code: 'TUN', label: 'Tunisie' },
-  // Moyen-Orient
-  { code: 'LBN', label: 'Liban' },
-  { code: 'ARE', label: 'Émirats arabes unis' },
-  // Asie / Océanie / Pacifique
-  { code: 'KHM', label: 'Cambodge' },
-  { code: 'LAO', label: 'Laos' },
-  { code: 'THA', label: 'Thaïlande' },
-  { code: 'VNM', label: 'Vietnam' },
-  { code: 'VUT', label: 'Vanuatu' },
-  // Caraïbes / Amériques
-  { code: 'ARG', label: 'Argentine' },
-  { code: 'CAN', label: 'Canada' },
-  { code: 'DMA', label: 'Dominique' },
-  { code: 'HTI', label: 'Haïti' },
-  { code: 'MEX', label: 'Mexique' },
-  { code: 'LOU', label: 'Louisiane (gouvernement)' },
-  { code: 'NBR', label: 'Nouveau-Brunswick (gouvernement)' },
-  { code: 'ONT', label: 'Ontario (gouvernement)' },
-  { code: 'QUE', label: 'Québec (gouvernement)' },
-  { code: 'STE', label: 'Sainte-Lucie' },
-  { code: 'URY', label: 'Uruguay' },
-  // Europe de l'Ouest
-  { code: 'AND', label: 'Andorre' },
-  { code: 'AUT', label: 'Autriche' },
-  { code: 'BEL', label: 'Belgique' },
-  { code: 'FRA', label: 'France' },
-  { code: 'FWB', label: 'Fédération Wallonie-Bruxelles (gouvernement)' },
-  { code: 'LUX', label: 'Luxembourg' },
-  { code: 'MCO', label: 'Monaco' },
-  { code: 'CHE', label: 'Suisse' },
-  { code: 'VAO', label: "Val d'Aoste (gouvernement)" },
-  // Europe centrale et orientale
-  { code: 'ALB', label: 'Albanie' },
-  { code: 'ARM', label: 'Arménie' },
-  { code: 'BIH', label: 'Bosnie-Herzégovine' },
-  { code: 'BGR', label: 'Bulgarie' },
-  { code: 'HRV', label: 'Croatie' },
-  { code: 'CYP', label: 'Chypre' },
-  { code: 'CZE', label: 'République tchèque' },
-  { code: 'EST', label: 'Estonie' },
-  { code: 'GEO', label: 'Géorgie' },
-  { code: 'GRC', label: 'Grèce' },
-  { code: 'HUN', label: 'Hongrie' },
-  { code: 'XKX', label: 'Kosovo' },
-  { code: 'LVA', label: 'Lettonie' },
-  { code: 'LTU', label: 'Lituanie' },
-  { code: 'MKD', label: 'Macédoine du Nord' },
-  { code: 'MLT', label: 'Malte' },
-  { code: 'MDA', label: 'Moldavie' },
-  { code: 'MNE', label: 'Monténégro' },
-  { code: 'POL', label: 'Pologne' },
-  { code: 'ROU', label: 'Roumanie' },
-  { code: 'SRB', label: 'Serbie' },
-  { code: 'SVK', label: 'Slovaquie' },
-  { code: 'SVN', label: 'Slovénie' },
-  { code: 'UKR', label: 'Ukraine' },
-  // Asie orientale
-  { code: 'KOR', label: 'Corée du Sud' },
-  // Option générique
-  { code: 'AUTRE', label: 'Autre (à préciser)' },
-];
 
 const SEXE_LIBELLES: Record<string, string> = {
   F: 'Féminin',
@@ -623,12 +519,14 @@ function FormulaireBeneficiaire({
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value ?? ''}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Code projet…" />
+                      <SelectValue placeholder="Sélectionner un projet…" />
                     </SelectTrigger>
                     <SelectContent className="max-h-56">
                       {PROJETS_CODES.map((c) => (
                         <SelectItem key={c} value={c}>
-                          {c}
+                          <span className="font-mono text-xs text-slate-400">{c}</span>
+                          {' — '}
+                          {PROJETS_LIBELLES[c] ?? c}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1025,12 +923,14 @@ function FormulaireStructure({
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value ?? ''}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Code projet…" />
+                      <SelectValue placeholder="Sélectionner un projet…" />
                     </SelectTrigger>
                     <SelectContent className="max-h-56">
                       {PROJETS_CODES.map((c) => (
                         <SelectItem key={c} value={c}>
-                          {c}
+                          <span className="font-mono text-xs text-slate-400">{c}</span>
+                          {' — '}
+                          {PROJETS_LIBELLES[c] ?? c}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1478,12 +1378,14 @@ function FormulaireIntermediationC({
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value ?? ''}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Code projet…" />
+                      <SelectValue placeholder="Sélectionner un projet…" />
                     </SelectTrigger>
                     <SelectContent className="max-h-56">
                       {PROJETS_CODES.map((c) => (
                         <SelectItem key={c} value={c}>
-                          {c}
+                          <span className="font-mono text-xs text-slate-400">{c}</span>
+                          {' — '}
+                          {PROJETS_LIBELLES[c] ?? c}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1978,12 +1880,14 @@ function FormulaireEcosystemesD({
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value ?? ''}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Code projet…" />
+                      <SelectValue placeholder="Sélectionner un projet…" />
                     </SelectTrigger>
                     <SelectContent className="max-h-56">
                       {PROJETS_CODES.map((c) => (
                         <SelectItem key={c} value={c}>
-                          {c}
+                          <span className="font-mono text-xs text-slate-400">{c}</span>
+                          {' — '}
+                          {PROJETS_LIBELLES[c] ?? c}
                         </SelectItem>
                       ))}
                     </SelectContent>

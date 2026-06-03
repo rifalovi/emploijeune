@@ -115,6 +115,20 @@ export const QUESTIONNAIRE_A: Questionnaire = {
     'Enquête de suivi socio-économique adressée aux jeunes ayant bénéficié d’une formation via un projet OIF. Données strictement confidentielles, traitées de manière anonyme, conformément au secret statistique.',
   sections: [
     {
+      id: 'A_RGPD',
+      titre: 'Consentement',
+      description: "Requis pour participer à l'enquête.",
+      questions: [
+        {
+          id: 'A101',
+          type: 'oui_non',
+          libelle: "En acceptant de répondre à ce questionnaire, vous consentez au traitement de vos données par l’OIF.",
+          champ_payload: 'consentement_rgpd',
+          obligatoire: true,
+        },
+      ],
+    },
+    {
       id: 'A_PARTICIPATION',
       titre: 'Participation à la formation',
       description: 'Indicateur A2 – taux d’achèvement.',
@@ -340,6 +354,20 @@ export const QUESTIONNAIRE_B: Questionnaire = {
   introduction:
     'Enquête de suivi socio-économique adressée aux organisations et entreprises ayant bénéficié d’un appui via un projet OIF. Données strictement confidentielles, traitées conformément au secret statistique.',
   sections: [
+    {
+      id: 'B_RGPD',
+      titre: 'Consentement',
+      description: "Requis pour participer à l'enquête.",
+      questions: [
+        {
+          id: 'B101',
+          type: 'oui_non',
+          libelle: "En acceptant de répondre à ce questionnaire, vous consentez au traitement de vos données par l’OIF.",
+          champ_payload: 'consentement_rgpd',
+          obligatoire: true,
+        },
+      ],
+    },
     {
       id: 'B_SURVIE',
       titre: 'Survie de l’activité économique',
