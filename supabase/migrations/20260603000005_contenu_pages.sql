@@ -30,6 +30,9 @@ CREATE TRIGGER trg_contenu_pages_updated_at
 
 ALTER TABLE public.contenu_pages ENABLE ROW LEVEL SECURITY;
 
+GRANT SELECT ON public.contenu_pages TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.contenu_pages TO authenticated;
+
 CREATE POLICY cp_select ON public.contenu_pages FOR SELECT USING (true);
 CREATE POLICY cp_insert ON public.contenu_pages FOR INSERT
   WITH CHECK (EXISTS (
