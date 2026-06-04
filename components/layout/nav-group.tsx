@@ -87,6 +87,7 @@ export function NavGroup({ group, items, badges = {} }: NavGroupProps) {
               label={item.label}
               icon={item.icon}
               badge={badges[item.href]}
+              siblingHrefs={items.map((i) => i.href)}
             />
           ))}
         </div>
@@ -102,11 +103,17 @@ type NavSubLinkProps = {
   label: string;
   icon: NavItem['icon'];
   badge?: number;
+  siblingHrefs?: string[];
 };
 
-function NavSubLink({ href, label, icon: Icon, badge }: NavSubLinkProps) {
+function NavSubLink({ href, label, icon: Icon, badge, siblingHrefs = [] }: NavSubLinkProps) {
   const pathname = usePathname();
-  const active = pathname === href || pathname.startsWith(`${href}/`);
+  const exactMatch = pathname === href;
+  const prefixMatch = pathname.startsWith(`${href}/`);
+  const siblingMoreSpecific = siblingHrefs.some(
+    (h) => h !== href && (pathname === h || pathname.startsWith(`${h}/`)),
+  );
+  const active = exactMatch || (prefixMatch && !siblingMoreSpecific);
 
   return (
     <Link

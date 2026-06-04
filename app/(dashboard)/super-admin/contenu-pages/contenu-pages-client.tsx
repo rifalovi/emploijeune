@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useRef } from 'react';
+import { useState, useTransition, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   sauvegarderBloc,
@@ -43,6 +43,11 @@ import {
   EyeOff,
   RefreshCw,
   GripVertical,
+  Bold,
+  Italic,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -491,6 +496,21 @@ function BlocRow({
   const [valeurLocale, setValeurLocale] = useState(bloc.valeur);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const insertFormatting = useCallback((before: string, after = before) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = valeurLocale.slice(start, end);
+    const replacement = before + (selected || 'texte') + after;
+    const next = valeurLocale.slice(0, start) + replacement + valeurLocale.slice(end);
+    setValeurLocale(next);
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(start + before.length, start + before.length + (selected || 'texte').length);
+    }, 0);
+  }, [valeurLocale]);
+
   function startEditValeur() {
     setEditingValeur(true);
     setTimeout(() => textareaRef.current?.focus(), 0);
@@ -562,18 +582,44 @@ function BlocRow({
       {/* Valeur — édition inline */}
       <td className="px-3 py-2 max-w-sm" onClick={!editingValeur ? startEditValeur : undefined}>
         {editingValeur ? (
-          <textarea
-            ref={textareaRef}
-            className="w-full rounded border border-blue-300 bg-blue-50 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-            rows={Math.max(2, Math.ceil(valeurLocale.length / 80))}
-            value={valeurLocale}
-            onChange={(e) => setValeurLocale(e.target.value)}
-            onBlur={saveValeur}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') { setValeurLocale(bloc.valeur); setEditingValeur(false); }
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveValeur();
-            }}
-          />
+          <div className="space-y-1">
+            {/* Barre de mise en forme */}
+            <div className="flex items-center gap-0.5 rounded border border-slate-200 bg-white px-1 py-0.5">
+              <button
+                type="button" onMouseDown={(e) => { e.preventDefault(); insertFormatting('**'); }}
+                className="rounded p-1 text-slate-600 hover:bg-slate-100" title="Gras (Ctrl+B)"
+              ><Bold className="size-3" /></button>
+              <button
+                type="button" onMouseDown={(e) => { e.preventDefault(); insertFormatting('*'); }}
+                className="rounded p-1 text-slate-600 hover:bg-slate-100" title="Italique (Ctrl+I)"
+              ><Italic className="size-3" /></button>
+              <div className="mx-1 h-3 w-px bg-slate-200" />
+              <button
+                type="button" onMouseDown={(e) => { e.preventDefault(); insertFormatting('{gauche}', ''); }}
+                className="rounded p-1 text-slate-600 hover:bg-slate-100" title="Aligner à gauche"
+              ><AlignLeft className="size-3" /></button>
+              <button
+                type="button" onMouseDown={(e) => { e.preventDefault(); insertFormatting('{centre}', ''); }}
+                className="rounded p-1 text-slate-600 hover:bg-slate-100" title="Centrer"
+              ><AlignCenter className="size-3" /></button>
+              <button
+                type="button" onMouseDown={(e) => { e.preventDefault(); insertFormatting('{droite}', ''); }}
+                className="rounded p-1 text-slate-600 hover:bg-slate-100" title="Aligner à droite"
+              ><AlignRight className="size-3" /></button>
+            </div>
+            <textarea
+              ref={textareaRef}
+              className="w-full rounded border border-blue-300 bg-blue-50 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              rows={Math.max(2, Math.ceil(valeurLocale.length / 80))}
+              value={valeurLocale}
+              onChange={(e) => setValeurLocale(e.target.value)}
+              onBlur={saveValeur}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') { setValeurLocale(bloc.valeur); setEditingValeur(false); }
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveValeur();
+              }}
+            />
+          </div>
         ) : (
           <p
             className="cursor-text rounded px-1 py-0.5 text-sm leading-snug text-slate-700 hover:bg-blue-50 line-clamp-2"
@@ -587,7 +633,7 @@ function BlocRow({
 
       {/* Actions */}
       <td className="px-2 py-2">
-        <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="flex items-center justify-end gap-0.5">
           <button
             onClick={onDeplacerHaut}
             disabled={loading}

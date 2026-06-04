@@ -66,7 +66,7 @@ export function Sidebar({
       className="bg-sidebar text-sidebar-foreground sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r md:flex"
     >
       {/* Header logo + sous-marque (shrink-0 pour ne pas être compressé) */}
-      <div className="shrink-0 px-3 py-4">
+      <Link href="/dashboard" className="block shrink-0 px-3 py-4 transition-opacity hover:opacity-80">
         <LogoOIF
           variant="quadri"
           size="sm"
@@ -78,7 +78,7 @@ export function Sidebar({
           <p className="text-sm font-semibold">Emploi Jeunes</p>
           <p className="text-muted-foreground text-xs">Plateforme SCS</p>
         </div>
-      </div>
+      </Link>
 
       <Separator />
 
