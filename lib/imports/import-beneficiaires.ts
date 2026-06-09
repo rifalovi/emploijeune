@@ -591,6 +591,19 @@ async function traiterLigne(args: {
   } as never);
 
   if (insertError) {
+    // Violation de contrainte unique = doublon intra-fichier (deux lignes identiques
+    // traitées en parallèle — l'une a gagné la course). Traiter comme doublon, pas erreur.
+    if ((insertError as { code?: string }).code === '23505') {
+      return {
+        numero_ligne: numLigne,
+        statut: 'doublon_identique',
+        mappages_auto: mappagesAuto,
+        champs_manquants: champsManquants,
+        champs_mis_a_jour: [],
+        alertes: [...alertes, 'Doublon intra-fichier détecté lors de l\'import concurrent.'],
+        erreurs: [],
+      };
+    }
     return {
       numero_ligne: numLigne,
       statut: 'rejetee',
