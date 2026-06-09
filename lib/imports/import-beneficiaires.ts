@@ -119,10 +119,10 @@ export async function importerBeneficiairesExcel(
     };
   }
 
-  if (input.fichierTaille > 5 * 1024 * 1024) {
+  if (input.fichierTaille > 10 * 1024 * 1024) {
     return {
       status: 'erreur_fichier',
-      message: 'Fichier trop volumineux (max 5 MB). Scindez le fichier en plusieurs imports.',
+      message: 'Fichier trop volumineux (max 10 MB). Scindez le fichier en plusieurs imports.',
     };
   }
 
@@ -171,41 +171,40 @@ export async function importerBeneficiairesExcel(
     // → fonctionnement dégradé sans rollback
   }
 
+  // Traitement concurrent par tranches de 50 — évite le timeout Vercel 60s
+  // sur les gros fichiers (10 000 lignes séquentielles ≈ 500s, en batches ≈ 10s).
+  const CONCURRENCE = 50;
+  for (let i = 0; i < parse.lignes.length; i += CONCURRENCE) {
+    const tranche = parse.lignes.slice(i, i + CONCURRENCE);
+    const resultats = await Promise.all(
+      tranche.map(({ numLigne, donnees }) =>
+        traiterLigne({
+          numLigne,
+          donnees,
+          adminClient,
+          createdBy: utilisateur.user_id,
+          importSessionId,
+          nomFichier: input.fichierNom,
+          codeProjetDefaut: input.codeProjetDefaut,
+          cacheBatch,
+        }),
+      ),
+    );
+    lignesRapport.push(...resultats);
+  }
+
   let nbInserees = 0;
   let nbEnrichies = 0;
   let nbDoublonsIdentiques = 0;
   let nbIncompletes = 0;
   let nbRejetees = 0;
-
-  for (const { numLigne, donnees } of parse.lignes) {
-    const ligneInfo = await traiterLigne({
-      numLigne,
-      donnees,
-      adminClient,
-      createdBy: utilisateur.user_id,
-      importSessionId,
-      nomFichier: input.fichierNom,
-      codeProjetDefaut: input.codeProjetDefaut,
-      cacheBatch,
-    });
-    lignesRapport.push(ligneInfo);
-
-    switch (ligneInfo.statut) {
-      case 'inseree':
-        nbInserees++;
-        break;
-      case 'enrichie':
-        nbEnrichies++;
-        break;
-      case 'doublon_identique':
-        nbDoublonsIdentiques++;
-        break;
-      case 'incomplete':
-        nbIncompletes++;
-        break;
-      case 'rejetee':
-        nbRejetees++;
-        break;
+  for (const l of lignesRapport) {
+    switch (l.statut) {
+      case 'inseree': nbInserees++; break;
+      case 'enrichie': nbEnrichies++; break;
+      case 'doublon_identique': nbDoublonsIdentiques++; break;
+      case 'incomplete': nbIncompletes++; break;
+      case 'rejetee': nbRejetees++; break;
     }
   }
 

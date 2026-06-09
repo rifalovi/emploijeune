@@ -86,6 +86,10 @@ type Props = {
   pages: string[];
   pageActive: string;
   blocs: ContenuBloc[];
+  /** null = toutes les sections autorisées; string[] = liste blanche */
+  sectionsAutorisees?: string[] | null;
+  /** true si l'utilisateur est admin_scs avec restrictions de sections */
+  accesRestreint?: boolean;
 };
 
 type NouveauBlocState = {
@@ -97,12 +101,15 @@ type NouveauBlocState = {
 
 // ── Composant principal ───────────────────────────────────────────────────────
 
-export function ContenuPagesClient({ pages, pageActive, blocs }: Props) {
+export function ContenuPagesClient({ pages, pageActive, blocs, sectionsAutorisees = null, accesRestreint = false }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  // Regroupe les blocs par section
-  const sections = groupParSection(blocs);
+  // Regroupe les blocs par section, filtré selon les droits
+  const allSections = groupParSection(blocs);
+  const sections = sectionsAutorisees === null
+    ? allSections
+    : Object.fromEntries(Object.entries(allSections).filter(([k]) => sectionsAutorisees.includes(k)));
   const sectionKeys = Object.keys(sections);
 
   // État ouvert/fermé des accordéons
@@ -247,16 +254,23 @@ export function ContenuPagesClient({ pages, pageActive, blocs }: Props) {
         ))
       )}
 
-      {/* Bouton ajouter section */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="gap-1.5"
-        onClick={() => setDialogSection(true)}
-      >
-        <Plus className="size-4" />
-        Ajouter une section
-      </Button>
+      {/* Bouton ajouter section — masqué si accès restreint */}
+      {!accesRestreint && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => setDialogSection(true)}
+        >
+          <Plus className="size-4" />
+          Ajouter une section
+        </Button>
+      )}
+      {accesRestreint && (
+        <p className="text-muted-foreground text-xs">
+          Accès limité aux sections autorisées par le super-administrateur.
+        </p>
+      )}
 
       {/* Dialog nouveau bloc */}
       <Dialog open={!!dialogBloc} onOpenChange={(o) => { if (!o) setDialogBloc(null); }}>

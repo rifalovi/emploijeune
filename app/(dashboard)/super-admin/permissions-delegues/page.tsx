@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { getAdminScsAvecPermissions, MODULES_DELEGABLES } from '@/lib/super-admin/permissions';
+import { getCmsPagesSections } from '@/lib/contenu-pages/queries';
 import { PermissionsDeleguesClient } from './permissions-delegues-client';
 
 export const metadata: Metadata = { title: 'Permissions déléguées — Super Admin' };
@@ -11,7 +12,10 @@ export default async function PermissionsDeleguesPage() {
   const u = await requireUtilisateurValide();
   if (u.role !== 'super_admin') notFound();
 
-  const admins = await getAdminScsAvecPermissions();
+  const [admins, cmsPagesSections] = await Promise.all([
+    getAdminScsAvecPermissions(),
+    getCmsPagesSections(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -25,6 +29,7 @@ export default async function PermissionsDeleguesPage() {
       <PermissionsDeleguesClient
         admins={admins}
         modules={MODULES_DELEGABLES}
+        cmsPagesSections={cmsPagesSections}
       />
     </div>
   );

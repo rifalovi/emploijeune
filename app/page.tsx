@@ -33,6 +33,7 @@ import type { IndicateurVitrine } from '@/lib/landing/queries';
 import { getAuthUser } from '@/lib/supabase/auth';
 import { getContenuPage } from '@/lib/contenu-pages/queries';
 import type { ContenuMap } from '@/lib/contenu-pages/queries';
+import { renderCms } from '@/lib/contenu-pages/render';
 import { cn } from '@/lib/utils';
 
 /**
@@ -62,9 +63,20 @@ export const metadata: Metadata = {
 /** Couleur accent dorée (V1.5.0 polish) — utilisée pour les highlights chaleureux. */
 const COULEUR_ACCENT = '#F5A623';
 
-/** Lit un bloc de contenu avec fallback sur la valeur par défaut. */
+/** Lit un bloc de contenu avec fallback. Ignore le statut masqué → toujours une string. */
 function c(contenu: ContenuMap, key: string, fallback: string): string {
   return contenu.get(key) ?? fallback;
+}
+
+/**
+ * Comme c() mais retourne null si le bloc est explicitement masqué (actif=false).
+ * Utiliser pour les éléments qui doivent disparaître du front quand cachés dans le CMS.
+ */
+function cH(contenu: ContenuMap, key: string, fallback: string): string | null {
+  if (!contenu.has(key)) return fallback;      // n'existe pas → fallback
+  const val = contenu.get(key);
+  if (val === null || val === undefined) return null; // masqué → hide
+  return val;                                         // actif → valeur
 }
 
 const SLIDES = [
@@ -798,25 +810,25 @@ function Pourquoi({ contenu }: { contenu: ContenuMap }) {
 // Citations institutionnelles (V1.6.0 polish)
 // ─────────────────────────────────────────────────────────────────────────────
 function Citations({ contenu }: { contenu: ContenuMap }) {
-  const citations = [
+  const citationsRaw = [
     {
-      texte: c(contenu, 'citations.c1_texte', "Le suivi-évaluation rigoureux de nos projets emploi jeunes est la condition de leur impact mesurable et de leur soutenabilité dans la durée."),
-      auteur: c(contenu, 'citations.c1_auteur', 'Cadre commun de mesure du rendement'),
-      fonction: c(contenu, 'citations.c1_fonction', 'Document méthodologique OIF'),
+      texte:  cH(contenu, 'citations.c1_texte', "Le suivi-évaluation rigoureux de nos projets emploi jeunes est la condition de leur impact mesurable et de leur soutenabilité dans la durée."),
+      auteur: cH(contenu, 'citations.c1_auteur', 'Cadre commun de mesure du rendement'),
+      fonction: cH(contenu, 'citations.c1_fonction', 'Document méthodologique OIF'),
     },
     {
-      texte:
-        "L'apport du français à l'employabilité reste un marqueur transversal de toutes nos interventions : c'est notre signature francophone.",
-      auteur: c(contenu, 'citations.c2_auteur', 'Note mÃ©thodologique'),
-      fonction: c(contenu, 'citations.c2_fonction', 'Service de Conception et Suivi (SCS)'),
+      texte:    cH(contenu, 'citations.c2_texte', "L'apport du français à l'employabilité reste un marqueur transversal de toutes nos interventions : c'est notre signature francophone."),
+      auteur:   cH(contenu, 'citations.c2_auteur', 'Note méthodologique'),
+      fonction: cH(contenu, 'citations.c2_fonction', 'Service de Conception et Suivi (SCS)'),
     },
     {
-      texte:
-        "Cibler une strate précise – un projet, un pays, une cohorte – plutôt qu'envoyer en masse : c'est ce qui distingue une collecte propre d'un envoi en masse.",
-      auteur: c(contenu, 'citations.c3_auteur', 'Méthodologie OIF'),
-      fonction: c(contenu, 'citations.c3_fonction', 'Approche stratifiée des collectes'),
+      texte:    cH(contenu, 'citations.c3_texte', "Cibler une strate précise – un projet, un pays, une cohorte – plutôt qu'envoyer en masse : c'est ce qui distingue une collecte propre d'un envoi en masse."),
+      auteur:   cH(contenu, 'citations.c3_auteur', 'Méthodologie OIF'),
+      fonction: cH(contenu, 'citations.c3_fonction', 'Approche stratifiée des collectes'),
     },
   ];
+  // Une citation entière est cachée si son texte est masqué
+  const citations = citationsRaw.filter((c) => c.texte !== null);
   return (
     <section className="bg-gradient-to-b from-white via-amber-50/30 to-white py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
@@ -835,9 +847,9 @@ function Citations({ contenu }: { contenu: ContenuMap }) {
           </p>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {citations.map((c) => (
+          {citations.map((cit, i) => (
             <Card
-              key={c.auteur}
+              key={i}
               className="relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg"
             >
               <CardContent className="p-6">
@@ -849,11 +861,15 @@ function Citations({ contenu }: { contenu: ContenuMap }) {
                   &ldquo;
                 </div>
                 <p className="relative z-10 text-sm leading-relaxed text-gray-800 italic">
-                  &laquo;&nbsp;{c.texte}&nbsp;&raquo;
+                  &laquo;&nbsp;{renderCms(cit.texte)}&nbsp;&raquo;
                 </p>
                 <div className="relative z-10 mt-6 border-t pt-4">
-                  <p className="font-semibold text-[#0E4F88]">{c.auteur}</p>
-                  <p className="text-muted-foreground text-xs">{c.fonction}</p>
+                  {cit.auteur !== null && (
+                    <p className="font-semibold text-[#0E4F88]">{renderCms(cit.auteur)}</p>
+                  )}
+                  {cit.fonction !== null && (
+                    <p className="text-muted-foreground text-xs">{renderCms(cit.fonction)}</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -980,15 +996,19 @@ function FooterPublic({ contenu }: { contenu: ContenuMap }) {
           <div>
             <h3 className="font-semibold text-gray-900">{c(contenu, 'footer.rgpd_titre', 'Contact RGPD')}</h3>
             <ul className="text-muted-foreground mt-4 space-y-2 text-xs">
-              <li>{c(contenu, 'footer.rgpd_ligne1', 'SCS : Service de Conception et Suivi des projets')}</li>
-              <li>
-                <a href={`mailto:${c(contenu, 'footer.rgpd_email', 'projets@francophonie.org')}`} className="hover:text-foreground">
-                  {c(contenu, 'footer.rgpd_email', 'projets@francophonie.org')}
-                </a>
-              </li>
-              <li>
-                {c(contenu, 'footer.rgpd_ligne2', 'Données traitées conformément au RGPD : accès limité aux personnes habilitées.')}
-              </li>
+              {cH(contenu, 'footer.rgpd_ligne1', 'SCS : Service de Conception et Suivi des projets') !== null && (
+                <li>{renderCms(cH(contenu, 'footer.rgpd_ligne1', 'SCS : Service de Conception et Suivi des projets'))}</li>
+              )}
+              {cH(contenu, 'footer.rgpd_email', 'projets@francophonie.org') !== null && (
+                <li>
+                  <a href={`mailto:${cH(contenu, 'footer.rgpd_email', 'projets@francophonie.org') ?? 'projets@francophonie.org'}`} className="hover:text-foreground">
+                    {renderCms(cH(contenu, 'footer.rgpd_email', 'projets@francophonie.org'))}
+                  </a>
+                </li>
+              )}
+              {cH(contenu, 'footer.rgpd_ligne2', 'Données traitées conformément au RGPD : accès limité aux personnes habilitées.') !== null && (
+                <li>{renderCms(cH(contenu, 'footer.rgpd_ligne2', 'Données traitées conformément au RGPD : accès limité aux personnes habilitées.'))}</li>
+              )}
             </ul>
           </div>
         </div>

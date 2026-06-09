@@ -1170,6 +1170,7 @@ export type Database = {
           id: string
           identifiant_externe: string | null
           import_batch_id: string | null
+          import_session_id: string | null
           intitule_initiative: string | null
           latitude: number | null
           localite: string | null
@@ -1215,6 +1216,7 @@ export type Database = {
           id?: string
           identifiant_externe?: string | null
           import_batch_id?: string | null
+          import_session_id?: string | null
           intitule_initiative?: string | null
           latitude?: number | null
           localite?: string | null
@@ -1260,6 +1262,7 @@ export type Database = {
           id?: string
           identifiant_externe?: string | null
           import_batch_id?: string | null
+          import_session_id?: string | null
           intitule_initiative?: string | null
           latitude?: number | null
           localite?: string | null

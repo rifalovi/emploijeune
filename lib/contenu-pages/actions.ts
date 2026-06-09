@@ -3,13 +3,37 @@
 import { revalidatePath } from 'next/cache';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { hasPermission } from '@/lib/super-admin/permissions';
+import { hasPermission, canAccessContenuSection } from '@/lib/super-admin/permissions';
 
 async function exigerAccesCms() {
   const u = await requireUtilisateurValide();
   if (u.role === 'super_admin') return u;
   if (u.role === 'admin_scs' && await hasPermission(u.id, 'contenu_pages')) return u;
   throw new Error('Accès non autorisé.');
+}
+
+async function exigerAccesCmsSection(page_key: string, section_key: string) {
+  const u = await requireUtilisateurValide();
+  if (u.role === 'super_admin') return u;
+  if (u.role !== 'admin_scs') throw new Error('Accès non autorisé.');
+  if (!await hasPermission(u.id, 'contenu_pages')) throw new Error('Accès non autorisé.');
+  if (!await canAccessContenuSection(u.id, page_key, section_key)) throw new Error('Accès non autorisé.');
+  return u;
+}
+
+async function exigerAccesCmsBlocId(id: string) {
+  const u = await requireUtilisateurValide();
+  if (u.role === 'super_admin') return;
+  if (u.role !== 'admin_scs') throw new Error('Accès non autorisé.');
+  if (!await hasPermission(u.id, 'contenu_pages')) throw new Error('Accès non autorisé.');
+  const { data } = await db()
+    .from('contenu_pages')
+    .select('page_key, section_key')
+    .eq('id', id)
+    .single();
+  if (!data) throw new Error('Bloc introuvable.');
+  const row = data as { page_key: string; section_key: string };
+  if (!await canAccessContenuSection(u.id, row.page_key, row.section_key)) throw new Error('Accès non autorisé.');
 }
 
 export type TypeContenu = 'h1' | 'h2' | 'h3' | 'sous_titre' | 'texte' | 'badge' | 'citation' | 'lien';
@@ -36,7 +60,7 @@ export async function sauvegarderBloc(params: {
   actif?: boolean;
 }): Promise<Ok | Err> {
   try {
-    await exigerAccesCms();
+    await exigerAccesCmsSection(params.page_key, params.section_key);
     const supabase = db();
     const { error } = await supabase.from('contenu_pages').upsert(
       {
@@ -62,7 +86,7 @@ export async function sauvegarderBloc(params: {
 
 export async function mettreAJourValeur(id: string, valeur: string): Promise<Ok | Err> {
   try {
-    await exigerAccesCms();
+    await exigerAccesCmsBlocId(id);
     const supabase = db();
     const { data, error } = await supabase
       .from('contenu_pages')
@@ -83,7 +107,7 @@ export async function mettreAJourValeur(id: string, valeur: string): Promise<Ok 
 
 export async function mettreAJourType(id: string, type_contenu: TypeContenu): Promise<Ok | Err> {
   try {
-    await exigerAccesCms();
+    await exigerAccesCmsBlocId(id);
     const supabase = db();
     const { data, error } = await supabase
       .from('contenu_pages')
@@ -104,7 +128,7 @@ export async function mettreAJourType(id: string, type_contenu: TypeContenu): Pr
 
 export async function supprimerBloc(id: string): Promise<Ok | Err> {
   try {
-    await exigerAccesCms();
+    await exigerAccesCmsBlocId(id);
     const supabase = db();
     const { data } = await supabase
       .from('contenu_pages')
@@ -123,7 +147,7 @@ export async function supprimerBloc(id: string): Promise<Ok | Err> {
 
 export async function supprimerSection(page_key: string, section_key: string): Promise<Ok | Err> {
   try {
-    await exigerAccesCms();
+    await exigerAccesCmsSection(page_key, section_key);
     const supabase = db();
     const { error } = await supabase
       .from('contenu_pages')
@@ -146,7 +170,7 @@ export async function renommerSection(
   nouveau_key: string
 ): Promise<Ok | Err> {
   try {
-    await exigerAccesCms();
+    await exigerAccesCmsSection(page_key, ancien_key);
     const supabase = db();
     const { error } = await supabase
       .from('contenu_pages')
@@ -182,7 +206,7 @@ export async function reordonnerBlocs(
 
 export async function toggleActifBloc(id: string, actif: boolean): Promise<Ok | Err> {
   try {
-    await exigerAccesCms();
+    await exigerAccesCmsBlocId(id);
     const supabase = db();
     const { data, error } = await supabase
       .from('contenu_pages')

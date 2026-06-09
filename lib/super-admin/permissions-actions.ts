@@ -42,6 +42,32 @@ export async function togglePermission(
   }
 }
 
+// ── Permissions granulaires contenu_pages ─────────────────────────────────────
+
+export async function saveContenuSectionPermissions(
+  utilisateur_id: string,
+  items: { page_key: string; section_key: string }[],
+): Promise<Ok | Err> {
+  try {
+    const granted_by = (await exigerSuperAdmin()).id;
+    await db().from('permissions_contenu_sections').delete().eq('utilisateur_id', utilisateur_id);
+    if (items.length > 0) {
+      const rows = items.map(({ page_key, section_key }) => ({
+        utilisateur_id,
+        page_key,
+        section_key,
+        actif: true,
+        granted_by,
+      }));
+      const { error } = await db().from('permissions_contenu_sections').insert(rows);
+      if (error) return { ok: false, message: error.message };
+    }
+    return { ok: true };
+  } catch (e) {
+    return err(e);
+  }
+}
+
 // ── Définir toutes les permissions d'un utilisateur en une fois ───────────────
 
 export async function setPermissions(

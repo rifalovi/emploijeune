@@ -76,6 +76,55 @@ export async function getPermissionsUtilisateur(userId: string): Promise<Set<Mod
   return set;
 }
 
+// -- Permissions granulaires contenu_pages (par page/section) -----------------
+
+export type ContenuSectionPerm = { page_key: string; section_key: string };
+
+/**
+ * null = accès complet (aucune restriction définie)
+ * Record = whitelist : page_key → null (toutes sections) | string[] (sections spécifiques)
+ */
+export type ContenuAcces = null | Record<string, string[] | null>;
+
+export async function getPermissionsContenuSections(userId: string): Promise<ContenuSectionPerm[]> {
+  const db = createSupabaseAdminClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { data } = await db
+    .from('permissions_contenu_sections')
+    .select('page_key, section_key')
+    .eq('utilisateur_id', userId)
+    .eq('actif', true);
+  return (data ?? []) as ContenuSectionPerm[];
+}
+
+export async function getContenuAcces(userId: string): Promise<ContenuAcces> {
+  const perms = await getPermissionsContenuSections(userId);
+  if (perms.length === 0) return null;
+  const map: Record<string, string[] | null> = {};
+  for (const p of perms) {
+    if (p.section_key === '') {
+      map[p.page_key] = null;
+    } else if (!(p.page_key in map)) {
+      map[p.page_key] = [p.section_key];
+    } else if (map[p.page_key] !== null) {
+      map[p.page_key]!.push(p.section_key);
+    }
+  }
+  return map;
+}
+
+export async function canAccessContenuSection(
+  userId: string,
+  page_key: string,
+  section_key: string,
+): Promise<boolean> {
+  const acces = await getContenuAcces(userId);
+  if (acces === null) return true;
+  const pageAcces = acces[page_key];
+  if (pageAcces === undefined) return false;
+  if (pageAcces === null) return true;
+  return pageAcces.includes(section_key);
+}
+
 // -- Lire toutes les permissions (pour l'UI super-admin) ----------------------
 
 export type AdminScsAvecPermissions = {
@@ -83,6 +132,7 @@ export type AdminScsAvecPermissions = {
   nom_complet: string;
   email: string;
   permissions: Record<ModuleKey, boolean>;
+  contenu_sections: ContenuSectionPerm[];
 };
 
 export async function getAdminScsAvecPermissions(): Promise<AdminScsAvecPermissions[]> {
@@ -118,6 +168,18 @@ export async function getAdminScsAvecPermissions(): Promise<AdminScsAvecPermissi
     permMap.get(p.utilisateur_id)![p.module_key] = p.actif;
   }
 
+  const { data: sectionPerms } = await db
+    .from('permissions_contenu_sections')
+    .select('utilisateur_id, page_key, section_key')
+    .in('utilisateur_id', userIds)
+    .eq('actif', true);
+
+  const sectionPermMap = new Map<string, ContenuSectionPerm[]>();
+  for (const p of (sectionPerms ?? []) as { utilisateur_id: string; page_key: string; section_key: string }[]) {
+    if (!sectionPermMap.has(p.utilisateur_id)) sectionPermMap.set(p.utilisateur_id, []);
+    sectionPermMap.get(p.utilisateur_id)!.push({ page_key: p.page_key, section_key: p.section_key });
+  }
+
   const moduleKeys = Object.keys(MODULES_DELEGABLES) as ModuleKey[];
 
   return (utilisateurs as { id: string; nom_complet: string; user_id: string }[]).map((u) => ({
@@ -127,5 +189,6 @@ export async function getAdminScsAvecPermissions(): Promise<AdminScsAvecPermissi
     permissions: Object.fromEntries(
       moduleKeys.map((k) => [k, permMap.get(u.id)?.[k] === true])
     ) as Record<ModuleKey, boolean>,
+    contenu_sections: sectionPermMap.get(u.id) ?? [],
   }));
 }

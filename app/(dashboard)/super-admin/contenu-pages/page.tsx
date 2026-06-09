@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { getContenuPageAdmin, getPagesCms } from '@/lib/contenu-pages/queries';
 import { ContenuPagesClient } from './contenu-pages-client';
-import { exigerAccesModule } from '@/lib/super-admin/permissions';
+import { exigerAccesModule, getContenuAcces } from '@/lib/super-admin/permissions';
+import { requireUtilisateurValide } from '@/lib/supabase/auth';
 
 export const metadata: Metadata = { title: 'Contenu pages — Super Admin' };
 export const dynamic = 'force-dynamic';
@@ -12,10 +13,30 @@ export default async function ContenuPagesPage({
   searchParams: Promise<{ page?: string }>;
 }) {
   await exigerAccesModule('contenu_pages');
+  const u = await requireUtilisateurValide();
+
+  // Calcule les restrictions de sections pour admin_scs (null = accès complet)
+  const acces = u.role === 'admin_scs' ? await getContenuAcces(u.id) : null;
+
+  const allPages = await getPagesCms();
+
+  // Filtre les pages accessibles
+  const pages = acces === null
+    ? allPages
+    : allPages.filter((p) => p in acces);
+
   const { page: pageParam } = await searchParams;
-  const pages = await getPagesCms();
   const pageActive = pageParam ?? pages[0] ?? 'accueil';
-  const blocs = await getContenuPageAdmin(pageActive);
+
+  // Vérifie que la page demandée est accessible
+  const pageAccessible = acces === null || (pageActive in acces);
+  const pageEffective = pageAccessible ? pageActive : (pages[0] ?? 'accueil');
+
+  const blocs = await getContenuPageAdmin(pageEffective);
+
+  // Sections autorisées pour la page active (null = toutes)
+  const sectionsAutorisees: string[] | null =
+    acces === null ? null : (acces[pageEffective] ?? null);
 
   return (
     <div className="space-y-6">
@@ -26,7 +47,13 @@ export default async function ContenuPagesPage({
           plateforme. Les modifications sont publiées immédiatement.
         </p>
       </div>
-      <ContenuPagesClient pages={pages} pageActive={pageActive} blocs={blocs} />
+      <ContenuPagesClient
+        pages={pages}
+        pageActive={pageEffective}
+        blocs={blocs}
+        sectionsAutorisees={sectionsAutorisees}
+        accesRestreint={acces !== null}
+      />
     </div>
   );
 }
