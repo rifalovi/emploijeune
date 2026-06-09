@@ -195,13 +195,17 @@ export function ZoneUploadImport({
           if (response.status === 409 && errPayload.code === 'fichier_deja_importe') {
             const date = errPayload.session_precedente?.date
               ? new Date(errPayload.session_precedente.date).toLocaleString('fr-FR')
-              : 'recemment';
+              : 'récemment';
             const forcer = window.confirm(
-              `Ce fichier semble avoir deja ete importe le ${date}.\n\nVoulez-vous l'importer quand meme ?`,
+              `Ce fichier semble avoir déjà été importé le ${date}.\n\nVoulez-vous l'importer quand même ?`,
             );
-            if (forcer) {
-              // Re-soumettre avec force=true
-              formData.append('force', 'true');
+            if (!forcer) {
+              toast.info('Import annulé', { description: 'Le fichier n\'a pas été réimporté.' });
+              return;
+            }
+            // Re-soumettre avec force=true
+            formData.append('force', 'true');
+            try {
               const retry = await fetch(endpointEffectif, {
                 method: 'POST',
                 body: formData,
@@ -213,7 +217,13 @@ export function ZoneUploadImport({
                   onRapport(retryResult.rapport);
                   return;
                 }
+                toast.error('Import refusé', { description: (retryResult as { message?: string }).message ?? 'Erreur inconnue.' });
+              } else {
+                const retryErr = await retry.json().catch(() => ({ erreur: retry.statusText }));
+                toast.error('Import impossible', { description: retryErr.erreur ?? retry.statusText });
               }
+            } catch (retryErr) {
+              toast.error('Import impossible', { description: retryErr instanceof Error ? retryErr.message : 'Erreur réseau lors du ré-essai.' });
             }
             return;
           }

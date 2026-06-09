@@ -142,7 +142,12 @@ export async function importerBeneficiairesExcel(
   const supabase = await createSupabaseServerClient();
   const adminClient = createSupabaseAdminClient();
 
-  // 1b. Créer la session d'import (best-effort).
+  // 1b. Pré-chargement cache doublons (batch) — évite N requêtes séquentielles
+  // pour les imports > 200 lignes. On charge en une seule requête tous les
+  // bénéficiaires existants pour les projets présents dans le fichier.
+  const cacheBatch = await precalculerCacheDoublons(adminClient, parse.lignes);
+
+  // 1c. Créer la session d'import (best-effort).
   // La migration 20260512100001 a été appliquée — types Supabase à jour,
   // plus besoin de cast `as any`.
   let importSessionId: string | null = null;
@@ -181,6 +186,7 @@ export async function importerBeneficiairesExcel(
       importSessionId,
       nomFichier: input.fichierNom,
       codeProjetDefaut: input.codeProjetDefaut,
+      cacheBatch,
     });
     lignesRapport.push(ligneInfo);
 
@@ -293,6 +299,7 @@ export async function traiterLigneImport(args: {
   confianceIA?: number;
   /** ID de la session d'import pour rollback. */
   importSessionId?: string | null;
+  cacheBatch?: CacheDoublons;
 }): Promise<LigneRapportImport> {
   const result = await traiterLigne(args);
   if (args.extraitParIA) {
@@ -313,8 +320,9 @@ async function traiterLigne(args: {
   importSessionId?: string | null;
   nomFichier?: string;
   codeProjetDefaut?: string;
+  cacheBatch?: CacheDoublons;
 }): Promise<LigneRapportImport> {
-  const { numLigne, donnees, adminClient, createdBy, importSessionId, nomFichier, codeProjetDefaut } = args;
+  const { numLigne, donnees, adminClient, createdBy, importSessionId, nomFichier, codeProjetDefaut, cacheBatch } = args;
   const mappagesAuto: string[] = [];
   const champsManquants: string[] = [];
   const champsMisAJour: string[] = [];
@@ -470,7 +478,7 @@ async function traiterLigne(args: {
   }
 
   // 4. Détecter un doublon — d'abord par courriel (clé forte), sinon clé faible
-  const doublon = await detecterDoublon(adminClient, record);
+  const doublon = await detecterDoublon(adminClient, record, cacheBatch);
 
   if (doublon) {
     const { fusionne, champsMisAJour: champsMaj } = fusionnerBeneficiaires(doublon, {
@@ -652,25 +660,114 @@ function extrairePreview(record: RecordNormalise): LigneRapportImport['donnees_i
   };
 }
 
+// =============================================================================
+// Cache de doublons (pré-chargement batch)
+// =============================================================================
+
+/** Colonnes nécessaires pour la détection de doublons + fusion. */
+const SELECT_DOUBLON =
+  'id, prenom, nom, sexe, projet_code, pays_code, domaine_formation_code, modalite_formation_code, annee_formation, statut_code, courriel, telephone, partenaire_accompagnement, fonction_actuelle, tranche_age_declaree';
+
+type BeneficiaireRecord = Record<string, unknown>;
+
+export type CacheDoublons = {
+  parCourriel: Map<string, BeneficiaireRecord>;
+  parCleFailble: Map<string, BeneficiaireRecord>;
+};
+
+function cleFailble(prenom: string | null, nom: string | null, projet: string, pays: string, sexe: string, annee: number, tranche: string): string {
+  return `${prenom ?? 'INCONNU'}|${nom ?? 'INCONNU'}|${projet}|${pays}|${sexe}|${annee}|${tranche}`;
+}
+
 /**
- * Cherche un doublon en BDD :
- *   - Priorité 1 : même courriel (clé forte)
- *   - Priorité 2 : même projet + pays + sexe + année + tranche_age (clé faible
- *     utile pour les imports sans contact)
- *
- * Retourne null s'il n'y a pas de doublon (la ligne sera nouvelle).
+ * Pré-charge les bénéficiaires existants pour les projets présents dans le
+ * fichier → évite N requêtes séquentielles (1 requête batch à la place).
+ * Activé uniquement pour les imports > 200 lignes.
+ */
+async function precalculerCacheDoublons(
+  adminClient: AdminClient,
+  lignes: { donnees: Record<string, unknown> }[],
+): Promise<CacheDoublons> {
+  const cache: CacheDoublons = { parCourriel: new Map(), parCleFailble: new Map() };
+
+  if (lignes.length < 200) return cache; // import petit — pas besoin du cache
+
+  // Collecter projets et courriels distincts
+  const projets = new Set<string>();
+  const courriels = new Set<string>();
+  for (const { donnees } of lignes) {
+    const p = normaliserCodeProjet(donnees['Code projet *']);
+    if (p) projets.add(p);
+    const c = nettoyerCourriel(donnees['Courriel']);
+    if (c) courriels.add(c);
+  }
+
+  try {
+    // 1. Batch par projet (clé faible)
+    if (projets.size > 0) {
+      let offset = 0;
+      const PAGE = 1000;
+      while (true) {
+        const { data } = await adminClient
+          .from('beneficiaires')
+          .select(SELECT_DOUBLON)
+          .in('projet_code', [...projets])
+          .is('deleted_at', null)
+          .range(offset, offset + PAGE - 1);
+        if (!data || data.length === 0) break;
+        for (const b of data as BeneficiaireRecord[]) {
+          if (b.courriel) cache.parCourriel.set(b.courriel as string, b);
+          if (b.projet_code && b.pays_code && b.sexe && b.annee_formation && b.tranche_age_declaree) {
+            const k = cleFailble(
+              b.prenom as string | null, b.nom as string | null,
+              b.projet_code as string, b.pays_code as string,
+              b.sexe as string, b.annee_formation as number,
+              b.tranche_age_declaree as string,
+            );
+            cache.parCleFailble.set(k, b);
+          }
+        }
+        if (data.length < PAGE) break;
+        offset += PAGE;
+      }
+    }
+
+    // 2. Courriels hors projets du fichier (rares — import enrichissement)
+    const courrielsHorsProjets = [...courriels].filter((c) => !cache.parCourriel.has(c));
+    if (courrielsHorsProjets.length > 0) {
+      const { data } = await adminClient
+        .from('beneficiaires')
+        .select(SELECT_DOUBLON)
+        .in('courriel', courrielsHorsProjets)
+        .is('deleted_at', null);
+      for (const b of (data ?? []) as BeneficiaireRecord[]) {
+        if (b.courriel) cache.parCourriel.set(b.courriel as string, b);
+      }
+    }
+  } catch {
+    // Erreur réseau ou table absente → cache vide, fallback DB par ligne
+  }
+
+  return cache;
+}
+
+/**
+ * Cherche un doublon — utilise le cache batch si disponible, sinon requêtes
+ * BDD par ligne (comportement original pour les petits imports).
  */
 async function detecterDoublon(
   adminClient: AdminClient,
   record: RecordNormalise,
+  cache?: CacheDoublons,
 ): Promise<Record<string, unknown> | null> {
-  // Clé forte : courriel
+  // ── Clé forte : courriel ──────────────────────────────────────────────────
   if (record.courriel) {
+    if (cache) {
+      return cache.parCourriel.get(record.courriel) ?? null;
+    }
     const { data } = await adminClient
       .from('beneficiaires')
-      .select(
-        'id, prenom, nom, sexe, projet_code, pays_code, domaine_formation_code, modalite_formation_code, annee_formation, statut_code, courriel, telephone, partenaire_accompagnement, fonction_actuelle, tranche_age_declaree',
-      )
+      .select(SELECT_DOUBLON)
       .eq('courriel', record.courriel)
       .is('deleted_at', null)
       .limit(1)
@@ -678,7 +775,7 @@ async function detecterDoublon(
     if (data) return data as Record<string, unknown>;
   }
 
-  // Clé faible : combinaison de signaux. On exige au moins projet + pays + sexe + année + tranche.
+  // ── Clé faible : projet + pays + sexe + année + tranche + nom/prénom ──────
   if (
     record.projet_code &&
     record.pays_code &&
@@ -686,11 +783,18 @@ async function detecterDoublon(
     record.annee_formation &&
     record.tranche_age_declaree
   ) {
+    if (cache) {
+      const k = cleFailble(
+        record.prenom, record.nom,
+        record.projet_code, record.pays_code,
+        record.sexe, record.annee_formation,
+        record.tranche_age_declaree,
+      );
+      return cache.parCleFailble.get(k) ?? null;
+    }
     const { data } = await adminClient
       .from('beneficiaires')
-      .select(
-        'id, prenom, nom, sexe, projet_code, pays_code, domaine_formation_code, modalite_formation_code, annee_formation, statut_code, courriel, telephone, partenaire_accompagnement, fonction_actuelle, tranche_age_declaree',
-      )
+      .select(SELECT_DOUBLON)
       .eq('projet_code', record.projet_code)
       .eq('pays_code', record.pays_code)
       .eq('sexe', record.sexe)

@@ -1,8 +1,8 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/audit-imports",
-      "schedule": "0 */6 * * *"
-    }
-  ]
+  "functions": {
+    "app/api/imports/beneficiaires/route.ts": { "maxDuration": 60 },
+    "app/api/imports/structures/route.ts": { "maxDuration": 60 },
+    "app/api/imports/beneficiaires-ia/route.ts": { "maxDuration": 60 },
+    "app/api/imports/structures-ia/route.ts": { "maxDuration": 60 }
+  }
 }
