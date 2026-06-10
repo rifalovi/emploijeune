@@ -36,6 +36,13 @@ export type RapportImport = {
   erreurs: ErreurImport[];
   /** ID de la ligne `imports_excel` créée pour audit. */
   import_id: string | null;
+  /**
+   * ID de la session d'import (pour annulation/rollback). Null si la session
+   * n'a pas pu être créée (schéma non migré) ou si rien n'a été inséré.
+   */
+  import_session_id?: string | null;
+  /** Date limite d'annulation de l'import (ISO). Null si annulation indisponible. */
+  rollback_expire_at?: string | null;
   /** Date d'exécution de l'import (ISO). */
   execute_a: string;
 };

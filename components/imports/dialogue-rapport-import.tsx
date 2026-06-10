@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Download, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Download, CheckCircle2, AlertCircle, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -21,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { annulerSessionImport } from '@/lib/super-admin/import-sessions-actions';
 import type { RapportImport } from '@/lib/imports/types';
 
 export type DialogueRapportImportProps = {
@@ -37,6 +39,35 @@ export type DialogueRapportImportProps = {
  */
 export function DialogueRapportImport({ rapport, onClose }: DialogueRapportImportProps) {
   const [pending, startTransition] = useTransition();
+  const [annulationPending, startAnnulation] = useTransition();
+  const router = useRouter();
+
+  const handleAnnuler = () => {
+    const sessionId = rapport?.import_session_id;
+    if (!sessionId) return;
+    const nb = rapport?.nb_lignes_inserees ?? 0;
+    const ok = window.confirm(
+      `Annuler cet import ?\n\n${nb} structure(s) importée(s) seront retirées de la base. Cette action est réversible par un super-admin via la console des imports.`,
+    );
+    if (!ok) return;
+    startAnnulation(async () => {
+      const res = await annulerSessionImport(sessionId, 'Annulation depuis le rapport d’import');
+      if (res.status === 'succes') {
+        toast.success('Import annulé', {
+          description: `${res.data.lignes_supprimees} structure(s) retirée(s).`,
+        });
+        router.refresh();
+        onClose();
+      } else {
+        toast.error('Annulation impossible', {
+          description:
+            res.message === 'reserve_super_admin'
+              ? "Réservé au super-admin (ou admin SCS habilité). Demandez l'annulation via la console des imports."
+              : res.message,
+        });
+      }
+    });
+  };
 
   const handleTelecharger = () => {
     if (!rapport) return;
@@ -185,6 +216,18 @@ export function DialogueRapportImport({ rapport, onClose }: DialogueRapportImpor
             >
               <Download aria-hidden className="size-4" />
               {pending ? 'Génération…' : 'Télécharger le rapport Excel'}
+            </Button>
+          )}
+          {rapport?.import_session_id && (rapport.nb_lignes_inserees ?? 0) > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAnnuler}
+              disabled={annulationPending}
+              className="gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
+            >
+              <Undo2 aria-hidden className="size-4" />
+              {annulationPending ? 'Annulation…' : 'Annuler cet import'}
             </Button>
           )}
           <Button type="button" onClick={onClose} className="ml-auto">

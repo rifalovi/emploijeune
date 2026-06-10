@@ -45,11 +45,14 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (recents && recents.length > 0) {
-        return NextResponse.json({
-          code: 'fichier_deja_importe',
-          session_precedente: { id: recents[0]!.id, date: recents[0]!.created_at },
-          message: 'Ce fichier semble avoir deja ete importe recemment.',
-        }, { status: 409 });
+        return NextResponse.json(
+          {
+            code: 'fichier_deja_importe',
+            session_precedente: { id: recents[0]!.id, date: recents[0]!.created_at },
+            message: 'Ce fichier semble avoir deja ete importe recemment.',
+          },
+          { status: 409 },
+        );
       }
     }
 
@@ -59,6 +62,7 @@ export async function POST(request: NextRequest) {
       fichierBuffer: buffer,
       fichierNom: fichier.name,
       fichierTaille: fichier.size,
+      fichierHash,
       nomOnglet,
       codeProjetDefaut,
     });
