@@ -120,4 +120,62 @@ describe('mapLigneVersStructure', () => {
     const r = mapLigneVersStructure({ ...ligneValide, 'Montant appui': '1 500,50' });
     expect(r.donneesParsees?.montant_appui).toBe(1500.5);
   });
+
+  // ── Mode tolérant (« absorber le maximum ») — base micro-entreprises ───────
+  describe('mode tolérant', () => {
+    // Ligne représentative de la feuille « Base des micro entreprises » :
+    // pas de statut, consentement, sexe ni nom de porteur, code projet abrégé.
+    const ligneMicro = {
+      'Code projet *': 'P14',
+      'Code pays *': 'Burundi',
+      'Nom structure *': 'GIRIYUJA ASBL',
+      'Secteur activité *': 'Commerce',
+      'Année appui *': 2023,
+      'Intitulé initiative': 'Autonomisation économique',
+      'Montant appui': 80000,
+    };
+
+    it('absorbe une ligne incomplète avec des défauts sûrs', () => {
+      const r = mapLigneVersStructure(ligneMicro, { tolerant: true });
+      expect(r.erreursMapping).toHaveLength(0);
+      const d = r.donneesParsees!;
+      expect(d.projet_code).toBe('PROJ_A14'); // alias P14 résolu
+      expect(d.pays_code).toBe('BDI'); // libellé pays résolu
+      expect(d.secteur_activite_code).toBe('COMMERCE');
+      expect(d.type_structure_code).toBe('AUTRE'); // absent → défaut
+      expect(d.statut_creation).toBe('creation'); // absent → défaut
+      expect(d.nature_appui_code).toBe('AUTRE'); // absent → défaut
+      expect(d.porteur_sexe).toBe('Autre'); // absent → défaut
+      expect(d.consentement_recueilli).toBe(false); // absent → non recueilli
+      expect(d.porteur_nom).toBe('GIRIYUJA ASBL'); // repli sur nom structure
+      expect(d.montant_appui).toBe(80000);
+      expect(d.devise_code).toBe('Autre'); // montant sans devise → Autre
+    });
+
+    it('applique le code projet par défaut quand la cellule est absente', () => {
+      const r = mapLigneVersStructure(
+        { ...ligneMicro, 'Code projet *': '' },
+        { tolerant: true, codeProjetDefaut: 'PROJ_A15' },
+      );
+      expect(r.donneesParsees?.projet_code).toBe('PROJ_A15');
+    });
+
+    it('ne conserve aucun contact sans consentement (RGPD)', () => {
+      const r = mapLigneVersStructure(
+        {
+          ...ligneMicro,
+          'Courriel porteur': 'x@example.com',
+          'Téléphone (avec indicatif)': '+25761234567',
+        },
+        { tolerant: true },
+      );
+      expect(r.donneesParsees?.courriel_porteur).toBeUndefined();
+      expect(r.donneesParsees?.telephone_porteur).toBeUndefined();
+    });
+
+    it('reste strict hors mode tolérant (type inconnu rejeté)', () => {
+      const r = mapLigneVersStructure({ ...ligneValide, 'Type structure *': 'INCONNU' });
+      expect(r.donneesParsees).toBeNull();
+    });
+  });
 });

@@ -71,7 +71,10 @@ export async function importerStructuresExcel(
   const adminClient = createSupabaseAdminClient();
 
   for (const { numLigne, donnees } of lignes) {
-    const { donneesParsees, erreursMapping } = mapLigneVersStructure(donnees);
+    const { donneesParsees, erreursMapping } = mapLigneVersStructure(donnees, {
+      tolerant: true,
+      codeProjetDefaut: input.codeProjetDefaut,
+    });
     if (erreursMapping.length > 0) {
       for (const e of erreursMapping) {
         erreurs.push({ ligne: numLigne, colonne: e.colonne, valeur: e.valeur, message: e.message });
