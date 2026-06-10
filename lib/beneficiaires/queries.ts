@@ -148,10 +148,19 @@ export type BeneficiaireListItem = {
   tranche_age_declaree: 'Jeune' | 'Adulte' | null;
   projet_code: string;
   pays_code: string;
+  partenaire_accompagnement: string | null;
   domaine_formation_code: string;
+  intitule_formation: string | null;
+  modalite_formation_code: string | null;
   annee_formation: number;
+  date_debut_formation: string | null;
+  date_fin_formation: string | null;
   statut_code: string;
+  fonction_actuelle: string | null;
   consentement_recueilli: boolean;
+  telephone: string | null;
+  courriel: string | null;
+  localite_residence: string | null;
   created_by: string | null;
   organisation_id: string | null;
   updated_at: string;
@@ -218,7 +227,7 @@ export async function listBeneficiaires(
   let query = supabase
     .from('beneficiaires')
     .select(
-      'id, prenom, nom, sexe, date_naissance, tranche_age_declaree, projet_code, pays_code, domaine_formation_code, annee_formation, statut_code, consentement_recueilli, created_by, organisation_id, updated_at',
+      'id, prenom, nom, sexe, date_naissance, tranche_age_declaree, projet_code, pays_code, partenaire_accompagnement, domaine_formation_code, intitule_formation, modalite_formation_code, annee_formation, date_debut_formation, date_fin_formation, statut_code, fonction_actuelle, consentement_recueilli, telephone, courriel, localite_residence, created_by, organisation_id, updated_at',
       { count: 'exact' },
     )
     .is('deleted_at', null);
