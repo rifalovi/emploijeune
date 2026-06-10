@@ -144,6 +144,9 @@ const HEADER_SYNONYMES: Record<string, string> = {
 
   // ─── Synonymes structures (B1) ────────────────────────────────────────
 
+  // → 'Code projet *' (abréviation « Proj » fréquente dans les bases sondage)
+  proj: 'Code projet *',
+
   // → 'Code pays *' (les synonymes partagés "pays", "code pays" matchent
   //   aussi 'Code pays bénéficiaire *' — le smart-mapper choisit selon
   //   le contexte des enTetesAttendus passés au parser)
@@ -152,10 +155,20 @@ const HEADER_SYNONYMES: Record<string, string> = {
   // → 'Nom structure *'
   'nom structure': 'Nom structure *',
   'nom des micro entreprises': 'Nom structure *',
+  'nom des micro entreprises ou agr': 'Nom structure *',
   'nom de la structure': 'Nom structure *',
   'nom entreprise': 'Nom structure *',
   'raison sociale': 'Nom structure *',
   entreprise: 'Nom structure *',
+
+  // → 'Porteur – nom *' (responsable de la micro-entreprise)
+  'nom du responsable': 'Porteur – nom *',
+  'nom du responsable de l entreprise': 'Porteur – nom *',
+  'responsable de l entreprise': 'Porteur – nom *',
+
+  // → 'Intitulé initiative'
+  'nom de l initiative appuyee': 'Intitulé initiative',
+  'nom de l initiative': 'Intitulé initiative',
 
   // → 'Type structure *'
   'type structure': 'Type structure *',
@@ -185,8 +198,10 @@ const HEADER_SYNONYMES: Record<string, string> = {
   // → 'Nature appui *'
   'nature appui': 'Nature appui *',
   "nature de l'appui": 'Nature appui *',
+  'nature de l appui': 'Nature appui *',
   'type appui': 'Nature appui *',
   "type d'appui": 'Nature appui *',
+  'type d appui': 'Nature appui *',
 
   // → 'Montant appui'
   'montant appui': 'Montant appui',
@@ -234,6 +249,10 @@ const HEADER_SYNONYMES: Record<string, string> = {
 const HEADER_KEYWORDS: Array<{ motCle: string; cible: string }> = [
   // Très spécifiques d'abord
   { motCle: 'annee', cible: 'Année de la formation *' },
+  // Variante structures (B1) : « Année durant laquelle vous avez bénéficié… ».
+  // Placée AVANT le mot-clé générique « projet » pour éviter qu'une colonne
+  // « Année … du projet » soit prise pour le Code projet.
+  { motCle: 'annee', cible: 'Année appui *' },
   { motCle: 'jeune', cible: "Tranche d'âge déclarée" },
   { motCle: 'adulte', cible: "Tranche d'âge déclarée" },
   { motCle: 'tranche', cible: "Tranche d'âge déclarée" },
@@ -241,8 +260,15 @@ const HEADER_KEYWORDS: Array<{ motCle: string; cible: string }> = [
   { motCle: 'consentement', cible: 'Consentement *' },
   { motCle: 'courriel', cible: 'Courriel' },
   { motCle: 'email', cible: 'Courriel' },
+  // Variantes structures (B1) : l'e-mail du porteur cible 'Courriel porteur'
+  { motCle: 'courriel', cible: 'Courriel porteur' },
+  { motCle: 'email', cible: 'Courriel porteur' },
   { motCle: 'telephone', cible: 'Téléphone (avec indicatif)' },
   { motCle: 'contact', cible: 'Téléphone (avec indicatif)' },
+  // Responsable / porteur de la structure (avant « entreprise » pour ne pas
+  // confondre « Nom du responsable de l'entreprise » avec le nom de structure)
+  { motCle: 'responsable', cible: 'Porteur – nom *' },
+  { motCle: 'initiative', cible: 'Intitulé initiative' },
   { motCle: 'organisation', cible: "Partenaire d'accompagnement" },
   { motCle: 'partenaire', cible: "Partenaire d'accompagnement" },
   { motCle: 'structure', cible: "Partenaire d'accompagnement" },
@@ -251,6 +277,8 @@ const HEADER_KEYWORDS: Array<{ motCle: string; cible: string }> = [
   // Plus génériques ensuite
   { motCle: 'projet', cible: 'Code projet *' },
   { motCle: 'pays', cible: 'Code pays bénéficiaire *' },
+  // Variante structures (B1) : la colonne « pays » cible 'Code pays *'
+  { motCle: 'pays', cible: 'Code pays *' },
   { motCle: 'prenom', cible: 'Prénom *' },
   { motCle: 'nom', cible: 'Nom *' },
   { motCle: 'sexe', cible: 'Sexe *' },
@@ -479,8 +507,58 @@ const PAYS_PAR_LIBELLE: Record<string, PaysCode> = {
   ukraine: 'UKR',
   vanuatu: 'VUT',
   vietnam: 'VNM',
+  'viet nam': 'VNM',
   'etats unis': 'USA',
   usa: 'USA',
+
+  // ─── Noms anglais & variantes internationales ─────────────────────────────
+  // Les bases terrain mélangent souvent libellés FR et EN (ex. « Cabo Verde »,
+  // « Cameroon »). Sans ces alias, ces lignes retombaient en ZZZ.
+  albania: 'ALB',
+  andorra: 'AND',
+  argentina: 'ARG',
+  armenia: 'ARM',
+  barbados: 'BRB',
+  belgium: 'BEL',
+  brazil: 'BRA',
+  bulgaria: 'BGR',
+  cambodia: 'KHM',
+  cameroon: 'CMR',
+  'cape verde': 'CPV',
+  'cabo verde': 'CPV',
+  'cap verde': 'CPV',
+  'central african republic': 'CAF',
+  comoros: 'COM',
+  'democratic republic of the congo': 'COD',
+  'dr congo': 'COD',
+  'd r congo': 'COD',
+  drc: 'COD',
+  'republic of the congo': 'COG',
+  'ivory coast': 'CIV',
+  'dominican republic': 'DOM',
+  egypt: 'EGY',
+  greece: 'GRC',
+  guinea: 'GIN',
+  'guinea bissau': 'GNB',
+  'equatorial guinea': 'GNQ',
+  italy: 'ITA',
+  lebanon: 'LBN',
+  'north macedonia': 'MKD',
+  macedonia: 'MKD',
+  malta: 'MLT',
+  morocco: 'MAR',
+  mauritius: 'MUS',
+  mauritania: 'MRT',
+  moldova: 'MDA',
+  romania: 'ROU',
+  'saint lucia': 'LCA',
+  'sao tome and principe': 'STP',
+  serbia: 'SRB',
+  switzerland: 'CHE',
+  chad: 'TCD',
+  tunisia: 'TUN',
+  'united states': 'USA',
+  'united states of america': 'USA',
 };
 
 const SEXE_ALIASES: Record<string, 'F' | 'M' | 'Autre'> = {

@@ -19,6 +19,8 @@ export type ImporterStructuresInput = {
   fichierBuffer: ArrayBuffer | Buffer;
   fichierNom: string;
   fichierTaille: number;
+  /** Hash SHA-256 du fichier (pour la session d'import). */
+  fichierHash?: string;
   /** Nom de l'onglet à importer (multi-onglets). Si absent, auto-détection. */
   nomOnglet?: string;
   /** Code projet à appliquer par défaut si absent des cellules. */
@@ -66,12 +68,38 @@ export async function importerStructuresExcel(
 
   const erreurs: ErreurImport[] = [];
   let nbInserees = 0;
+  let nbDoublons = 0;
 
   const supabase = await createSupabaseServerClient();
   const adminClient = createSupabaseAdminClient();
 
+  // Session d'import (best-effort) : permet l'annulation/rollback ultérieure.
+  // Chaque structure insérée est taguée avec import_session_id.
+  let importSessionId: string | null = null;
+  const rollbackExpireAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const { data: session } = await adminClient
+      .from('import_sessions')
+      .insert({
+        fichier_nom: input.fichierNom,
+        fichier_hash: input.fichierHash ?? null,
+        statut: 'en_cours',
+        peut_rollback: true,
+        rollback_expire_at: rollbackExpireAt,
+        created_by: utilisateur.user_id,
+      } as never)
+      .select('id')
+      .single();
+    importSessionId = (session as { id: string } | null)?.id ?? null;
+  } catch {
+    // import_sessions absent du schéma (dev/staging non migré) → sans rollback
+  }
+
   for (const { numLigne, donnees } of lignes) {
-    const { donneesParsees, erreursMapping } = mapLigneVersStructure(donnees);
+    const { donneesParsees, erreursMapping } = mapLigneVersStructure(donnees, {
+      tolerant: true,
+      codeProjetDefaut: input.codeProjetDefaut,
+    });
     if (erreursMapping.length > 0) {
       for (const e of erreursMapping) {
         erreurs.push({ ligne: numLigne, colonne: e.colonne, valeur: e.valeur, message: e.message });
@@ -97,9 +125,20 @@ export async function importerStructuresExcel(
       ...parse.data,
       source_import: 'excel_v1',
       created_by: utilisateur.user_id,
+      ...(importSessionId ? { import_session_id: importSessionId } : {}),
     } as never);
 
     if (insertError) {
+      // Violation de contrainte unique (code Postgres 23505) sur l'index de
+      // dédoublonnage = la structure existe déjà en BDD (même nom + pays +
+      // projet). Ce n'est PAS une erreur : on la compte comme doublon ignoré.
+      if (
+        (insertError as { code?: string }).code === '23505' ||
+        /duplicate key|idx_structures_dedoublonnage/i.test(insertError.message)
+      ) {
+        nbDoublons++;
+        continue;
+      }
       erreurs.push({
         ligne: numLigne,
         colonne: null,
@@ -135,6 +174,25 @@ export async function importerStructuresExcel(
     // best-effort
   }
 
+  // Finaliser la session d'import (compteurs + statut). Si rien n'a été
+  // inséré, la session reste sans lignes liées → annulation sans effet.
+  if (importSessionId) {
+    try {
+      await adminClient
+        .from('import_sessions')
+        .update({
+          statut: 'complete',
+          nb_inserees: nbInserees,
+          nb_doublons: nbDoublons,
+          nb_rejetees: erreurs.length,
+          peut_rollback: nbInserees > 0,
+        } as never)
+        .eq('id', importSessionId);
+    } catch {
+      // best-effort
+    }
+  }
+
   revalidatePath('/structures');
   revalidatePath('/admin/imports');
 
@@ -145,8 +203,11 @@ export async function importerStructuresExcel(
       nb_lignes_total: lignes.length,
       nb_lignes_inserees: nbInserees,
       nb_lignes_ignorees: lignes.length - nbInserees,
+      nb_doublons: nbDoublons,
       erreurs,
       import_id: importId,
+      import_session_id: nbInserees > 0 ? importSessionId : null,
+      rollback_expire_at: nbInserees > 0 ? rollbackExpireAt : null,
       execute_a: new Date().toISOString(),
     },
   };

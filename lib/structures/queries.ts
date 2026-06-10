@@ -176,16 +176,30 @@ export type StructureListItem = {
   nom_structure: string;
   type_structure_code: string;
   secteur_activite_code: string;
+  secteur_precis: string | null;
+  intitule_initiative: string | null;
   pays_code: string;
   projet_code: string;
   porteur_nom: string;
   porteur_prenom: string | null;
+  porteur_sexe: string | null;
+  fonction_porteur: string | null;
+  telephone_porteur: string | null;
+  courriel_porteur: string | null;
   annee_appui: number;
   nature_appui_code: string;
   montant_appui: number | null;
   devise_code: string | null;
   statut_creation: 'creation' | 'renforcement' | 'relance';
+  date_creation: string | null;
   consentement_recueilli: boolean;
+  adresse: string | null;
+  ville: string | null;
+  localite: string | null;
+  chiffre_affaires: number | null;
+  employes_permanents: number | null;
+  employes_temporaires: number | null;
+  emplois_crees: number | null;
   created_by: string | null;
   organisation_id: string | null;
   updated_at: string;
@@ -250,7 +264,7 @@ export async function listStructures(
   let query = supabase
     .from('structures')
     .select(
-      'id, nom_structure, type_structure_code, secteur_activite_code, pays_code, projet_code, porteur_nom, porteur_prenom, annee_appui, nature_appui_code, montant_appui, devise_code, statut_creation, consentement_recueilli, created_by, organisation_id, updated_at',
+      'id, nom_structure, type_structure_code, secteur_activite_code, secteur_precis, intitule_initiative, pays_code, projet_code, porteur_nom, porteur_prenom, porteur_sexe, fonction_porteur, telephone_porteur, courriel_porteur, annee_appui, nature_appui_code, montant_appui, devise_code, statut_creation, date_creation, consentement_recueilli, adresse, ville, localite, chiffre_affaires, employes_permanents, employes_temporaires, emplois_crees, created_by, organisation_id, updated_at',
       { count: 'exact' },
     )
     .is('deleted_at', null);
