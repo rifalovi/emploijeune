@@ -93,7 +93,11 @@ export function DialogueRapportImport({ rapport, onClose }: DialogueRapportImpor
 
         {rapport && (
           <div className="space-y-4 overflow-y-auto">
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <div
+              className={`grid gap-3 text-center ${
+                (rapport.nb_doublons ?? 0) > 0 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'
+              }`}
+            >
               <Compteur valeur={rapport.nb_lignes_total} libelle="Lignes lues" />
               <Compteur
                 valeur={rapport.nb_lignes_inserees}
@@ -101,18 +105,33 @@ export function DialogueRapportImport({ rapport, onClose }: DialogueRapportImpor
                 ton={rapport.nb_lignes_inserees > 0 ? 'succes' : undefined}
                 icone="ok"
               />
+              {(rapport.nb_doublons ?? 0) > 0 && (
+                <Compteur valeur={rapport.nb_doublons ?? 0} libelle="Déjà présentes" ton="info" />
+              )}
               <Compteur
-                valeur={rapport.nb_lignes_ignorees}
-                libelle="Ignorées"
-                ton={rapport.nb_lignes_ignorees > 0 ? 'erreur' : undefined}
+                valeur={rapport.erreurs.length}
+                libelle="Erreurs"
+                ton={rapport.erreurs.length > 0 ? 'erreur' : undefined}
                 icone="erreur"
               />
             </div>
 
             {rapport.erreurs.length === 0 ? (
-              <p className="text-muted-foreground rounded-md border border-green-200 bg-green-50 p-3 text-sm dark:border-green-900 dark:bg-green-950/30">
-                ✓ Aucune erreur détectée. Toutes les lignes ont été importées avec succès.
-              </p>
+              (rapport.nb_doublons ?? 0) > 0 ? (
+                <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
+                  ℹ︎{' '}
+                  {rapport.nb_lignes_inserees > 0
+                    ? `${rapport.nb_lignes_inserees.toLocaleString('fr-FR')} structure(s) importée(s). `
+                    : ''}
+                  {(rapport.nb_doublons ?? 0).toLocaleString('fr-FR')} structure(s) étaient{' '}
+                  <strong>déjà présentes</strong> (mêmes nom + pays + projet) et n’ont pas été
+                  ré-importées. Aucune erreur.
+                </p>
+              ) : (
+                <p className="text-muted-foreground rounded-md border border-green-200 bg-green-50 p-3 text-sm dark:border-green-900 dark:bg-green-950/30">
+                  ✓ Aucune erreur détectée. Toutes les lignes ont été importées avec succès.
+                </p>
+              )
             ) : (
               <div className="space-y-2">
                 <p className="text-sm font-medium">
@@ -185,7 +204,7 @@ function Compteur({
 }: {
   valeur: number;
   libelle: string;
-  ton?: 'succes' | 'erreur';
+  ton?: 'succes' | 'erreur' | 'info';
   icone?: 'ok' | 'erreur';
 }) {
   const couleur =
@@ -193,7 +212,9 @@ function Compteur({
       ? 'border-green-200 bg-green-50 text-green-900 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300'
       : ton === 'erreur'
         ? 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300'
-        : 'border-input bg-card';
+        : ton === 'info'
+          ? 'border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300'
+          : 'border-input bg-card';
   return (
     <div className={`rounded-lg border p-3 ${couleur}`}>
       <div className="flex items-center justify-center gap-1">

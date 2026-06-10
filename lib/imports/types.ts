@@ -27,6 +27,11 @@ export type RapportImport = {
   nb_lignes_inserees: number;
   /** Nombre de lignes ignorées pour cause d'erreur. */
   nb_lignes_ignorees: number;
+  /**
+   * Nombre de lignes ignorées car déjà présentes en BDD (doublon sur la clé de
+   * dédoublonnage). Comptées séparément des erreurs : ce n'est pas un échec.
+   */
+  nb_doublons?: number;
   /** Détail des erreurs ligne par ligne. */
   erreurs: ErreurImport[];
   /** ID de la ligne `imports_excel` créée pour audit. */

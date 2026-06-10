@@ -127,7 +127,7 @@ export async function extraireAvecIA(
   try {
     response = await client.messages.create(
       {
-        model: 'claude-sonnet-4-6-20250514',
+        model: 'claude-sonnet-4-5',
         max_tokens: 4096,
         messages: [{ role: 'user', content: prompt }],
       },
@@ -239,15 +239,13 @@ async function extraireTexteFichier(
         if (!worksheet) continue;
         lignes.push(`=== Feuille : ${worksheet.name} ===`);
         worksheet.eachRow({ includeEmpty: false }, (row) => {
-          const valeurs = (row.values as (ExcelJS.CellValue | null)[])
-            .slice(1)
-            .map((v) => {
-              if (v === null || v === undefined) return '';
-              if (typeof v === 'object' && 'text' in v) return String((v as { text: string }).text);
-              if (typeof v === 'object' && 'result' in v)
-                return String((v as { result: unknown }).result ?? '');
-              return String(v);
-            });
+          const valeurs = (row.values as (ExcelJS.CellValue | null)[]).slice(1).map((v) => {
+            if (v === null || v === undefined) return '';
+            if (typeof v === 'object' && 'text' in v) return String((v as { text: string }).text);
+            if (typeof v === 'object' && 'result' in v)
+              return String((v as { result: unknown }).result ?? '');
+            return String(v);
+          });
           lignes.push(valeurs.join('\t'));
         });
       }

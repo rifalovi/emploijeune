@@ -74,7 +74,13 @@ export function ZoneUploadImport({
   const [analyserAvecIA, setAnalyserAvecIA] = useState(false);
 
   // Multi-onglets
-  type InfoOnglet = { nom: string; nbLignes: number; nbColonnes: number; nbHeadersReconnus: number; score: number };
+  type InfoOnglet = {
+    nom: string;
+    nbLignes: number;
+    nbColonnes: number;
+    nbHeadersReconnus: number;
+    score: number;
+  };
   const [onglets, setOnglets] = useState<InfoOnglet[]>([]);
   const [ongletChoisi, setOngletChoisi] = useState<string>('');
   const [chargementOnglets, setChargementOnglets] = useState(false);
@@ -146,9 +152,13 @@ export function ZoneUploadImport({
         const fd = new FormData();
         fd.append('fichier', f);
         fd.append('type', endpoint.includes('structures') ? 'structures' : 'beneficiaires');
-        const res = await fetch('/api/imports/onglets', { method: 'POST', body: fd, credentials: 'same-origin' });
+        const res = await fetch('/api/imports/onglets', {
+          method: 'POST',
+          body: fd,
+          credentials: 'same-origin',
+        });
         if (res.ok) {
-          const { onglets: liste } = await res.json() as { onglets: InfoOnglet[] };
+          const { onglets: liste } = (await res.json()) as { onglets: InfoOnglet[] };
           if (liste.length > 1) {
             setOnglets(liste);
             // Par défaut : auto-détection (chaîne vide = backend choisit)
@@ -200,7 +210,7 @@ export function ZoneUploadImport({
               `Ce fichier semble avoir déjà été importé le ${date}.\n\nVoulez-vous l'importer quand même ?`,
             );
             if (!forcer) {
-              toast.info('Import annulé', { description: 'Le fichier n\'a pas été réimporté.' });
+              toast.info('Import annulé', { description: "Le fichier n'a pas été réimporté." });
               return;
             }
             // Re-soumettre avec force=true
@@ -217,13 +227,20 @@ export function ZoneUploadImport({
                   onRapport(retryResult.rapport);
                   return;
                 }
-                toast.error('Import refusé', { description: (retryResult as { message?: string }).message ?? 'Erreur inconnue.' });
+                toast.error('Import refusé', {
+                  description: (retryResult as { message?: string }).message ?? 'Erreur inconnue.',
+                });
               } else {
                 const retryErr = await retry.json().catch(() => ({ erreur: retry.statusText }));
-                toast.error('Import impossible', { description: retryErr.erreur ?? retry.statusText });
+                toast.error('Import impossible', {
+                  description: retryErr.erreur ?? retry.statusText,
+                });
               }
             } catch (retryErr) {
-              toast.error('Import impossible', { description: retryErr instanceof Error ? retryErr.message : 'Erreur réseau lors du ré-essai.' });
+              toast.error('Import impossible', {
+                description:
+                  retryErr instanceof Error ? retryErr.message : 'Erreur réseau lors du ré-essai.',
+              });
             }
             return;
           }
@@ -246,6 +263,9 @@ export function ZoneUploadImport({
           : rapport.nb_lignes_inserees;
         const nbErreurs = estEnrichi(rapport) ? rapport.nb_rejetees : rapport.erreurs.length;
         const nbTotal = estEnrichi(rapport) ? rapport.nb_lignes_total : rapport.nb_lignes_total;
+        const nbDoublons = estEnrichi(rapport)
+          ? rapport.nb_doublons_identiques
+          : (rapport.nb_doublons ?? 0);
 
         if (nbImportees > 0) {
           toast.success(
@@ -254,14 +274,20 @@ export function ZoneUploadImport({
               description:
                 nbErreurs > 0
                   ? `${nbErreurs} erreur(s) – voir le rapport.`
-                  : estEnrichi(rapport) && rapport.nb_incompletes > 0
-                    ? `Dont ${rapport.nb_incompletes} incomplète(s).`
-                    : 'Aucune erreur.',
+                  : nbDoublons > 0
+                    ? `Dont ${nbDoublons} déjà présente(s) (ignorée(s)).`
+                    : estEnrichi(rapport) && rapport.nb_incompletes > 0
+                      ? `Dont ${rapport.nb_incompletes} incomplète(s).`
+                      : 'Aucune erreur.',
             },
           );
         } else if (nbErreurs > 0) {
           toast.error('Aucune ligne importée', {
             description: `${nbErreurs} erreur(s) – voir le rapport.`,
+          });
+        } else if (nbDoublons > 0) {
+          toast.info('Structures déjà présentes', {
+            description: `${nbDoublons} structure(s) déjà importée(s) — rien de nouveau à ajouter.`,
           });
         } else {
           toast.info('Fichier vide', { description: 'Aucune ligne de données détectée.' });
@@ -391,7 +417,9 @@ export function ZoneUploadImport({
                 <Upload className="text-muted-foreground size-8" aria-hidden />
                 <p className="text-sm">
                   Glissez votre fichier{' '}
-                  {iaActivable ? '(.xlsx, .xlsm, .csv, .pdf, .docx, .txt) ' : '(.xlsx, .xlsm, .csv) '}
+                  {iaActivable
+                    ? '(.xlsx, .xlsm, .csv, .pdf, .docx, .txt) '
+                    : '(.xlsx, .xlsm, .csv) '}
                   ici ou cliquez pour parcourir
                 </p>
                 <p className="text-muted-foreground text-xs">Maximum {MAX_TAILLE_MO} MB</p>
@@ -483,8 +511,8 @@ export function ZoneUploadImport({
           <div className="flex items-center justify-between gap-2">
             {templateLabel && (
               <p className="text-muted-foreground text-xs">
-                {templateLabel} — utilisez le bouton Exporter vers Excel de la liste pour
-                récupérer un modèle.
+                {templateLabel} — utilisez le bouton Exporter vers Excel de la liste pour récupérer
+                un modèle.
               </p>
             )}
             <Button

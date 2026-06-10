@@ -66,6 +66,7 @@ export async function importerStructuresExcel(
 
   const erreurs: ErreurImport[] = [];
   let nbInserees = 0;
+  let nbDoublons = 0;
 
   const supabase = await createSupabaseServerClient();
   const adminClient = createSupabaseAdminClient();
@@ -103,6 +104,16 @@ export async function importerStructuresExcel(
     } as never);
 
     if (insertError) {
+      // Violation de contrainte unique (code Postgres 23505) sur l'index de
+      // dédoublonnage = la structure existe déjà en BDD (même nom + pays +
+      // projet). Ce n'est PAS une erreur : on la compte comme doublon ignoré.
+      if (
+        (insertError as { code?: string }).code === '23505' ||
+        /duplicate key|idx_structures_dedoublonnage/i.test(insertError.message)
+      ) {
+        nbDoublons++;
+        continue;
+      }
       erreurs.push({
         ligne: numLigne,
         colonne: null,
@@ -148,6 +159,7 @@ export async function importerStructuresExcel(
       nb_lignes_total: lignes.length,
       nb_lignes_inserees: nbInserees,
       nb_lignes_ignorees: lignes.length - nbInserees,
+      nb_doublons: nbDoublons,
       erreurs,
       import_id: importId,
       execute_a: new Date().toISOString(),
