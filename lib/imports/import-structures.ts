@@ -25,7 +25,22 @@ export type ImporterStructuresInput = {
   nomOnglet?: string;
   /** Code projet à appliquer par défaut si absent des cellules. */
   codeProjetDefaut?: string;
+  /**
+   * Forcer l'insertion des doublons identifiés (même nom+pays+projet ou même
+   * contact porteur) pour traitement manuel ultérieur. Défaut : false.
+   */
+  forcerDoublons?: boolean;
 };
+
+/** Normalise un nom de structure pour la clé de dédoublonnage (≈ unaccent+lower). */
+function cleNomStructure(nom: string): string {
+  return nom.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+function cleTelStruct(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).replace(/[^\d+]/g, '');
+  return s.length >= 6 ? s : null;
+}
 
 export async function importerStructuresExcel(
   input: ImporterStructuresInput,
@@ -95,6 +110,39 @@ export async function importerStructuresExcel(
     // import_sessions absent du schéma (dev/staging non migré) → sans rollback
   }
 
+  // Pré-cache des structures existantes pour le dédoublonnage applicatif :
+  // clé identité (nom + pays + projet) + contacts porteur (courriel / tél).
+  const clesExistantes = new Set<string>();
+  const contactsExistants = new Set<string>();
+  if (!input.forcerDoublons) {
+    try {
+      let offset = 0;
+      const PAGE = 1000;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data } = await adminClient
+          .from('structures')
+          .select('nom_structure, pays_code, projet_code, courriel_porteur, telephone_porteur')
+          .is('deleted_at', null)
+          .range(offset, offset + PAGE - 1);
+        const rows = (data ?? []) as Array<Record<string, unknown>>;
+        for (const r of rows) {
+          clesExistantes.add(
+            `${cleNomStructure(String(r.nom_structure ?? ''))}|${r.pays_code}|${r.projet_code}`,
+          );
+          if (r.courriel_porteur)
+            contactsExistants.add(`c:${String(r.courriel_porteur).toLowerCase()}`);
+          const t = cleTelStruct(r.telephone_porteur);
+          if (t) contactsExistants.add(`t:${t}`);
+        }
+        if (rows.length < PAGE) break;
+        offset += PAGE;
+      }
+    } catch {
+      // table/réseau indisponible → pas de pré-cache, insertion simple
+    }
+  }
+
   // Traitement CONCURRENT par tranches — évite le timeout Vercel sur les
   // fichiers de plusieurs centaines de lignes (avant : insertions séquentielles
   // ≈ 100 ms/ligne → 582 lignes ≈ 60 s, à la limite du timeout).
@@ -135,6 +183,23 @@ export async function importerStructuresExcel(
           message: issue.message,
         })),
       };
+    }
+
+    // Dédoublonnage applicatif (sauf si forçage demandé) : doublon si même
+    // nom+pays+projet OU même contact porteur. Sinon insertion.
+    if (!input.forcerDoublons) {
+      const cle = `${cleNomStructure(parse.data.nom_structure)}|${parse.data.pays_code}|${parse.data.projet_code}`;
+      const tel = cleTelStruct(parse.data.telephone_porteur);
+      const courriel = parse.data.courriel_porteur
+        ? `c:${String(parse.data.courriel_porteur).toLowerCase()}`
+        : null;
+      if (
+        clesExistantes.has(cle) ||
+        (courriel && contactsExistants.has(courriel)) ||
+        (tel && contactsExistants.has(`t:${tel}`))
+      ) {
+        return { statut: 'doublon' };
+      }
     }
 
     const { error: insertError } = await adminClient.from('structures').insert({

@@ -96,6 +96,8 @@ export function ZoneUploadImport({
     nbErreurs: number;
   };
   const [suggestionIA, setSuggestionIA] = useState<SuggestionIA | null>(null);
+  /** Nb de doublons structures identifiés, forçables via « Importer quand même ». */
+  const [doublonsForcables, setDoublonsForcables] = useState(0);
 
   const iaActivable = Boolean(endpointIA) && Boolean(iaDispo);
 
@@ -135,6 +137,7 @@ export function ZoneUploadImport({
     setFichier(f);
     setOnglets([]);
     setOngletChoisi('');
+    setDoublonsForcables(0);
 
     // Active automatiquement l'IA si fichier non-Excel (PDF/DOCX/TXT)
     if (estFichierIA(f) && iaActivable) {
@@ -180,7 +183,9 @@ export function ZoneUploadImport({
     if (f) handleFichierSelectionne(f);
   };
 
-  const handleLancerImport = () => {
+  const estStructuresExcel = endpoint.includes('structures') && !analyserAvecIA;
+
+  const handleLancerImport = (forceDoublons = false) => {
     if (!fichier) return;
     // Endpoint = endpointIA si toggle activé et un endpointIA est dispo,
     // sinon l'endpoint Excel classique.
@@ -190,6 +195,7 @@ export function ZoneUploadImport({
       formData.append('fichier', fichier);
       if (ongletChoisi) formData.append('onglet', ongletChoisi);
       if (codeProjetDefaut) formData.append('code_projet_defaut', codeProjetDefaut);
+      if (forceDoublons) formData.append('force_doublons', 'true');
 
       try {
         const response = await fetch(endpointEffectif, {
@@ -306,7 +312,14 @@ export function ZoneUploadImport({
         const importDifficile =
           (nbImportees === 0 && nbErreurs > 0) || (nbTotal >= 5 && nbErreurs / nbTotal > 0.3);
 
-        if (iaActivable && etaitImportExcel && importDifficile && fichier) {
+        // Doublons structures forçables : on conserve le fichier pour proposer
+        // « Importer quand même » (insertion forcée pour traitement manuel).
+        const peutForcer = estStructuresExcel && !forceDoublons && nbDoublons > 0;
+        setDoublonsForcables(peutForcer ? nbDoublons : 0);
+
+        if (peutForcer) {
+          // garder le fichier en place pour le forçage
+        } else if (iaActivable && etaitImportExcel && importDifficile && fichier) {
           setSuggestionIA({ fichierEnCours: fichier, nbTotal, nbImportees, nbErreurs });
         } else {
           setFichier(null);
@@ -517,7 +530,7 @@ export function ZoneUploadImport({
             )}
             <Button
               type="button"
-              onClick={handleLancerImport}
+              onClick={() => handleLancerImport()}
               disabled={!fichier || pending || chargementOnglets}
               className="gap-2"
             >
@@ -533,6 +546,19 @@ export function ZoneUploadImport({
                 </>
               )}
             </Button>
+            {doublonsForcables > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleLancerImport(true)}
+                disabled={pending}
+                className="gap-2 border-amber-300 text-amber-800 hover:bg-amber-50"
+                title="Insère les doublons identifiés (même nom/pays/projet ou contact) pour traitement manuel ultérieur"
+              >
+                <Upload aria-hidden className="size-4" />
+                Importer quand même {doublonsForcables} doublon{doublonsForcables > 1 ? 's' : ''}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

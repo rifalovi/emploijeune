@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
 
     const nomOnglet = (formData.get('onglet') as string) || undefined;
     const codeProjetDefaut = (formData.get('code_projet_defaut') as string) || undefined;
+    const forcerDoublons = formData.get('force_doublons') === 'true';
     const result = await importerStructuresExcel({
       fichierBuffer: buffer,
       fichierNom: fichier.name,
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
       fichierHash,
       nomOnglet,
       codeProjetDefaut,
+      forcerDoublons,
     });
     return NextResponse.json(result);
   } catch (erreur) {
