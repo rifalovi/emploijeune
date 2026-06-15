@@ -112,6 +112,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       indicateurs: { ...oif.indicateurs, A4: fusion('A4'), B4: fusion('B4'), F1: fusion('F1') },
     };
   }
+
+  // B1 cumulé (toutes années) — le RLS applique le périmètre projet du rôle,
+  // identique au calcul de la RPC. Permet le sélecteur Cumulé / Année en cours.
+  let b1Cumule: number | null = null;
+  if (oifAffiche) {
+    const { count } = await supabase
+      .from('structures')
+      .select('id', { count: 'exact', head: true })
+      .is('deleted_at', null);
+    b1Cumule = count ?? null;
+  }
   const oifErreur: string | null = oifResp.error
     ? oifResp.error.message
     : !oifParse.success
@@ -172,7 +183,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
 
         {oifAffiche ? (
           <>
-            <KpiGridOif data={oifAffiche} />
+            <KpiGridOif data={oifAffiche} b1Cumule={b1Cumule} />
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <ChartProjetsBar data={oifAffiche.bar_projets} />
               <ChartProgrammesPie data={oifAffiche.pie_programmes} />

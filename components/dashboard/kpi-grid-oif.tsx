@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Users, GraduationCap, Building2, Briefcase, Globe2, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,58 +34,107 @@ import { CompteurAnime } from './compteur-anime';
 const COULEUR_BLEU_OIF = '#0E4F88';
 const COULEUR_DORE = '#F5A623';
 
-export function KpiGridOif({ data }: { data: IndicateursOif }) {
+export function KpiGridOif({
+  data,
+  b1Cumule = null,
+}: {
+  data: IndicateursOif;
+  /** B1 cumulé (toutes années). Si fourni, un sélecteur Cumulé/Année courante apparaît. */
+  b1Cumule?: number | null;
+}) {
   const i = data.indicateurs;
+  const [vue, setVue] = useState<'cumule' | 'courant'>('cumule');
+  const b1Valeur = b1Cumule !== null && vue === 'cumule' ? b1Cumule : i.B1.valeur;
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-      {/* HERO — A1 : col-span-2 sur desktop, full-width tablette */}
-      <KpiHeroCard
-        code="A1"
-        libelle={i.A1.libelle}
-        valeur={i.A1.valeur}
-        icone={GraduationCap}
-        femmes={i.A1.femmes}
-        hommes={i.A1.hommes}
-        delaiMs={0}
-      />
-      <KpiSecondaireCard
-        code="A4"
-        libelle={i.A4.libelle}
-        valeur={i.A4.valeur}
-        icone={Users}
-        couleur={PROGRAMMES_STRATEGIQUES.PS2.principale}
-        proxy={i.A4.proxy}
-        suffixe="%"
-        delaiMs={120}
-      />
-      <KpiSecondaireCard
-        code="B1"
-        libelle={i.B1.libelle}
-        valeur={i.B1.valeur}
-        icone={Building2}
-        couleur={PROGRAMMES_STRATEGIQUES.PS3.principale}
-        delaiMs={240}
-      />
-      <KpiSecondaireCard
-        code="B4"
-        libelle={i.B4.libelle}
-        valeur={i.B4.valeur}
-        icone={Briefcase}
-        couleur={COULEUR_DORE}
-        details={i.B4.mention ?? null}
-        delaiMs={360}
-      />
-      <KpiSecondaireCard
-        code="F1"
-        libelle={i.F1.libelle}
-        valeur={i.F1.valeur}
-        icone={Globe2}
-        couleur={PROGRAMMES_STRATEGIQUES.PS1.principale}
-        proxy={i.F1.proxy}
-        suffixe="%"
-        delaiMs={480}
-      />
+    <div className="space-y-3">
+      {b1Cumule !== null && (
+        <div className="flex items-center justify-end gap-2 text-xs">
+          <span className="text-muted-foreground">Effectifs (B1) :</span>
+          <div className="inline-flex overflow-hidden rounded-md border">
+            <button
+              type="button"
+              onClick={() => setVue('cumule')}
+              className={cn(
+                'px-2.5 py-1 font-medium transition-colors',
+                vue === 'cumule'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-white text-slate-600 hover:bg-slate-50',
+              )}
+            >
+              Cumulé (toutes années)
+            </button>
+            <button
+              type="button"
+              onClick={() => setVue('courant')}
+              className={cn(
+                'border-l px-2.5 py-1 font-medium transition-colors',
+                vue === 'courant'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-white text-slate-600 hover:bg-slate-50',
+              )}
+            >
+              Année en cours
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        {/* HERO — A1 : col-span-2 sur desktop, full-width tablette */}
+        <KpiHeroCard
+          code="A1"
+          libelle={i.A1.libelle}
+          valeur={i.A1.valeur}
+          icone={GraduationCap}
+          femmes={i.A1.femmes}
+          hommes={i.A1.hommes}
+          delaiMs={0}
+        />
+        <KpiSecondaireCard
+          code="A4"
+          libelle={i.A4.libelle}
+          valeur={i.A4.valeur}
+          icone={Users}
+          couleur={PROGRAMMES_STRATEGIQUES.PS2.principale}
+          proxy={i.A4.proxy}
+          suffixe="%"
+          delaiMs={120}
+        />
+        <KpiSecondaireCard
+          code="B1"
+          libelle={i.B1.libelle}
+          valeur={b1Valeur}
+          icone={Building2}
+          couleur={PROGRAMMES_STRATEGIQUES.PS3.principale}
+          details={
+            b1Cumule !== null
+              ? vue === 'cumule'
+                ? 'Toutes années cumulées'
+                : 'Année en cours'
+              : null
+          }
+          delaiMs={240}
+        />
+        <KpiSecondaireCard
+          code="B4"
+          libelle={i.B4.libelle}
+          valeur={i.B4.valeur}
+          icone={Briefcase}
+          couleur={COULEUR_DORE}
+          details={i.B4.mention ?? null}
+          delaiMs={360}
+        />
+        <KpiSecondaireCard
+          code="F1"
+          libelle={i.F1.libelle}
+          valeur={i.F1.valeur}
+          icone={Globe2}
+          couleur={PROGRAMMES_STRATEGIQUES.PS1.principale}
+          proxy={i.F1.proxy}
+          suffixe="%"
+          delaiMs={480}
+        />
+      </div>
     </div>
   );
 }
