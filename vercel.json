@@ -1,8 +1,9 @@
 {
   "functions": {
-    "app/api/imports/beneficiaires/route.ts": { "maxDuration": 60 },
-    "app/api/imports/structures/route.ts": { "maxDuration": 60 },
-    "app/api/imports/beneficiaires-ia/route.ts": { "maxDuration": 60 },
-    "app/api/imports/structures-ia/route.ts": { "maxDuration": 60 }
+    "app/api/imports/beneficiaires/route.ts": { "maxDuration": 300 },
+    "app/api/imports/structures/route.ts": { "maxDuration": 300 },
+    "app/api/imports/beneficiaires-ia/route.ts": { "maxDuration": 300 },
+    "app/api/imports/structures-ia/route.ts": { "maxDuration": 300 },
+    "app/api/imports/rapport-indicateurs/route.ts": { "maxDuration": 120 }
   }
 }
