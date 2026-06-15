@@ -203,6 +203,75 @@ export async function enregistrerSaisiesLot(
   return { status: 'succes', nb_enregistrees: nbEnregistrees, nb_publiees: nbPubliees, erreurs };
 }
 
+// ─── Saisie par lot des valeurs PAR PROJET (extension import rapport) ────────
+
+const ligneProjetSchema = z.object({
+  code: z.string().min(1).max(4),
+  projet_code: z.string().min(1).max(20),
+  annee: z.coerce
+    .number()
+    .int()
+    .min(2020)
+    .max(anneeCourante + 1),
+  valeur_directe: z.coerce.number(),
+  note: z.string().max(500).nullable().optional(),
+});
+
+const lotProjetSchema = z.object({
+  lignes: z.array(ligneProjetSchema).min(1).max(200),
+  publier: z.boolean().default(false),
+});
+
+/**
+ * Enregistre en lot des valeurs d'indicateurs VENTILÉES PAR PROJET dans
+ * `valeurs_indicateurs_projet`. Upsert via le client admin (service_role) —
+ * autorisation vérifiée ici (super_admin uniquement).
+ */
+export async function enregistrerSaisiesProjetLot(
+  payload: z.infer<typeof lotProjetSchema>,
+): Promise<SaisieLotResult> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || utilisateur.role !== 'super_admin') {
+    return { status: 'erreur', message: 'Réservé au super_admin.' };
+  }
+
+  const parsed = lotProjetSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { status: 'erreur', message: parsed.error.issues[0]?.message ?? 'Payload invalide.' };
+  }
+
+  const admin = createSupabaseAdminClient();
+  const maintenant = new Date().toISOString();
+  const rows = parsed.data.lignes.map((l) => ({
+    indicateur_code: l.code,
+    projet_code: l.projet_code,
+    annee: l.annee,
+    valeur_directe: l.valeur_directe,
+    note: l.note ?? null,
+    publie: parsed.data.publier,
+    published_at: parsed.data.publier ? maintenant : null,
+    updated_at: maintenant,
+    created_by: utilisateur.user_id,
+  }));
+
+  // Table récente, absente des types générés → cast du client.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (admin as any).from('valeurs_indicateurs_projet').upsert(rows, {
+    onConflict: 'indicateur_code,projet_code,annee',
+  });
+
+  if (error) return { status: 'erreur', message: error.message };
+
+  revalidatePath('/indicateurs');
+
+  return {
+    status: 'succes',
+    nb_enregistrees: rows.length,
+    nb_publiees: parsed.data.publier ? rows.length : 0,
+    erreurs: [],
+  };
+}
+
 const suppressionSchema = z.object({
   code: z.string().min(1).max(4),
   annee: z.coerce.number().int(),
