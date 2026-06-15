@@ -718,19 +718,14 @@ type BeneficiaireRecord = Record<string, unknown>;
 
 export type CacheDoublons = {
   parCourriel: Map<string, BeneficiaireRecord>;
-  parCleFailble: Map<string, BeneficiaireRecord>;
+  parTelephone: Map<string, BeneficiaireRecord>;
 };
 
-function cleFailble(
-  prenom: string | null,
-  nom: string | null,
-  projet: string,
-  pays: string,
-  sexe: string,
-  annee: number,
-  tranche: string,
-): string {
-  return `${prenom ?? 'INCONNU'}|${nom ?? 'INCONNU'}|${projet}|${pays}|${sexe}|${annee}|${tranche}`;
+/** Normalise un téléphone pour comparaison (chiffres + éventuel +). */
+function cleTelephone(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).replace(/[^\d+]/g, '');
+  return s.length >= 6 ? s : null;
 }
 
 /**
@@ -742,70 +737,45 @@ async function precalculerCacheDoublons(
   adminClient: AdminClient,
   lignes: { donnees: Record<string, unknown> }[],
 ): Promise<CacheDoublons> {
-  const cache: CacheDoublons = { parCourriel: new Map(), parCleFailble: new Map() };
+  const cache: CacheDoublons = { parCourriel: new Map(), parTelephone: new Map() };
 
   if (lignes.length < 200) return cache; // import petit — pas besoin du cache
 
-  // Collecter projets et courriels distincts
-  const projets = new Set<string>();
+  // Collecter les contacts distincts présents dans le fichier (courriel/tél).
   const courriels = new Set<string>();
+  const telephones = new Set<string>();
   for (const { donnees } of lignes) {
-    const p = normaliserCodeProjet(donnees['Code projet *']);
-    if (p) projets.add(p);
     const c = nettoyerCourriel(donnees['Courriel']);
-    if (c) courriels.add(c);
+    if (c) courriels.add(c.toLowerCase());
+    const t = cleTelephone(donnees['Téléphone (avec indicatif)']);
+    if (t) telephones.add(t);
   }
 
-  try {
-    // 1. Batch par projet (clé faible)
-    if (projets.size > 0) {
-      let offset = 0;
-      const PAGE = 1000;
-      while (true) {
-        const { data } = await adminClient
-          .from('beneficiaires')
-          .select(SELECT_DOUBLON)
-          .in('projet_code', [...projets])
-          .is('deleted_at', null)
-          .range(offset, offset + PAGE - 1);
-        if (!data || data.length === 0) break;
-        for (const b of data as BeneficiaireRecord[]) {
-          if (b.courriel) cache.parCourriel.set(b.courriel as string, b);
-          if (
-            b.projet_code &&
-            b.pays_code &&
-            b.sexe &&
-            b.annee_formation &&
-            b.tranche_age_declaree
-          ) {
-            const k = cleFailble(
-              b.prenom as string | null,
-              b.nom as string | null,
-              b.projet_code as string,
-              b.pays_code as string,
-              b.sexe as string,
-              b.annee_formation as number,
-              b.tranche_age_declaree as string,
-            );
-            cache.parCleFailble.set(k, b);
-          }
-        }
-        if (data.length < PAGE) break;
-        offset += PAGE;
-      }
+  const indexer = (rows: BeneficiaireRecord[]) => {
+    for (const b of rows) {
+      if (b.courriel) cache.parCourriel.set(String(b.courriel).toLowerCase(), b);
+      const t = cleTelephone(b.telephone);
+      if (t) cache.parTelephone.set(t, b);
     }
+  };
 
-    // 2. Courriels hors projets du fichier (rares — import enrichissement)
-    const courrielsHorsProjets = [...courriels].filter((c) => !cache.parCourriel.has(c));
-    if (courrielsHorsProjets.length > 0) {
+  try {
+    // Charger les bénéficiaires existants partageant un contact du fichier.
+    if (courriels.size > 0) {
       const { data } = await adminClient
         .from('beneficiaires')
         .select(SELECT_DOUBLON)
-        .in('courriel', courrielsHorsProjets)
+        .in('courriel', [...courriels])
         .is('deleted_at', null);
-      for (const b of (data ?? []) as BeneficiaireRecord[]) {
-        if (b.courriel) cache.parCourriel.set(b.courriel as string, b);
-      }
+      indexer((data ?? []) as BeneficiaireRecord[]);
+    }
+    if (telephones.size > 0) {
+      const { data } = await adminClient
+        .from('beneficiaires')
+        .select(SELECT_DOUBLON)
+        .in('telephone', [...telephones])
+        .is('deleted_at', null);
+      indexer((data ?? []) as BeneficiaireRecord[]);
     }
   } catch {
     // Erreur réseau ou table absente → cache vide, fallback DB par ligne
@@ -823,55 +793,41 @@ async function detecterDoublon(
   record: RecordNormalise,
   cache?: CacheDoublons,
 ): Promise<Record<string, unknown> | null> {
-  // ── Clé forte : courriel ──────────────────────────────────────────────────
+  // ── Règle métier : doublon si même COURRIEL ou même TÉLÉPHONE ─────────────
+  // La similarité de nom (sans contact) ne suffit plus : sans contact commun,
+  // on insère (deux personnes peuvent partager nom/sexe/pays/année).
   if (record.courriel) {
+    const cle = record.courriel.toLowerCase();
     if (cache) {
-      return cache.parCourriel.get(record.courriel) ?? null;
+      const hit = cache.parCourriel.get(cle);
+      if (hit) return hit;
+    } else {
+      const { data } = await adminClient
+        .from('beneficiaires')
+        .select(SELECT_DOUBLON)
+        .eq('courriel', record.courriel)
+        .is('deleted_at', null)
+        .limit(1)
+        .maybeSingle();
+      if (data) return data as Record<string, unknown>;
     }
-    const { data } = await adminClient
-      .from('beneficiaires')
-      .select(SELECT_DOUBLON)
-      .eq('courriel', record.courriel)
-      .is('deleted_at', null)
-      .limit(1)
-      .maybeSingle();
-    if (data) return data as Record<string, unknown>;
   }
 
-  // ── Clé faible : projet + pays + sexe + année + tranche + nom/prénom ──────
-  if (
-    record.projet_code &&
-    record.pays_code &&
-    record.sexe &&
-    record.annee_formation &&
-    record.tranche_age_declaree
-  ) {
+  const tel = cleTelephone(record.telephone);
+  if (tel) {
     if (cache) {
-      const k = cleFailble(
-        record.prenom,
-        record.nom,
-        record.projet_code,
-        record.pays_code,
-        record.sexe,
-        record.annee_formation,
-        record.tranche_age_declaree,
-      );
-      return cache.parCleFailble.get(k) ?? null;
+      const hit = cache.parTelephone.get(tel);
+      if (hit) return hit;
+    } else {
+      const { data } = await adminClient
+        .from('beneficiaires')
+        .select(SELECT_DOUBLON)
+        .eq('telephone', record.telephone ?? '')
+        .is('deleted_at', null)
+        .limit(1)
+        .maybeSingle();
+      if (data) return data as Record<string, unknown>;
     }
-    const { data } = await adminClient
-      .from('beneficiaires')
-      .select(SELECT_DOUBLON)
-      .eq('projet_code', record.projet_code)
-      .eq('pays_code', record.pays_code)
-      .eq('sexe', record.sexe)
-      .eq('annee_formation', record.annee_formation)
-      .eq('tranche_age_declaree', record.tranche_age_declaree)
-      .eq('prenom', record.prenom ?? 'INCONNU')
-      .eq('nom', record.nom ?? 'INCONNU')
-      .is('deleted_at', null)
-      .limit(1)
-      .maybeSingle();
-    if (data) return data as Record<string, unknown>;
   }
 
   return null;
