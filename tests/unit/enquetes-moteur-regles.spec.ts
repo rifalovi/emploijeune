@@ -59,7 +59,7 @@ describe('questionEstVisible', () => {
 
 describe('questionsVisibles (logique « ALLER À »)', () => {
   it('Questionnaire A : si non-participation, masque les Q202..A210', () => {
-    const sectionParticipation = QUESTIONNAIRE_A.sections[0]!;
+    const sectionParticipation = QUESTIONNAIRE_A.sections[1]!;
     const visibles = questionsVisibles(sectionParticipation.questions, {
       a2: { a_participe: false },
     });
@@ -68,7 +68,7 @@ describe('questionsVisibles (logique « ALLER À »)', () => {
   });
 
   it('Questionnaire A : si participation + AUTRE, affiche Q204', () => {
-    const sectionParticipation = QUESTIONNAIRE_A.sections[0]!;
+    const sectionParticipation = QUESTIONNAIRE_A.sections[1]!;
     const visibles = questionsVisibles(sectionParticipation.questions, {
       a2: { a_participe: true, type_formation: 'AUTRE' },
     });
@@ -76,7 +76,7 @@ describe('questionsVisibles (logique « ALLER À »)', () => {
   });
 
   it('Questionnaire A : si participation + non-AUTRE, masque Q204', () => {
-    const sectionParticipation = QUESTIONNAIRE_A.sections[0]!;
+    const sectionParticipation = QUESTIONNAIRE_A.sections[1]!;
     const visibles = questionsVisibles(sectionParticipation.questions, {
       a2: { a_participe: true, type_formation: 'NUM' },
     });
@@ -84,7 +84,7 @@ describe('questionsVisibles (logique « ALLER À »)', () => {
   });
 
   it('Questionnaire A : si achevement = PARTIELLE_70, affiche Q207', () => {
-    const sectionParticipation = QUESTIONNAIRE_A.sections[0]!;
+    const sectionParticipation = QUESTIONNAIRE_A.sections[1]!;
     const visibles = questionsVisibles(sectionParticipation.questions, {
       a2: { a_participe: true, achevement: 'PARTIELLE_70' },
     });
@@ -92,7 +92,7 @@ describe('questionsVisibles (logique « ALLER À »)', () => {
   });
 
   it('Questionnaire A : si satisfaction = PAS_DU_TOUT, affiche Q210', () => {
-    const sectionParticipation = QUESTIONNAIRE_A.sections[0]!;
+    const sectionParticipation = QUESTIONNAIRE_A.sections[1]!;
     const visibles = questionsVisibles(sectionParticipation.questions, {
       a2: { a_participe: true },
       c5: { satisfaction: 'PAS_DU_TOUT' },
@@ -101,7 +101,7 @@ describe('questionsVisibles (logique « ALLER À »)', () => {
   });
 
   it('Questionnaire A : si pas accédé activité, masque Q404/A405/A406', () => {
-    const sectionInsertion = QUESTIONNAIRE_A.sections[2]!;
+    const sectionInsertion = QUESTIONNAIRE_A.sections[3]!;
     const visibles = questionsVisibles(sectionInsertion.questions, {
       a5: { situation_avant: 'EMPLOYE', a_accede: false },
     });
@@ -112,7 +112,7 @@ describe('questionsVisibles (logique « ALLER À »)', () => {
   });
 
   it('Questionnaire B : si pas d’activité économique, masque Q202..B213', () => {
-    const sectionSurvie = QUESTIONNAIRE_B.sections[0]!;
+    const sectionSurvie = QUESTIONNAIRE_B.sections[1]!;
     const visibles = questionsVisibles(sectionSurvie.questions, {
       b2: { a_activite_economique: false },
     });
@@ -120,7 +120,7 @@ describe('questionsVisibles (logique « ALLER À »)', () => {
   });
 
   it('Questionnaire B : si toujours_active=false, affiche Q206/B207, masque Q205', () => {
-    const sectionSurvie = QUESTIONNAIRE_B.sections[0]!;
+    const sectionSurvie = QUESTIONNAIRE_B.sections[1]!;
     const visibles = questionsVisibles(sectionSurvie.questions, {
       b2: { a_activite_economique: true, toujours_active: false },
     });
@@ -132,13 +132,13 @@ describe('questionsVisibles (logique « ALLER À »)', () => {
 });
 
 describe('Structure des questionnaires', () => {
-  it('Questionnaire A : 4 indicateurs de section + 6 indicateurs cibles', () => {
-    expect(QUESTIONNAIRE_A.sections).toHaveLength(3);
+  it('Questionnaire A : 4 sections (RGPD + 3 thématiques) + 6 indicateurs cibles', () => {
+    expect(QUESTIONNAIRE_A.sections).toHaveLength(4);
     expect(QUESTIONNAIRE_A.indicateurs).toEqual(['A2', 'A3', 'A4', 'A5', 'F1', 'C5']);
   });
 
-  it('Questionnaire B : 2 sections + 4 indicateurs cibles', () => {
-    expect(QUESTIONNAIRE_B.sections).toHaveLength(2);
+  it('Questionnaire B : 3 sections (RGPD + 2 thématiques) + 4 indicateurs cibles', () => {
+    expect(QUESTIONNAIRE_B.sections).toHaveLength(3);
     expect(QUESTIONNAIRE_B.indicateurs).toEqual(['B2', 'B3', 'B4', 'C5']);
   });
 
@@ -152,13 +152,13 @@ describe('Structure des questionnaires', () => {
     }
   });
 
-  it('Questionnaire A : 25 questions actives (sections II-IV ; section I = consentement + identité = couverte par binding A1)', () => {
+  it('Questionnaire A : 26 questions (1 consentement + 25 thématiques)', () => {
     const total = QUESTIONNAIRE_A.sections.reduce((acc, s) => acc + s.questions.length, 0);
-    expect(total).toBe(25);
+    expect(total).toBe(26);
   });
 
-  it('Questionnaire B : 19 questions actives (section I déjà couverte par B1)', () => {
+  it('Questionnaire B : 20 questions (1 consentement + 19 thématiques)', () => {
     const total = QUESTIONNAIRE_B.sections.reduce((acc, s) => acc + s.questions.length, 0);
-    expect(total).toBe(19);
+    expect(total).toBe(20);
   });
 });
