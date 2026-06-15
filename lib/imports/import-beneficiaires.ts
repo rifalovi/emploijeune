@@ -130,7 +130,12 @@ export async function importerBeneficiairesExcel(
   const estCsv = input.fichierNom.toLowerCase().endsWith('.csv');
   const parse = estCsv
     ? await parseCsv(input.fichierBuffer, HEADERS_ATTENDUS)
-    : await parseExcelFlexible(input.fichierBuffer, HEADERS_ATTENDUS, input.nomOnglet, 'beneficiaires');
+    : await parseExcelFlexible(
+        input.fichierBuffer,
+        HEADERS_ATTENDUS,
+        input.nomOnglet,
+        'beneficiaires',
+      );
   if (parse.erreursStructure.length > 0) {
     return {
       status: 'erreur_fichier',
@@ -200,11 +205,21 @@ export async function importerBeneficiairesExcel(
   let nbRejetees = 0;
   for (const l of lignesRapport) {
     switch (l.statut) {
-      case 'inseree': nbInserees++; break;
-      case 'enrichie': nbEnrichies++; break;
-      case 'doublon_identique': nbDoublonsIdentiques++; break;
-      case 'incomplete': nbIncompletes++; break;
-      case 'rejetee': nbRejetees++; break;
+      case 'inseree':
+        nbInserees++;
+        break;
+      case 'enrichie':
+        nbEnrichies++;
+        break;
+      case 'doublon_identique':
+        nbDoublonsIdentiques++;
+        break;
+      case 'incomplete':
+        nbIncompletes++;
+        break;
+      case 'rejetee':
+        nbRejetees++;
+        break;
     }
   }
 
@@ -321,7 +336,16 @@ async function traiterLigne(args: {
   codeProjetDefaut?: string;
   cacheBatch?: CacheDoublons;
 }): Promise<LigneRapportImport> {
-  const { numLigne, donnees, adminClient, createdBy, importSessionId, nomFichier, codeProjetDefaut, cacheBatch } = args;
+  const {
+    numLigne,
+    donnees,
+    adminClient,
+    createdBy,
+    importSessionId,
+    nomFichier,
+    codeProjetDefaut,
+    cacheBatch,
+  } = args;
   const mappagesAuto: string[] = [];
   const champsManquants: string[] = [];
   const champsMisAJour: string[] = [];
@@ -419,14 +443,16 @@ async function traiterLigne(args: {
       champs_manquants: champsManquants,
       champs_mis_a_jour: champsMisAJour,
       alertes,
-      erreurs: [{
-        ligne: numLigne,
-        colonne: 'Code projet *',
-        valeur: projetBrut ? String(projetBrut) : null,
-        message: projetBrut
-          ? `Code projet inconnu : « ${String(projetBrut)} ». Vérifiez le code ou sélectionnez un projet par défaut.`
-          : 'Code projet manquant. Sélectionnez un projet par défaut dans le formulaire d\'import.',
-      }],
+      erreurs: [
+        {
+          ligne: numLigne,
+          colonne: 'Code projet *',
+          valeur: projetBrut ? String(projetBrut) : null,
+          message: projetBrut
+            ? `Code projet inconnu : « ${String(projetBrut)} ». Vérifiez le code ou sélectionnez un projet par défaut.`
+            : "Code projet manquant. Sélectionnez un projet par défaut dans le formulaire d'import.",
+        },
+      ],
     };
   }
 
@@ -448,10 +474,14 @@ async function traiterLigne(args: {
   }
 
   // 3. Construire le payload normalisé
+  // Le sexe est NOT NULL en base : une valeur absente bloquerait toute la ligne
+  // (rejet). Or les autres champs (nom, pays, domaine, courriel…) restent utiles.
+  // → on insère avec 'Autre' par défaut (ligne marquée « incomplète », corrigeable),
+  //   plutôt que de rejeter.
   const record: RecordNormalise = {
     prenom: nettoyerString(donnees['Prénom *']),
     nom: nettoyerString(donnees['Nom *'])?.toLocaleUpperCase('fr-FR') ?? null,
-    sexe,
+    sexe: sexe ?? 'Autre',
     projet_code: projetFinal,
     pays_code: pays,
     domaine_formation_code: domaine,
@@ -470,7 +500,7 @@ async function traiterLigne(args: {
   // Tracker les champs manquants pour le futur (sans bloquer)
   if (!record.prenom) champsManquants.push('prenom');
   if (!record.nom) champsManquants.push('nom');
-  if (!record.sexe) champsManquants.push('sexe');
+  if (!sexe) champsManquants.push('sexe');
   if (!record.domaine_formation_code) champsManquants.push('domaine_formation_code');
   if (!record.tranche_age_declaree && !record.sexe) {
     // tranche_age est optionnelle mais utile pour les stats
@@ -511,7 +541,9 @@ async function traiterLigne(args: {
       .from('beneficiaires')
       .update({
         ...fusionne,
-        ...(record.tranche_age_precise_id ? { tranche_age_precise_id: record.tranche_age_precise_id } : {}),
+        ...(record.tranche_age_precise_id
+          ? { tranche_age_precise_id: record.tranche_age_precise_id }
+          : {}),
       } as never)
       .eq('id', (doublon as { id: string }).id);
 
@@ -587,7 +619,9 @@ async function traiterLigne(args: {
     source_import: 'excel_v1',
     created_by: createdBy,
     ...(importSessionId ? { import_session_id: importSessionId } : {}),
-    ...(record.tranche_age_precise_id ? { tranche_age_precise_id: record.tranche_age_precise_id } : {}),
+    ...(record.tranche_age_precise_id
+      ? { tranche_age_precise_id: record.tranche_age_precise_id }
+      : {}),
   } as never);
 
   if (insertError) {
@@ -600,7 +634,7 @@ async function traiterLigne(args: {
         mappages_auto: mappagesAuto,
         champs_manquants: champsManquants,
         champs_mis_a_jour: [],
-        alertes: [...alertes, 'Doublon intra-fichier détecté lors de l\'import concurrent.'],
+        alertes: [...alertes, "Doublon intra-fichier détecté lors de l'import concurrent."],
         erreurs: [],
       };
     }
@@ -687,7 +721,15 @@ export type CacheDoublons = {
   parCleFailble: Map<string, BeneficiaireRecord>;
 };
 
-function cleFailble(prenom: string | null, nom: string | null, projet: string, pays: string, sexe: string, annee: number, tranche: string): string {
+function cleFailble(
+  prenom: string | null,
+  nom: string | null,
+  projet: string,
+  pays: string,
+  sexe: string,
+  annee: number,
+  tranche: string,
+): string {
   return `${prenom ?? 'INCONNU'}|${nom ?? 'INCONNU'}|${projet}|${pays}|${sexe}|${annee}|${tranche}`;
 }
 
@@ -729,11 +771,20 @@ async function precalculerCacheDoublons(
         if (!data || data.length === 0) break;
         for (const b of data as BeneficiaireRecord[]) {
           if (b.courriel) cache.parCourriel.set(b.courriel as string, b);
-          if (b.projet_code && b.pays_code && b.sexe && b.annee_formation && b.tranche_age_declaree) {
+          if (
+            b.projet_code &&
+            b.pays_code &&
+            b.sexe &&
+            b.annee_formation &&
+            b.tranche_age_declaree
+          ) {
             const k = cleFailble(
-              b.prenom as string | null, b.nom as string | null,
-              b.projet_code as string, b.pays_code as string,
-              b.sexe as string, b.annee_formation as number,
+              b.prenom as string | null,
+              b.nom as string | null,
+              b.projet_code as string,
+              b.pays_code as string,
+              b.sexe as string,
+              b.annee_formation as number,
               b.tranche_age_declaree as string,
             );
             cache.parCleFailble.set(k, b);
@@ -797,9 +848,12 @@ async function detecterDoublon(
   ) {
     if (cache) {
       const k = cleFailble(
-        record.prenom, record.nom,
-        record.projet_code, record.pays_code,
-        record.sexe, record.annee_formation,
+        record.prenom,
+        record.nom,
+        record.projet_code,
+        record.pays_code,
+        record.sexe,
+        record.annee_formation,
         record.tranche_age_declaree,
       );
       return cache.parCleFailble.get(k) ?? null;
