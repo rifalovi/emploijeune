@@ -15,6 +15,7 @@ import {
   HelpCircle,
   Activity,
   BarChart2,
+  Table2,
   type LucideIcon,
 } from 'lucide-react';
 import type { RoleUtilisateur } from '@/lib/supabase/auth';
@@ -102,6 +103,12 @@ export const NAV_GROUPS: NavGroupDef[] = [
         conditional: 'module_ia',
       },
       {
+        href: '/analyses/tcd',
+        label: 'Tableau croisé dynamique',
+        icon: Table2,
+        roles: ['super_admin', 'admin_scs'],
+      },
+      {
         href: '/collecte-analytique',
         label: 'Analytique collecte',
         icon: BarChart2,
@@ -174,10 +181,7 @@ export function visibleNavGroups(
 }
 
 /** @deprecated Utiliser visibleNavGroups() a la place. */
-export const NAV_ITEMS: NavItem[] = [
-  HOME_NAV_ITEM,
-  ...NAV_GROUPS.flatMap((g) => g.items),
-];
+export const NAV_ITEMS: NavItem[] = [HOME_NAV_ITEM, ...NAV_GROUPS.flatMap((g) => g.items)];
 
 export function visibleNavItems(
   role: RoleUtilisateur,
