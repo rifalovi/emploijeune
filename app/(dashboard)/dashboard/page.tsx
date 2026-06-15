@@ -46,10 +46,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   const utilisateur = effectif.profil;
 
   const { periode: rawPeriode } = await searchParams;
+  // Défaut « Depuis toujours » (all) : la vue d'ensemble est la plus pertinente
+  // pour les indicateurs stratégiques cumulés.
   const periode: Periode =
     rawPeriode && (PERIODES as readonly string[]).includes(rawPeriode)
       ? (rawPeriode as Periode)
-      : '30j';
+      : 'all';
 
   // En mode view-as, on appelle la RPC qui simule la vue cible. Sinon, RPC
   // standard pilotée par auth.uid().
@@ -71,6 +73,45 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   // ou si elle retourne une forme inattendue, on logge pour faciliter le debug.
   const oifParse = indicateursOifSchema.safeParse(oifResp.data);
   const oif = oifParse.success ? oifParse.data : null;
+
+  // Surcharge des indicateurs non auto-calculables (A4, B4, F1) avec les
+  // dernières valeurs PUBLIÉES saisies manuellement (rapport d'enquête) —
+  // sinon ces cartes restent « À venir » sur le tableau de bord.
+  let oifAffiche = oif;
+  if (oif) {
+    const { data: saisies } = await supabase
+      .from('valeurs_indicateurs_saisies')
+      .select('indicateur_code, annee, valeur_directe, numerateur, denominateur')
+      .in('indicateur_code', ['A4', 'B4', 'F1'])
+      .eq('publie', true)
+      .order('annee', { ascending: false });
+    const dernier = new Map<string, number>();
+    for (const s of (saisies ?? []) as Array<{
+      indicateur_code: string;
+      valeur_directe: number | null;
+      numerateur: number | null;
+      denominateur: number | null;
+    }>) {
+      if (dernier.has(s.indicateur_code)) continue;
+      const v =
+        s.valeur_directe !== null
+          ? Number(s.valeur_directe)
+          : s.denominateur
+            ? (Number(s.numerateur) / Number(s.denominateur)) * 100
+            : null;
+      if (v !== null && Number.isFinite(v)) dernier.set(s.indicateur_code, v);
+    }
+    const fusion = (cle: 'A4' | 'B4' | 'F1') => {
+      const v = dernier.get(cle);
+      return v !== undefined && oif.indicateurs[cle].valeur === null
+        ? { ...oif.indicateurs[cle], valeur: v }
+        : oif.indicateurs[cle];
+    };
+    oifAffiche = {
+      ...oif,
+      indicateurs: { ...oif.indicateurs, A4: fusion('A4'), B4: fusion('B4'), F1: fusion('F1') },
+    };
+  }
   const oifErreur: string | null = oifResp.error
     ? oifResp.error.message
     : !oifParse.success
@@ -129,14 +170,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           </div>
         </div>
 
-        {oif ? (
+        {oifAffiche ? (
           <>
-            <KpiGridOif data={oif} />
+            <KpiGridOif data={oifAffiche} />
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <ChartProjetsBar data={oif.bar_projets} />
-              <ChartProgrammesPie data={oif.pie_programmes} />
+              <ChartProjetsBar data={oifAffiche.bar_projets} />
+              <ChartProgrammesPie data={oifAffiche.pie_programmes} />
             </div>
-            <ChartPaysBar data={oif.bar_pays ?? []} />
+            <ChartPaysBar data={oifAffiche.bar_pays ?? []} />
             {trancheAge && (
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <ChartTrancheAge data={trancheAge} />
