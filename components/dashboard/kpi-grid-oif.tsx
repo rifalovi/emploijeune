@@ -53,6 +53,7 @@ export function KpiGridOif({ data }: { data: IndicateursOif }) {
         icone={Users}
         couleur={PROGRAMMES_STRATEGIQUES.PS2.principale}
         proxy={i.A4.proxy}
+        suffixe="%"
         delaiMs={120}
       />
       <KpiSecondaireCard
@@ -79,6 +80,7 @@ export function KpiGridOif({ data }: { data: IndicateursOif }) {
         icone={Globe2}
         couleur={PROGRAMMES_STRATEGIQUES.PS1.principale}
         proxy={i.F1.proxy}
+        suffixe="%"
         delaiMs={480}
       />
     </div>
@@ -190,6 +192,7 @@ function KpiSecondaireCard({
   couleur,
   details = null,
   proxy = null,
+  suffixe = null,
   delaiMs,
 }: {
   code: string;
@@ -199,6 +202,8 @@ function KpiSecondaireCard({
   couleur: string;
   details?: string | null;
   proxy?: string | null;
+  /** Suffixe d'unité affiché après la valeur (ex. « % » pour un taux). */
+  suffixe?: string | null;
   delaiMs: number;
 }) {
   return (
@@ -236,7 +241,13 @@ function KpiSecondaireCard({
           {valeur !== null ? (
             <>
               <div className="text-4xl font-bold text-gray-900 tabular-nums">
-                <CompteurAnime valeur={valeur} dureeMs={1500} delaiMs={delaiMs} />
+                <CompteurAnime
+                  valeur={valeur}
+                  dureeMs={1500}
+                  delaiMs={delaiMs}
+                  decimales={suffixe === '%' ? 2 : 0}
+                />
+                {suffixe && <span className="ml-1 text-2xl">{suffixe}</span>}
               </div>
               {details && <p className="text-muted-foreground mt-1.5 text-xs">{details}</p>}
             </>
