@@ -55,7 +55,7 @@ export type ZoneUploadImportProps = {
   iaDispo?: boolean;
 };
 
-const MAX_TAILLE_MO = 5;
+const MAX_TAILLE_MO = 10;
 const EXTENSIONS_IA = ['.pdf', '.docx', '.txt'];
 
 export function ZoneUploadImport({

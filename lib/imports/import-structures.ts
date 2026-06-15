@@ -38,10 +38,10 @@ export async function importerStructuresExcel(
     };
   }
 
-  if (input.fichierTaille > 5 * 1024 * 1024) {
+  if (input.fichierTaille > 10 * 1024 * 1024) {
     return {
       status: 'erreur_fichier',
-      message: 'Fichier trop volumineux (max 5 MB). Scindez le fichier.',
+      message: 'Fichier trop volumineux (max 10 MB). Scindez le fichier.',
     };
   }
 
