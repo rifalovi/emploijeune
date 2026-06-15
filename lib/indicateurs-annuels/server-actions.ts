@@ -127,6 +127,82 @@ export async function enregistrerSaisieValeur(
   return { status: 'succes', code: parsed.data.code, annee: parsed.data.annee };
 }
 
+// ─── Saisie par lot depuis un rapport (import IA) ────────────────────────────
+
+const ligneLotSchema = z.object({
+  code: z.string().min(1).max(4),
+  annee: z.coerce
+    .number()
+    .int()
+    .min(2020)
+    .max(anneeCourante + 1),
+  valeur_directe: z.coerce.number(),
+  note: z.string().max(500).nullable().optional(),
+});
+
+const lotSchema = z.object({
+  lignes: z.array(ligneLotSchema).min(1).max(50),
+  /** Publier directement (TRUE) ou laisser en brouillon (FALSE, défaut). */
+  publier: z.boolean().default(false),
+});
+
+export type SaisieLotResult =
+  | { status: 'succes'; nb_enregistrees: number; nb_publiees: number; erreurs: string[] }
+  | { status: 'erreur'; message: string };
+
+/**
+ * Enregistre en lot des valeurs d'indicateurs issues d'un rapport (import IA).
+ * Chaque ligne est upsertée via la RPC de saisie, puis publiée si demandé.
+ * Réservé super_admin (comme la saisie unitaire).
+ */
+export async function enregistrerSaisiesLot(
+  payload: z.infer<typeof lotSchema>,
+): Promise<SaisieLotResult> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || utilisateur.role !== 'super_admin') {
+    return { status: 'erreur', message: 'Réservé au super_admin.' };
+  }
+
+  const parsed = lotSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { status: 'erreur', message: parsed.error.issues[0]?.message ?? 'Payload invalide.' };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const erreurs: string[] = [];
+  let nbEnregistrees = 0;
+  let nbPubliees = 0;
+
+  for (const ligne of parsed.data.lignes) {
+    const { error } = await supabase.rpc('enregistrer_valeur_indicateur_saisie', {
+      p_code: ligne.code,
+      p_annee: ligne.annee,
+      p_numerateur: null,
+      p_denominateur: null,
+      p_valeur_directe: ligne.valeur_directe,
+      p_note: ligne.note ?? null,
+    });
+    if (error) {
+      erreurs.push(`${ligne.code} ${ligne.annee} : ${error.message}`);
+      continue;
+    }
+    nbEnregistrees++;
+
+    if (parsed.data.publier) {
+      const { error: errPub } = await supabase.rpc('basculer_publi_saisie_valeur', {
+        p_code: ligne.code,
+        p_annee: ligne.annee,
+        p_publie: true,
+      });
+      if (!errPub) nbPubliees++;
+    }
+  }
+
+  revalidatePath('/indicateurs');
+
+  return { status: 'succes', nb_enregistrees: nbEnregistrees, nb_publiees: nbPubliees, erreurs };
+}
+
 const suppressionSchema = z.object({
   code: z.string().min(1).max(4),
   annee: z.coerce.number().int(),

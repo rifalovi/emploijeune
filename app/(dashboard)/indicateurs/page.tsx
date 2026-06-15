@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { CheckCircle2, Clock, BarChart3, AlertCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Clock, BarChart3, AlertCircle, ArrowRight, Upload } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { INDICATEURS, PILIERS, type CodePilier } from '@/lib/referentiels/indicateurs';
 import { getIndicateursAnnuels, getConfigIndicateurs } from '@/lib/indicateurs-annuels/queries';
@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
  * projet) est appliqué côté BDD par la RPC `lister_indicateurs_avec_valeurs_annuelles`.
  */
 export default async function IndicateursPage() {
-  await requireUtilisateurValide();
+  const utilisateur = await requireUtilisateurValide();
 
   const [payload, config] = await Promise.all([getIndicateursAnnuels(), getConfigIndicateurs()]);
 
@@ -60,13 +60,24 @@ export default async function IndicateursPage() {
   return (
     <div className="space-y-6">
       {/* En-tête */}
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Tous les indicateurs CMR</h1>
-        <p className="text-muted-foreground text-sm">
-          Inventaire des 18 indicateurs du Cadre Commun de mesure du rendement, avec leurs valeurs
-          annuelles (collectes {payload.annee_min} → {payload.annee_max}). Cliquez sur un indicateur
-          pour voir le détail (graphique, ventilation, méthode).
-        </p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Tous les indicateurs CMR</h1>
+          <p className="text-muted-foreground text-sm">
+            Inventaire des 18 indicateurs du Cadre Commun de mesure du rendement, avec leurs valeurs
+            annuelles (collectes {payload.annee_min} → {payload.annee_max}). Cliquez sur un
+            indicateur pour voir le détail (graphique, ventilation, méthode).
+          </p>
+        </div>
+        {utilisateur.role === 'super_admin' && (
+          <Link
+            href="/indicateurs/import-rapport"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
+          >
+            <Upload className="size-4" aria-hidden />
+            Importer un rapport
+          </Link>
+        )}
       </header>
 
       {/* Compteurs synthétiques */}
