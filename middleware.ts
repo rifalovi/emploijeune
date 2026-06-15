@@ -102,14 +102,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Rate-limit sur les API d'import (protection contre les abus de coût / DoS)
+  // Rate-limit sur les API d'import (protection contre les abus de coût / DoS).
+  // 40/h : large pour un import réel (gros fichier découpé en plusieurs lots +
+  // reprises), tout en bloquant un script abusif.
   if (pathname === '/api/imports/beneficiaires' && request.method === 'POST') {
-    const rl = checkRateLimit('import-excel', getIp(request), 60 * 60_000, 10);
+    const rl = checkRateLimit('import-excel', getIp(request), 60 * 60_000, 40);
     if (!rl.allowed) return tooManyRequestsResponse(rl.resetAt);
   }
 
   if (pathname === '/api/imports/beneficiaires-ia' && request.method === 'POST') {
-    const rl = checkRateLimit('import-ia', getIp(request), 60 * 60_000, 5);
+    const rl = checkRateLimit('import-ia', getIp(request), 60 * 60_000, 15);
     if (!rl.allowed) return tooManyRequestsResponse(rl.resetAt);
   }
 
