@@ -214,7 +214,7 @@ export function mapLigneVersStructure(
     }
   }
 
-  const nomStructure = lireTexte(donnees['Nom structure *']);
+  let nomStructure = lireTexte(donnees['Nom structure *']);
   if (!nomStructure) {
     erreurs.push({
       colonne: 'Nom structure *',
@@ -222,6 +222,12 @@ export function mapLigneVersStructure(
       message: 'Nom de structure obligatoire.',
     });
     return { donneesParsees: null, erreursMapping: erreurs };
+  }
+  // Mode tolérant : on retire les caractères interdits (< > ") du nom au lieu
+  // de rejeter la ligne (cf. nomStructureRegex anti-injection du schéma).
+  if (tolerant) {
+    const nettoye = nomStructure.replace(/[<>"]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (nettoye) nomStructure = nettoye;
   }
 
   let porteurNom = lireTexte(donnees['Porteur – nom *']);
