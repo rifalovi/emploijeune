@@ -5,6 +5,7 @@ import mammoth from 'mammoth';
 import ExcelJS from 'exceljs';
 import { extractText, getDocumentProxy } from 'unpdf';
 import { INDICATEURS, indicateurParCode } from '@/lib/referentiels/indicateurs';
+import { normaliserCodeProjet } from '@/lib/imports/smart-mapper';
 
 /**
  * Extraction des VALEURS D'INDICATEURS (synthèse d'ensemble) depuis un rapport
@@ -41,11 +42,24 @@ export type ValeurIndicateurExtraite = {
   confiance: number;
 };
 
+/** Valeur d'un indicateur pour UN projet donné (ventilation). */
+export type ValeurProjetExtraite = {
+  code: string;
+  libelle: string;
+  projet_code: string;
+  annee: number;
+  valeur: number;
+  est_taux: boolean;
+  note: string;
+};
+
 export type ExtraireIndicateursResult =
   | { status: 'erreur'; message: string }
   | {
       status: 'succes';
       valeurs: ValeurIndicateurExtraite[];
+      /** Ventilation par projet (codes projets reconnus uniquement). */
+      valeursProjet: ValeurProjetExtraite[];
       notes: string;
       tokens_utilises: number;
     };
@@ -138,38 +152,75 @@ export async function extraireIndicateursAvecIA(
   }
 
   const valeurs: ValeurIndicateurExtraite[] = [];
+  const valeursProjet: ValeurProjetExtraite[] = [];
+  const parseNombre = (v: unknown): number =>
+    typeof v === 'number'
+      ? v
+      : Number(
+          String(v ?? '')
+            .replace(/\s/g, '')
+            .replace(',', '.'),
+        );
+
   for (const b of brutes) {
     const code = typeof b.code === 'string' ? b.code.trim().toUpperCase() : '';
     if (!CODES_VALIDES.has(code)) continue;
-    const valeur =
-      typeof b.valeur === 'number' ? b.valeur : Number(String(b.valeur).replace(',', '.'));
-    if (!Number.isFinite(valeur)) continue;
     const annee = typeof b.annee === 'number' ? b.annee : Number(b.annee);
     const anneeValide = Number.isInteger(annee) && annee >= 2020 && annee <= anneeCourante + 1;
+    const anneeFinale = anneeValide ? annee : anneeCourante;
     const def = indicateurParCode(code);
     const estTaux = estIndicateurTaux(code, def?.intitule ?? '', def?.unitePrincipale === '%');
-    // Dé-doublonnage : on garde la première occurrence par code.
-    if (valeurs.some((v) => v.code === code)) continue;
-    valeurs.push({
-      code,
-      libelle: def?.labelMetrique ?? def?.intitule ?? code,
-      annee: anneeValide ? annee : anneeCourante,
-      // On préserve les décimales (88,4 ≠ 88) ; les effectifs restent entiers
-      // car leur valeur source l'est déjà.
-      valeur: Math.round(valeur * 100) / 100,
-      est_taux: estTaux,
-      auto: CODES_AUTO.has(code),
-      note: typeof b.note === 'string' ? b.note.slice(0, 400) : '',
-      confiance: anneeValide ? 90 : 60,
-    });
+    const libelle = def?.labelMetrique ?? def?.intitule ?? code;
+
+    // Valeur d'ensemble (si présente et non encore vue pour ce code)
+    const valeur = parseNombre(b.valeur);
+    if (Number.isFinite(valeur) && !valeurs.some((v) => v.code === code)) {
+      valeurs.push({
+        code,
+        libelle,
+        annee: anneeFinale,
+        // Décimales préservées (88,4 ≠ 88) ; les effectifs restent entiers.
+        valeur: Math.round(valeur * 100) / 100,
+        est_taux: estTaux,
+        auto: CODES_AUTO.has(code),
+        note: typeof b.note === 'string' ? b.note.slice(0, 400) : '',
+        confiance: anneeValide ? 90 : 60,
+      });
+    }
+
+    // Ventilation par projet
+    if (Array.isArray(b.par_projet)) {
+      for (const p of b.par_projet) {
+        if (!p || typeof p !== 'object') continue;
+        const pr = p as { projet?: unknown; valeur?: unknown };
+        const projetCode = normaliserCodeProjet(pr.projet);
+        if (!projetCode) continue;
+        const vp = parseNombre(pr.valeur);
+        if (!Number.isFinite(vp)) continue;
+        if (valeursProjet.some((x) => x.code === code && x.projet_code === projetCode)) continue;
+        valeursProjet.push({
+          code,
+          libelle,
+          projet_code: projetCode,
+          annee: anneeFinale,
+          valeur: Math.round(vp * 100) / 100,
+          est_taux: estTaux,
+          note: typeof b.note === 'string' ? b.note.slice(0, 200) : '',
+        });
+      }
+    }
   }
 
   valeurs.sort((a, b) => a.code.localeCompare(b.code));
+  valeursProjet.sort(
+    (a, b) => a.code.localeCompare(b.code) || a.projet_code.localeCompare(b.projet_code),
+  );
 
   return {
     status: 'succes',
     valeurs,
-    notes: `Extrait ${valeurs.length} valeur(s) d'indicateur depuis ${fichierNom}. Les indicateurs A1/B1 (auto-calculés) sont signalés et écartés par défaut.`,
+    valeursProjet,
+    notes: `Extrait ${valeurs.length} valeur(s) d'ensemble et ${valeursProjet.length} valeur(s) par projet depuis ${fichierNom}. Les indicateurs A1/B1 (auto-calculés) sont signalés et écartés par défaut.`,
     tokens_utilises: response.usage.input_tokens + response.usage.output_tokens,
   };
 }
@@ -229,16 +280,17 @@ function construirePrompt(texteSource: string, fichierNom: string): string {
 Catalogue des indicateurs valides (utilise EXACTEMENT ces codes) :
 ${catalogue}
 
-Pour chaque indicateur dont une valeur d'ensemble est présente dans le rapport, retourne un objet JSON :
+Pour chaque indicateur présent dans le rapport, retourne un objet JSON :
   - "code"   : le code exact (ex. "A3", "B2", "F1")
   - "annee"  : l'année de référence de l'enquête/rapport (nombre entier)
-  - "valeur" : la valeur d'ENSEMBLE. Pour un TAUX, donne le nombre SANS le signe % (ex. 88.4 et non "88,4%"). Pour un effectif, le nombre entier (ex. 3574).
-  - "note"   : courte mention de la source/contexte (ex. "ensemble, rapport intermédiaire 2026")
+  - "valeur" : la valeur d'ENSEMBLE (tous projets). Pour un TAUX, donne le nombre SANS le signe % (ex. 88.4 et non "88,4%"). Pour un effectif, le nombre entier (ex. 3574).
+  - "par_projet" : tableau de la VENTILATION PAR PROJET si le rapport la détaille, chaque élément étant { "projet": "<code court du projet>", "valeur": <nombre> }. Le code projet doit être la forme courte (ex. "P6", "P13", "P14", "P16", "P17", "P18", "P19", "P20"). Si aucune ventilation n'est donnée, mets [].
+  - "note"   : courte mention de la source/contexte (ex. "rapport intermédiaire 2026")
 
 Règles strictes :
   - Réponds UNIQUEMENT par un tableau JSON valide, sans préambule, sans markdown.
-  - Une seule ligne par code (la valeur d'ENSEMBLE uniquement).
-  - N'invente aucune valeur : si l'ensemble n'est pas donné pour un indicateur, ne l'inclus pas.
+  - Une seule ligne par code (avec sa valeur d'ensemble ET sa ventilation par_projet).
+  - N'invente aucune valeur : si une valeur n'est pas donnée, ne l'inclus pas (ensemble absent → omets "valeur" ; projet absent → ne le mets pas dans par_projet).
   - Convertis les nombres français ("26 084", "88,4%") en nombres JSON (26084, 88.4).
 
 Rapport source (fichier : ${fichierNom}) :
@@ -247,7 +299,13 @@ ${texteSource}
 ---`;
 }
 
-type BruteIndic = { code?: unknown; annee?: unknown; valeur?: unknown; note?: unknown };
+type BruteIndic = {
+  code?: unknown;
+  annee?: unknown;
+  valeur?: unknown;
+  note?: unknown;
+  par_projet?: unknown;
+};
 
 function parserReponseClaude(texte: string): BruteIndic[] | null {
   const match = texte.match(/\[[\s\S]*\]/);

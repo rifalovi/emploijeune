@@ -17,7 +17,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { enregistrerSaisiesLot } from '@/lib/indicateurs-annuels/server-actions';
+import {
+  enregistrerSaisiesLot,
+  enregistrerSaisiesProjetLot,
+} from '@/lib/indicateurs-annuels/server-actions';
 
 type ValeurExtraite = {
   code: string;
@@ -30,7 +33,18 @@ type ValeurExtraite = {
   confiance: number;
 };
 
+type ValeurProjet = {
+  code: string;
+  libelle: string;
+  projet_code: string;
+  annee: number;
+  valeur: number;
+  est_taux: boolean;
+  note: string;
+};
+
 type LigneEditable = ValeurExtraite & { inclure: boolean };
+type LigneProjetEditable = ValeurProjet & { inclure: boolean };
 
 const EXTENSIONS = ['.pdf', '.docx', '.txt', '.xlsx', '.xlsm'];
 
@@ -41,6 +55,7 @@ export function ImportRapportClient() {
   const [extraction, startExtraction] = useTransition();
   const [enregistrement, startEnregistrement] = useTransition();
   const [lignes, setLignes] = useState<LigneEditable[] | null>(null);
+  const [lignesProjet, setLignesProjet] = useState<LigneProjetEditable[]>([]);
   const [notes, setNotes] = useState<string>('');
 
   const choisirFichier = (f: File) => {
@@ -55,6 +70,13 @@ export function ImportRapportClient() {
     }
     setFichier(f);
     setLignes(null);
+    setLignesProjet([]);
+  };
+
+  const majLigneProjet = (code: string, projet: string, patch: Partial<LigneProjetEditable>) => {
+    setLignesProjet((prev) =>
+      prev.map((l) => (l.code === code && l.projet_code === projet ? { ...l, ...patch } : l)),
+    );
   };
 
   const lancerExtraction = () => {
@@ -81,6 +103,8 @@ export function ImportRapportClient() {
         }
         // Par défaut on écarte les indicateurs auto-calculés (A1/B1).
         setLignes(valeurs.map((v) => ({ ...v, inclure: !v.auto })));
+        const vProjet = (data.valeursProjet ?? []) as ValeurProjet[];
+        setLignesProjet(vProjet.map((v) => ({ ...v, inclure: true })));
         setNotes(data.notes ?? '');
       } catch (err) {
         toast.error('Erreur réseau', {
@@ -101,6 +125,7 @@ export function ImportRapportClient() {
       toast.error('Aucune ligne sélectionnée.');
       return;
     }
+    const projetAEnregistrer = lignesProjet.filter((l) => l.inclure);
     startEnregistrement(async () => {
       const res = await enregistrerSaisiesLot({
         lignes: aEnregistrer.map((l) => ({
@@ -115,9 +140,27 @@ export function ImportRapportClient() {
         toast.error('Enregistrement impossible', { description: res.message });
         return;
       }
+
+      // Valeurs par projet (table dédiée) — best-effort, signalé si échec.
+      let nbProjet = 0;
+      if (projetAEnregistrer.length > 0) {
+        const resP = await enregistrerSaisiesProjetLot({
+          lignes: projetAEnregistrer.map((l) => ({
+            code: l.code,
+            projet_code: l.projet_code,
+            annee: l.annee,
+            valeur_directe: l.valeur,
+            note: l.note || null,
+          })),
+          publier,
+        });
+        if (resP.status === 'succes') nbProjet = resP.nb_enregistrees;
+        else toast.warning('Valeurs par projet non enregistrées', { description: resP.message });
+      }
+
       const desc = publier
-        ? `${res.nb_publiees} publiée(s) sur ${res.nb_enregistrees} enregistrée(s).`
-        : `${res.nb_enregistrees} valeur(s) en brouillon.`;
+        ? `${res.nb_publiees} ensemble + ${nbProjet} par projet publiée(s).`
+        : `${res.nb_enregistrees} ensemble + ${nbProjet} par projet en brouillon.`;
       if (res.erreurs.length > 0) {
         toast.warning(`${res.nb_enregistrees} enregistrée(s), ${res.erreurs.length} en échec`, {
           description: res.erreurs.slice(0, 3).join(' · '),
@@ -301,6 +344,74 @@ export function ImportRapportClient() {
                   proviennent de vos imports bénéficiaires/structures. « Brouillon » enregistre sans
                   publier ; « Enregistrer et publier » rend les valeurs visibles publiquement.
                 </p>
+
+                {lignesProjet.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">
+                      Ventilation par projet ({lignesProjet.length})
+                    </p>
+                    <div className="max-h-80 overflow-auto rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-12">Inclure</TableHead>
+                            <TableHead>Indicateur</TableHead>
+                            <TableHead>Projet</TableHead>
+                            <TableHead className="w-24">Année</TableHead>
+                            <TableHead className="w-32">Valeur</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {lignesProjet.map((l) => (
+                            <TableRow key={`${l.code}-${l.projet_code}`}>
+                              <TableCell>
+                                <input
+                                  type="checkbox"
+                                  checked={l.inclure}
+                                  onChange={(e) =>
+                                    majLigneProjet(l.code, l.projet_code, {
+                                      inclure: e.target.checked,
+                                    })
+                                  }
+                                  aria-label={`Inclure ${l.code} ${l.projet_code}`}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="font-mono">
+                                  {l.code}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="font-mono">
+                                  {l.projet_code}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="tabular-nums">{l.annee}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    value={l.valeur}
+                                    onChange={(e) =>
+                                      majLigneProjet(l.code, l.projet_code, {
+                                        valeur: Number(e.target.value),
+                                      })
+                                    }
+                                    className="border-input w-24 rounded border bg-transparent px-2 py-1 text-sm tabular-nums"
+                                  />
+                                  {l.est_taux && (
+                                    <span className="text-muted-foreground text-xs">%</span>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap gap-2">
                   <Button
