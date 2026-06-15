@@ -110,8 +110,7 @@ export const INDICATEURS: Indicateur[] = [
     code: 'A1',
     pilier: 'A',
     intitule: 'Nombre de personnes formées',
-    definition:
-      `Nombre total de jeunes femmes et hommes ayant effectivement participé à une formation soutenue par l'OIF.
+    definition: `Nombre total de jeunes femmes et hommes ayant effectivement participé à une formation soutenue par l'OIF.
 Cet indicateur porte sur la formation directe des jeunes. Il se rattache d'abord aux projets qui offrent des parcours de formation ou de renforcement de capacités pour l'insertion économique, le numérique, l'innovation ou les filières durables.`,
     variables: [
       'Identifiant du bénéficiaire',
@@ -164,13 +163,13 @@ Même logique que pour A1 : cet indicateur suit la complétion des parcours de f
       'Distinguer abandon, absence et non-validation',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
+    unitePrincipale: '%',
   },
   {
     code: 'A3',
     pilier: 'A',
     intitule: 'Taux de certification / attestation',
-    definition:
-      `Pourcentage de personnes formées ayant obtenu une certification ou une attestation reconnue.
+    definition: `Pourcentage de personnes formées ayant obtenu une certification ou une attestation reconnue.
 Les projets où les formations débouchent sur une attestation, une validation ou une reconnaissance formelle.`,
     variables: [
       'Identifiant du bénéficiaire',
@@ -190,13 +189,13 @@ Les projets où les formations débouchent sur une attestation, une validation o
       'Ne pas compter les jeunes seulement présentés à l’examen',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
+    unitePrincipale: '%',
   },
   {
     code: 'A4',
     pilier: 'A',
     intitule: 'Gain de compétences',
-    definition:
-      `Pourcentage de jeunes déclarant une amélioration significative des compétences ciblées.
+    definition: `Pourcentage de jeunes déclarant une amélioration significative des compétences ciblées.
 Cet indicateur peut couvrir aussi bien les compétences techniques que les compétences entrepreneuriales ou numériques. Il est pertinent pour les projets qui renforcent les capacités des bénéficiaires lorsque l'appui inclut de la formation.`,
     variables: [
       'Score ou niveau avant formation',
@@ -215,13 +214,13 @@ Cet indicateur peut couvrir aussi bien les compétences techniques que les comp�
       'Administrer T0 avant tout apprentissage',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15', 'PROJ_A14'],
+    unitePrincipale: '%',
   },
   {
     code: 'A5',
     pilier: 'A',
     intitule: 'Taux d’insertion professionnelle à 6/12 mois',
-    definition:
-      `Pourcentage de jeunes ayant un emploi ou une activité génératrice de revenu liée aux compétences acquises.
+    definition: `Pourcentage de jeunes ayant un emploi ou une activité génératrice de revenu liée aux compétences acquises.
 Il concerne les projets visant à renforcer l'employabilité ou l'auto-emploi des jeunes à l'issue d'un parcours de formation. Il est également pertinent pour les interventions menées dans des filières telles que le tourisme, l'agriculture ou les innovations vertes. Cet indicateur prendra en compte non seulement l'accès à l'emploi, mais aussi, le cas échéant, l'amélioration de la situation professionnelle des bénéficiaires déjà en activité au moment de leur entrée dans le dispositif.`,
     variables: [
       'Statut d’emploi',
@@ -299,6 +298,7 @@ Il suit la pérennité des activités économiques soutenues. Il est donc logiqu
       'Vérifier les déclarations si possible',
     ],
     projetsConcernes: ['PROJ_A14', 'PROJ_A15', 'PROJ_A19', 'PROJ_A20', 'PROJ_A17'],
+    unitePrincipale: '%',
   },
   {
     code: 'B3',
@@ -504,8 +504,7 @@ Cet indicateur renvoie à l'appui aux politiques, stratégies ou dispositifs pub
     code: 'D2',
     pilier: 'D',
     intitule: 'Capacités institutionnelles emploi-jeunes renforcées',
-    definition:
-      `Pourcentage d’acteurs publics formés déclarant une amélioration de leurs pratiques.
+    definition: `Pourcentage d’acteurs publics formés déclarant une amélioration de leurs pratiques.
 Cet indicateur cible les acteurs publics formés et l'amélioration de leurs pratiques. Il relève surtout des projets qui combinent accompagnement institutionnel et appui technique.`,
     variables: ['Type d’acteur', 'Compétences renforcées', 'Pratique modifiée', 'Usage effectif'],
     collecte: 'Enquête avant/après, complétée si besoin par des études de cas.',
@@ -552,8 +551,7 @@ Il s'agit d'un indicateur qualitatif transversal, adapté aux projets qui produi
     code: 'F1',
     pilier: 'F',
     intitule: 'Apport du français à l’employabilité',
-    definition:
-      `Pourcentage de bénéficiaires déclarant que le français a facilité l’accès ou l’amélioration de l’emploi.
+    definition: `Pourcentage de bénéficiaires déclarant que le français a facilité l’accès ou l’amélioration de l’emploi.
 Ce marqueur transversal est pertinent pour les projets où le français constitue une compétence professionnelle mobilisable dans l'emploi, l'entrepreneuriat, la relation client, le commerce ou le tourisme.`,
     variables: [
       'Niveau de français avant et après',
@@ -572,8 +570,8 @@ Ce marqueur transversal est pertinent pour les projets où le français constitu
       'Distinguer amélioration linguistique et usage réel dans le travail',
     ],
     projetsConcernes: ['Tous les projets'],
-    labelMetrique: 'Bénéficiaires francophones',
-    unitePrincipale: 'personnes',
+    labelMetrique: 'Apport du français à l’employabilité',
+    unitePrincipale: '%',
     afficherVentilateurPersonne: true,
   },
 ];

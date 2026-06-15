@@ -54,6 +54,15 @@ const CODES_VALIDES = new Set(INDICATEURS.map((i) => i.code));
 const CODES_AUTO = new Set(
   INDICATEURS.filter((i) => i.donneeLiveCle).map((i) => i.code), // A1, B1
 );
+/**
+ * Indicateurs exprimés en pourcentage (le référentiel ne les marque pas tous
+ * via unitePrincipale). On détecte aussi « taux » dans l'intitulé en complément.
+ */
+const CODES_POURCENTAGE = new Set(['A2', 'A3', 'A4', 'A5', 'B2', 'C2', 'F1']);
+
+function estIndicateurTaux(code: string, intitule: string, uniteEstPourcent: boolean): boolean {
+  return uniteEstPourcent || CODES_POURCENTAGE.has(code) || /\btaux\b/i.test(intitule);
+}
 
 export async function extraireIndicateursAvecIA(
   fichierBuffer: Buffer | ArrayBuffer,
@@ -138,14 +147,16 @@ export async function extraireIndicateursAvecIA(
     const annee = typeof b.annee === 'number' ? b.annee : Number(b.annee);
     const anneeValide = Number.isInteger(annee) && annee >= 2020 && annee <= anneeCourante + 1;
     const def = indicateurParCode(code);
-    const estTaux = def?.unitePrincipale === '%';
+    const estTaux = estIndicateurTaux(code, def?.intitule ?? '', def?.unitePrincipale === '%');
     // Dé-doublonnage : on garde la première occurrence par code.
     if (valeurs.some((v) => v.code === code)) continue;
     valeurs.push({
       code,
       libelle: def?.labelMetrique ?? def?.intitule ?? code,
       annee: anneeValide ? annee : anneeCourante,
-      valeur: estTaux ? Math.round(valeur * 100) / 100 : Math.round(valeur),
+      // On préserve les décimales (88,4 ≠ 88) ; les effectifs restent entiers
+      // car leur valeur source l'est déjà.
+      valeur: Math.round(valeur * 100) / 100,
       est_taux: estTaux,
       auto: CODES_AUTO.has(code),
       note: typeof b.note === 'string' ? b.note.slice(0, 400) : '',

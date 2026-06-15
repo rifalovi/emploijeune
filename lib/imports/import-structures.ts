@@ -95,30 +95,46 @@ export async function importerStructuresExcel(
     // import_sessions absent du schéma (dev/staging non migré) → sans rollback
   }
 
-  for (const { numLigne, donnees } of lignes) {
+  // Traitement CONCURRENT par tranches — évite le timeout Vercel sur les
+  // fichiers de plusieurs centaines de lignes (avant : insertions séquentielles
+  // ≈ 100 ms/ligne → 582 lignes ≈ 60 s, à la limite du timeout).
+  type ResultatLigne =
+    | { statut: 'inseree' }
+    | { statut: 'doublon' }
+    | { statut: 'rejetee'; erreurs: ErreurImport[] };
+
+  const traiterLigneStructure = async (
+    numLigne: number,
+    donnees: Record<string, unknown>,
+  ): Promise<ResultatLigne> => {
     const { donneesParsees, erreursMapping } = mapLigneVersStructure(donnees, {
       tolerant: true,
       codeProjetDefaut: input.codeProjetDefaut,
     });
     if (erreursMapping.length > 0) {
-      for (const e of erreursMapping) {
-        erreurs.push({ ligne: numLigne, colonne: e.colonne, valeur: e.valeur, message: e.message });
-      }
-      continue;
+      return {
+        statut: 'rejetee',
+        erreurs: erreursMapping.map((e) => ({
+          ligne: numLigne,
+          colonne: e.colonne,
+          valeur: e.valeur,
+          message: e.message,
+        })),
+      };
     }
-    if (!donneesParsees) continue;
+    if (!donneesParsees) return { statut: 'rejetee', erreurs: [] };
 
     const parse = structureInsertSchema.safeParse(donneesParsees);
     if (!parse.success) {
-      for (const issue of parse.error.issues) {
-        erreurs.push({
+      return {
+        statut: 'rejetee',
+        erreurs: parse.error.issues.map((issue) => ({
           ligne: numLigne,
           colonne: issue.path.join('.'),
           valeur: null,
           message: issue.message,
-        });
-      }
-      continue;
+        })),
+      };
     }
 
     const { error: insertError } = await adminClient.from('structures').insert({
@@ -129,25 +145,40 @@ export async function importerStructuresExcel(
     } as never);
 
     if (insertError) {
-      // Violation de contrainte unique (code Postgres 23505) sur l'index de
-      // dédoublonnage = la structure existe déjà en BDD (même nom + pays +
-      // projet). Ce n'est PAS une erreur : on la compte comme doublon ignoré.
+      // Violation de contrainte unique (23505) = structure déjà présente
+      // (même nom + pays + projet). Pas une erreur : doublon ignoré.
       if (
         (insertError as { code?: string }).code === '23505' ||
         /duplicate key|idx_structures_dedoublonnage/i.test(insertError.message)
       ) {
-        nbDoublons++;
-        continue;
+        return { statut: 'doublon' };
       }
-      erreurs.push({
-        ligne: numLigne,
-        colonne: null,
-        valeur: null,
-        message: `INSERT BDD échoué : ${insertError.message}`,
-      });
-      continue;
+      return {
+        statut: 'rejetee',
+        erreurs: [
+          {
+            ligne: numLigne,
+            colonne: null,
+            valeur: null,
+            message: `INSERT BDD échoué : ${insertError.message}`,
+          },
+        ],
+      };
     }
-    nbInserees++;
+    return { statut: 'inseree' };
+  };
+
+  const CONCURRENCE = 25;
+  for (let i = 0; i < lignes.length; i += CONCURRENCE) {
+    const tranche = lignes.slice(i, i + CONCURRENCE);
+    const resultats = await Promise.all(
+      tranche.map((l) => traiterLigneStructure(l.numLigne, l.donnees)),
+    );
+    for (const r of resultats) {
+      if (r.statut === 'inseree') nbInserees++;
+      else if (r.statut === 'doublon') nbDoublons++;
+      else erreurs.push(...r.erreurs);
+    }
   }
 
   let importId: string | null = null;
