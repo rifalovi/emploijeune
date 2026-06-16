@@ -22,12 +22,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ComparaisonDoublonTable } from '@/components/imports/comparaison-doublon-table';
 import { annulerSessionImport } from '@/lib/super-admin/import-sessions-actions';
 import type { RapportImport } from '@/lib/imports/types';
 
 export type DialogueRapportImportProps = {
   rapport: RapportImport | null;
   onClose: () => void;
+  /**
+   * Si fourni et `nb > 0`, affiche un bouton « Importer quand même N doublon(s) »
+   * dans le pied du rapport (insertion forcée pour traitement manuel ultérieur).
+   */
+  forcerDoublons?: { nb: number; pending: boolean; onForcer: () => void };
 };
 
 /**
@@ -37,7 +43,11 @@ export type DialogueRapportImportProps = {
  *     "télécharger le rapport complet")
  *   - Bouton de téléchargement Excel pour analyse + correction du fichier
  */
-export function DialogueRapportImport({ rapport, onClose }: DialogueRapportImportProps) {
+export function DialogueRapportImport({
+  rapport,
+  onClose,
+  forcerDoublons,
+}: DialogueRapportImportProps) {
   const [pending, startTransition] = useTransition();
   const [annulationPending, startAnnulation] = useTransition();
   const router = useRouter();
@@ -105,10 +115,12 @@ export function DialogueRapportImport({ rapport, onClose }: DialogueRapportImpor
   const open = Boolean(rapport);
   const erreursAffichees = rapport?.erreurs.slice(0, 50) ?? [];
   const reste = (rapport?.erreurs.length ?? 0) - erreursAffichees.length;
+  const doublonsAffiches = rapport?.doublons?.slice(0, 50) ?? [];
+  const resteDoublons = (rapport?.doublons?.length ?? 0) - doublonsAffiches.length;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden">
+      <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-[calc(100%-2rem)] flex-col overflow-hidden sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>Rapport d’import</DialogTitle>
           {rapport && (
@@ -202,6 +214,29 @@ export function DialogueRapportImport({ rapport, onClose }: DialogueRapportImpor
                 )}
               </div>
             )}
+
+            {doublonsAffiches.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  Détail des doublons ({rapport?.doublons?.length ?? 0}) — comparaison champ par
+                  champ avec la fiche existante :
+                </p>
+                <div className="space-y-3">
+                  {doublonsAffiches.map((d) => (
+                    <ComparaisonDoublonTable
+                      key={d.numero_ligne}
+                      comparaison={d.comparaison}
+                      numeroLigne={d.numero_ligne}
+                    />
+                  ))}
+                </div>
+                {resteDoublons > 0 && (
+                  <p className="text-muted-foreground text-xs italic">
+                    ({resteDoublons} doublon(s) supplémentaire(s) non affiché(s).)
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -230,7 +265,26 @@ export function DialogueRapportImport({ rapport, onClose }: DialogueRapportImpor
               {annulationPending ? 'Annulation…' : 'Annuler cet import'}
             </Button>
           )}
-          <Button type="button" onClick={onClose} className="ml-auto">
+          {forcerDoublons && forcerDoublons.nb > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={forcerDoublons.onForcer}
+              disabled={forcerDoublons.pending}
+              className="ml-auto gap-2 border-amber-300 text-amber-800 hover:bg-amber-50"
+              title="Insère les doublons identifiés (même nom/pays/projet ou contact porteur) pour traitement manuel ultérieur"
+            >
+              <Download aria-hidden className="size-4 rotate-180" />
+              {forcerDoublons.pending
+                ? 'Import en cours…'
+                : `Importer quand même ${forcerDoublons.nb} doublon${forcerDoublons.nb > 1 ? 's' : ''}`}
+            </Button>
+          )}
+          <Button
+            type="button"
+            onClick={onClose}
+            className={forcerDoublons && forcerDoublons.nb > 0 ? '' : 'ml-auto'}
+          >
             Fermer
           </Button>
         </DialogFooter>

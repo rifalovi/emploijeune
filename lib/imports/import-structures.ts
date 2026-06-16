@@ -8,7 +8,13 @@ import { structureInsertSchema } from '@/lib/schemas/structure';
 import { parseExcelFlexible } from './parser-excel-flexible';
 import { parseCsv } from './parser-csv';
 import { HEADERS_B1, mapLigneVersStructure } from './mapping-structures';
-import type { ErreurImport, ResultatImport } from './types';
+import type {
+  ChampComparaison,
+  ComparaisonDoublon,
+  ErreurImport,
+  LigneDoublonRapport,
+  ResultatImport,
+} from './types';
 
 /**
  * Import en masse de structures depuis un fichier Excel (Étape 7).
@@ -40,6 +46,81 @@ function cleTelStruct(v: unknown): string | null {
   if (v === null || v === undefined) return null;
   const s = String(v).replace(/[^\d+]/g, '');
   return s.length >= 6 ? s : null;
+}
+
+/** Affichage lisible d'une valeur (null si vide). */
+function afficherValeurStruct(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  return s.length === 0 ? null : s;
+}
+
+/**
+ * Construit la comparaison champ par champ entre la structure importée et la
+ * fiche existante reconnue comme doublon, avec un pourcentage de correspondance.
+ */
+function construireComparaisonStructure(
+  importee: Record<string, unknown>,
+  existante: Record<string, unknown>,
+  critere: string,
+): ComparaisonDoublon {
+  const porteur = (r: Record<string, unknown>): string | null =>
+    afficherValeurStruct(
+      [afficherValeurStruct(r.porteur_prenom), afficherValeurStruct(r.porteur_nom)]
+        .filter(Boolean)
+        .join(' '),
+    );
+
+  const defs: { champ: string; importee: unknown; existante: unknown; tel?: boolean }[] = [
+    {
+      champ: 'Nom structure',
+      importee: importee.nom_structure,
+      existante: existante.nom_structure,
+    },
+    { champ: 'Pays', importee: importee.pays_code, existante: existante.pays_code },
+    { champ: 'Projet', importee: importee.projet_code, existante: existante.projet_code },
+    {
+      champ: 'Type',
+      importee: importee.type_structure_code,
+      existante: existante.type_structure_code,
+    },
+    {
+      champ: 'Secteur',
+      importee: importee.secteur_activite_code,
+      existante: existante.secteur_activite_code,
+    },
+    { champ: 'Porteur', importee: porteur(importee), existante: porteur(existante) },
+    {
+      champ: 'Courriel porteur',
+      importee: importee.courriel_porteur,
+      existante: existante.courriel_porteur,
+    },
+    {
+      champ: 'Téléphone porteur',
+      importee: importee.telephone_porteur,
+      existante: existante.telephone_porteur,
+      tel: true,
+    },
+    { champ: 'Année appui', importee: importee.annee_appui, existante: existante.annee_appui },
+  ];
+
+  const champs: ChampComparaison[] = defs.map((d) => {
+    const impAff = afficherValeurStruct(d.importee);
+    const exAff = afficherValeurStruct(d.existante);
+    const identique = d.tel
+      ? cleTelStruct(d.importee) === cleTelStruct(d.existante)
+      : (impAff?.toLowerCase() ?? null) === (exAff?.toLowerCase() ?? null);
+    return { champ: d.champ, valeur_importee: impAff, valeur_existante: exAff, identique };
+  });
+
+  const nbIdentiques = champs.filter((c) => c.identique).length;
+  const pourcentage = champs.length > 0 ? Math.round((nbIdentiques / champs.length) * 100) : 0;
+  const reference =
+    [afficherValeurStruct(existante.nom_structure), afficherValeurStruct(existante.pays_code)]
+      .filter(Boolean)
+      .join(' · ') || 'Structure existante';
+
+  return { critere, reference, pourcentage, champs };
 }
 
 export async function importerStructuresExcel(
@@ -82,6 +163,7 @@ export async function importerStructuresExcel(
   }
 
   const erreurs: ErreurImport[] = [];
+  const doublons: LigneDoublonRapport[] = [];
   let nbInserees = 0;
   let nbDoublons = 0;
 
@@ -112,8 +194,10 @@ export async function importerStructuresExcel(
 
   // Pré-cache des structures existantes pour le dédoublonnage applicatif :
   // clé identité (nom + pays + projet) + contacts porteur (courriel / tél).
-  const clesExistantes = new Set<string>();
-  const contactsExistants = new Set<string>();
+  // On stocke la fiche complète (pas seulement la clé) pour pouvoir présenter
+  // la comparaison champ par champ dans le rapport.
+  const parCle = new Map<string, Record<string, unknown>>();
+  const parContact = new Map<string, Record<string, unknown>>();
   if (!input.forcerDoublons) {
     try {
       let offset = 0;
@@ -122,18 +206,21 @@ export async function importerStructuresExcel(
       while (true) {
         const { data } = await adminClient
           .from('structures')
-          .select('nom_structure, pays_code, projet_code, courriel_porteur, telephone_porteur')
+          .select(
+            'nom_structure, pays_code, projet_code, type_structure_code, secteur_activite_code, porteur_prenom, porteur_nom, courriel_porteur, telephone_porteur, annee_appui',
+          )
           .is('deleted_at', null)
           .range(offset, offset + PAGE - 1);
         const rows = (data ?? []) as Array<Record<string, unknown>>;
         for (const r of rows) {
-          clesExistantes.add(
+          parCle.set(
             `${cleNomStructure(String(r.nom_structure ?? ''))}|${r.pays_code}|${r.projet_code}`,
+            r,
           );
           if (r.courriel_porteur)
-            contactsExistants.add(`c:${String(r.courriel_porteur).toLowerCase()}`);
+            parContact.set(`c:${String(r.courriel_porteur).toLowerCase()}`, r);
           const t = cleTelStruct(r.telephone_porteur);
-          if (t) contactsExistants.add(`t:${t}`);
+          if (t) parContact.set(`t:${t}`, r);
         }
         if (rows.length < PAGE) break;
         offset += PAGE;
@@ -148,7 +235,7 @@ export async function importerStructuresExcel(
   // ≈ 100 ms/ligne → 582 lignes ≈ 60 s, à la limite du timeout).
   type ResultatLigne =
     | { statut: 'inseree' }
-    | { statut: 'doublon' }
+    | { statut: 'doublon'; doublon?: LigneDoublonRapport }
     | { statut: 'rejetee'; erreurs: ErreurImport[] };
 
   const traiterLigneStructure = async (
@@ -193,12 +280,30 @@ export async function importerStructuresExcel(
       const courriel = parse.data.courriel_porteur
         ? `c:${String(parse.data.courriel_porteur).toLowerCase()}`
         : null;
-      if (
-        clesExistantes.has(cle) ||
-        (courriel && contactsExistants.has(courriel)) ||
-        (tel && contactsExistants.has(`t:${tel}`))
-      ) {
-        return { statut: 'doublon' };
+
+      // Identifier la fiche existante correspondante + le critère déclencheur,
+      // par ordre de priorité : identité (nom+pays+projet) > courriel > téléphone.
+      let existante: Record<string, unknown> | undefined;
+      let critere: string | undefined;
+      if (parCle.has(cle)) {
+        existante = parCle.get(cle);
+        critere = 'Nom + pays + projet identiques';
+      } else if (courriel && parContact.has(courriel)) {
+        existante = parContact.get(courriel);
+        critere = 'Courriel porteur identique';
+      } else if (tel && parContact.has(`t:${tel}`)) {
+        existante = parContact.get(`t:${tel}`);
+        critere = 'Téléphone porteur identique';
+      }
+
+      if (existante && critere) {
+        return {
+          statut: 'doublon',
+          doublon: {
+            numero_ligne: numLigne,
+            comparaison: construireComparaisonStructure(parse.data, existante, critere),
+          },
+        };
       }
     }
 
@@ -241,8 +346,10 @@ export async function importerStructuresExcel(
     );
     for (const r of resultats) {
       if (r.statut === 'inseree') nbInserees++;
-      else if (r.statut === 'doublon') nbDoublons++;
-      else erreurs.push(...r.erreurs);
+      else if (r.statut === 'doublon') {
+        nbDoublons++;
+        if (r.doublon) doublons.push(r.doublon);
+      } else erreurs.push(...r.erreurs);
     }
   }
 
@@ -300,6 +407,7 @@ export async function importerStructuresExcel(
       nb_lignes_inserees: nbInserees,
       nb_lignes_ignorees: lignes.length - nbInserees,
       nb_doublons: nbDoublons,
+      doublons,
       erreurs,
       import_id: importId,
       import_session_id: nbInserees > 0 ? importSessionId : null,

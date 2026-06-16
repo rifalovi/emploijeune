@@ -20,6 +20,8 @@ import {
 import { resoudreTrancheAge } from './tranche-age-resolver';
 import { PROJETS_CODES } from '@/lib/schemas/nomenclatures';
 import type {
+  ChampComparaison,
+  ComparaisonDoublon,
   LigneRapportImport,
   RapportImportEnrichi,
   ResultatImportEnrichi,
@@ -516,9 +518,13 @@ async function traiterLigne(args: {
 
   // 4. Détecter un doublon (courriel ou téléphone identique). Si forçage demandé,
   //    on n'en cherche pas → insertion directe (cas des contacts partagés à tort).
-  const doublon = forcerDoublons ? null : await detecterDoublon(adminClient, record, cacheBatch);
+  const doublonMatch = forcerDoublons
+    ? null
+    : await detecterDoublon(adminClient, record, cacheBatch);
 
-  if (doublon) {
+  if (doublonMatch) {
+    const doublon = doublonMatch.record;
+    const comparaison = construireComparaisonDoublon(record, doublon, doublonMatch.critere);
     const { fusionne, champsMisAJour: champsMaj } = fusionnerBeneficiaires(doublon, {
       prenom: record.prenom,
       nom: record.nom,
@@ -539,9 +545,12 @@ async function traiterLigne(args: {
         mappages_auto: mappagesAuto,
         champs_manquants: champsManquants,
         champs_mis_a_jour: [],
-        alertes: ['Doublon détecté, aucune nouvelle donnée à enregistrer.'],
+        alertes: [
+          `Doublon détecté (${comparaison.critere}, ${comparaison.pourcentage}% de correspondance), aucune nouvelle donnée à enregistrer.`,
+        ],
         erreurs: [],
         donnees_importees: extrairePreview(record),
+        comparaison_doublon: comparaison,
       };
     }
 
@@ -584,6 +593,7 @@ async function traiterLigne(args: {
       alertes,
       erreurs: [],
       donnees_importees: extrairePreview(record),
+      comparaison_doublon: comparaison,
     };
   }
 
@@ -801,7 +811,7 @@ async function detecterDoublon(
   adminClient: AdminClient,
   record: RecordNormalise,
   cache?: CacheDoublons,
-): Promise<Record<string, unknown> | null> {
+): Promise<{ record: Record<string, unknown>; critere: string } | null> {
   // ── Règle métier : doublon si même COURRIEL ou même TÉLÉPHONE ─────────────
   // La similarité de nom (sans contact) ne suffit plus : sans contact commun,
   // on insère (deux personnes peuvent partager nom/sexe/pays/année).
@@ -809,7 +819,7 @@ async function detecterDoublon(
     const cle = record.courriel.toLowerCase();
     if (cache) {
       const hit = cache.parCourriel.get(cle);
-      if (hit) return hit;
+      if (hit) return { record: hit, critere: 'Courriel identique' };
     } else {
       const { data } = await adminClient
         .from('beneficiaires')
@@ -818,7 +828,7 @@ async function detecterDoublon(
         .is('deleted_at', null)
         .limit(1)
         .maybeSingle();
-      if (data) return data as Record<string, unknown>;
+      if (data) return { record: data as Record<string, unknown>, critere: 'Courriel identique' };
     }
   }
 
@@ -826,7 +836,7 @@ async function detecterDoublon(
   if (tel) {
     if (cache) {
       const hit = cache.parTelephone.get(tel);
-      if (hit) return hit;
+      if (hit) return { record: hit, critere: 'Téléphone identique' };
     } else {
       const { data } = await adminClient
         .from('beneficiaires')
@@ -835,11 +845,89 @@ async function detecterDoublon(
         .is('deleted_at', null)
         .limit(1)
         .maybeSingle();
-      if (data) return data as Record<string, unknown>;
+      if (data) return { record: data as Record<string, unknown>, critere: 'Téléphone identique' };
     }
   }
 
   return null;
+}
+
+// =============================================================================
+// Comparaison champ par champ d'un doublon (pour le rapport)
+// =============================================================================
+
+/** Normalise une valeur pour la comparaison d'égalité (string trim/lower). */
+function normPourComparaison(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  return s.length === 0 ? null : s;
+}
+
+/** Affichage lisible d'une valeur (— pour vide). */
+function afficherValeur(v: unknown): string | null {
+  const s = normPourComparaison(v);
+  return s;
+}
+
+/**
+ * Construit la comparaison champ par champ entre la ligne importée (record)
+ * et la fiche existante (doublon), avec un pourcentage global de correspondance.
+ */
+function construireComparaisonDoublon(
+  record: RecordNormalise,
+  existant: Record<string, unknown>,
+  critere: string,
+): ComparaisonDoublon {
+  const defs: { champ: string; importee: unknown; existante: unknown; tel?: boolean }[] = [
+    { champ: 'Prénom', importee: record.prenom, existante: existant.prenom },
+    { champ: 'Nom', importee: record.nom, existante: existant.nom },
+    { champ: 'Sexe', importee: record.sexe, existante: existant.sexe },
+    { champ: 'Projet', importee: record.projet_code, existante: existant.projet_code },
+    { champ: 'Pays', importee: record.pays_code, existante: existant.pays_code },
+    {
+      champ: 'Domaine',
+      importee: record.domaine_formation_code,
+      existante: existant.domaine_formation_code,
+    },
+    { champ: 'Année', importee: record.annee_formation, existante: existant.annee_formation },
+    { champ: 'Courriel', importee: record.courriel, existante: existant.courriel },
+    {
+      champ: 'Téléphone',
+      importee: record.telephone,
+      existante: existant.telephone,
+      tel: true,
+    },
+  ];
+
+  const champs: ChampComparaison[] = defs.map((d) => {
+    const impAff = afficherValeur(d.importee);
+    const exAff = afficherValeur(d.existante);
+    // Égalité : insensible à la casse ; pour le téléphone on compare les chiffres.
+    let identique: boolean;
+    if (d.tel) {
+      identique = cleTelephone(d.importee) === cleTelephone(d.existante);
+    } else {
+      identique = (impAff?.toLowerCase() ?? null) === (exAff?.toLowerCase() ?? null);
+    }
+    return {
+      champ: d.champ,
+      valeur_importee: impAff,
+      valeur_existante: exAff,
+      identique,
+    };
+  });
+
+  const nbIdentiques = champs.filter((c) => c.identique).length;
+  const pourcentage = champs.length > 0 ? Math.round((nbIdentiques / champs.length) * 100) : 0;
+
+  const refNom = [normPourComparaison(existant.prenom), normPourComparaison(existant.nom)]
+    .filter(Boolean)
+    .join(' ');
+  const refContact =
+    normPourComparaison(existant.courriel) ?? normPourComparaison(existant.telephone) ?? '';
+  const reference = [refNom, refContact].filter(Boolean).join(' · ') || 'Fiche existante';
+
+  return { critere, reference, pourcentage, champs };
 }
 
 // =============================================================================

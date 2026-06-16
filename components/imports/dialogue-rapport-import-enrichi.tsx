@@ -35,6 +35,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { ComparaisonDoublonTable } from '@/components/imports/comparaison-doublon-table';
 import { annulerImportSession } from '@/lib/imports/import-beneficiaires';
 import type {
   LigneRapportImport,
@@ -45,6 +46,11 @@ import type {
 export type DialogueRapportImportEnrichiProps = {
   rapport: RapportImportEnrichi | null;
   onClose: () => void;
+  /**
+   * Si fourni et `nb > 0`, affiche un bouton « Importer quand même N doublon(s) »
+   * dans le pied du rapport (insertion forcée pour traitement manuel ultérieur).
+   */
+  forcerDoublons?: { nb: number; pending: boolean; onForcer: () => void };
 };
 
 /**
@@ -61,6 +67,7 @@ export type DialogueRapportImportEnrichiProps = {
 export function DialogueRapportImportEnrichi({
   rapport,
   onClose,
+  forcerDoublons,
 }: DialogueRapportImportEnrichiProps) {
   const [rollbackEnCours, setRollbackEnCours] = useState(false);
   const [rollbackMessage, setRollbackMessage] = useState<string | null>(null);
@@ -152,7 +159,7 @@ export function DialogueRapportImportEnrichi({
 
   return (
     <Dialog open={!!rapport} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] w-[95vw] max-w-6xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[95vw] max-w-[calc(100%-2rem)] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="size-5 text-[#0E4F88]" aria-hidden />
@@ -359,6 +366,20 @@ export function DialogueRapportImportEnrichi({
             )}
             {copie ? 'Copié !' : 'Copier le résumé'}
           </Button>
+          {forcerDoublons && forcerDoublons.nb > 0 && (
+            <Button
+              variant="outline"
+              onClick={forcerDoublons.onForcer}
+              disabled={forcerDoublons.pending}
+              className="gap-1.5 border-amber-300 text-amber-800 hover:bg-amber-50"
+              title="Insère les doublons identifiés (même courriel ou téléphone) pour traitement manuel ultérieur"
+            >
+              <RotateCcw className="size-4" aria-hidden />
+              {forcerDoublons.pending
+                ? 'Import en cours…'
+                : `Importer quand même ${forcerDoublons.nb} doublon${forcerDoublons.nb > 1 ? 's' : ''}`}
+            </Button>
+          )}
           <Button variant="outline" onClick={onClose}>
             Fermer
           </Button>
@@ -479,6 +500,12 @@ function SectionStatut({
                 )}
                 {l.alertes.length > 0 && (
                   <p className="mt-1 text-[10px] text-slate-500 italic">{l.alertes.join(' / ')}</p>
+                )}
+                {l.comparaison_doublon && (
+                  <ComparaisonDoublonTable
+                    comparaison={l.comparaison_doublon}
+                    numeroLigne={l.numero_ligne}
+                  />
                 )}
                 {l.erreurs.length > 0 && (
                   <ul className="mt-1 list-disc pl-4 text-[10px] text-red-700">

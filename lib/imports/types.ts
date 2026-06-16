@@ -32,6 +32,12 @@ export type RapportImport = {
    * dédoublonnage). Comptées séparément des erreurs : ce n'est pas un échec.
    */
   nb_doublons?: number;
+  /**
+   * Détail des doublons détectés (B1) : pour chaque ligne reconnue comme
+   * doublon, la comparaison champ par champ avec la fiche existante. Permet à
+   * l'utilisateur de juger si c'est un « vrai » doublon avant un éventuel forçage.
+   */
+  doublons?: LigneDoublonRapport[];
   /** Détail des erreurs ligne par ligne. */
   erreurs: ErreurImport[];
   /** ID de la ligne `imports_excel` créée pour audit. */
@@ -60,6 +66,43 @@ export type ResultatImport =
 // progressive. Une fois le nouveau pipeline en place, on pourra alias
 // ResultatImport vers ResultatImportEnrichi.
 // =============================================================================
+
+/** Comparaison champ par champ entre la ligne importée et la fiche existante. */
+export type ChampComparaison = {
+  /** Libellé lisible du champ comparé (« Courriel », « Nom », …). */
+  champ: string;
+  /** Valeur lue dans le fichier importé (déjà normalisée). */
+  valeur_importee: string | null;
+  /** Valeur trouvée sur la fiche existante en base. */
+  valeur_existante: string | null;
+  /** True si les deux valeurs sont considérées identiques. */
+  identique: boolean;
+};
+
+/**
+ * Détail d'un doublon : pourquoi la ligne a été reconnue comme doublon
+ * (critère déclencheur) + comparaison champ par champ avec la fiche existante
+ * et un pourcentage global de correspondance. Affiché dans le rapport pour
+ * permettre à l'utilisateur de juger si c'est un « vrai » doublon.
+ */
+export type ComparaisonDoublon = {
+  /** Critère ayant déclenché la détection (« Courriel identique », …). */
+  critere: string;
+  /** Identité de la fiche existante correspondante (nom + contact). */
+  reference: string;
+  /** Pourcentage de correspondance global sur l'ensemble des champs (0..100). */
+  pourcentage: number;
+  /** Comparaison champ par champ. */
+  champs: ChampComparaison[];
+};
+
+/** Doublon détecté (rapport classique B1) : numéro de ligne + comparaison. */
+export type LigneDoublonRapport = {
+  /** Numéro de ligne dans le fichier importé. */
+  numero_ligne: number;
+  /** Comparaison champ par champ avec la fiche existante. */
+  comparaison: ComparaisonDoublon;
+};
 
 /** Cas de figure d'une ligne après le pipeline tolérant. */
 export type StatutLigneImport =
@@ -94,6 +137,11 @@ export type LigneRapportImport = {
   extrait_par_ia?: boolean;
   /** Score de confiance IA 0..100 (uniquement si extrait_par_ia). */
   confiance_ia?: number;
+  /**
+   * Détail du doublon (uniquement pour 'doublon_identique' et 'enrichie') :
+   * critère, fiche existante correspondante et comparaison champ par champ.
+   */
+  comparaison_doublon?: ComparaisonDoublon;
 };
 
 export type RapportImportEnrichi = {
