@@ -170,6 +170,32 @@ export async function fusionnerDoublonsBulk(): Promise<Resultat<{ nb_fusionnes: 
   return { status: 'succes', data: { nb_fusionnes: data?.nb_fusionnes ?? 0 } };
 }
 
+/**
+ * Annule une fusion : restaure (deleted_at = NULL) les bénéficiaires soft-supprimés
+ * d'un groupe d'identité donné. Permet de revenir en arrière après un clic sur
+ * « Fusionner ».
+ */
+export async function restaurerFusionBeneficiaires(
+  cle: string,
+): Promise<Resultat<{ restaurees: number }>> {
+  const garde = await exigerAccesDoublons();
+  if ('erreur' in garde) return { status: 'erreur', message: garde.erreur };
+  const admin = createSupabaseAdminClient();
+  // `cle_identite` n'est pas dans les types générés (colonne ajoutée hors
+  // migrations) → cast pour la clause .eq().
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (admin.from('beneficiaires') as any)
+    .update({ deleted_at: null, deleted_by: null })
+    .eq('cle_identite', cle)
+    .not('deleted_at', 'is', null)
+    .select('id');
+  if (error) return { status: 'erreur', message: error.message };
+  revalidatePath('/super-admin/doublons');
+  revalidatePath('/beneficiaires');
+  revalidatePath('/dashboard');
+  return { status: 'succes', data: { restaurees: Array.isArray(data) ? data.length : 0 } };
+}
+
 // ── Doublons STRUCTURES (B1) ──────────────────────────────────────────────────
 
 /** Normalise un nom de structure pour la clé de regroupement (≈ unaccent+lower). */
