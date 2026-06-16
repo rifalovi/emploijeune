@@ -1,8 +1,19 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Merge, Layers, Eye, Trash2, Search, Loader2, Users, Building2 } from 'lucide-react';
+import {
+  Merge,
+  Layers,
+  Eye,
+  Trash2,
+  Search,
+  Loader2,
+  Users,
+  Building2,
+  AlertTriangle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +21,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -22,6 +34,7 @@ import type {
 import {
   fusionnerDoublons,
   fusionnerDoublonsBulk,
+  restaurerFusionBeneficiaires,
   listerOccurrencesBeneficiaires,
   listerOccurrencesStructures,
   supprimerBeneficiaire,
@@ -42,6 +55,13 @@ export function DoublonsClient({ beneficiaires: initBenef, structures: initStruc
   const [recherche, setRecherche] = useState('');
   const [visible, setVisible] = useState(PAGE);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  // Confirmation avant fusion (la fusion garde la plus ancienne fiche et
+  // soft-delete les autres ; elle est annulable juste après via le toast).
+  const [aConfirmer, setAConfirmer] = useState<
+    { type: 'single'; cle: string; occ: number } | { type: 'bulk'; n: number } | null
+  >(null);
 
   // Modal de détail des occurrences
   const [modal, setModal] = useState<{
@@ -79,26 +99,49 @@ export function DoublonsClient({ beneficiaires: initBenef, structures: initStruc
     setVisible(PAGE);
   };
 
-  const handleFusionner = (cle: string) => {
+  // Restaure les fiches soft-supprimées par une (ou plusieurs) fusion(s).
+  const annulerFusion = (cles: string[]) => {
     startTransition(async () => {
-      const res = await fusionnerDoublons(cle);
-      if (res.status === 'succes') {
-        toast.success(`${res.data.fusionnes} doublon(s) fusionné(s).`);
-        setBenef((prev) => prev.filter((d) => d.cle_identite !== cle));
-      } else {
-        toast.error(res.message);
+      let n = 0;
+      for (const cle of cles) {
+        const r = await restaurerFusionBeneficiaires(cle);
+        if (r.status === 'succes') n += r.data.restaurees;
       }
+      toast.success(`Fusion annulée — ${n} fiche(s) restaurée(s).`);
+      router.refresh();
     });
   };
 
-  const handleBulk = () => {
+  // Exécute la fusion confirmée (simple ou en masse), avec option d'annulation
+  // immédiate proposée dans le toast.
+  const executerFusion = () => {
+    if (!aConfirmer) return;
+    const conf = aConfirmer;
+    setAConfirmer(null);
     startTransition(async () => {
-      const res = await fusionnerDoublonsBulk();
-      if (res.status === 'succes') {
-        toast.success(`${res.data.nb_fusionnes} doublon(s) fusionné(s) au total.`);
-        setBenef([]);
+      if (conf.type === 'single') {
+        const res = await fusionnerDoublons(conf.cle);
+        if (res.status === 'succes') {
+          setBenef((prev) => prev.filter((d) => d.cle_identite !== conf.cle));
+          toast.success(`${res.data.fusionnes} doublon(s) fusionné(s).`, {
+            action: { label: 'Annuler', onClick: () => annulerFusion([conf.cle]) },
+            duration: 10000,
+          });
+        } else {
+          toast.error(res.message);
+        }
       } else {
-        toast.error(res.message);
+        const cles = benef.map((d) => d.cle_identite);
+        const res = await fusionnerDoublonsBulk();
+        if (res.status === 'succes') {
+          setBenef([]);
+          toast.success(`${res.data.nb_fusionnes} doublon(s) fusionné(s) au total.`, {
+            action: { label: 'Tout annuler', onClick: () => annulerFusion(cles) },
+            duration: 10000,
+          });
+        } else {
+          toast.error(res.message);
+        }
       }
     });
   };
@@ -203,7 +246,7 @@ export function DoublonsClient({ beneficiaires: initBenef, structures: initStruc
             </p>
             <Button
               size="sm"
-              onClick={handleBulk}
+              onClick={() => setAConfirmer({ type: 'bulk', n: benef.length })}
               disabled={pending}
               className="shrink-0 bg-purple-600 hover:bg-purple-700"
             >
@@ -286,7 +329,9 @@ export function DoublonsClient({ beneficiaires: initBenef, structures: initStruc
                               size="sm"
                               variant="outline"
                               className="h-7 px-2 text-xs"
-                              onClick={() => handleFusionner(d.cle)}
+                              onClick={() =>
+                                setAConfirmer({ type: 'single', cle: d.cle, occ: d.occ })
+                              }
                               disabled={pending}
                             >
                               <Merge className="mr-1 size-3" /> Fusionner
@@ -309,6 +354,50 @@ export function DoublonsClient({ beneficiaires: initBenef, structures: initStruc
           )}
         </CardContent>
       </Card>
+
+      {/* Confirmation avant fusion */}
+      <Dialog open={aConfirmer !== null} onOpenChange={(o) => !o && setAConfirmer(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-5 text-amber-500" />
+              Confirmer la fusion
+            </DialogTitle>
+            <DialogDescription>
+              {aConfirmer?.type === 'single' ? (
+                <>
+                  Ce groupe contient <strong>{aConfirmer.occ}</strong> fiches. La fusion conserve la
+                  fiche la <strong>plus ancienne</strong> et retire les autres (soft-delete).
+                </>
+              ) : (
+                <>
+                  Vous allez fusionner{' '}
+                  <strong>{aConfirmer?.type === 'bulk' ? aConfirmer.n : 0}</strong> groupe(s) de
+                  doublons d&apos;un coup. Pour chacun, la fiche la plus ancienne est conservée et
+                  les autres retirées (soft-delete).
+                </>
+              )}
+              <br />
+              <br />
+              Cette action est <strong>réversible</strong> : un bouton « Annuler » apparaîtra juste
+              après.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setAConfirmer(null)} disabled={pending}>
+              Annuler
+            </Button>
+            <Button
+              onClick={executerFusion}
+              disabled={pending}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Merge className="mr-1 size-4" />
+              {aConfirmer?.type === 'bulk' ? 'Fusionner tous' : 'Confirmer la fusion'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal détail des occurrences */}
       <Dialog open={modal !== null} onOpenChange={(o) => !o && setModal(null)}>
