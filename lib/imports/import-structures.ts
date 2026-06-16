@@ -293,6 +293,32 @@ export async function importerStructuresExcel(
     }
   }
 
+  // Forçage = REMPLACER : annuler l'import précédent du même fichier (même hash)
+  // pour ne pas dupliquer les structures non-doublons déjà insérées.
+  if (input.forcerDoublons && input.fichierHash) {
+    try {
+      const { data: prior } = await adminClient
+        .from('import_sessions')
+        .select('id')
+        .eq('fichier_hash', input.fichierHash)
+        .not('statut', 'like', '%annule%');
+      const ids = ((prior ?? []) as { id: string }[]).map((s) => s.id);
+      if (ids.length > 0) {
+        await adminClient
+          .from('structures')
+          .update({ deleted_at: new Date().toISOString() } as never)
+          .in('import_session_id', ids)
+          .is('deleted_at', null);
+        await adminClient
+          .from('import_sessions')
+          .update({ statut: 'annule_admin', peut_rollback: false } as never)
+          .in('id', ids);
+      }
+    } catch {
+      // best-effort
+    }
+  }
+
   // Session d'import (best-effort) : permet l'annulation/rollback ultérieure.
   try {
     const { data: session } = await adminClient
