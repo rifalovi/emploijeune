@@ -398,6 +398,8 @@ export async function importerStructuresExcel(
 
   revalidatePath('/structures');
   revalidatePath('/admin/imports');
+  revalidatePath('/dashboard');
+  revalidatePath('/realisations');
 
   return {
     status: 'succes',

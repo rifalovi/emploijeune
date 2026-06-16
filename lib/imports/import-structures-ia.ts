@@ -268,6 +268,8 @@ export async function importerStructuresDepuisIA(
 
   revalidatePath('/structures');
   revalidatePath('/admin/imports');
+  revalidatePath('/dashboard');
+  revalidatePath('/realisations');
 
   const rapport: RapportImportEnrichi = {
     fichier_nom: input.fichierNom,

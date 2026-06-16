@@ -277,6 +277,8 @@ export async function importerBeneficiairesExcel(
 
   revalidatePath('/beneficiaires');
   revalidatePath('/admin/imports');
+  revalidatePath('/dashboard');
+  revalidatePath('/realisations');
 
   const rapport: RapportImportEnrichi = {
     fichier_nom: input.fichierNom,
