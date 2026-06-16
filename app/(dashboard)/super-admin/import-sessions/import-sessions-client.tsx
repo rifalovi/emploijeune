@@ -181,7 +181,7 @@ export function ImportSessionsClient({ sessions: initial }: Props) {
                       Importe le {new Date(s.created_at).toLocaleString('fr-FR')} par{' '}
                       {s.created_by_nom}
                       <br />
-                      <span className="font-semibold">{s.lignes_reelles} beneficiaire(s)</span>{' '}
+                      <span className="font-semibold">{s.lignes_reelles} ligne(s) en base</span>{' '}
                       seront marques supprimes (soft-delete).
                     </p>
                   </div>
