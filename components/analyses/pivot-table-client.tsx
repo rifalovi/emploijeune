@@ -5,6 +5,21 @@ import { Download, GripVertical, RotateCcw, Table2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SOURCES_TCD, type CubeRow, type SourceTCD } from '@/lib/analyses/pivot-config';
+import { INDICATIFS_PAYS } from '@/lib/data/indicatifs-pays';
+
+/**
+ * Convertit une valeur brute de dimension en libellé lisible. Pour le pays :
+ * code ISO-3 → nom du pays ; ZZZ / vide → mention « inconnu ». Les autres
+ * dimensions sont affichées telles quelles.
+ */
+function formatValeurDimension(cle: string, v: string): string {
+  if (cle === 'pays') {
+    if (v === 'ZZZ') return 'Inconnu (ZZZ)';
+    if (v === '—' || v === '') return 'Non renseigné';
+    return INDICATIFS_PAYS[v]?.libelle ?? v;
+  }
+  return v;
+}
 
 type Zone = 'dispo' | 'lignes' | 'colonnes' | 'filtres';
 const SEP = '';
@@ -127,14 +142,22 @@ export function PivotTableClient({ a1, b1 }: { a1: CubeRow[]; b1: CubeRow[] }) {
     const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
     const enTete = [
       ...lignes.map(labelChamp),
-      ...pivot.cols.map((ck) => (colonnes.length ? split(ck).join(' / ') : mesureDef.label)),
+      ...pivot.cols.map((ck) =>
+        colonnes.length
+          ? split(ck)
+              .map((v, i) => formatValeurDimension(colonnes[i]!, v))
+              .join(' / ')
+          : mesureDef.label,
+      ),
       'Total',
     ];
     const lignesCsv = [enTete.map(esc).join(sepCsv)];
     for (const rk of pivot.rows) {
       const cellules = pivot.cols.map((ck) => String(pivot.cells.get(rk + SEP + SEP + ck) ?? 0));
       const ligne = [
-        ...(lignes.length ? split(rk) : ['Total']),
+        ...(lignes.length
+          ? split(rk).map((v, i) => formatValeurDimension(lignes[i]!, v))
+          : ['Total']),
         ...cellules,
         String(pivot.totLignes.get(rk) ?? 0),
       ];
@@ -261,7 +284,7 @@ export function PivotTableClient({ a1, b1 }: { a1: CubeRow[]; b1: CubeRow[] }) {
               >
                 {valeursParChamp[cle]?.map((v) => (
                   <option key={v} value={v}>
-                    {v}
+                    {formatValeurDimension(cle, v)}
                   </option>
                 ))}
               </select>
@@ -296,7 +319,11 @@ export function PivotTableClient({ a1, b1 }: { a1: CubeRow[]; b1: CubeRow[] }) {
                       key={ck}
                       className="border px-3 py-2 text-right font-semibold whitespace-nowrap"
                     >
-                      {colonnes.length ? split(ck).join(' / ') : mesureDef.label}
+                      {colonnes.length
+                        ? split(ck)
+                            .map((v, i) => formatValeurDimension(colonnes[i]!, v))
+                            .join(' / ')
+                        : mesureDef.label}
                     </th>
                   ))}
                   <th className="bg-muted border px-3 py-2 text-right font-bold">Total</th>
@@ -308,7 +335,7 @@ export function PivotTableClient({ a1, b1 }: { a1: CubeRow[]; b1: CubeRow[] }) {
                     {lignes.length ? (
                       split(rk).map((v, i) => (
                         <td key={i} className="border px-3 py-1.5 font-medium">
-                          {v}
+                          {formatValeurDimension(lignes[i]!, v)}
                         </td>
                       ))
                     ) : (
