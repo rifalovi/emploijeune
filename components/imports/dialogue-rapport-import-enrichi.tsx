@@ -37,6 +37,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { annulerImportSession } from '@/lib/imports/import-beneficiaires';
 import type {
+  ComparaisonDoublon,
   LigneRapportImport,
   RapportImportEnrichi,
   StatutLigneImport,
@@ -45,6 +46,11 @@ import type {
 export type DialogueRapportImportEnrichiProps = {
   rapport: RapportImportEnrichi | null;
   onClose: () => void;
+  /**
+   * Si fourni et `nb > 0`, affiche un bouton « Importer quand même N doublon(s) »
+   * dans le pied du rapport (insertion forcée pour traitement manuel ultérieur).
+   */
+  forcerDoublons?: { nb: number; pending: boolean; onForcer: () => void };
 };
 
 /**
@@ -61,6 +67,7 @@ export type DialogueRapportImportEnrichiProps = {
 export function DialogueRapportImportEnrichi({
   rapport,
   onClose,
+  forcerDoublons,
 }: DialogueRapportImportEnrichiProps) {
   const [rollbackEnCours, setRollbackEnCours] = useState(false);
   const [rollbackMessage, setRollbackMessage] = useState<string | null>(null);
@@ -152,7 +159,7 @@ export function DialogueRapportImportEnrichi({
 
   return (
     <Dialog open={!!rapport} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] w-[95vw] max-w-6xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[95vw] max-w-[calc(100%-2rem)] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="size-5 text-[#0E4F88]" aria-hidden />
@@ -359,12 +366,93 @@ export function DialogueRapportImportEnrichi({
             )}
             {copie ? 'Copié !' : 'Copier le résumé'}
           </Button>
+          {forcerDoublons && forcerDoublons.nb > 0 && (
+            <Button
+              variant="outline"
+              onClick={forcerDoublons.onForcer}
+              disabled={forcerDoublons.pending}
+              className="gap-1.5 border-amber-300 text-amber-800 hover:bg-amber-50"
+              title="Insère les doublons identifiés (même courriel ou téléphone) pour traitement manuel ultérieur"
+            >
+              <RotateCcw className="size-4" aria-hidden />
+              {forcerDoublons.pending
+                ? 'Import en cours…'
+                : `Importer quand même ${forcerDoublons.nb} doublon${forcerDoublons.nb > 1 ? 's' : ''}`}
+            </Button>
+          )}
           <Button variant="outline" onClick={onClose}>
             Fermer
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Tableau de correspondance champ par champ d'un doublon : montre, pour la
+ * fiche importée (L{numéro}) vs la fiche existante, chaque champ comparé, s'il
+ * correspond (✓ vert / ✗ rouge) et le pourcentage global de correspondance.
+ * Répond à la demande : « voir clairement toutes les correspondances champ par
+ * champ quand on identifie le doublon ».
+ */
+function ComparaisonDoublonTable({
+  comparaison,
+  numeroLigne,
+}: {
+  comparaison: ComparaisonDoublon;
+  numeroLigne: number;
+}) {
+  const couleurPct =
+    comparaison.pourcentage >= 80
+      ? 'bg-red-100 text-red-700'
+      : comparaison.pourcentage >= 50
+        ? 'bg-amber-100 text-amber-700'
+        : 'bg-slate-100 text-slate-600';
+  return (
+    <div className="mt-2 overflow-hidden rounded-md border border-slate-200">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-2 py-1.5">
+        <span className="text-[10px] font-medium text-slate-600">
+          Correspondance L{numeroLigne} ↔ fiche existante
+          {comparaison.reference ? ` (${comparaison.reference})` : ''} — critère :{' '}
+          <span className="font-semibold">{comparaison.critere}</span>
+        </span>
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${couleurPct}`}
+        >
+          {comparaison.pourcentage}% de correspondance
+        </span>
+      </div>
+      <table className="w-full border-collapse text-[10px]">
+        <thead>
+          <tr className="bg-white text-left text-slate-500">
+            <th className="px-2 py-1 font-medium">Champ</th>
+            <th className="px-2 py-1 font-medium">Valeur importée</th>
+            <th className="px-2 py-1 font-medium">Fiche existante</th>
+            <th className="w-8 px-2 py-1 text-center font-medium">=</th>
+          </tr>
+        </thead>
+        <tbody>
+          {comparaison.champs.map((c) => (
+            <tr
+              key={c.champ}
+              className={`border-t border-slate-100 ${c.identique ? 'bg-emerald-50/40' : 'bg-red-50/40'}`}
+            >
+              <td className="px-2 py-1 font-medium text-slate-600">{c.champ}</td>
+              <td className="px-2 py-1 font-mono text-slate-700">{c.valeur_importee ?? '—'}</td>
+              <td className="px-2 py-1 font-mono text-slate-700">{c.valeur_existante ?? '—'}</td>
+              <td className="px-2 py-1 text-center">
+                {c.identique ? (
+                  <Check className="mx-auto size-3 text-emerald-600" aria-label="identique" />
+                ) : (
+                  <XCircle className="mx-auto size-3 text-red-500" aria-label="différent" />
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -479,6 +567,12 @@ function SectionStatut({
                 )}
                 {l.alertes.length > 0 && (
                   <p className="mt-1 text-[10px] text-slate-500 italic">{l.alertes.join(' / ')}</p>
+                )}
+                {l.comparaison_doublon && (
+                  <ComparaisonDoublonTable
+                    comparaison={l.comparaison_doublon}
+                    numeroLigne={l.numero_ligne}
+                  />
                 )}
                 {l.erreurs.length > 0 && (
                   <ul className="mt-1 list-disc pl-4 text-[10px] text-red-700">

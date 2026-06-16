@@ -61,6 +61,35 @@ export type ResultatImport =
 // ResultatImport vers ResultatImportEnrichi.
 // =============================================================================
 
+/** Comparaison champ par champ entre la ligne importée et la fiche existante. */
+export type ChampComparaison = {
+  /** Libellé lisible du champ comparé (« Courriel », « Nom », …). */
+  champ: string;
+  /** Valeur lue dans le fichier importé (déjà normalisée). */
+  valeur_importee: string | null;
+  /** Valeur trouvée sur la fiche existante en base. */
+  valeur_existante: string | null;
+  /** True si les deux valeurs sont considérées identiques. */
+  identique: boolean;
+};
+
+/**
+ * Détail d'un doublon : pourquoi la ligne a été reconnue comme doublon
+ * (critère déclencheur) + comparaison champ par champ avec la fiche existante
+ * et un pourcentage global de correspondance. Affiché dans le rapport pour
+ * permettre à l'utilisateur de juger si c'est un « vrai » doublon.
+ */
+export type ComparaisonDoublon = {
+  /** Critère ayant déclenché la détection (« Courriel identique », …). */
+  critere: string;
+  /** Identité de la fiche existante correspondante (nom + contact). */
+  reference: string;
+  /** Pourcentage de correspondance global sur l'ensemble des champs (0..100). */
+  pourcentage: number;
+  /** Comparaison champ par champ. */
+  champs: ChampComparaison[];
+};
+
 /** Cas de figure d'une ligne après le pipeline tolérant. */
 export type StatutLigneImport =
   | 'inseree' // Nouvelle fiche ajoutée (complète ou partielle)
@@ -94,6 +123,11 @@ export type LigneRapportImport = {
   extrait_par_ia?: boolean;
   /** Score de confiance IA 0..100 (uniquement si extrait_par_ia). */
   confiance_ia?: number;
+  /**
+   * Détail du doublon (uniquement pour 'doublon_identique' et 'enrichie') :
+   * critère, fiche existante correspondante et comparaison champ par champ.
+   */
+  comparaison_doublon?: ComparaisonDoublon;
 };
 
 export type RapportImportEnrichi = {

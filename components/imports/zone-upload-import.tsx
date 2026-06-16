@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { DialogueRapportImport } from '@/components/imports/dialogue-rapport-import';
+import { DialogueRapportImportEnrichi } from '@/components/imports/dialogue-rapport-import-enrichi';
 import type {
   RapportImport,
   RapportImportEnrichi,
@@ -43,8 +45,11 @@ export type ZoneUploadImportProps = {
   description: string;
   /** Nom de fichier modèle pour le lien « Télécharger le template ». */
   templateLabel?: string;
-  /** Callback quand un import réussit (avec rapport). */
-  onRapport: (rapport: RapportImport | RapportImportEnrichi) => void;
+  /**
+   * Callback optionnel quand un import réussit (avec rapport). Le rapport est
+   * de toute façon affiché par la zone elle-même dans un dialogue.
+   */
+  onRapport?: (rapport: RapportImport | RapportImportEnrichi) => void;
   /**
    * Endpoint IA optionnel — si fourni, accepte les formats PDF/DOCX/TXT
    * en plus de XLSX. Un toggle « Analyser avec IA » apparaît quand un
@@ -98,6 +103,14 @@ export function ZoneUploadImport({
   const [suggestionIA, setSuggestionIA] = useState<SuggestionIA | null>(null);
   /** Nb de doublons structures identifiés, forçables via « Importer quand même ». */
   const [doublonsForcables, setDoublonsForcables] = useState(0);
+  /** Rapport courant affiché dans le dialogue (classique B1 ou enrichi A1). */
+  const [rapport, setRapport] = useState<RapportImport | RapportImportEnrichi | null>(null);
+
+  /** Publie un rapport : affichage local (dialogue) + notification au parent. */
+  const publierRapport = (r: RapportImport | RapportImportEnrichi) => {
+    setRapport(r);
+    onRapport?.(r);
+  };
 
   const iaActivable = Boolean(endpointIA) && Boolean(iaDispo);
 
@@ -232,7 +245,7 @@ export function ZoneUploadImport({
               if (retry.ok) {
                 const retryResult = (await retry.json()) as ResultatImport | ResultatImportEnrichi;
                 if (retryResult.status === 'succes') {
-                  onRapport(retryResult.rapport);
+                  publierRapport(retryResult.rapport);
                   return;
                 }
                 toast.error('Import refusé', {
@@ -301,7 +314,7 @@ export function ZoneUploadImport({
           toast.info('Fichier vide', { description: 'Aucune ligne de données détectée.' });
         }
 
-        onRapport(rapport);
+        publierRapport(rapport);
 
         // ── Suggestion IA ──────────────────────────────────────────────
         // Proposer de réessayer avec l'IA si :
@@ -370,7 +383,7 @@ export function ZoneUploadImport({
         toast.success(`IA : ${nbIA} ligne${nbIA > 1 ? 's' : ''} extraite${nbIA > 1 ? 's' : ''}`, {
           description: 'Voir le rapport pour le détail.',
         });
-        onRapport(rapport);
+        publierRapport(rapport);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Erreur réseau';
         toast.error('Analyse IA impossible', { description: msg });
@@ -647,6 +660,38 @@ export function ZoneUploadImport({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Dialogues de rapport d'import (rendus ici pour co-localiser le
+          bouton « Importer quand même » avec le fichier en cours) ──────── */}
+      {rapport && estEnrichi(rapport) ? (
+        <DialogueRapportImportEnrichi
+          rapport={rapport}
+          onClose={() => setRapport(null)}
+          forcerDoublons={
+            doublonsForcables > 0
+              ? {
+                  nb: doublonsForcables,
+                  pending,
+                  onForcer: () => handleLancerImport(true),
+                }
+              : undefined
+          }
+        />
+      ) : (
+        <DialogueRapportImport
+          rapport={rapport && !estEnrichi(rapport) ? rapport : null}
+          onClose={() => setRapport(null)}
+          forcerDoublons={
+            doublonsForcables > 0
+              ? {
+                  nb: doublonsForcables,
+                  pending,
+                  onForcer: () => handleLancerImport(true),
+                }
+              : undefined
+          }
+        />
+      )}
     </>
   );
 }
