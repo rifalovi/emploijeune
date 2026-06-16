@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import { Copy, CheckCircle2 } from 'lucide-react';
-import { detecterDoublons } from '@/lib/super-admin/import-sessions-actions';
+import {
+  detecterDoublons,
+  detecterDoublonsStructures,
+} from '@/lib/super-admin/import-sessions-actions';
 import { DoublonsClient } from './doublons-client';
 import { exigerAccesModule } from '@/lib/super-admin/permissions';
 
@@ -10,7 +13,12 @@ export const dynamic = 'force-dynamic';
 export default async function DoublonsPage() {
   await exigerAccesModule('doublons');
 
-  const doublons = await detecterDoublons();
+  const [beneficiaires, structures] = await Promise.all([
+    detecterDoublons(),
+    detecterDoublonsStructures(),
+  ]);
+
+  const total = beneficiaires.length + structures.length;
 
   return (
     <div className="space-y-6">
@@ -19,19 +27,22 @@ export default async function DoublonsPage() {
           <Copy className="size-5" aria-hidden />
         </span>
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Detection des doublons</h1>
+          <h1 className="text-xl font-bold text-slate-900">Détection des doublons</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {doublons.length === 0 ? (
+            {total === 0 ? (
               <span className="flex items-center gap-1 text-emerald-600">
-                <CheckCircle2 className="size-4" /> Aucun doublon detecte. La base est saine.
+                <CheckCircle2 className="size-4" /> Aucun doublon détecté. La base est saine.
               </span>
             ) : (
-              <>{doublons.length} groupe{doublons.length > 1 ? 's' : ''} de doublons detecte{doublons.length > 1 ? 's' : ''}</>
+              <>
+                {total} groupe{total > 1 ? 's' : ''} de doublons détecté{total > 1 ? 's' : ''} (
+                {beneficiaires.length} bénéficiaires · {structures.length} structures)
+              </>
             )}
           </p>
         </div>
       </div>
-      {doublons.length > 0 && <DoublonsClient doublons={doublons} />}
+      <DoublonsClient beneficiaires={beneficiaires} structures={structures} />
     </div>
   );
 }
