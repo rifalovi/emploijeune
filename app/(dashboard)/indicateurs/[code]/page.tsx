@@ -2,14 +2,20 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, BarChart3, CheckCircle2, Clock, Info } from 'lucide-react';
+import { redirect } from 'next/navigation';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
+import { hasPermission } from '@/lib/super-admin/permissions';
 import { indicateurParCode, PILIERS, type CodePilier } from '@/lib/referentiels/indicateurs';
 import {
   getIndicateursAnnuels,
   getConfigIndicateurs,
   getSaisiesIndicateur,
 } from '@/lib/indicateurs-annuels/queries';
-import { getKpisContexte, getKpisContexteAuto, mergerKpisContexte } from '@/lib/realisations/queries';
+import {
+  getKpisContexte,
+  getKpisContexteAuto,
+  mergerKpisContexte,
+} from '@/lib/realisations/queries';
 import {
   doitAfficherVisualisation,
   type IndicateurAvecValeurs,
@@ -24,10 +30,24 @@ import { SaisieContexteKpisClient } from './saisie-contexte-kpis-client';
 const INDICATEURS_TAUX = new Set(['A2', 'A3', 'A5', 'B2', 'C2', 'C5', 'D3']);
 
 const INDICATEUR_TYPE_MAP: Record<string, 'count' | 'rate' | 'score' | 'amount'> = {
-  A1: 'count', A2: 'rate', A3: 'rate', A4: 'score', A5: 'rate',
-  B1: 'count', B2: 'rate', B3: 'count', B4: 'amount',
-  C1: 'count', C2: 'rate', C3: 'count', C4: 'count', C5: 'rate',
-  D1: 'count', D2: 'count', D3: 'rate', F1: 'count',
+  A1: 'count',
+  A2: 'rate',
+  A3: 'rate',
+  A4: 'score',
+  A5: 'rate',
+  B1: 'count',
+  B2: 'rate',
+  B3: 'count',
+  B4: 'amount',
+  C1: 'count',
+  C2: 'rate',
+  C3: 'count',
+  C4: 'count',
+  C5: 'rate',
+  D1: 'count',
+  D2: 'count',
+  D3: 'rate',
+  F1: 'count',
 };
 
 type Props = { params: Promise<{ code: string }> };
@@ -44,6 +64,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function IndicateurDetailPage({ params }: Props) {
   const utilisateur = await requireUtilisateurValide();
+  // admin_scs : accès par défaut, sauf si le super_admin a retiré la permission.
+  if (utilisateur.role === 'admin_scs' && !(await hasPermission(utilisateur.id, 'realisations'))) {
+    redirect('/dashboard');
+  }
   const { code: codeBrut } = await params;
   const ind = indicateurParCode(codeBrut);
   if (!ind) notFound();
@@ -58,7 +82,11 @@ export default async function IndicateurDetailPage({ params }: Props) {
 
   // Fusion auto + manuel : reflète exactement ce qui est affiché sur le front public.
   // Respecte la préférence de source choisie par l'admin (forcer_manuel).
-  const kpisMerges = mergerKpisContexte(kpisAuto, kpisContexte, kpisContexte?.forcer_manuel ?? false);
+  const kpisMerges = mergerKpisContexte(
+    kpisAuto,
+    kpisContexte,
+    kpisContexte?.forcer_manuel ?? false,
+  );
 
   if (!payload) {
     return <p className="text-sm text-amber-700">Impossible de charger les indicateurs.</p>;

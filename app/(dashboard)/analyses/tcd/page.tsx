@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
+import { hasPermission } from '@/lib/super-admin/permissions';
 import { getCubesTcd } from '@/lib/analyses/pivot-queries';
 import { PivotTableClient } from '@/components/analyses/pivot-table-client';
 
@@ -18,6 +19,10 @@ export const dynamic = 'force-dynamic';
 export default async function TcdPage() {
   const utilisateur = await requireUtilisateurValide();
   if (!['super_admin', 'admin_scs'].includes(utilisateur.role)) {
+    redirect('/indicateurs');
+  }
+  // admin_scs : accès par défaut, sauf si le super_admin a retiré la permission.
+  if (utilisateur.role === 'admin_scs' && !(await hasPermission(utilisateur.id, 'analyses_tcd'))) {
     redirect('/indicateurs');
   }
 

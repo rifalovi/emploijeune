@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CheckCircle2, Clock, BarChart3, AlertCircle, ArrowRight, Upload } from 'lucide-react';
+import { redirect } from 'next/navigation';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
+import { hasPermission } from '@/lib/super-admin/permissions';
 import { INDICATEURS, PILIERS, type CodePilier } from '@/lib/referentiels/indicateurs';
 import { getIndicateursAnnuels, getConfigIndicateurs } from '@/lib/indicateurs-annuels/queries';
 import { doitAfficherVisualisation } from '@/lib/indicateurs-annuels/types';
@@ -21,6 +23,10 @@ export const dynamic = 'force-dynamic';
  */
 export default async function IndicateursPage() {
   const utilisateur = await requireUtilisateurValide();
+  // admin_scs : accès par défaut, sauf si le super_admin a retiré la permission.
+  if (utilisateur.role === 'admin_scs' && !(await hasPermission(utilisateur.id, 'realisations'))) {
+    redirect('/dashboard');
+  }
 
   const [payload, config] = await Promise.all([getIndicateursAnnuels(), getConfigIndicateurs()]);
 
