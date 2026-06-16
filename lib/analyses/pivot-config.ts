@@ -58,6 +58,7 @@ export const SOURCES_TCD: Record<SourceTCD, SourceConfig> = {
       { cle: 'statut', label: 'Statut création' },
       { cle: 'annee', label: 'Année' },
       { cle: 'nature', label: "Nature d'appui" },
+      { cle: 'porteur', label: 'Porteur' },
     ],
     mesures: [
       { cle: 'nombre', label: 'Nombre de structures', type: 'count', format: 'nombre' },
