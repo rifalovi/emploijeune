@@ -204,6 +204,35 @@ export async function importerBeneficiairesExcel(
     }
   }
 
+  // 1b-quater. Forçage = REMPLACER, pas ajouter. Si on force et qu'un import
+  // précédent du MÊME fichier (même hash) existe, on l'annule d'abord pour ne
+  // pas dupliquer les lignes non-doublons déjà insérées (« Importer quand même »
+  // ne doit pas créer un 2e import complet).
+  if (input.forcerDoublons && input.fichierHash) {
+    try {
+      const { data: prior } = await adminClient
+        .from('import_sessions')
+        .select('id')
+        .eq('fichier_hash', input.fichierHash)
+        .not('statut', 'like', '%annule%');
+      const ids = ((prior ?? []) as { id: string }[]).map((s) => s.id);
+      if (ids.length > 0) {
+        await adminClient
+          .from('beneficiaires')
+          .update({ deleted_at: new Date().toISOString() })
+          .in('import_session_id', ids)
+          .is('deleted_at', null);
+        await adminClient
+          .from('import_sessions')
+          .update({ statut: 'annule_admin', peut_rollback: false })
+          .in('id', ids);
+      }
+    } catch {
+      // best-effort : si l'annulation échoue, on continue (au pire un doublon
+      // d'import, corrigeable via la console).
+    }
+  }
+
   // 1c. Créer la session d'import (best-effort).
   // La migration 20260512100001 a été appliquée — types Supabase à jour,
   // plus besoin de cast `as any`.
