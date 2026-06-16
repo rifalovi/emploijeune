@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
 import { hasPermission } from '@/lib/super-admin/permissions';
 
@@ -28,6 +29,40 @@ export type DoublonGroupe = {
   occurrences: number;
   beneficiaire_ids: string[];
   dates_creation: string[];
+};
+
+/** Groupe de doublons de structures (B1) : même nom + pays + projet. */
+export type DoublonGroupeStructure = {
+  cle_identite: string;
+  occurrences: number;
+  structure_ids: string[];
+  dates_creation: string[];
+};
+
+/** Détail d'une fiche bénéficiaire dans un groupe de doublons. */
+export type OccurrenceBeneficiaire = {
+  id: string;
+  prenom: string | null;
+  nom: string | null;
+  sexe: string | null;
+  projet_code: string | null;
+  pays_code: string | null;
+  courriel: string | null;
+  telephone: string | null;
+  created_at: string;
+};
+
+/** Détail d'une fiche structure dans un groupe de doublons. */
+export type OccurrenceStructure = {
+  id: string;
+  nom_structure: string | null;
+  pays_code: string | null;
+  projet_code: string | null;
+  porteur_nom: string | null;
+  courriel_porteur: string | null;
+  telephone_porteur: string | null;
+  annee_appui: number | null;
+  created_at: string;
 };
 
 type Resultat<T = void> = T extends void
@@ -133,4 +168,125 @@ export async function fusionnerDoublonsBulk(): Promise<Resultat<{ nb_fusionnes: 
   revalidatePath('/super-admin/doublons');
   revalidatePath('/accueil');
   return { status: 'succes', data: { nb_fusionnes: data?.nb_fusionnes ?? 0 } };
+}
+
+// ── Doublons STRUCTURES (B1) ──────────────────────────────────────────────────
+
+/** Normalise un nom de structure pour la clé de regroupement (≈ unaccent+lower). */
+function cleNomStructureGroupe(nom: string): string {
+  return nom.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+/**
+ * Détecte les groupes de doublons de structures : même (nom + pays + projet).
+ * Regroupement côté serveur (volumétrie B1 modérée).
+ */
+export async function detecterDoublonsStructures(): Promise<DoublonGroupeStructure[]> {
+  const garde = await exigerAccesDoublons();
+  if ('erreur' in garde) return [];
+
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from('structures')
+    .select('id, nom_structure, pays_code, projet_code, created_at')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true })
+    .limit(20000);
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    nom_structure: string | null;
+    pays_code: string | null;
+    projet_code: string | null;
+    created_at: string;
+  }>;
+
+  const groupes = new Map<string, DoublonGroupeStructure>();
+  for (const r of rows) {
+    const cleNorm = `${cleNomStructureGroupe(String(r.nom_structure ?? ''))}|${r.pays_code}|${r.projet_code}`;
+    const libelle = `${r.nom_structure ?? '—'} | ${r.pays_code ?? '—'} | ${r.projet_code ?? '—'}`;
+    const g = groupes.get(cleNorm);
+    if (g) {
+      g.occurrences += 1;
+      g.structure_ids.push(r.id);
+      g.dates_creation.push(r.created_at);
+    } else {
+      groupes.set(cleNorm, {
+        cle_identite: libelle,
+        occurrences: 1,
+        structure_ids: [r.id],
+        dates_creation: [r.created_at],
+      });
+    }
+  }
+
+  return [...groupes.values()]
+    .filter((g) => g.occurrences > 1)
+    .sort((a, b) => b.occurrences - a.occurrences);
+}
+
+// ── Occurrences détaillées d'un groupe (pour le modal) ────────────────────────
+
+export async function listerOccurrencesBeneficiaires(
+  ids: string[],
+): Promise<OccurrenceBeneficiaire[]> {
+  const garde = await exigerAccesDoublons();
+  if ('erreur' in garde || ids.length === 0) return [];
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from('beneficiaires')
+    .select('id, prenom, nom, sexe, projet_code, pays_code, courriel, telephone, created_at')
+    .in('id', ids)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true });
+  return (data ?? []) as OccurrenceBeneficiaire[];
+}
+
+export async function listerOccurrencesStructures(ids: string[]): Promise<OccurrenceStructure[]> {
+  const garde = await exigerAccesDoublons();
+  if ('erreur' in garde || ids.length === 0) return [];
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from('structures')
+    .select(
+      'id, nom_structure, pays_code, projet_code, porteur_nom, courriel_porteur, telephone_porteur, annee_appui, created_at',
+    )
+    .in('id', ids)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true });
+  return (data ?? []) as OccurrenceStructure[];
+}
+
+// ── Suppression manuelle (soft-delete) d'une fiche ────────────────────────────
+
+export async function supprimerBeneficiaire(id: string): Promise<Resultat> {
+  const garde = await exigerAccesDoublons();
+  if ('erreur' in garde) return { status: 'erreur', message: garde.erreur };
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
+    .from('beneficiaires')
+    .update({ deleted_at: new Date().toISOString(), deleted_by: garde.utilisateur.user_id })
+    .eq('id', id)
+    .is('deleted_at', null);
+  if (error) return { status: 'erreur', message: error.message };
+  revalidatePath('/super-admin/doublons');
+  revalidatePath('/beneficiaires');
+  revalidatePath('/dashboard');
+  return { status: 'succes' };
+}
+
+export async function supprimerStructure(id: string): Promise<Resultat> {
+  const garde = await exigerAccesDoublons();
+  if ('erreur' in garde) return { status: 'erreur', message: garde.erreur };
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
+    .from('structures')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+    .is('deleted_at', null);
+  if (error) return { status: 'erreur', message: error.message };
+  revalidatePath('/super-admin/doublons');
+  revalidatePath('/structures');
+  revalidatePath('/dashboard');
+  return { status: 'succes' };
 }
