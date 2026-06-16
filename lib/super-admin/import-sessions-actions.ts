@@ -19,6 +19,8 @@ export type SessionImport = {
   rollback_expire_at: string | null;
   lignes_reelles: number;
   est_zombie: boolean;
+  /** Type d'import déduit des lignes liées : 'beneficiaires' (A1), 'structures' (B1), 'mixte' ou 'inconnu'. */
+  type_import?: string;
 };
 
 export type DoublonGroupe = {

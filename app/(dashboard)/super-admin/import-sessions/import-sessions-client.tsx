@@ -79,6 +79,7 @@ export function ImportSessionsClient({ sessions: initial }: Props) {
                 <tr>
                   <th className="px-3 py-2 text-left">Date</th>
                   <th className="px-3 py-2 text-left">Fichier</th>
+                  <th className="px-3 py-2 text-center">Type</th>
                   <th className="px-3 py-2 text-left">Importeur</th>
                   <th className="px-3 py-2 text-center">Statut</th>
                   <th className="px-3 py-2 text-right">Lignes BDD</th>
@@ -106,6 +107,9 @@ export function ImportSessionsClient({ sessions: initial }: Props) {
                           title={s.fichier_nom}
                         >
                           {s.fichier_nom}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <BadgeTypeImport type={s.type_import} />
                         </td>
                         <td className="px-3 py-2 text-slate-600">{s.created_by_nom}</td>
                         <td className="px-3 py-2 text-center">
@@ -150,7 +154,7 @@ export function ImportSessionsClient({ sessions: initial }: Props) {
                       </tr>
                       {ouvert && (
                         <tr className="bg-slate-50/60">
-                          <td colSpan={6} className="px-4 py-3">
+                          <td colSpan={7} className="px-4 py-3">
                             <DetailRapport session={s} />
                           </td>
                         </tr>
@@ -181,7 +185,9 @@ export function ImportSessionsClient({ sessions: initial }: Props) {
                       Importe le {new Date(s.created_at).toLocaleString('fr-FR')} par{' '}
                       {s.created_by_nom}
                       <br />
-                      <span className="font-semibold">{s.lignes_reelles} ligne(s) en base</span>{' '}
+                      <span className="font-semibold">
+                        {s.lignes_reelles} ligne(s) en base
+                      </span>{' '}
                       seront marques supprimes (soft-delete).
                     </p>
                   </div>
@@ -307,6 +313,31 @@ function StatRapport({
       <div className="text-[11px]">{libelle}</div>
     </div>
   );
+}
+
+function BadgeTypeImport({ type }: { type?: string }) {
+  if (type === 'structures') {
+    return (
+      <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">
+        B1 · Structures
+      </Badge>
+    );
+  }
+  if (type === 'beneficiaires') {
+    return (
+      <Badge variant="outline" className="border-blue-300 bg-blue-50 text-blue-700">
+        A1 · Bénéficiaires
+      </Badge>
+    );
+  }
+  if (type === 'mixte') {
+    return (
+      <Badge variant="outline" className="border-purple-300 bg-purple-50 text-purple-700">
+        A1 + B1
+      </Badge>
+    );
+  }
+  return <span className="text-xs text-slate-400">—</span>;
 }
 
 function BadgeStatut({ statut, estZombie }: { statut: string; estZombie: boolean }) {
