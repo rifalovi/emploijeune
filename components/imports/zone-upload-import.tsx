@@ -200,6 +200,73 @@ export function ZoneUploadImport({
   // pas aux imports via IA.
   const estImportExcel = !analyserAvecIA;
 
+  /**
+   * Traitement commun après un import réussi (chemin direct ET chemin de
+   * ré-essai « fichier déjà importé »). Centralise : toast, ouverture du
+   * rapport, calcul des doublons forçables (bouton « Importer quand même »)
+   * et la suggestion de relance IA.
+   */
+  const traiterRapportSucces = (
+    rapport: RapportImport | RapportImportEnrichi,
+    forceDoublons: boolean,
+  ) => {
+    const nbImportees = estEnrichi(rapport)
+      ? rapport.nb_inserees + rapport.nb_enrichies + rapport.nb_incompletes
+      : rapport.nb_lignes_inserees;
+    const nbErreurs = estEnrichi(rapport) ? rapport.nb_rejetees : rapport.erreurs.length;
+    const nbTotal = rapport.nb_lignes_total;
+    const nbDoublons = estEnrichi(rapport)
+      ? rapport.nb_doublons_identiques
+      : (rapport.nb_doublons ?? 0);
+
+    if (nbImportees > 0) {
+      toast.success(
+        `${nbImportees} ligne${nbImportees > 1 ? 's' : ''} importée${nbImportees > 1 ? 's' : ''}`,
+        {
+          description:
+            nbErreurs > 0
+              ? `${nbErreurs} erreur(s) – voir le rapport.`
+              : nbDoublons > 0
+                ? `Dont ${nbDoublons} déjà présente(s) (ignorée(s)).`
+                : estEnrichi(rapport) && rapport.nb_incompletes > 0
+                  ? `Dont ${rapport.nb_incompletes} incomplète(s).`
+                  : 'Aucune erreur.',
+        },
+      );
+    } else if (nbErreurs > 0) {
+      toast.error('Aucune ligne importée', {
+        description: `${nbErreurs} erreur(s) – voir le rapport.`,
+      });
+    } else if (nbDoublons > 0) {
+      toast.info('Déjà présent(s)', {
+        description: `${nbDoublons} ligne(s) déjà importée(s) — utilisez « Importer quand même » pour les forcer.`,
+      });
+    } else {
+      toast.info('Fichier vide', { description: 'Aucune ligne de données détectée.' });
+    }
+
+    publierRapport(rapport);
+
+    // ── Doublons forçables (A1 & B1) ────────────────────────────────────
+    // On conserve le fichier pour proposer « Importer quand même » (insertion
+    // forcée pour traitement manuel). Valable aussi après un ré-import forcé
+    // pour cause de « fichier déjà importé ».
+    const etaitImportExcel = !analyserAvecIA;
+    const importDifficile =
+      (nbImportees === 0 && nbErreurs > 0) || (nbTotal >= 5 && nbErreurs / nbTotal > 0.3);
+    const peutForcer = estImportExcel && !forceDoublons && nbDoublons > 0;
+    setDoublonsForcables(peutForcer ? nbDoublons : 0);
+
+    if (peutForcer) {
+      // garder le fichier en place pour le forçage
+    } else if (iaActivable && etaitImportExcel && importDifficile && fichier) {
+      setSuggestionIA({ fichierEnCours: fichier, nbTotal, nbImportees, nbErreurs });
+    } else {
+      setFichier(null);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
   const handleLancerImport = (forceDoublons = false) => {
     if (!fichier) return;
     // Endpoint = endpointIA si toggle activé et un endpointIA est dispo,
@@ -210,7 +277,13 @@ export function ZoneUploadImport({
       formData.append('fichier', fichier);
       if (ongletChoisi) formData.append('onglet', ongletChoisi);
       if (codeProjetDefaut) formData.append('code_projet_defaut', codeProjetDefaut);
-      if (forceDoublons) formData.append('force_doublons', 'true');
+      if (forceDoublons) {
+        formData.append('force_doublons', 'true');
+        // Forcer les doublons implique de réimporter le même fichier : on
+        // saute aussi le garde-fou « fichier déjà importé » (sinon double
+        // confirmation inutile).
+        formData.append('force', 'true');
+      }
 
       try {
         const response = await fetch(endpointEffectif, {
@@ -245,7 +318,7 @@ export function ZoneUploadImport({
               if (retry.ok) {
                 const retryResult = (await retry.json()) as ResultatImport | ResultatImportEnrichi;
                 if (retryResult.status === 'succes') {
-                  publierRapport(retryResult.rapport);
+                  traiterRapportSucces(retryResult.rapport, forceDoublons);
                   return;
                 }
                 toast.error('Import refusé', {
@@ -278,68 +351,7 @@ export function ZoneUploadImport({
           return;
         }
 
-        const rapport = result.rapport;
-        const nbImportees = estEnrichi(rapport)
-          ? rapport.nb_inserees + rapport.nb_enrichies + rapport.nb_incompletes
-          : rapport.nb_lignes_inserees;
-        const nbErreurs = estEnrichi(rapport) ? rapport.nb_rejetees : rapport.erreurs.length;
-        const nbTotal = estEnrichi(rapport) ? rapport.nb_lignes_total : rapport.nb_lignes_total;
-        const nbDoublons = estEnrichi(rapport)
-          ? rapport.nb_doublons_identiques
-          : (rapport.nb_doublons ?? 0);
-
-        if (nbImportees > 0) {
-          toast.success(
-            `${nbImportees} ligne${nbImportees > 1 ? 's' : ''} importée${nbImportees > 1 ? 's' : ''}`,
-            {
-              description:
-                nbErreurs > 0
-                  ? `${nbErreurs} erreur(s) – voir le rapport.`
-                  : nbDoublons > 0
-                    ? `Dont ${nbDoublons} déjà présente(s) (ignorée(s)).`
-                    : estEnrichi(rapport) && rapport.nb_incompletes > 0
-                      ? `Dont ${rapport.nb_incompletes} incomplète(s).`
-                      : 'Aucune erreur.',
-            },
-          );
-        } else if (nbErreurs > 0) {
-          toast.error('Aucune ligne importée', {
-            description: `${nbErreurs} erreur(s) – voir le rapport.`,
-          });
-        } else if (nbDoublons > 0) {
-          toast.info('Structures déjà présentes', {
-            description: `${nbDoublons} structure(s) déjà importée(s) — rien de nouveau à ajouter.`,
-          });
-        } else {
-          toast.info('Fichier vide', { description: 'Aucune ligne de données détectée.' });
-        }
-
-        publierRapport(rapport);
-
-        // ── Suggestion IA ──────────────────────────────────────────────
-        // Proposer de réessayer avec l'IA si :
-        //   1. L'import venait d'un fichier Excel (pas déjà via IA)
-        //   2. Le module IA est activé (iaActivable)
-        //   3. Le résultat est "difficile" :
-        //      - Aucune ligne importée avec des erreurs, OU
-        //      - Taux d'erreur > 30 % sur au moins 5 lignes
-        const etaitImportExcel = !analyserAvecIA;
-        const importDifficile =
-          (nbImportees === 0 && nbErreurs > 0) || (nbTotal >= 5 && nbErreurs / nbTotal > 0.3);
-
-        // Doublons forçables (A1 & B1) : on conserve le fichier pour proposer
-        // « Importer quand même » (insertion forcée pour traitement manuel).
-        const peutForcer = estImportExcel && !forceDoublons && nbDoublons > 0;
-        setDoublonsForcables(peutForcer ? nbDoublons : 0);
-
-        if (peutForcer) {
-          // garder le fichier en place pour le forçage
-        } else if (iaActivable && etaitImportExcel && importDifficile && fichier) {
-          setSuggestionIA({ fichierEnCours: fichier, nbTotal, nbImportees, nbErreurs });
-        } else {
-          setFichier(null);
-          if (inputRef.current) inputRef.current.value = '';
-        }
+        traiterRapportSucces(result.rapport, forceDoublons);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Erreur réseau';
         toast.error('Import impossible', { description: msg });
