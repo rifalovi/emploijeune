@@ -6,18 +6,35 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 // -- Catalogue des modules delegables -----------------------------------------
 
 export const MODULES_DELEGABLES = {
-  contenu_pages:        { label: 'Contenu pages',        href: '/super-admin/contenu-pages' },
-  affichage_public:     { label: 'Affichage public',     href: '/super-admin/affichage-public' },
-  analyses_indicateurs: { label: 'Analyses IA',          href: '/super-admin/analyses-indicateurs' },
-  base_connaissance:    { label: 'Base de connaissance', href: '/super-admin/base-connaissance' },
-  tracking:             { label: 'Tracking & Logs',      href: '/super-admin/tracking' },
-  import_sessions:      { label: "Sessions d\'import",  href: '/super-admin/import-sessions' },
-  doublons:             { label: 'Doublons',             href: '/super-admin/doublons' },
-  nettoyage_donnees:    { label: 'Pays inconnus',        href: '/super-admin/nettoyage-donnees/pays-inconnus' },
-  referentiels:         { label: "Tranches d\'\u00e2ge", href: '/super-admin/referentiels/tranches-age' },
+  contenu_pages: { label: 'Contenu pages', href: '/super-admin/contenu-pages' },
+  affichage_public: { label: 'Affichage public', href: '/super-admin/affichage-public' },
+  analyses_indicateurs: { label: 'Analyses IA', href: '/super-admin/analyses-indicateurs' },
+  base_connaissance: { label: 'Base de connaissance', href: '/super-admin/base-connaissance' },
+  tracking: { label: 'Tracking & Logs', href: '/super-admin/tracking' },
+  import_sessions: { label: "Sessions d\'import", href: '/super-admin/import-sessions' },
+  doublons: { label: 'Doublons', href: '/super-admin/doublons' },
+  nettoyage_donnees: {
+    label: 'Pays inconnus',
+    href: '/super-admin/nettoyage-donnees/pays-inconnus',
+  },
+  referentiels: { label: "Tranches d\'\u00e2ge", href: '/super-admin/referentiels/tranches-age' },
+  // Modules \u00ab grand public admin \u00bb : accessibles par d\u00e9faut \u00e0 un admin_scs ;
+  // la permission sert \u00e0 RETIRER l'acc\u00e8s (opt-out), pas \u00e0 l'ouvrir.
+  analyses_tcd: { label: 'Analyses crois\u00e9es (TCD)', href: '/analyses/tcd' },
+  realisations: { label: 'Indicateurs / R\u00e9alisations', href: '/indicateurs' },
 } as const;
 
 export type ModuleKey = keyof typeof MODULES_DELEGABLES;
+
+/**
+ * Modules dont l'acc\u00e8s est ACTIV\u00c9 par d\u00e9faut pour un admin_scs (opt-out) : il y
+ * a acc\u00e8s tant qu'aucune permission explicite ne le retire (`actif = false`).
+ * Les autres modules sont opt-in (pas d'acc\u00e8s tant que non coch\u00e9).
+ */
+export const MODULES_DEFAUT_ACTIF: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
+  'analyses_tcd',
+  'realisations',
+]);
 
 // -- Verifier qu'un utilisateur a acces a un module ---------------------------
 
@@ -29,8 +46,11 @@ export async function hasPermission(userId: string, module: ModuleKey): Promise<
     .select('actif')
     .eq('utilisateur_id', userId)
     .eq('module_key', module)
-    .single();
-  return (data as { actif: boolean } | null)?.actif === true;
+    .maybeSingle();
+  const row = data as { actif: boolean } | null;
+  // Aucune permission explicite → défaut du module (opt-out = true, opt-in = false).
+  if (row === null || row === undefined) return MODULES_DEFAUT_ACTIF.has(module);
+  return row.actif === true;
 }
 
 // -- Guard de page : super_admin OU admin_scs avec permission -----------------
@@ -61,17 +81,22 @@ export async function exigerAccesModuleAction(module: ModuleKey): Promise<void> 
 
 export async function getPermissionsUtilisateur(userId: string): Promise<Set<ModuleKey>> {
   const db = createSupabaseAdminClient();
+  // On lit TOUTES les lignes (pas seulement actif=true) pour distinguer
+  // « pas de ligne » (→ défaut du module) de « ligne actif=false » (→ retiré).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (db as any)
     .from('permissions_delegues')
     .select('module_key, actif')
-    .eq('utilisateur_id', userId)
-    .eq('actif', true);
+    .eq('utilisateur_id', userId);
+  const explicites = new Map<string, boolean>();
+  for (const row of (data ?? []) as { module_key: string; actif: boolean }[]) {
+    explicites.set(row.module_key, row.actif);
+  }
   const set = new Set<ModuleKey>();
-  for (const row of (data ?? []) as { module_key: string }[]) {
-    if (row.module_key in MODULES_DELEGABLES) {
-      set.add(row.module_key as ModuleKey);
-    }
+  for (const cle of Object.keys(MODULES_DELEGABLES) as ModuleKey[]) {
+    const explicite = explicites.get(cle);
+    const accessible = explicite === undefined ? MODULES_DEFAUT_ACTIF.has(cle) : explicite === true;
+    if (accessible) set.add(cle);
   }
   return set;
 }
@@ -152,7 +177,7 @@ export async function getAdminScsAvecPermissions(): Promise<AdminScsAvecPermissi
   // Recupere les emails depuis auth.users via l'API admin
   const { data: authData } = await admin.auth.admin.listUsers({ perPage: 1000 });
   const emailMap = new Map<string, string>(
-    (authData?.users ?? []).map((u: { id: string; email?: string }) => [u.id, u.email ?? ''])
+    (authData?.users ?? []).map((u: { id: string; email?: string }) => [u.id, u.email ?? '']),
   );
 
   const userIds = (utilisateurs as { id: string }[]).map((u) => u.id);
@@ -163,7 +188,11 @@ export async function getAdminScsAvecPermissions(): Promise<AdminScsAvecPermissi
     .in('utilisateur_id', userIds);
 
   const permMap = new Map<string, Record<string, boolean>>();
-  for (const p of (perms ?? []) as { utilisateur_id: string; module_key: string; actif: boolean }[]) {
+  for (const p of (perms ?? []) as {
+    utilisateur_id: string;
+    module_key: string;
+    actif: boolean;
+  }[]) {
     if (!permMap.has(p.utilisateur_id)) permMap.set(p.utilisateur_id, {});
     permMap.get(p.utilisateur_id)![p.module_key] = p.actif;
   }
@@ -175,9 +204,15 @@ export async function getAdminScsAvecPermissions(): Promise<AdminScsAvecPermissi
     .eq('actif', true);
 
   const sectionPermMap = new Map<string, ContenuSectionPerm[]>();
-  for (const p of (sectionPerms ?? []) as { utilisateur_id: string; page_key: string; section_key: string }[]) {
+  for (const p of (sectionPerms ?? []) as {
+    utilisateur_id: string;
+    page_key: string;
+    section_key: string;
+  }[]) {
     if (!sectionPermMap.has(p.utilisateur_id)) sectionPermMap.set(p.utilisateur_id, []);
-    sectionPermMap.get(p.utilisateur_id)!.push({ page_key: p.page_key, section_key: p.section_key });
+    sectionPermMap
+      .get(p.utilisateur_id)!
+      .push({ page_key: p.page_key, section_key: p.section_key });
   }
 
   const moduleKeys = Object.keys(MODULES_DELEGABLES) as ModuleKey[];
@@ -187,7 +222,12 @@ export async function getAdminScsAvecPermissions(): Promise<AdminScsAvecPermissi
     nom_complet: u.nom_complet,
     email: emailMap.get(u.user_id) ?? '',
     permissions: Object.fromEntries(
-      moduleKeys.map((k) => [k, permMap.get(u.id)?.[k] === true])
+      moduleKeys.map((k) => {
+        const stored = permMap.get(u.id)?.[k];
+        // Pas de ligne explicite → défaut du module (opt-out = activé).
+        const actif = stored === undefined ? MODULES_DEFAUT_ACTIF.has(k) : stored === true;
+        return [k, actif];
+      }),
     ) as Record<ModuleKey, boolean>,
     contenu_sections: sectionPermMap.get(u.id) ?? [],
   }));
