@@ -71,6 +71,12 @@ export type ImporterBeneficiairesInput = {
    * pour traitement manuel ultérieur — ex. contacts partagés à tort). Défaut false.
    */
   forcerDoublons?: boolean;
+  /**
+   * Confirme l'import malgré un fort recouvrement avec la base (jeu de données
+   * probablement déjà présent). Sans cette confirmation, l'import s'arrête avec
+   * un avertissement `jeu_similaire`. Défaut false.
+   */
+  confirmerJeuSimilaire?: boolean;
 };
 
 /** Headers attendus (alignés sur Template OIF, étendus avec tranche_age_declaree). */
@@ -164,6 +170,39 @@ export async function importerBeneficiairesExcel(
   // la base ne bloque plus ces doublons : on les identifie ici pour informer
   // l'utilisateur (et les laisser passer s'il force l'import).
   const doublonsIntra = detecterDoublonsIntraFichier(parse.lignes);
+
+  // 1b-ter. Garde anti ré-injection : si une large part des lignes correspond
+  // déjà à une fiche en base (par contact OU identité), on prévient l'utilisateur
+  // (jeu de données probablement déjà importé) — sauf forçage ou confirmation.
+  if (!input.forcerDoublons && !input.confirmerJeuSimilaire && parse.lignes.length >= 10) {
+    let nbDejaPresents = 0;
+    for (const { donnees } of parse.lignes) {
+      const c = nettoyerCourriel(donnees['Courriel']);
+      const t = cleTelephone(donnees['Téléphone (avec indicatif)']);
+      const id = cleIdentiteBenef({
+        prenom: donnees['Prénom *'],
+        nom: donnees['Nom *'],
+        projet_code: normaliserCodeProjet(donnees['Code projet *']),
+        annee_formation: parserAnnee(donnees['Année de la formation *']),
+        pays_code: normaliserCodePays(donnees['Code pays bénéficiaire *']),
+      });
+      const present =
+        (c && cacheBatch.parCourriel.has(c.toLowerCase())) ||
+        (t && cacheBatch.parTelephone.has(t)) ||
+        (id && cacheBatch.parIdentite.has(id));
+      if (present) nbDejaPresents++;
+    }
+    const ratio = nbDejaPresents / parse.lignes.length;
+    if (ratio >= 0.8) {
+      return {
+        status: 'jeu_similaire',
+        pourcentage: Math.round(ratio * 100),
+        nb_existants: nbDejaPresents,
+        nb_total: parse.lignes.length,
+        message: `Ce jeu de données semble déjà présent à ${Math.round(ratio * 100)} % (${nbDejaPresents}/${parse.lignes.length} fiches déjà en base).`,
+      };
+    }
+  }
 
   // 1c. Créer la session d'import (best-effort).
   // La migration 20260512100001 a été appliquée — types Supabase à jour,
@@ -782,10 +821,45 @@ type BeneficiaireRecord = Record<string, unknown>;
 export type CacheDoublons = {
   parCourriel: Map<string, BeneficiaireRecord>;
   parTelephone: Map<string, BeneficiaireRecord>;
+  /** Clé d'identité (nom+prénom+projet+année+pays) → fiche existante. */
+  parIdentite: Map<string, BeneficiaireRecord>;
 };
 
 /** Doublon interne au fichier : ligne dupliquant une ligne précédente. */
 export type DoublonIntra = { critere: string; ligneRef: number; valeur: string };
+
+/** Normalise une chaîne pour la clé d'identité (unaccent + lower + trim). */
+function normIdent(v: unknown): string {
+  return String(v ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Clé d'identité d'un bénéficiaire : nom + prénom + projet + année + pays.
+ * Sert à repérer une fiche identique ré-importée par erreur (même quand il n'y
+ * a aucun contact). Retourne null si ni nom ni prénom (non identifiable).
+ */
+function cleIdentiteBenef(r: {
+  prenom: unknown;
+  nom: unknown;
+  projet_code: unknown;
+  annee_formation: unknown;
+  pays_code: unknown;
+}): string | null {
+  const p = normIdent(r.prenom);
+  const n = normIdent(r.nom);
+  if (!p && !n) return null;
+  return [
+    p,
+    n,
+    String(r.projet_code ?? ''),
+    String(r.annee_formation ?? ''),
+    String(r.pays_code ?? ''),
+  ].join('|');
+}
 
 /**
  * Repère les lignes qui dupliquent une ligne PRÉCÉDENTE du même fichier sur le
@@ -795,6 +869,8 @@ export type DoublonIntra = { critere: string; ligneRef: number; valeur: string }
 function detecterDoublonsIntraFichier(
   lignes: { numLigne: number; donnees: Record<string, unknown> }[],
 ): Map<number, DoublonIntra> {
+  // Règle DOUCE conservée : doublon interne au fichier = même courriel OU même
+  // téléphone (pas de regroupement par nom). Comportement inchangé.
   const vusCourriel = new Map<string, number>();
   const vusTelephone = new Map<string, number>();
   const doublons = new Map<number, DoublonIntra>();
@@ -833,22 +909,30 @@ function cleTelephone(v: unknown): string | null {
 }
 
 /**
- * Pré-charge les bénéficiaires existants pour les projets présents dans le
- * fichier → évite N requêtes séquentielles (1 requête batch à la place).
- * Activé uniquement pour les imports > 200 lignes.
+ * Pré-charge les bénéficiaires existants pour la détection de doublons :
+ *   - par contact (courriel / téléphone) — règle de doublon principale ;
+ *   - par identité (nom+prénom+projet+année+pays) — pour repérer une fiche
+ *     identique ré-importée par erreur, même sans contact.
+ * Chargement borné aux PROJETS présents dans le fichier (+ contacts du fichier
+ * pour les cas inter-projets), paginé.
  */
 async function precalculerCacheDoublons(
   adminClient: AdminClient,
   lignes: { donnees: Record<string, unknown> }[],
 ): Promise<CacheDoublons> {
-  const cache: CacheDoublons = { parCourriel: new Map(), parTelephone: new Map() };
+  const cache: CacheDoublons = {
+    parCourriel: new Map(),
+    parTelephone: new Map(),
+    parIdentite: new Map(),
+  };
 
-  if (lignes.length < 200) return cache; // import petit — pas besoin du cache
-
-  // Collecter les contacts distincts présents dans le fichier (courriel/tél).
+  // Collecter projets + contacts distincts présents dans le fichier.
+  const projets = new Set<string>();
   const courriels = new Set<string>();
   const telephones = new Set<string>();
   for (const { donnees } of lignes) {
+    const p = normaliserCodeProjet(donnees['Code projet *']);
+    if (p) projets.add(p);
     const c = nettoyerCourriel(donnees['Courriel']);
     if (c) courriels.add(c.toLowerCase());
     const t = cleTelephone(donnees['Téléphone (avec indicatif)']);
@@ -860,11 +944,37 @@ async function precalculerCacheDoublons(
       if (b.courriel) cache.parCourriel.set(String(b.courriel).toLowerCase(), b);
       const t = cleTelephone(b.telephone);
       if (t) cache.parTelephone.set(t, b);
+      const id = cleIdentiteBenef({
+        prenom: b.prenom,
+        nom: b.nom,
+        projet_code: b.projet_code,
+        annee_formation: b.annee_formation,
+        pays_code: b.pays_code,
+      });
+      if (id) cache.parIdentite.set(id, b);
     }
   };
 
   try {
-    // Charger les bénéficiaires existants partageant un contact du fichier.
+    // 1) Charger les bénéficiaires existants des projets présents (paginé).
+    if (projets.size > 0) {
+      let offset = 0;
+      const PAGE = 1000;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data } = await adminClient
+          .from('beneficiaires')
+          .select(SELECT_DOUBLON)
+          .in('projet_code', [...projets])
+          .is('deleted_at', null)
+          .range(offset, offset + PAGE - 1);
+        const rows = (data ?? []) as BeneficiaireRecord[];
+        indexer(rows);
+        if (rows.length < PAGE) break;
+        offset += PAGE;
+      }
+    }
+    // 2) Compléter avec les contacts du fichier (cas inter-projets).
     if (courriels.size > 0) {
       const { data } = await adminClient
         .from('beneficiaires')
@@ -882,7 +992,7 @@ async function precalculerCacheDoublons(
       indexer((data ?? []) as BeneficiaireRecord[]);
     }
   } catch {
-    // Erreur réseau ou table absente → cache vide, fallback DB par ligne
+    // Erreur réseau ou table absente → cache partiel/vide, fallback DB par ligne
   }
 
   return cache;
@@ -931,6 +1041,16 @@ async function detecterDoublon(
         .limit(1)
         .maybeSingle();
       if (data) return { record: data as Record<string, unknown>, critere: 'Téléphone identique' };
+    }
+  }
+
+  // Fiche identique déjà en base (nom+prénom+projet+année+pays) — protège
+  // contre la ré-injection d'un jeu de données, même sans contact.
+  if (cache) {
+    const id = cleIdentiteBenef(record);
+    if (id) {
+      const hit = cache.parIdentite.get(id);
+      if (hit) return { record: hit, critere: 'Même identité (nom+prénom+projet+année+pays)' };
     }
   }
 

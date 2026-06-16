@@ -267,7 +267,7 @@ export function ZoneUploadImport({
     }
   };
 
-  const handleLancerImport = (forceDoublons = false) => {
+  const handleLancerImport = (forceDoublons = false, confirmerSimilaire = false) => {
     if (!fichier) return;
     // Endpoint = endpointIA si toggle activé et un endpointIA est dispo,
     // sinon l'endpoint Excel classique.
@@ -284,6 +284,8 @@ export function ZoneUploadImport({
         // confirmation inutile).
         formData.append('force', 'true');
       }
+      // Confirmation explicite malgré un fort recouvrement avec la base.
+      if (confirmerSimilaire) formData.append('confirmer_similaire', 'true');
 
       try {
         const response = await fetch(endpointEffectif, {
@@ -321,6 +323,14 @@ export function ZoneUploadImport({
                   traiterRapportSucces(retryResult.rapport, forceDoublons);
                   return;
                 }
+                if (retryResult.status === 'jeu_similaire') {
+                  if (window.confirm(`${retryResult.message}\n\nImporter quand même ?`)) {
+                    handleLancerImport(forceDoublons, true);
+                  } else {
+                    toast.info('Import annulé', { description: 'Jeu de données déjà présent.' });
+                  }
+                  return;
+                }
                 toast.error('Import refusé', {
                   description: (retryResult as { message?: string }).message ?? 'Erreur inconnue.',
                 });
@@ -346,6 +356,16 @@ export function ZoneUploadImport({
         }
 
         const result = (await response.json()) as ResultatImport | ResultatImportEnrichi;
+        // Garde anti ré-injection : le serveur a détecté un fort recouvrement
+        // avec la base (jeu de données probablement déjà importé).
+        if (result.status === 'jeu_similaire') {
+          if (window.confirm(`${result.message}\n\nImporter quand même ?`)) {
+            handleLancerImport(forceDoublons, true);
+          } else {
+            toast.info('Import annulé', { description: 'Jeu de données déjà présent.' });
+          }
+          return;
+        }
         if (result.status !== 'succes') {
           toast.error('Import refusé', { description: result.message });
           return;

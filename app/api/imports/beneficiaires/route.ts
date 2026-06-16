@@ -102,6 +102,7 @@ export async function POST(request: NextRequest) {
     const nomOnglet = (formData.get('onglet') as string) || undefined;
     const codeProjetDefaut = (formData.get('code_projet_defaut') as string) || undefined;
     const forcerDoublons = formData.get('force_doublons') === 'true';
+    const confirmerJeuSimilaire = formData.get('confirmer_similaire') === 'true';
     const result = await importerBeneficiairesExcel({
       fichierBuffer: buffer,
       fichierNom: fichier.name,
@@ -110,6 +111,7 @@ export async function POST(request: NextRequest) {
       nomOnglet,
       codeProjetDefaut,
       forcerDoublons,
+      confirmerJeuSimilaire,
     });
     return NextResponse.json(result);
   } catch (erreur) {

@@ -36,6 +36,12 @@ export type ImporterStructuresInput = {
    * contact porteur) pour traitement manuel ultérieur. Défaut : false.
    */
   forcerDoublons?: boolean;
+  /**
+   * Confirme l'import malgré un fort recouvrement avec la base (jeu de données
+   * probablement déjà présent). Sans confirmation, l'import s'arrête avec un
+   * avertissement `jeu_similaire`. Défaut false.
+   */
+  confirmerJeuSimilaire?: boolean;
 };
 
 /** Normalise un nom de structure pour la clé de dédoublonnage (≈ unaccent+lower). */
@@ -170,27 +176,10 @@ export async function importerStructuresExcel(
   const supabase = await createSupabaseServerClient();
   const adminClient = createSupabaseAdminClient();
 
-  // Session d'import (best-effort) : permet l'annulation/rollback ultérieure.
-  // Chaque structure insérée est taguée avec import_session_id.
+  // Session d'import créée plus bas, APRÈS la garde anti ré-injection, pour ne
+  // pas laisser de session vide si l'import est interrompu par l'avertissement.
   let importSessionId: string | null = null;
   const rollbackExpireAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-  try {
-    const { data: session } = await adminClient
-      .from('import_sessions')
-      .insert({
-        fichier_nom: input.fichierNom,
-        fichier_hash: input.fichierHash ?? null,
-        statut: 'en_cours',
-        peut_rollback: true,
-        rollback_expire_at: rollbackExpireAt,
-        created_by: utilisateur.user_id,
-      } as never)
-      .select('id')
-      .single();
-    importSessionId = (session as { id: string } | null)?.id ?? null;
-  } catch {
-    // import_sessions absent du schéma (dev/staging non migré) → sans rollback
-  }
 
   // Pré-cache des structures existantes pour le dédoublonnage applicatif :
   // clé identité (nom + pays + projet) + contacts porteur (courriel / tél).
@@ -235,6 +224,7 @@ export async function importerStructuresExcel(
   // la base ne les bloque plus : on les identifie ici pour informer (et les
   // laisser passer si l'utilisateur force l'import).
   const intraStruct = new Map<number, { critere: string; ligneRef: number; valeur: string }>();
+  let nbDejaPresents = 0;
   if (!input.forcerDoublons) {
     const vusCle = new Map<string, number>();
     const vusContact = new Map<string, number>();
@@ -251,6 +241,15 @@ export async function importerStructuresExcel(
       const courrielVal = (donneesParsees as Record<string, unknown>).courriel_porteur;
       const courriel = courrielVal ? `c:${String(courrielVal).toLowerCase()}` : null;
       const tel = cleTelStruct((donneesParsees as Record<string, unknown>).telephone_porteur);
+
+      // Garde anti ré-injection : la ligne correspond-elle déjà à une fiche en base ?
+      if (
+        (nom && parCle.has(cle)) ||
+        (courriel && parContact.has(courriel)) ||
+        (tel && parContact.has(`t:${tel}`))
+      ) {
+        nbDejaPresents++;
+      }
 
       if (nom && vusCle.has(cle)) {
         intraStruct.set(l.numLigne, {
@@ -276,6 +275,41 @@ export async function importerStructuresExcel(
       if (courriel && !vusContact.has(courriel)) vusContact.set(courriel, l.numLigne);
       if (tel && !vusContact.has(`t:${tel}`)) vusContact.set(`t:${tel}`, l.numLigne);
     }
+  }
+
+  // Garde anti ré-injection : si une large part des lignes correspond déjà à
+  // une fiche en base, on prévient (jeu probablement déjà importé) — sauf
+  // forçage ou confirmation. Avant la création de session (pas de session vide).
+  if (!input.forcerDoublons && !input.confirmerJeuSimilaire && lignes.length >= 10) {
+    const ratio = nbDejaPresents / lignes.length;
+    if (ratio >= 0.8) {
+      return {
+        status: 'jeu_similaire',
+        pourcentage: Math.round(ratio * 100),
+        nb_existants: nbDejaPresents,
+        nb_total: lignes.length,
+        message: `Ce jeu de données semble déjà présent à ${Math.round(ratio * 100)} % (${nbDejaPresents}/${lignes.length} structures déjà en base).`,
+      };
+    }
+  }
+
+  // Session d'import (best-effort) : permet l'annulation/rollback ultérieure.
+  try {
+    const { data: session } = await adminClient
+      .from('import_sessions')
+      .insert({
+        fichier_nom: input.fichierNom,
+        fichier_hash: input.fichierHash ?? null,
+        statut: 'en_cours',
+        peut_rollback: true,
+        rollback_expire_at: rollbackExpireAt,
+        created_by: utilisateur.user_id,
+      } as never)
+      .select('id')
+      .single();
+    importSessionId = (session as { id: string } | null)?.id ?? null;
+  } catch {
+    // import_sessions absent du schéma (dev/staging non migré) → sans rollback
   }
 
   // Traitement CONCURRENT par tranches — évite le timeout Vercel sur les

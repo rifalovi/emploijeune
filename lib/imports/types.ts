@@ -55,6 +55,7 @@ export type RapportImport = {
 
 export type ResultatImport =
   | { status: 'succes'; rapport: RapportImport }
+  | AvertissementJeuSimilaire
   | { status: 'erreur_droits'; message: string }
   | { status: 'erreur_fichier'; message: string }
   | { status: 'erreur_inconnue'; message: string };
@@ -167,8 +168,22 @@ export type RapportImportEnrichi = {
   execute_a: string;
 };
 
+/**
+ * Avertissement « jeu de données déjà présent » : émis quand une large part des
+ * lignes correspond à des fiches existantes (ré-injection probable). L'UI
+ * propose de confirmer ; le second appel passe `confirmerJeuSimilaire`.
+ */
+export type AvertissementJeuSimilaire = {
+  status: 'jeu_similaire';
+  pourcentage: number;
+  nb_existants: number;
+  nb_total: number;
+  message: string;
+};
+
 export type ResultatImportEnrichi =
   | { status: 'succes'; rapport: RapportImportEnrichi }
+  | AvertissementJeuSimilaire
   | { status: 'erreur_droits'; message: string }
   | { status: 'erreur_fichier'; message: string }
   | { status: 'erreur_inconnue'; message: string };
