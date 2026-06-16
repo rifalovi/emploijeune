@@ -152,7 +152,7 @@ export function DialogueRapportImportEnrichi({
 
   return (
     <Dialog open={!!rapport} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[95vw] max-w-6xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="size-5 text-[#0E4F88]" aria-hidden />

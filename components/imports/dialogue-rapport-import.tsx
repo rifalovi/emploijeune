@@ -108,7 +108,7 @@ export function DialogueRapportImport({ rapport, onClose }: DialogueRapportImpor
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col overflow-hidden">
+      <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Rapport d’import</DialogTitle>
           {rapport && (

@@ -183,7 +183,9 @@ export function ZoneUploadImport({
     if (f) handleFichierSelectionne(f);
   };
 
-  const estStructuresExcel = endpoint.includes('structures') && !analyserAvecIA;
+  // Le forçage des doublons s'applique aux imports Excel classiques (A1 et B1),
+  // pas aux imports via IA.
+  const estImportExcel = !analyserAvecIA;
 
   const handleLancerImport = (forceDoublons = false) => {
     if (!fichier) return;
@@ -312,9 +314,9 @@ export function ZoneUploadImport({
         const importDifficile =
           (nbImportees === 0 && nbErreurs > 0) || (nbTotal >= 5 && nbErreurs / nbTotal > 0.3);
 
-        // Doublons structures forçables : on conserve le fichier pour proposer
+        // Doublons forçables (A1 & B1) : on conserve le fichier pour proposer
         // « Importer quand même » (insertion forcée pour traitement manuel).
-        const peutForcer = estStructuresExcel && !forceDoublons && nbDoublons > 0;
+        const peutForcer = estImportExcel && !forceDoublons && nbDoublons > 0;
         setDoublonsForcables(peutForcer ? nbDoublons : 0);
 
         if (peutForcer) {

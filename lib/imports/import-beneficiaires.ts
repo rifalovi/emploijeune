@@ -64,6 +64,11 @@ export type ImporterBeneficiairesInput = {
   nomOnglet?: string;
   /** Code projet à appliquer par défaut si absent des cellules. */
   codeProjetDefaut?: string;
+  /**
+   * Forcer l'insertion sans dédoublonnage (insère les « doublons » identifiés,
+   * pour traitement manuel ultérieur — ex. contacts partagés à tort). Défaut false.
+   */
+  forcerDoublons?: boolean;
 };
 
 /** Headers attendus (alignés sur Template OIF, étendus avec tranche_age_declaree). */
@@ -191,6 +196,7 @@ export async function importerBeneficiairesExcel(
           importSessionId,
           nomFichier: input.fichierNom,
           codeProjetDefaut: input.codeProjetDefaut,
+          forcerDoublons: input.forcerDoublons,
           cacheBatch,
         }),
       ),
@@ -334,6 +340,7 @@ async function traiterLigne(args: {
   importSessionId?: string | null;
   nomFichier?: string;
   codeProjetDefaut?: string;
+  forcerDoublons?: boolean;
   cacheBatch?: CacheDoublons;
 }): Promise<LigneRapportImport> {
   const {
@@ -344,6 +351,7 @@ async function traiterLigne(args: {
     importSessionId,
     nomFichier,
     codeProjetDefaut,
+    forcerDoublons,
     cacheBatch,
   } = args;
   const mappagesAuto: string[] = [];
@@ -506,8 +514,9 @@ async function traiterLigne(args: {
     // tranche_age est optionnelle mais utile pour les stats
   }
 
-  // 4. Détecter un doublon — d'abord par courriel (clé forte), sinon clé faible
-  const doublon = await detecterDoublon(adminClient, record, cacheBatch);
+  // 4. Détecter un doublon (courriel ou téléphone identique). Si forçage demandé,
+  //    on n'en cherche pas → insertion directe (cas des contacts partagés à tort).
+  const doublon = forcerDoublons ? null : await detecterDoublon(adminClient, record, cacheBatch);
 
   if (doublon) {
     const { fusionne, champsMisAJour: champsMaj } = fusionnerBeneficiaires(doublon, {

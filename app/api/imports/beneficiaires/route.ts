@@ -85,19 +85,23 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (recents && recents.length > 0) {
-        return NextResponse.json({
-          code: 'fichier_deja_importe',
-          session_precedente: {
-            id: recents[0]!.id,
-            date: recents[0]!.created_at,
+        return NextResponse.json(
+          {
+            code: 'fichier_deja_importe',
+            session_precedente: {
+              id: recents[0]!.id,
+              date: recents[0]!.created_at,
+            },
+            message: 'Ce fichier semble avoir deja ete importe recemment.',
           },
-          message: 'Ce fichier semble avoir deja ete importe recemment.',
-        }, { status: 409 });
+          { status: 409 },
+        );
       }
     }
 
     const nomOnglet = (formData.get('onglet') as string) || undefined;
     const codeProjetDefaut = (formData.get('code_projet_defaut') as string) || undefined;
+    const forcerDoublons = formData.get('force_doublons') === 'true';
     const result = await importerBeneficiairesExcel({
       fichierBuffer: buffer,
       fichierNom: fichier.name,
@@ -105,6 +109,7 @@ export async function POST(request: NextRequest) {
       fichierHash,
       nomOnglet,
       codeProjetDefaut,
+      forcerDoublons,
     });
     return NextResponse.json(result);
   } catch (erreur) {
