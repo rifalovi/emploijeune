@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ComparaisonDoublonTable } from '@/components/imports/comparaison-doublon-table';
 import { annulerSessionImport } from '@/lib/super-admin/import-sessions-actions';
 import type { RapportImport } from '@/lib/imports/types';
 
@@ -114,6 +115,8 @@ export function DialogueRapportImport({
   const open = Boolean(rapport);
   const erreursAffichees = rapport?.erreurs.slice(0, 50) ?? [];
   const reste = (rapport?.erreurs.length ?? 0) - erreursAffichees.length;
+  const doublonsAffiches = rapport?.doublons?.slice(0, 50) ?? [];
+  const resteDoublons = (rapport?.doublons?.length ?? 0) - doublonsAffiches.length;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -207,6 +210,29 @@ export function DialogueRapportImport({
                   <p className="text-muted-foreground text-xs italic">
                     ({reste} erreur(s) supplémentaire(s) – téléchargez le rapport pour la liste
                     complète.)
+                  </p>
+                )}
+              </div>
+            )}
+
+            {doublonsAffiches.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  Détail des doublons ({rapport?.doublons?.length ?? 0}) — comparaison champ par
+                  champ avec la fiche existante :
+                </p>
+                <div className="space-y-3">
+                  {doublonsAffiches.map((d) => (
+                    <ComparaisonDoublonTable
+                      key={d.numero_ligne}
+                      comparaison={d.comparaison}
+                      numeroLigne={d.numero_ligne}
+                    />
+                  ))}
+                </div>
+                {resteDoublons > 0 && (
+                  <p className="text-muted-foreground text-xs italic">
+                    ({resteDoublons} doublon(s) supplémentaire(s) non affiché(s).)
                   </p>
                 )}
               </div>

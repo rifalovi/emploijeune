@@ -32,6 +32,12 @@ export type RapportImport = {
    * dédoublonnage). Comptées séparément des erreurs : ce n'est pas un échec.
    */
   nb_doublons?: number;
+  /**
+   * Détail des doublons détectés (B1) : pour chaque ligne reconnue comme
+   * doublon, la comparaison champ par champ avec la fiche existante. Permet à
+   * l'utilisateur de juger si c'est un « vrai » doublon avant un éventuel forçage.
+   */
+  doublons?: LigneDoublonRapport[];
   /** Détail des erreurs ligne par ligne. */
   erreurs: ErreurImport[];
   /** ID de la ligne `imports_excel` créée pour audit. */
@@ -88,6 +94,14 @@ export type ComparaisonDoublon = {
   pourcentage: number;
   /** Comparaison champ par champ. */
   champs: ChampComparaison[];
+};
+
+/** Doublon détecté (rapport classique B1) : numéro de ligne + comparaison. */
+export type LigneDoublonRapport = {
+  /** Numéro de ligne dans le fichier importé. */
+  numero_ligne: number;
+  /** Comparaison champ par champ avec la fiche existante. */
+  comparaison: ComparaisonDoublon;
 };
 
 /** Cas de figure d'une ligne après le pipeline tolérant. */
