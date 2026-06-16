@@ -33,13 +33,13 @@ BEGIN
   v_projets := public.current_projets_geres();
 
   SELECT COALESCE(jsonb_agg(jsonb_build_object(
-    'sexe',    COALESCE(sexe, '—'),
+    'sexe',    COALESCE(sexe::TEXT, '—'),
     'projet',  COALESCE(projet_code, '—'),
     'pays',    COALESCE(pays_code, '—'),
     'domaine', COALESCE(domaine_formation_code, '—'),
     'annee',   COALESCE(annee_formation::TEXT, '—'),
-    'tranche', COALESCE(tranche_age_declaree, '—'),
-    'statut',  COALESCE(statut_code, '—'),
+    'tranche', COALESCE(tranche_age_declaree::TEXT, '—'),
+    'statut',  COALESCE(statut_code::TEXT, '—'),
     'n', n
   )), '[]'::JSONB) INTO v_res
   FROM (
