@@ -159,6 +159,12 @@ export async function importerBeneficiairesExcel(
   // bénéficiaires existants pour les projets présents dans le fichier.
   const cacheBatch = await precalculerCacheDoublons(adminClient, parse.lignes);
 
+  // 1b-bis. Détection des doublons INTERNES au fichier (même courriel ou même
+  // téléphone sur plusieurs lignes). Depuis le retrait de l'index d'unicité,
+  // la base ne bloque plus ces doublons : on les identifie ici pour informer
+  // l'utilisateur (et les laisser passer s'il force l'import).
+  const doublonsIntra = detecterDoublonsIntraFichier(parse.lignes);
+
   // 1c. Créer la session d'import (best-effort).
   // La migration 20260512100001 a été appliquée — types Supabase à jour,
   // plus besoin de cast `as any`.
@@ -200,6 +206,7 @@ export async function importerBeneficiairesExcel(
           codeProjetDefaut: input.codeProjetDefaut,
           forcerDoublons: input.forcerDoublons,
           cacheBatch,
+          doublonsIntra,
         }),
       ),
     );
@@ -346,6 +353,7 @@ async function traiterLigne(args: {
   codeProjetDefaut?: string;
   forcerDoublons?: boolean;
   cacheBatch?: CacheDoublons;
+  doublonsIntra?: Map<number, DoublonIntra>;
 }): Promise<LigneRapportImport> {
   const {
     numLigne,
@@ -357,6 +365,7 @@ async function traiterLigne(args: {
     codeProjetDefaut,
     forcerDoublons,
     cacheBatch,
+    doublonsIntra,
   } = args;
   const mappagesAuto: string[] = [];
   const champsManquants: string[] = [];
@@ -516,6 +525,39 @@ async function traiterLigne(args: {
   if (!record.domaine_formation_code) champsManquants.push('domaine_formation_code');
   if (!record.tranche_age_declaree && !record.sexe) {
     // tranche_age est optionnelle mais utile pour les stats
+  }
+
+  // 4a. Doublon INTERNE au fichier (même courriel/téléphone qu'une ligne
+  //     précédente). Sauf forçage : on informe sans insérer (le « Importer
+  //     quand même » lèvera ce verrou).
+  const intra = forcerDoublons ? undefined : doublonsIntra?.get(numLigne);
+  if (intra) {
+    return {
+      numero_ligne: numLigne,
+      statut: 'doublon_identique',
+      mappages_auto: mappagesAuto,
+      champs_manquants: champsManquants,
+      champs_mis_a_jour: [],
+      alertes: [
+        ...alertes,
+        `Doublon interne au fichier : même ${intra.critere.toLowerCase().includes('courriel') ? 'courriel' : 'téléphone'} que la ligne ${intra.ligneRef}.`,
+      ],
+      erreurs: [],
+      donnees_importees: extrairePreview(record),
+      comparaison_doublon: {
+        critere: intra.critere,
+        reference: `Ligne ${intra.ligneRef} du fichier`,
+        pourcentage: 100,
+        champs: [
+          {
+            champ: intra.critere.toLowerCase().includes('courriel') ? 'Courriel' : 'Téléphone',
+            valeur_importee: intra.valeur,
+            valeur_existante: intra.valeur,
+            identique: true,
+          },
+        ],
+      },
+    };
   }
 
   // 4. Détecter un doublon (courriel ou téléphone identique). Si forçage demandé,
@@ -741,6 +783,47 @@ export type CacheDoublons = {
   parCourriel: Map<string, BeneficiaireRecord>;
   parTelephone: Map<string, BeneficiaireRecord>;
 };
+
+/** Doublon interne au fichier : ligne dupliquant une ligne précédente. */
+export type DoublonIntra = { critere: string; ligneRef: number; valeur: string };
+
+/**
+ * Repère les lignes qui dupliquent une ligne PRÉCÉDENTE du même fichier sur le
+ * courriel ou le téléphone. Retourne une map numLigne → détail (la première
+ * occurrence n'est jamais marquée ; seules les suivantes le sont).
+ */
+function detecterDoublonsIntraFichier(
+  lignes: { numLigne: number; donnees: Record<string, unknown> }[],
+): Map<number, DoublonIntra> {
+  const vusCourriel = new Map<string, number>();
+  const vusTelephone = new Map<string, number>();
+  const doublons = new Map<number, DoublonIntra>();
+
+  for (const { numLigne, donnees } of lignes) {
+    const courriel = nettoyerCourriel(donnees['Courriel']);
+    const tel = cleTelephone(donnees['Téléphone (avec indicatif)']);
+    const cleCourriel = courriel ? courriel.toLowerCase() : null;
+
+    if (cleCourriel && vusCourriel.has(cleCourriel)) {
+      doublons.set(numLigne, {
+        critere: 'Courriel en double dans le fichier',
+        ligneRef: vusCourriel.get(cleCourriel)!,
+        valeur: cleCourriel,
+      });
+    } else if (tel && vusTelephone.has(tel)) {
+      doublons.set(numLigne, {
+        critere: 'Téléphone en double dans le fichier',
+        ligneRef: vusTelephone.get(tel)!,
+        valeur: tel,
+      });
+    }
+
+    if (cleCourriel && !vusCourriel.has(cleCourriel)) vusCourriel.set(cleCourriel, numLigne);
+    if (tel && !vusTelephone.has(tel)) vusTelephone.set(tel, numLigne);
+  }
+
+  return doublons;
+}
 
 /** Normalise un téléphone pour comparaison (chiffres + éventuel +). */
 function cleTelephone(v: unknown): string | null {

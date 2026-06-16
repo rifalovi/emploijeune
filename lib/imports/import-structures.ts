@@ -230,6 +230,54 @@ export async function importerStructuresExcel(
     }
   }
 
+  // Détection des doublons INTERNES au fichier (même nom+pays+projet OU même
+  // contact porteur sur plusieurs lignes). Depuis le retrait de l'index unique,
+  // la base ne les bloque plus : on les identifie ici pour informer (et les
+  // laisser passer si l'utilisateur force l'import).
+  const intraStruct = new Map<number, { critere: string; ligneRef: number; valeur: string }>();
+  if (!input.forcerDoublons) {
+    const vusCle = new Map<string, number>();
+    const vusContact = new Map<string, number>();
+    for (const l of lignes) {
+      const { donneesParsees } = mapLigneVersStructure(l.donnees, {
+        tolerant: true,
+        codeProjetDefaut: input.codeProjetDefaut,
+      });
+      if (!donneesParsees) continue;
+      const nom = String((donneesParsees as Record<string, unknown>).nom_structure ?? '').trim();
+      const pays = (donneesParsees as Record<string, unknown>).pays_code;
+      const projet = (donneesParsees as Record<string, unknown>).projet_code;
+      const cle = `${cleNomStructure(nom)}|${pays}|${projet}`;
+      const courrielVal = (donneesParsees as Record<string, unknown>).courriel_porteur;
+      const courriel = courrielVal ? `c:${String(courrielVal).toLowerCase()}` : null;
+      const tel = cleTelStruct((donneesParsees as Record<string, unknown>).telephone_porteur);
+
+      if (nom && vusCle.has(cle)) {
+        intraStruct.set(l.numLigne, {
+          critere: 'Nom + pays + projet en double dans le fichier',
+          ligneRef: vusCle.get(cle)!,
+          valeur: nom,
+        });
+      } else if (courriel && vusContact.has(courriel)) {
+        intraStruct.set(l.numLigne, {
+          critere: 'Courriel porteur en double dans le fichier',
+          ligneRef: vusContact.get(courriel)!,
+          valeur: String(courrielVal),
+        });
+      } else if (tel && vusContact.has(`t:${tel}`)) {
+        intraStruct.set(l.numLigne, {
+          critere: 'Téléphone porteur en double dans le fichier',
+          ligneRef: vusContact.get(`t:${tel}`)!,
+          valeur: tel,
+        });
+      }
+
+      if (nom && !vusCle.has(cle)) vusCle.set(cle, l.numLigne);
+      if (courriel && !vusContact.has(courriel)) vusContact.set(courriel, l.numLigne);
+      if (tel && !vusContact.has(`t:${tel}`)) vusContact.set(`t:${tel}`, l.numLigne);
+    }
+  }
+
   // Traitement CONCURRENT par tranches — évite le timeout Vercel sur les
   // fichiers de plusieurs centaines de lignes (avant : insertions séquentielles
   // ≈ 100 ms/ligne → 582 lignes ≈ 60 s, à la limite du timeout).
@@ -270,6 +318,37 @@ export async function importerStructuresExcel(
           message: issue.message,
         })),
       };
+    }
+
+    // Doublon INTERNE au fichier (même identité ou contact qu'une ligne
+    // précédente). Sauf forçage : on informe sans insérer.
+    if (!input.forcerDoublons) {
+      const intra = intraStruct.get(numLigne);
+      if (intra) {
+        return {
+          statut: 'doublon',
+          doublon: {
+            numero_ligne: numLigne,
+            comparaison: {
+              critere: intra.critere,
+              reference: `Ligne ${intra.ligneRef} du fichier`,
+              pourcentage: 100,
+              champs: [
+                {
+                  champ: intra.critere.toLowerCase().includes('courriel')
+                    ? 'Courriel porteur'
+                    : intra.critere.toLowerCase().includes('téléphone')
+                      ? 'Téléphone porteur'
+                      : 'Structure',
+                  valeur_importee: intra.valeur,
+                  valeur_existante: intra.valeur,
+                  identique: true,
+                },
+              ],
+            },
+          },
+        };
+      }
     }
 
     // Dédoublonnage applicatif (sauf si forçage demandé) : doublon si même
