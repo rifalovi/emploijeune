@@ -99,7 +99,7 @@ export function ChatAssistantIa() {
               <span className="size-2 animate-pulse rounded-full bg-slate-400 [animation-delay:0ms]" />
               <span className="size-2 animate-pulse rounded-full bg-slate-400 [animation-delay:150ms]" />
               <span className="size-2 animate-pulse rounded-full bg-slate-400 [animation-delay:300ms]" />
-              <span className="text-muted-foreground ml-2 text-xs">Claude réfléchit…</span>
+              <span className="text-muted-foreground ml-2 text-xs">Assistant SCS réfléchit…</span>
             </div>
           </div>
         )}
