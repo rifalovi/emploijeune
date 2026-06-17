@@ -21,14 +21,15 @@ import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { getPermissionsUtilisateur, type ModuleKey } from '@/lib/super-admin/permissions';
 
 /**
- * Layout du segment /super-admin/* — V3.0.0.
+ * Layout du segment /super-admin/* — V3.1.0.
  *
  * Accès :
  *   - super_admin : accès complet à tous les items
  *   - admin_scs   : accès limité aux modules explicitement délégués
  *   - autres rôles: 404
  *
- * Les onglets sont regroupés par catégorie pour la lisibilité.
+ * Navigation en grille de cartes, regroupée par catégorie (un accent couleur
+ * par catégorie) pour une lecture claire.
  */
 export default async function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const utilisateur = await requireUtilisateurValide();
@@ -49,9 +50,11 @@ export default async function SuperAdminLayout({ children }: { children: React.R
   // super_admin (jamais délégable) ; un item avec `module` est délégable à un
   // admin_scs disposant de la permission correspondante.
   type ItemNav = { href: string; label: string; icon: React.ElementType; module?: ModuleKey };
-  const categories: { titre: string; items: ItemNav[] }[] = [
+  type Categorie = { titre: string; accent: string; items: ItemNav[] };
+  const categories: Categorie[] = [
     {
       titre: 'Pilotage',
+      accent: 'bg-blue-50 text-blue-600 group-hover:bg-blue-100',
       items: [
         { href: '/super-admin', label: 'Vue d’ensemble', icon: ShieldAlert },
         {
@@ -70,6 +73,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     },
     {
       titre: 'Utilisateurs & accès',
+      accent: 'bg-violet-50 text-violet-600 group-hover:bg-violet-100',
       items: [
         { href: '/super-admin/utilisateurs', label: 'Utilisateurs', icon: Users },
         { href: '/super-admin/partenaires', label: 'Partenaires', icon: Building2 },
@@ -83,6 +87,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     },
     {
       titre: 'Données & qualité',
+      accent: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100',
       items: [
         {
           href: '/super-admin/import-sessions',
@@ -107,6 +112,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     },
     {
       titre: 'Contenu & affichage',
+      accent: 'bg-amber-50 text-amber-600 group-hover:bg-amber-100',
       items: [
         {
           href: '/super-admin/base-connaissance',
@@ -130,6 +136,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     },
     {
       titre: 'Système',
+      accent: 'bg-slate-100 text-slate-600 group-hover:bg-slate-200',
       items: [{ href: '/super-admin/maintenance', label: 'Maintenance', icon: Wrench }],
     },
   ];
@@ -145,44 +152,48 @@ export default async function SuperAdminLayout({ children }: { children: React.R
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2 border-b pb-4">
-        <div className="flex items-center gap-2">
-          <span
-            className="inline-flex size-8 items-center justify-center rounded-lg text-white shadow-sm"
-            style={{ background: 'linear-gradient(135deg, #5D0073 0%, #0E4F88 100%)' }}
-          >
-            <ShieldAlert className="size-4" aria-hidden />
-          </span>
-          <h1 className="text-2xl font-semibold tracking-tight">
+      <header className="flex items-start gap-3 border-b pb-5">
+        <span
+          className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm"
+          style={{ background: 'linear-gradient(135deg, #5D0073 0%, #0E4F88 100%)' }}
+        >
+          <ShieldAlert className="size-5" aria-hidden />
+        </span>
+        <div className="space-y-1">
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">
             {isSuperAdmin ? 'Super Administration' : 'Administration avancée'}
           </h1>
+          <p className="text-muted-foreground max-w-2xl text-sm">
+            {isSuperAdmin
+              ? 'Pilotage, gestion des accès, qualité des données, contenu et maintenance de la plateforme.'
+              : 'Modules d’administration avancée accessibles sur délégation.'}
+          </p>
         </div>
-        <p className="text-muted-foreground text-sm">
-          {isSuperAdmin
-            ? 'Section super_admin. Tracking étendu, gestion avancée des utilisateurs, archivage de partenaires, contrôle des modules.'
-            : 'Modules d’administration avancée accessibles sur délégation.'}
-        </p>
       </header>
 
-      <nav aria-label="Sections super-admin" className="space-y-3 border-b pb-4">
+      <nav aria-label="Sections super-admin" className="space-y-5 border-b pb-6">
         {categoriesVisibles.map((cat) => (
-          <div key={cat.titre} className="flex flex-col gap-1.5">
-            <p className="text-muted-foreground/70 text-[11px] font-semibold tracking-wide uppercase">
+          <section key={cat.titre} className="space-y-2">
+            <h2 className="text-muted-foreground/80 text-[11px] font-semibold tracking-[0.08em] uppercase">
               {cat.titre}
-            </p>
-            <div className="flex flex-wrap gap-2">
+            </h2>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {cat.items.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="hover:bg-accent hover:text-foreground text-muted-foreground inline-flex items-center gap-2 rounded-md border border-transparent px-3 py-1.5 text-sm font-medium transition-colors hover:border-slate-200"
+                  className="group bg-card hover:border-primary/30 flex items-center gap-3 rounded-xl border p-3 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-sm"
                 >
-                  <item.icon aria-hidden className="size-4" />
-                  {item.label}
+                  <span
+                    className={`inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors ${cat.accent}`}
+                  >
+                    <item.icon aria-hidden className="size-[18px]" />
+                  </span>
+                  <span className="text-foreground text-sm font-medium">{item.label}</span>
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         ))}
       </nav>
 
