@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
 
 /**
@@ -14,10 +16,13 @@ import { ImageResponse } from 'next/og';
  * texte blanc, fond transparent), centrée sur le bleu institutionnel. Le
  * texte est ainsi parfaitement lisible et la composition équilibrée.
  *
- * Le logo est colocalisé ici et chargé via `new URL(..., import.meta.url)` :
- * c'est le pattern officiel Next.js pour `next/og`, correctement tracé par
- * le bundler et donc inclus dans la fonction serverless (contrairement à un
- * `fs.readFileSync` sur `public/` qui n'est pas garanti sur Vercel).
+ * Le logo est colocalisé ici et lu via `fs` au moment du rendu. Cette route
+ * de métadonnées est prérendue statiquement au build (aucun segment
+ * dynamique) : `process.cwd()` pointe alors la racine du projet et le
+ * fichier source est disponible. On évite volontairement
+ * `fetch(new URL(..., import.meta.url))` : webpack transforme le PNG en
+ * asset `/_next/static/media/...` dont l'URL relative fait échouer `fetch`
+ * au prerender (« Failed to parse URL »).
  */
 
 /** Bleu institutionnel OIF — cohérent avec l'usage `bg-[#0E4F88]` dans l'app. */
@@ -36,14 +41,12 @@ export const OG_CONTENT_TYPE = 'image/png';
 
 /**
  * Construit l'`ImageResponse` partagée par les routes opengraph-image et
- * twitter-image. Le logo est chargé depuis l'asset colocalisé et encodé en
+ * twitter-image. Le logo est lu depuis l'asset colocalisé et encodé en
  * data-URI pour être injecté dans le rendu satori.
  */
-export async function renderOifOgImage(): Promise<ImageResponse> {
-  const logoBinaire = await fetch(
-    new URL('./logo-oif-quadri-texte-blanc.png', import.meta.url),
-  ).then((r) => r.arrayBuffer());
-  const logoSrc = `data:image/png;base64,${Buffer.from(logoBinaire).toString('base64')}`;
+export function renderOifOgImage(): ImageResponse {
+  const logoBinaire = readFileSync(join(process.cwd(), 'lib/og/logo-oif-quadri-texte-blanc.png'));
+  const logoSrc = `data:image/png;base64,${logoBinaire.toString('base64')}`;
 
   return new ImageResponse(
     <div
