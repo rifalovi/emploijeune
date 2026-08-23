@@ -41,9 +41,10 @@ export const metadata: Metadata = {
     follow: false,
   },
   // Open Graph + Twitter Card — aperçu enrichi sur WhatsApp, LinkedIn,
-  // Facebook, Twitter/X. Les images sont auto-détectées par Next.js
-  // depuis app/opengraph-image.png et app/twitter-image.png (1200x630,
-  // logo OIF sur fond bleu institutionnel #0E4F88).
+  // Facebook, Twitter/X. Les images sont générées dynamiquement par
+  // Next.js via app/opengraph-image.tsx et app/twitter-image.tsx (1200x630,
+  // logo OIF « texte blanc » centré sur fond bleu institutionnel #0E4F88).
+  // Voir lib/og/oif-og.tsx pour le rendu et le rationale du correctif.
   openGraph: {
     title: 'OIF – Suivi Emploi Jeunes',
     description:
