@@ -14,6 +14,7 @@ import { BadgeProjet } from '@/components/shared/badge-projet';
 import { BeneficiaireRowActions } from './beneficiaire-row-actions';
 import { calculerTrancheAge } from './tranche-age';
 import { TrancheAgeCalculeeBadge } from '@/components/shared/tranche-age-badge';
+import { EnteteTriable } from '@/components/donnees/entete-triable';
 import type { BeneficiaireListItem } from '@/lib/beneficiaires/queries';
 import type { Nomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';
 import type {
@@ -56,20 +57,32 @@ export function BeneficiaireTable({
         <TableHeader>
           <TableRow className="whitespace-nowrap">
             <TableHead className="w-1" aria-hidden />
-            <TableHead>Prénom Nom</TableHead>
+            <TableHead>
+              <EnteteTriable colonne="nom">Prénom Nom</EnteteTriable>
+            </TableHead>
             <TableHead>Sexe</TableHead>
             <TableHead>Tranche d&apos;âge</TableHead>
-            <TableHead>Date naissance</TableHead>
-            <TableHead>Projet</TableHead>
-            <TableHead>Pays</TableHead>
+            <TableHead>
+              <EnteteTriable colonne="naissance">Date naissance</EnteteTriable>
+            </TableHead>
+            <TableHead>
+              <EnteteTriable colonne="projet">Projet</EnteteTriable>
+            </TableHead>
+            <TableHead>
+              <EnteteTriable colonne="pays">Pays</EnteteTriable>
+            </TableHead>
             <TableHead>Partenaire</TableHead>
             <TableHead>Domaine</TableHead>
             <TableHead>Intitulé formation</TableHead>
             <TableHead>Modalité</TableHead>
-            <TableHead className="text-center">Année</TableHead>
+            <TableHead className="text-center">
+              <EnteteTriable colonne="annee">Année</EnteteTriable>
+            </TableHead>
             <TableHead>Début</TableHead>
             <TableHead>Fin</TableHead>
-            <TableHead>Statut</TableHead>
+            <TableHead>
+              <EnteteTriable colonne="statut">Statut</EnteteTriable>
+            </TableHead>
             <TableHead>Fonction actuelle</TableHead>
             <TableHead>Consentement</TableHead>
             <TableHead>Téléphone</TableHead>

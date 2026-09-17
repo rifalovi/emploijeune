@@ -197,6 +197,20 @@ export async function listBeneficiaires(
   const COLONNES =
     'id, prenom, nom, sexe, date_naissance, tranche_age_declaree, projet_code, pays_code, partenaire_accompagnement, domaine_formation_code, intitule_formation, modalite_formation_code, annee_formation, date_debut_formation, date_fin_formation, statut_code, fonction_actuelle, consentement_recueilli, telephone, courriel, localite_residence, created_by, organisation_id, updated_at';
 
+  // Allowlist tri (clé UI → colonne DB) pour l'en-tête cliquable.
+  const TRI: Record<string, string> = {
+    nom: 'nom',
+    sexe: 'sexe',
+    naissance: 'date_naissance',
+    projet: 'projet_code',
+    pays: 'pays_code',
+    annee: 'annee_formation',
+    statut: 'statut_code',
+    maj: 'updated_at',
+  };
+  const triCol = filters.tri ? TRI[filters.tri] : undefined;
+  const triAsc = filters.ordre !== 'desc';
+
   // -- Étape 1 : recherche textuelle (si q) → IDs ordonnés par pertinence
   let idsParPertinence: string[] | null = null;
   if (filters.q) {
@@ -240,6 +254,7 @@ export async function listBeneficiaires(
       Boolean(filters.annee_formation) ||
       Boolean(filters.statut_code) ||
       Boolean(filters.sexe) ||
+      Boolean(filters.lettre) ||
       Boolean(filters.mien);
 
     let idsRetenus = idsParPertinence;
@@ -262,6 +277,7 @@ export async function listBeneficiaires(
         if (filters.annee_formation) q2 = q2.eq('annee_formation', filters.annee_formation);
         if (filters.statut_code) q2 = q2.eq('statut_code', filters.statut_code);
         if (filters.sexe) q2 = q2.eq('sexe', filters.sexe as 'F' | 'M' | 'Autre');
+        if (filters.lettre) q2 = q2.ilike('nom', `${filters.lettre}%`);
         if (filters.mien && userId) q2 = q2.eq('created_by', userId);
         const { data: okRows, error: e2 } = await q2;
         if (e2) throw new Error(`Recherche indisponible : ${e2.message}`);
@@ -300,11 +316,18 @@ export async function listBeneficiaires(
   if (filters.annee_formation) query = query.eq('annee_formation', filters.annee_formation);
   if (filters.statut_code) query = query.eq('statut_code', filters.statut_code);
   if (filters.sexe) query = query.eq('sexe', filters.sexe as 'F' | 'M' | 'Autre');
+  if (filters.lettre) query = query.ilike('nom', `${filters.lettre}%`);
   if (filters.mien) {
     const { data: auth } = await supabase.auth.getUser();
     if (auth.user) query = query.eq('created_by', auth.user.id);
   }
-  query = query.order('updated_at', { ascending: false });
+  // Tri par colonne (en-tête cliquable) si demandé, sinon plus récents d'abord.
+  if (triCol) {
+    query = query.order(triCol, { ascending: triAsc });
+    if (triCol === 'nom') query = query.order('prenom', { ascending: triAsc });
+  } else {
+    query = query.order('updated_at', { ascending: false });
+  }
 
   const { data, error, count } = await query.range(offset, offset + pageSize - 1);
   if (error) {

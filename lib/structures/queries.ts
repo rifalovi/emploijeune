@@ -235,6 +235,19 @@ export async function listStructures(
   const COLONNES =
     'id, nom_structure, type_structure_code, secteur_activite_code, secteur_precis, intitule_initiative, pays_code, projet_code, porteur_nom, porteur_prenom, porteur_sexe, fonction_porteur, telephone_porteur, courriel_porteur, annee_appui, nature_appui_code, montant_appui, devise_code, statut_creation, date_creation, consentement_recueilli, adresse, ville, localite, chiffre_affaires, employes_permanents, employes_temporaires, emplois_crees, created_by, organisation_id, updated_at';
 
+  // Allowlist tri (clé UI → colonne DB) pour l'en-tête cliquable.
+  const TRI: Record<string, string> = {
+    nom: 'nom_structure',
+    type: 'type_structure_code',
+    pays: 'pays_code',
+    projet: 'projet_code',
+    annee: 'annee_appui',
+    statut: 'statut_creation',
+    maj: 'updated_at',
+  };
+  const triCol = filters.tri ? TRI[filters.tri] : undefined;
+  const triAsc = filters.ordre !== 'desc';
+
   // -- Étape 1 : recherche textuelle (si q) → IDs ordonnés par pertinence
   let idsParPertinence: string[] | null = null;
   if (filters.q) {
@@ -277,6 +290,7 @@ export async function listStructures(
       Boolean(filters.nature_appui_code) ||
       Boolean(filters.statut_creation) ||
       Boolean(filters.annee_appui) ||
+      Boolean(filters.lettre) ||
       Boolean(filters.mien);
 
     let idsRetenus = idsParPertinence;
@@ -304,6 +318,7 @@ export async function listStructures(
             filters.statut_creation as 'creation' | 'renforcement' | 'relance',
           );
         if (filters.annee_appui) q2 = q2.eq('annee_appui', filters.annee_appui);
+        if (filters.lettre) q2 = q2.ilike('nom_structure', `${filters.lettre}%`);
         if (filters.mien && userId) q2 = q2.eq('created_by', userId);
         const { data: okRows, error: e2 } = await q2;
         if (e2) throw new Error(`Recherche indisponible : ${e2.message}`);
@@ -348,11 +363,17 @@ export async function listStructures(
       filters.statut_creation as 'creation' | 'renforcement' | 'relance',
     );
   if (filters.annee_appui) query = query.eq('annee_appui', filters.annee_appui);
+  if (filters.lettre) query = query.ilike('nom_structure', `${filters.lettre}%`);
   if (filters.mien) {
     const { data: auth } = await supabase.auth.getUser();
     if (auth.user) query = query.eq('created_by', auth.user.id);
   }
-  query = query.order('updated_at', { ascending: false });
+  // Tri par colonne (en-tête cliquable) si demandé, sinon plus récents d'abord.
+  if (triCol) {
+    query = query.order(triCol, { ascending: triAsc });
+  } else {
+    query = query.order('updated_at', { ascending: false });
+  }
 
   const { data, error, count } = await query.range(offset, offset + pageSize - 1);
   if (error) {

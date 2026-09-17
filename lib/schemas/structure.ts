@@ -384,6 +384,28 @@ export const structureFiltersSchema = z.object({
     .optional()
     .transform((v) => (v === 'true' ? true : v === 'false' ? false : undefined)),
 
+  /** Tri par colonne (clé logique validée côté requête via une allowlist). */
+  tri: z
+    .string()
+    .trim()
+    .max(40)
+    .transform((v) => (v === '' ? undefined : v))
+    .optional(),
+
+  /** Sens du tri. */
+  ordre: z
+    .union([z.literal('asc'), z.literal('desc'), z.literal(''), z.null(), z.undefined()])
+    .transform((v) => (v === 'asc' || v === 'desc' ? v : undefined))
+    .optional(),
+
+  /** Filtre initiale (index alphabétique A–Z sur le nom de structure). */
+  lettre: z
+    .string()
+    .trim()
+    .max(1)
+    .transform((v) => (v && /^[A-Za-z]$/.test(v) ? v.toUpperCase() : undefined))
+    .optional(),
+
   page: z.coerce.number().int().min(1).default(1),
 });
 

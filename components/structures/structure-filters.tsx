@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useStructureFilters } from './use-structure-filters';
+import { IndexAlphabetique } from '@/components/donnees/index-alphabetique';
 import {
   PROGRAMMES_STRATEGIQUES_CODES,
   TYPES_STRUCTURE_CODES,
@@ -94,6 +95,9 @@ export function StructureFilters({ projets, pays, annees }: StructureFiltersProp
           </button>
         )}
       </div>
+
+      {/* Index alphabétique A–Z sur le nom de structure */}
+      <IndexAlphabetique />
 
       {/* Ligne 2 : filtres dropdown (8 filtres en grille adaptative) */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">

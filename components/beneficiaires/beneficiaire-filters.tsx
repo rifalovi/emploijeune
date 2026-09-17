@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useBeneficiaireFilters } from './use-beneficiaire-filters';
+import { IndexAlphabetique } from '@/components/donnees/index-alphabetique';
 import {
   SEXE_VALUES,
   SEXE_LIBELLES,
@@ -91,6 +92,9 @@ export function BeneficiaireFilters({ projets, pays, domaines, annees }: Benefic
           </button>
         )}
       </div>
+
+      {/* Index alphabétique A–Z sur le nom */}
+      <IndexAlphabetique />
 
       {/* Ligne 2 : filtres dropdown — 1 col mobile, 2 sm, 3 md, 4 lg, 7 xl */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">

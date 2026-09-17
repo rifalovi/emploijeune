@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { BadgeProjet } from '@/components/shared/badge-projet';
 import { StatutStructureBadge } from './statut-structure-badge';
 import { StructureRowActions } from './structure-row-actions';
+import { EnteteTriable } from '@/components/donnees/entete-triable';
 import type { StructureListItem } from '@/lib/structures/queries';
 import type { Nomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';
 import type { ProgrammeStrategiqueCode, StatutStructure } from '@/lib/schemas/nomenclatures';
@@ -49,22 +50,34 @@ export function StructureTable({
         <TableHeader>
           <TableRow className="whitespace-nowrap">
             <TableHead className="w-1" aria-hidden />
-            <TableHead>Structure</TableHead>
-            <TableHead>Type</TableHead>
+            <TableHead>
+              <EnteteTriable colonne="nom">Structure</EnteteTriable>
+            </TableHead>
+            <TableHead>
+              <EnteteTriable colonne="type">Type</EnteteTriable>
+            </TableHead>
             <TableHead>Secteur</TableHead>
             <TableHead>Secteur précis</TableHead>
             <TableHead>Initiative</TableHead>
-            <TableHead>Pays</TableHead>
-            <TableHead>Projet</TableHead>
+            <TableHead>
+              <EnteteTriable colonne="pays">Pays</EnteteTriable>
+            </TableHead>
+            <TableHead>
+              <EnteteTriable colonne="projet">Projet</EnteteTriable>
+            </TableHead>
             <TableHead>Porteur</TableHead>
             <TableHead>Sexe</TableHead>
             <TableHead>Fonction</TableHead>
             <TableHead>Téléphone</TableHead>
             <TableHead>Courriel</TableHead>
-            <TableHead className="text-center">Année</TableHead>
+            <TableHead className="text-center">
+              <EnteteTriable colonne="annee">Année</EnteteTriable>
+            </TableHead>
             <TableHead>Nature appui</TableHead>
             <TableHead className="text-right">Montant appui</TableHead>
-            <TableHead>Statut</TableHead>
+            <TableHead>
+              <EnteteTriable colonne="statut">Statut</EnteteTriable>
+            </TableHead>
             <TableHead>Date création</TableHead>
             <TableHead>Consentement</TableHead>
             <TableHead>Ville</TableHead>
