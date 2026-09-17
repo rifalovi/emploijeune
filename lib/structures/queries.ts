@@ -232,6 +232,9 @@ export async function listStructures(
   const page = filters.page ?? 1;
   const offset = (page - 1) * pageSize;
 
+  const COLONNES =
+    'id, nom_structure, type_structure_code, secteur_activite_code, secteur_precis, intitule_initiative, pays_code, projet_code, porteur_nom, porteur_prenom, porteur_sexe, fonction_porteur, telephone_porteur, courriel_porteur, annee_appui, nature_appui_code, montant_appui, devise_code, statut_creation, date_creation, consentement_recueilli, adresse, ville, localite, chiffre_affaires, employes_permanents, employes_temporaires, emplois_crees, created_by, organisation_id, updated_at';
+
   // -- Étape 1 : recherche textuelle (si q) → IDs ordonnés par pertinence
   let idsParPertinence: string[] | null = null;
   if (filters.q) {
@@ -260,16 +263,77 @@ export async function listStructures(
     }
   }
 
-  // -- Étape 3 : requête principale
+  // -- Étape 3a : recherche active → pagination CÔTÉ APPLICATION de la liste
+  //    d'IDs triée par pertinence (voir listBeneficiaires pour le rationale :
+  //    évite un .in de plusieurs centaines d'UUID → HTTP 414, et corrige
+  //    l'ordre inter-pages).
+  if (idsParPertinence) {
+    const autresFiltres =
+      Boolean(codesProjetsPS) ||
+      Boolean(filters.projet_code) ||
+      Boolean(filters.pays_code) ||
+      Boolean(filters.type_structure_code) ||
+      Boolean(filters.secteur_activite_code) ||
+      Boolean(filters.nature_appui_code) ||
+      Boolean(filters.statut_creation) ||
+      Boolean(filters.annee_appui) ||
+      Boolean(filters.mien);
+
+    let idsRetenus = idsParPertinence;
+    if (autresFiltres) {
+      let userId: string | null = null;
+      if (filters.mien) {
+        const { data: auth } = await supabase.auth.getUser();
+        userId = auth.user?.id ?? null;
+      }
+      const retenus = new Set<string>();
+      for (let i = 0; i < idsParPertinence.length; i += 100) {
+        const lot = idsParPertinence.slice(i, i + 100);
+        let q2 = supabase.from('structures').select('id').is('deleted_at', null).in('id', lot);
+        if (codesProjetsPS) q2 = q2.in('projet_code', codesProjetsPS);
+        if (filters.projet_code) q2 = q2.eq('projet_code', filters.projet_code);
+        if (filters.pays_code) q2 = q2.eq('pays_code', filters.pays_code);
+        if (filters.type_structure_code)
+          q2 = q2.eq('type_structure_code', filters.type_structure_code);
+        if (filters.secteur_activite_code)
+          q2 = q2.eq('secteur_activite_code', filters.secteur_activite_code);
+        if (filters.nature_appui_code) q2 = q2.eq('nature_appui_code', filters.nature_appui_code);
+        if (filters.statut_creation)
+          q2 = q2.eq(
+            'statut_creation',
+            filters.statut_creation as 'creation' | 'renforcement' | 'relance',
+          );
+        if (filters.annee_appui) q2 = q2.eq('annee_appui', filters.annee_appui);
+        if (filters.mien && userId) q2 = q2.eq('created_by', userId);
+        const { data: okRows, error: e2 } = await q2;
+        if (e2) throw new Error(`Recherche indisponible : ${e2.message}`);
+        for (const r of okRows ?? []) retenus.add((r as { id: string }).id);
+      }
+      idsRetenus = idsParPertinence.filter((id) => retenus.has(id));
+    }
+
+    const total = idsRetenus.length;
+    if (total === 0) {
+      return { rows: [], total: 0, page, pageSize, totalPages: 0 };
+    }
+    const pageIds = idsRetenus.slice(offset, offset + pageSize);
+    const { data, error } = await supabase.from('structures').select(COLONNES).in('id', pageIds);
+    if (error) {
+      throw new Error(`Impossible de charger la liste : ${error.message}`);
+    }
+    const rank = new Map(idsRetenus.map((id, i) => [id, i]));
+    const rows = [...((data ?? []) as StructureListItem[])].sort(
+      (a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity),
+    );
+    return { rows, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
+  }
+
+  // -- Étape 3b : sans recherche → requête principale paginée en base.
   let query = supabase
     .from('structures')
-    .select(
-      'id, nom_structure, type_structure_code, secteur_activite_code, secteur_precis, intitule_initiative, pays_code, projet_code, porteur_nom, porteur_prenom, porteur_sexe, fonction_porteur, telephone_porteur, courriel_porteur, annee_appui, nature_appui_code, montant_appui, devise_code, statut_creation, date_creation, consentement_recueilli, adresse, ville, localite, chiffre_affaires, employes_permanents, employes_temporaires, emplois_crees, created_by, organisation_id, updated_at',
-      { count: 'exact' },
-    )
+    .select(COLONNES, { count: 'exact' })
     .is('deleted_at', null);
 
-  if (idsParPertinence) query = query.in('id', idsParPertinence);
   if (codesProjetsPS) query = query.in('projet_code', codesProjetsPS);
   if (filters.projet_code) query = query.eq('projet_code', filters.projet_code);
   if (filters.pays_code) query = query.eq('pays_code', filters.pays_code);
@@ -288,24 +352,13 @@ export async function listStructures(
     const { data: auth } = await supabase.auth.getUser();
     if (auth.user) query = query.eq('created_by', auth.user.id);
   }
-
-  if (!idsParPertinence) {
-    query = query.order('updated_at', { ascending: false });
-  }
+  query = query.order('updated_at', { ascending: false });
 
   const { data, error, count } = await query.range(offset, offset + pageSize - 1);
-
   if (error) {
     throw new Error(`Impossible de charger la liste : ${error.message}`);
   }
-
-  let rows = (data ?? []) as StructureListItem[];
-
-  if (idsParPertinence) {
-    const rank = new Map(idsParPertinence.map((id, i) => [id, i]));
-    rows = [...rows].sort((a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity));
-  }
-
+  const rows = (data ?? []) as StructureListItem[];
   const total = count ?? rows.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 

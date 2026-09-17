@@ -194,6 +194,9 @@ export async function listBeneficiaires(
   const page = filters.page ?? 1;
   const offset = (page - 1) * pageSize;
 
+  const COLONNES =
+    'id, prenom, nom, sexe, date_naissance, tranche_age_declaree, projet_code, pays_code, partenaire_accompagnement, domaine_formation_code, intitule_formation, modalite_formation_code, annee_formation, date_debut_formation, date_fin_formation, statut_code, fonction_actuelle, consentement_recueilli, telephone, courriel, localite_residence, created_by, organisation_id, updated_at';
+
   // -- Étape 1 : recherche textuelle (si q) → IDs ordonnés par pertinence
   let idsParPertinence: string[] | null = null;
   if (filters.q) {
@@ -223,16 +226,72 @@ export async function listBeneficiaires(
     }
   }
 
-  // -- Étape 3 : requête principale
+  // -- Étape 3a : recherche active → pagination CÔTÉ APPLICATION de la liste
+  //    d'IDs triée par pertinence. On ne récupère en base que les fiches de la
+  //    page courante (.in avec ≤ pageSize UUID). Cela évite une URL PostgREST
+  //    de plusieurs centaines d'UUID (rejetée par la passerelle → HTTP 414,
+  //    « recherche indisponible ») et corrige l'ordre inter-pages.
+  if (idsParPertinence) {
+    const autresFiltres =
+      Boolean(codesProjetsPS) ||
+      Boolean(filters.projet_code) ||
+      Boolean(filters.pays_code) ||
+      Boolean(filters.domaine_formation_code) ||
+      Boolean(filters.annee_formation) ||
+      Boolean(filters.statut_code) ||
+      Boolean(filters.sexe) ||
+      Boolean(filters.mien);
+
+    let idsRetenus = idsParPertinence;
+    if (autresFiltres) {
+      let userId: string | null = null;
+      if (filters.mien) {
+        const { data: auth } = await supabase.auth.getUser();
+        userId = auth.user?.id ?? null;
+      }
+      // Intersection avec les autres filtres, par lots de 100 IDs (URLs courtes).
+      const retenus = new Set<string>();
+      for (let i = 0; i < idsParPertinence.length; i += 100) {
+        const lot = idsParPertinence.slice(i, i + 100);
+        let q2 = supabase.from('beneficiaires').select('id').is('deleted_at', null).in('id', lot);
+        if (codesProjetsPS) q2 = q2.in('projet_code', codesProjetsPS);
+        if (filters.projet_code) q2 = q2.eq('projet_code', filters.projet_code);
+        if (filters.pays_code) q2 = q2.eq('pays_code', filters.pays_code);
+        if (filters.domaine_formation_code)
+          q2 = q2.eq('domaine_formation_code', filters.domaine_formation_code);
+        if (filters.annee_formation) q2 = q2.eq('annee_formation', filters.annee_formation);
+        if (filters.statut_code) q2 = q2.eq('statut_code', filters.statut_code);
+        if (filters.sexe) q2 = q2.eq('sexe', filters.sexe as 'F' | 'M' | 'Autre');
+        if (filters.mien && userId) q2 = q2.eq('created_by', userId);
+        const { data: okRows, error: e2 } = await q2;
+        if (e2) throw new Error(`Recherche indisponible : ${e2.message}`);
+        for (const r of okRows ?? []) retenus.add((r as { id: string }).id);
+      }
+      idsRetenus = idsParPertinence.filter((id) => retenus.has(id));
+    }
+
+    const total = idsRetenus.length;
+    if (total === 0) {
+      return { rows: [], total: 0, page, pageSize, totalPages: 0 };
+    }
+    const pageIds = idsRetenus.slice(offset, offset + pageSize);
+    const { data, error } = await supabase.from('beneficiaires').select(COLONNES).in('id', pageIds);
+    if (error) {
+      throw new Error(`Impossible de charger la liste : ${error.message}`);
+    }
+    const rank = new Map(idsRetenus.map((id, i) => [id, i]));
+    const rows = [...((data ?? []) as BeneficiaireListItem[])].sort(
+      (a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity),
+    );
+    return { rows, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
+  }
+
+  // -- Étape 3b : sans recherche → requête principale paginée en base.
   let query = supabase
     .from('beneficiaires')
-    .select(
-      'id, prenom, nom, sexe, date_naissance, tranche_age_declaree, projet_code, pays_code, partenaire_accompagnement, domaine_formation_code, intitule_formation, modalite_formation_code, annee_formation, date_debut_formation, date_fin_formation, statut_code, fonction_actuelle, consentement_recueilli, telephone, courriel, localite_residence, created_by, organisation_id, updated_at',
-      { count: 'exact' },
-    )
+    .select(COLONNES, { count: 'exact' })
     .is('deleted_at', null);
 
-  if (idsParPertinence) query = query.in('id', idsParPertinence);
   if (codesProjetsPS) query = query.in('projet_code', codesProjetsPS);
   if (filters.projet_code) query = query.eq('projet_code', filters.projet_code);
   if (filters.pays_code) query = query.eq('pays_code', filters.pays_code);
@@ -245,27 +304,13 @@ export async function listBeneficiaires(
     const { data: auth } = await supabase.auth.getUser();
     if (auth.user) query = query.eq('created_by', auth.user.id);
   }
-
-  // Tri : si recherche active, on doit réordonner côté app selon idsParPertinence.
-  // Sinon, tri naturel par updated_at desc.
-  if (!idsParPertinence) {
-    query = query.order('updated_at', { ascending: false });
-  }
+  query = query.order('updated_at', { ascending: false });
 
   const { data, error, count } = await query.range(offset, offset + pageSize - 1);
-
   if (error) {
     throw new Error(`Impossible de charger la liste : ${error.message}`);
   }
-
-  let rows = (data ?? []) as BeneficiaireListItem[];
-
-  // Réordonner selon la pertinence de la recherche si applicable.
-  if (idsParPertinence) {
-    const rank = new Map(idsParPertinence.map((id, i) => [id, i]));
-    rows = [...rows].sort((a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity));
-  }
-
+  const rows = (data ?? []) as BeneficiaireListItem[];
   const total = count ?? rows.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
