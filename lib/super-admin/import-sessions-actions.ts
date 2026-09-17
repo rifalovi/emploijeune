@@ -29,6 +29,8 @@ export type DoublonGroupe = {
   occurrences: number;
   beneficiaire_ids: string[];
   dates_creation: string[];
+  /** Code projet du groupe (segment 3 de cle_identite) — pour le filtre par projet. */
+  projet_code: string;
 };
 
 /** Groupe de doublons de structures (B1) : même nom + pays + projet. */
@@ -37,6 +39,8 @@ export type DoublonGroupeStructure = {
   occurrences: number;
   structure_ids: string[];
   dates_creation: string[];
+  /** Code projet du groupe — pour le filtre par projet. */
+  projet_code: string;
 };
 
 /** Détail d'une fiche bénéficiaire dans un groupe de doublons. */
@@ -114,7 +118,12 @@ export async function detecterDoublons(): Promise<DoublonGroupe[]> {
   const supabase = await createSupabaseServerClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (supabase.rpc as any)('detecter_doublons_v1');
-  return (data ?? []) as DoublonGroupe[];
+  const rows = (data ?? []) as Omit<DoublonGroupe, 'projet_code'>[];
+  // Le projet est le 3ᵉ segment de cle_identite : prenom|nom|projet|annee|pays.
+  return rows.map((g) => ({
+    ...g,
+    projet_code: (g.cle_identite?.split('|')[2] ?? '').trim(),
+  }));
 }
 
 // ── Mutations ────────────────────────────────────────────────────────────────
@@ -242,6 +251,7 @@ export async function detecterDoublonsStructures(): Promise<DoublonGroupeStructu
         occurrences: 1,
         structure_ids: [r.id],
         dates_creation: [r.created_at],
+        projet_code: r.projet_code ?? '',
       });
     }
   }

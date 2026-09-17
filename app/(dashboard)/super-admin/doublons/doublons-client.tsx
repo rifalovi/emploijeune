@@ -9,6 +9,7 @@ import {
   Eye,
   Trash2,
   Search,
+  Filter,
   Loader2,
   Users,
   Building2,
@@ -53,6 +54,7 @@ export function DoublonsClient({ beneficiaires: initBenef, structures: initStruc
     initBenef.length === 0 && initStruct.length > 0 ? 'structures' : 'beneficiaires',
   );
   const [recherche, setRecherche] = useState('');
+  const [projetFiltre, setProjetFiltre] = useState('');
   const [visible, setVisible] = useState(PAGE);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -73,6 +75,17 @@ export function DoublonsClient({ beneficiaires: initBenef, structures: initStruc
   const [occStruct, setOccStruct] = useState<OccurrenceStructure[]>([]);
   const [chargementOcc, setChargementOcc] = useState(false);
 
+  // Liste des projets présents dans l'onglet courant (pour le filtre par projet).
+  const projetsDisponibles = useMemo(() => {
+    const source = onglet === 'beneficiaires' ? benef : struct;
+    const set = new Set<string>();
+    for (const d of source) {
+      const p = (d.projet_code ?? '').trim();
+      if (p) set.add(p);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'fr'));
+  }, [onglet, benef, struct]);
+
   const listeFiltree = useMemo(() => {
     const q = recherche.trim().toLowerCase();
     const base =
@@ -82,20 +95,25 @@ export function DoublonsClient({ beneficiaires: initBenef, structures: initStruc
             occ: d.occurrences,
             dates: d.dates_creation,
             ids: d.beneficiaire_ids,
+            projet: (d.projet_code ?? '').trim(),
           }))
         : struct.map((d) => ({
             cle: d.cle_identite,
             occ: d.occurrences,
             dates: d.dates_creation,
             ids: d.structure_ids,
+            projet: (d.projet_code ?? '').trim(),
           }));
-    if (!q) return base;
-    return base.filter((d) => d.cle.toLowerCase().includes(q));
-  }, [onglet, benef, struct, recherche]);
+    return base.filter(
+      (d) =>
+        (!projetFiltre || d.projet === projetFiltre) && (!q || d.cle.toLowerCase().includes(q)),
+    );
+  }, [onglet, benef, struct, recherche, projetFiltre]);
 
   const changerOnglet = (o: Onglet) => {
     setOnglet(o);
     setRecherche('');
+    setProjetFiltre('');
     setVisible(PAGE);
   };
 
@@ -257,18 +275,52 @@ export function DoublonsClient({ beneficiaires: initBenef, structures: initStruc
         </Card>
       )}
 
-      {/* Recherche */}
-      <div className="relative max-w-sm">
-        <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-slate-400" />
-        <input
-          value={recherche}
-          onChange={(e) => {
-            setRecherche(e.target.value);
-            setVisible(PAGE);
-          }}
-          placeholder="Rechercher une identité…"
-          className="w-full rounded-md border border-slate-300 py-1.5 pr-3 pl-8 text-sm focus:ring-1 focus:ring-purple-500 focus:outline-none"
-        />
+      {/* Recherche + filtre par projet */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-slate-400" />
+          <input
+            value={recherche}
+            onChange={(e) => {
+              setRecherche(e.target.value);
+              setVisible(PAGE);
+            }}
+            placeholder="Rechercher une identité…"
+            className="w-full rounded-md border border-slate-300 py-1.5 pr-3 pl-8 text-sm focus:ring-1 focus:ring-purple-500 focus:outline-none"
+          />
+        </div>
+        <div className="relative">
+          <Filter className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-slate-400" />
+          <select
+            value={projetFiltre}
+            onChange={(e) => {
+              setProjetFiltre(e.target.value);
+              setVisible(PAGE);
+            }}
+            aria-label="Filtrer par projet"
+            className="rounded-md border border-slate-300 py-1.5 pr-8 pl-8 text-sm focus:ring-1 focus:ring-purple-500 focus:outline-none"
+          >
+            <option value="">Tous les projets ({projetsDisponibles.length})</option>
+            {projetsDisponibles.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </div>
+        {projetFiltre && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 px-2 text-xs text-slate-500"
+            onClick={() => {
+              setProjetFiltre('');
+              setVisible(PAGE);
+            }}
+          >
+            Réinitialiser
+          </Button>
+        )}
       </div>
 
       {/* Tableau */}
