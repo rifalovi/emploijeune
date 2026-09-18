@@ -58,14 +58,11 @@ export async function listerHistorique(): Promise<{
 }> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
-    // La table datastudio_jobs n'est pas encore dans les types générés
-    // (migration à appliquer) — cast le temps de régénérer les types.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from('datastudio_jobs' as any)
+    .from('datastudio_jobs')
     .select('id, type, titre, source, statut, created_at')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(20);
   if (error) return { jobs: [], erreur: error.message };
-  return { jobs: (data ?? []) as unknown as HistoriqueJob[], erreur: null };
+  return { jobs: (data ?? []) as HistoriqueJob[], erreur: null };
 }

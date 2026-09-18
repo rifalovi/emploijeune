@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
+import type { Json } from '@/lib/supabase/database.types';
 import { chargerDatasetEnquete } from './queries';
 import type { DatasetInput } from './types';
 
@@ -46,12 +47,8 @@ export async function enregistrerTraitementAction(
     return { ok: false, erreur: 'Accès non autorisé.' };
   }
   const supabase = await createSupabaseServerClient();
-  // Tables datastudio_* pas encore dans les types générés (migration à
-  // appliquer) — cast le temps de régénérer les types.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = supabase as any;
 
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from('datastudio_jobs')
     .insert({
       user_id: utilisateur.user_id,
@@ -59,18 +56,18 @@ export async function enregistrerTraitementAction(
       source_ref: input.source_ref ?? null,
       type: input.type,
       titre: input.titre,
-      params: input.params,
+      params: input.params as Json,
       statut: 'termine',
     })
     .select('id')
     .single();
-  if (error) return { ok: false, erreur: error.message };
+  if (error || !data) return { ok: false, erreur: error?.message ?? 'Insertion échouée.' };
 
-  const jobId = (data as { id: string }).id;
+  const jobId = data.id;
   if (input.payload) {
-    const { error: errResultat } = await sb
+    const { error: errResultat } = await supabase
       .from('datastudio_results')
-      .insert({ job_id: jobId, payload: input.payload, apercu: input.apercu ?? null });
+      .insert({ job_id: jobId, payload: input.payload as Json, apercu: input.apercu ?? null });
     if (errResultat) {
       return { ok: true, id: jobId, erreur: `Résultat non enregistré : ${errResultat.message}` };
     }

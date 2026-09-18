@@ -14,6 +14,142 @@ export type Database = {
   }
   public: {
     Tables: {
+      datastudio_artifacts: {
+        Row: {
+          bucket_path: string
+          created_at: string
+          id: string
+          job_id: string
+          nom_fichier: string
+          taille_octets: number | null
+          type_mime: string | null
+        }
+        Insert: {
+          bucket_path: string
+          created_at?: string
+          id?: string
+          job_id: string
+          nom_fichier: string
+          taille_octets?: number | null
+          type_mime?: string | null
+        }
+        Update: {
+          bucket_path?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          nom_fichier?: string
+          taille_octets?: number | null
+          type_mime?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "datastudio_artifacts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "datastudio_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      datastudio_jobs: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          message: string | null
+          organisation_id: string | null
+          params: Json
+          projet_code: string | null
+          source: string
+          source_ref: string | null
+          statut: Database["public"]["Enums"]["datastudio_job_statut"]
+          titre: string
+          type: Database["public"]["Enums"]["datastudio_job_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          message?: string | null
+          organisation_id?: string | null
+          params?: Json
+          projet_code?: string | null
+          source?: string
+          source_ref?: string | null
+          statut?: Database["public"]["Enums"]["datastudio_job_statut"]
+          titre: string
+          type: Database["public"]["Enums"]["datastudio_job_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          message?: string | null
+          organisation_id?: string | null
+          params?: Json
+          projet_code?: string | null
+          source?: string
+          source_ref?: string | null
+          statut?: Database["public"]["Enums"]["datastudio_job_statut"]
+          titre?: string
+          type?: Database["public"]["Enums"]["datastudio_job_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "datastudio_jobs_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "datastudio_jobs_projet_code_fkey"
+            columns: ["projet_code"]
+            isOneToOne: false
+            referencedRelation: "projets"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      datastudio_results: {
+        Row: {
+          apercu: string | null
+          created_at: string
+          id: string
+          job_id: string
+          payload: Json
+        }
+        Insert: {
+          apercu?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+          payload?: Json
+        }
+        Update: {
+          apercu?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "datastudio_results_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "datastudio_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations_ia: {
         Row: {
           id: string
@@ -2166,6 +2302,15 @@ export type Database = {
       }
     }
     Enums: {
+      datastudio_job_statut: "en_cours" | "termine" | "echec"
+      datastudio_job_type:
+        | "frequency"
+        | "crosstab"
+        | "multi"
+        | "stat_test"
+        | "cleaning"
+        | "report"
+        | "export"
       action_audit: "INSERT" | "UPDATE" | "DELETE" | "SOFT_DELETE" | "RESTORE"
       canal_collecte:
         | "formulaire_web"
@@ -2334,6 +2479,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      datastudio_job_statut: ["en_cours", "termine", "echec"],
+      datastudio_job_type: [
+        "frequency",
+        "crosstab",
+        "multi",
+        "stat_test",
+        "cleaning",
+        "report",
+        "export",
+      ],
       action_audit: ["INSERT", "UPDATE", "DELETE", "SOFT_DELETE", "RESTORE"],
       canal_collecte: [
         "formulaire_web",

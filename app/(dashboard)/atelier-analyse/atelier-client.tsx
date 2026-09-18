@@ -12,12 +12,14 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Database, FlaskConical, Loader2, Sigma, Table2 } from 'lucide-react';
+import { Database, FileText, FlaskConical, Loader2, Sigma, Table2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { MarkdownRenderer } from '@/components/ia/markdown-renderer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -46,10 +48,13 @@ import {
   computeCrosstab,
   computeFrequency,
 } from '@/lib/atelier-analyse/api-client';
+import { genererRapportAction } from '@/lib/atelier-analyse/rapport';
+import { FORMATS_RAPPORT } from '@/lib/atelier-analyse/types';
 import type {
   AnalyzeResponse,
   CrosstabResponse,
   DatasetInput,
+  FormatRapport,
   FrequencyResponse,
   HistoriqueJob,
   IndicateurSource,
@@ -87,6 +92,12 @@ export function AtelierClient({ indicateurs, historique }: Props) {
   const [pctMode, setPctMode] = useState<'Ligne' | 'Colonne'>('Ligne');
   const [cross, setCross] = useState<CrosstabResponse | null>(null);
   const [busyCross, setBusyCross] = useState(false);
+
+  // Rapport (API Claude)
+  const [formatRapport, setFormatRapport] = useState<FormatRapport>('synthese');
+  const [consignes, setConsignes] = useState('');
+  const [rapport, setRapport] = useState<string | null>(null);
+  const [busyRapport, setBusyRapport] = useState(false);
 
   const variables = analyse?.variables ?? [];
 
@@ -170,6 +181,30 @@ export function AtelierClient({ indicateurs, historique }: Props) {
     setVarsSel((prev) => (prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]));
   }
 
+  async function lancerRapport() {
+    if (!freq && !cross) return;
+    setBusyRapport(true);
+    setErreur(null);
+    try {
+      const res = await genererRapportAction({
+        indicateur,
+        indicateurLibelle: indicateurs.find((i) => i.code === indicateur)?.libelle,
+        format: formatRapport,
+        consignes: consignes || undefined,
+        frequences: freq,
+        croisement: cross,
+      });
+      if (res.status === 'succes') {
+        setRapport(res.rapport);
+        router.refresh();
+      } else {
+        setErreur(res.message);
+      }
+    } finally {
+      setBusyRapport(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       {/* Source de données */}
@@ -228,6 +263,9 @@ export function AtelierClient({ indicateurs, historique }: Props) {
             </TabsTrigger>
             <TabsTrigger value="cross" className="gap-1">
               <Table2 className="size-4" /> Croisements
+            </TabsTrigger>
+            <TabsTrigger value="rapport" className="gap-1">
+              <FileText className="size-4" /> Rapport
             </TabsTrigger>
           </TabsList>
 
@@ -426,6 +464,71 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                   </CardContent>
                 </Card>
               ))}
+          </TabsContent>
+
+          {/* --- Rapport (API Claude) --- */}
+          <TabsContent value="rapport" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Générer un rapport</CardTitle>
+                <CardDescription>
+                  Claude rédige un rapport à partir des résultats déjà produits (tri à plat et/ou
+                  croisement de cet indicateur). Les chiffres ne sont ni inventés ni recalculés.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs">Format</p>
+                    <Select
+                      value={formatRapport}
+                      onValueChange={(v) => setFormatRapport((v ?? 'synthese') as FormatRapport)}
+                    >
+                      <SelectTrigger className="w-56">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(FORMATS_RAPPORT).map(([key, f]) => (
+                          <SelectItem key={key} value={key}>
+                            {f.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={lancerRapport} disabled={busyRapport || (!freq && !cross)}>
+                    {busyRapport ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <FileText className="size-4" />
+                    )}
+                    Générer le rapport
+                  </Button>
+                </div>
+                <Textarea
+                  value={consignes}
+                  onChange={(e) => setConsignes(e.target.value)}
+                  placeholder="Consignes complémentaires (optionnel) : angle, public visé, longueur…"
+                  rows={2}
+                />
+                {!freq && !cross && (
+                  <p className="text-muted-foreground text-sm italic">
+                    Produisez d’abord un tri à plat ou un croisement pour alimenter le rapport.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {rapport && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Rapport généré</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MarkdownRenderer>{rapport}</MarkdownRenderer>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       )}

@@ -70,3 +70,28 @@ export type IndicateurSource = {
   code: string;
   libelle: string;
 };
+
+/**
+ * Formats de rapport proposés, avec la consigne de rédaction associée.
+ * Défini ici (module neutre) pour être importable côté client ET serveur —
+ * un module 'use server' ne peut exporter que des fonctions.
+ */
+export const FORMATS_RAPPORT = {
+  synthese: {
+    label: 'Synthèse express',
+    instruction:
+      "Produis une synthèse courte (10-15 lignes) : 3 à 5 constats chiffrés majeurs, puis une phrase de lecture d'ensemble. Va à l'essentiel.",
+  },
+  note_analyse: {
+    label: "Note d'analyse",
+    instruction:
+      "Produis une note d'analyse structurée : Contexte, Méthode (base et effectifs), Principaux résultats (avec chiffres), Lecture croisée si un croisement est fourni, Limites, Recommandations opérationnelles.",
+  },
+  restitution: {
+    label: 'Restitution S&E',
+    instruction:
+      "Produis une restitution de suivi-évaluation : rappel de l'indicateur, résultats par modalité, interprétation orientée pilotage de projet, points d'attention et pistes d'action pour l'équipe S&E de l'OIF.",
+  },
+} as const;
+
+export type FormatRapport = keyof typeof FORMATS_RAPPORT;
