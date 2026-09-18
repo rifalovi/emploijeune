@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Bar,
   BarChart,
@@ -36,7 +37,10 @@ import {
 } from '@/components/ui/table';
 import { couleurRang, tooltipPropsPremium } from '@/lib/design/charts';
 
-import { chargerDatasetEnqueteAction } from '@/lib/atelier-analyse/actions';
+import {
+  chargerDatasetEnqueteAction,
+  enregistrerTraitementAction,
+} from '@/lib/atelier-analyse/actions';
 import {
   analyzeDataset,
   computeCrosstab,
@@ -63,6 +67,7 @@ type Props = {
 };
 
 export function AtelierClient({ indicateurs, historique }: Props) {
+  const router = useRouter();
   const [indicateur, setIndicateur] = useState('');
   const [dataset, setDataset] = useState<DatasetInput | null>(null);
   const [analyse, setAnalyse] = useState<AnalyzeResponse | null>(null);
@@ -116,7 +121,19 @@ export function AtelierClient({ indicateurs, historique }: Props) {
     setBusyFreq(true);
     setErreur(null);
     try {
-      setFreq(await computeFrequency(dataset, varsSel, exclure));
+      const res = await computeFrequency(dataset, varsSel, exclure);
+      setFreq(res);
+      // Enregistrement best-effort dans l'historique (n'interrompt pas l'analyse).
+      await enregistrerTraitementAction({
+        type: 'frequency',
+        titre: `Tris à plat — ${varsSel.length} variable(s)`,
+        source: 'enquete',
+        source_ref: indicateur,
+        params: { cols: varsSel, exclure, indicateur },
+        payload: res as unknown as Record<string, unknown>,
+        apercu: `${varsSel.length} variable(s)`,
+      });
+      router.refresh();
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
     } finally {
@@ -130,7 +147,18 @@ export function AtelierClient({ indicateurs, historique }: Props) {
     setErreur(null);
     try {
       const lyr = layer === AUCUNE ? null : layer;
-      setCross(await computeCrosstab(dataset, row, col, lyr, pctMode));
+      const res = await computeCrosstab(dataset, row, col, lyr, pctMode);
+      setCross(res);
+      await enregistrerTraitementAction({
+        type: 'crosstab',
+        titre: `Croisement ${row} × ${col}`,
+        source: 'enquete',
+        source_ref: indicateur,
+        params: { row, col, layer: lyr, pctMode, indicateur },
+        payload: res as unknown as Record<string, unknown>,
+        apercu: `${res.layers.length} table(s)`,
+      });
+      router.refresh();
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
     } finally {
