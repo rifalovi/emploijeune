@@ -1,0 +1,10 @@
+# Dépendances du moteur SCS DataStudio (version en ligne).
+# Le cœur ne requiert que pandas ; scipy et pyreadstat sont utilisés par les
+# tests statistiques et l'entrée/sortie SPSS et importés paresseusement.
+pandas>=2.2
+scipy>=1.11
+pyreadstat>=1.2
+openpyxl>=3.1
+
+# Développement / tests
+pytest>=8.0
