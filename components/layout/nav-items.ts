@@ -16,6 +16,7 @@ import {
   Activity,
   BarChart2,
   Table2,
+  FlaskConical,
   type LucideIcon,
 } from 'lucide-react';
 import type { RoleUtilisateur } from '@/lib/supabase/auth';
@@ -112,6 +113,12 @@ export const NAV_GROUPS: NavGroupDef[] = [
         href: '/collecte-analytique',
         label: 'Analytique collecte',
         icon: BarChart2,
+        roles: ['super_admin', 'admin_scs'],
+      },
+      {
+        href: '/atelier-analyse',
+        label: "Atelier d'analyse",
+        icon: FlaskConical,
         roles: ['super_admin', 'admin_scs'],
       },
     ],
