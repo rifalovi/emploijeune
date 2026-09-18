@@ -1,9 +1,11 @@
 # Dépendances de la fonction Python Vercel (API SCS DataStudio).
-# Volontairement minimal pour un bundle léger : ingestion en JSON (données
-# d'enquête). pyreadstat (.sav) et openpyxl (Excel) seront ajoutés quand les
-# endpoints d'import .sav / d'export fichiers seront branchés sur Storage.
+# pandas/numpy/scipy : moteur et tests statistiques.
+# pyreadstat : lecture des fichiers SPSS .sav importés depuis Storage.
+# openpyxl : lecture des exports Kobo / CSPro .xlsx.
 fastapi>=0.111
 pydantic>=2
 pandas>=2.2
 numpy>=1.26
 scipy>=1.11
+pyreadstat>=1.2
+openpyxl>=3.1

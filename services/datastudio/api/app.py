@@ -20,6 +20,7 @@ from fastapi import APIRouter, FastAPI, HTTPException  # noqa: E402
 
 from engine import (  # noqa: E402
     ENGINE_VERSION,
+    SurveyDataset,
     build_cross,
     cleaned_frame,
     compute_frequency,
@@ -28,6 +29,7 @@ from engine import (  # noqa: E402
     infer_variable_specs,
     run_tests,
 )
+from engine.sav_io import load_dataset  # noqa: E402
 
 from .auth import AuthUser, CurrentUser  # noqa: E402
 from .schemas import (  # noqa: E402
@@ -35,7 +37,9 @@ from .schemas import (  # noqa: E402
     CleanRequest,
     CrosstabRequest,
     FrequencyRequest,
+    IngestFileRequest,
     MultiRequest,
+    SourceRequest,
     StatTestRequest,
 )
 from .serialize import (  # noqa: E402
@@ -43,6 +47,7 @@ from .serialize import (  # noqa: E402
     frame_to_records,
     frequency_to_json,
 )
+from .storage import StorageError, download_to_temp, validate_object_path  # noqa: E402
 
 PREFIX = "/api/datastudio"
 
@@ -59,16 +64,43 @@ def _require_columns(dataset, *cols: str) -> None:
         )
 
 
-@router.get("/health")
-def health() -> dict:
-    """Sonde de disponibilité (publique)."""
-    return {"status": "ok", "engine": ENGINE_VERSION}
+def _load_from_storage(user: AuthUser, ref: str) -> SurveyDataset:
+    """Charge un dataset depuis un fichier Storage, en vérifiant qu'il appartient
+    à l'utilisateur (1er segment du chemin = son identifiant)."""
+    try:
+        path = validate_object_path(ref)
+    except StorageError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if path.split("/")[0] != user.user_id:
+        raise HTTPException(status_code=403, detail="Fichier non autorisé.")
+    try:
+        tmp = download_to_temp(path)
+    except StorageError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    try:
+        return load_dataset(tmp)
+    except Exception as exc:  # lecture/format
+        raise HTTPException(status_code=422, detail=f"Lecture du fichier impossible : {exc}") from exc
+    finally:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
 
 
-@router.post("/analyze")
-def analyze(req: AnalyzeRequest, user: AuthUser = CurrentUser) -> dict:
-    """Ingestion : décrit les variables, niveaux de mesure et batteries multi."""
-    ds = req.dataset.to_dataset()
+def _resolve_dataset(user: AuthUser, req: SourceRequest) -> SurveyDataset:
+    """Résout la source : fichier Storage (`dataset_ref`) ou JSON en ligne (`dataset`)."""
+    if req.dataset_ref:
+        return _load_from_storage(user, req.dataset_ref)
+    if req.dataset is not None:
+        return req.dataset.to_dataset()
+    raise HTTPException(
+        status_code=422, detail="Aucune source de données (dataset ou dataset_ref)."
+    )
+
+
+def _analyze_payload(ds: SurveyDataset) -> dict:
+    """Métadonnées d'un jeu de données : variables, niveaux de mesure, batteries."""
     specs = infer_variable_specs(ds)
     groups = compute_multi_groups(ds)
     return {
@@ -89,10 +121,38 @@ def analyze(req: AnalyzeRequest, user: AuthUser = CurrentUser) -> dict:
     }
 
 
+@router.get("/health")
+def health() -> dict:
+    """Sonde de disponibilité (publique)."""
+    return {"status": "ok", "engine": ENGINE_VERSION}
+
+
+@router.post("/analyze")
+def analyze(req: AnalyzeRequest, user: AuthUser = CurrentUser) -> dict:
+    """Ingestion : décrit les variables, niveaux de mesure et batteries multi."""
+    ds = _resolve_dataset(user, req)
+    return _analyze_payload(ds)
+
+
+@router.post("/ingest-file")
+def ingest_file(req: IngestFileRequest, user: AuthUser = CurrentUser) -> dict:
+    """Ingère un fichier déposé dans Storage (.sav / Kobo-CSPro .xlsx / .csv...).
+
+    Le fichier est lu côté serveur (pyreadstat pour SPSS) ; on renvoie ses
+    métadonnées et un `dataset_ref` (le chemin) que les calculs suivants
+    référencent — les données volumineuses ne transitent jamais par le client.
+    """
+    ds = _load_from_storage(user, req.path)
+    payload = _analyze_payload(ds)
+    payload["dataset_ref"] = validate_object_path(req.path)
+    payload["name"] = ds.name
+    return payload
+
+
 @router.post("/frequency")
 def frequency(req: FrequencyRequest, user: AuthUser = CurrentUser) -> dict:
     """Tris à plat (Effectif, %, % valide, % cumulé)."""
-    ds = req.dataset.to_dataset()
+    ds = _resolve_dataset(user, req)
     _require_columns(ds, *req.cols)
     freq_results, summary_rows = compute_frequency(ds, req.cols, exclure=req.exclure)
     return frequency_to_json(freq_results, summary_rows)
@@ -101,7 +161,7 @@ def frequency(req: FrequencyRequest, user: AuthUser = CurrentUser) -> dict:
 @router.post("/crosstab")
 def crosstab(req: CrosstabRequest, user: AuthUser = CurrentUser) -> dict:
     """Croisement lignes × colonnes, éventuellement ventilé par une couche."""
-    ds = req.dataset.to_dataset()
+    ds = _resolve_dataset(user, req)
     _require_columns(ds, req.row, req.col, req.layer or "")
     if req.row == req.col or req.layer in (req.row, req.col):
         raise HTTPException(status_code=422, detail="Choisissez des variables différentes.")
@@ -117,7 +177,7 @@ def crosstab(req: CrosstabRequest, user: AuthUser = CurrentUser) -> dict:
 @router.post("/stat-test")
 def stat_test(req: StatTestRequest, user: AuthUser = CurrentUser) -> dict:
     """Tests sur le croisement : Khi² d'indépendance et t-test de Welch."""
-    ds = req.dataset.to_dataset()
+    ds = _resolve_dataset(user, req)
     _require_columns(ds, req.row, req.col)
     if req.row == req.col:
         raise HTTPException(status_code=422, detail="Choisissez deux variables différentes.")
@@ -130,7 +190,7 @@ def stat_test(req: StatTestRequest, user: AuthUser = CurrentUser) -> dict:
 @router.post("/multi")
 def multi(req: MultiRequest, user: AuthUser = CurrentUser) -> dict:
     """Questions à réponses multiples : une batterie précise ou toutes."""
-    ds = req.dataset.to_dataset()
+    ds = _resolve_dataset(user, req)
     groups = compute_multi_groups(ds)
     if not groups:
         return {"groups": {}, "tables": {}}
@@ -155,7 +215,7 @@ def multi(req: MultiRequest, user: AuthUser = CurrentUser) -> dict:
 @router.post("/clean")
 def clean(req: CleanRequest, user: AuthUser = CurrentUser) -> dict:
     """Épuration : renvoie un aperçu de la base épurée et les caractéristiques."""
-    ds = req.dataset.to_dataset()
+    ds = _resolve_dataset(user, req)
     specs = infer_variable_specs(ds)
     cleaned = cleaned_frame(
         ds,

@@ -48,30 +48,71 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
+/**
+ * Source d'un calcul : soit un jeu de données en ligne (`dataset`, cas des
+ * enquêtes), soit un fichier déjà déposé dans Storage (`datasetRef`, cas des
+ * imports .sav — les données volumineuses ne transitent pas par le client).
+ */
+export type ComputeSource = { dataset: DatasetInput } | { datasetRef: string };
+
+function sourceBody(source: ComputeSource): Record<string, unknown> {
+  return 'datasetRef' in source ? { dataset_ref: source.datasetRef } : { dataset: source.dataset };
+}
+
 export function analyzeDataset(dataset: DatasetInput): Promise<AnalyzeResponse> {
   return post<AnalyzeResponse>('/analyze', { dataset });
 }
 
 export function computeFrequency(
-  dataset: DatasetInput,
+  source: ComputeSource,
   cols: string[],
   exclure: boolean,
 ): Promise<FrequencyResponse> {
-  return post<FrequencyResponse>('/frequency', { dataset, cols, exclure });
+  return post<FrequencyResponse>('/frequency', { ...sourceBody(source), cols, exclure });
 }
 
 export function computeCrosstab(
-  dataset: DatasetInput,
+  source: ComputeSource,
   row: string,
   col: string,
   layer: string | null,
   pctMode: 'Ligne' | 'Colonne',
 ): Promise<CrosstabResponse> {
   return post<CrosstabResponse>('/crosstab', {
-    dataset,
+    ...sourceBody(source),
     row,
     col,
     layer,
     pct_mode: pctMode,
   });
+}
+
+/** Réponse d'ingestion d'un fichier : métadonnées + référence Storage. */
+export type IngestFileResponse = AnalyzeResponse & { dataset_ref: string; name: string };
+
+export function ingestFile(path: string): Promise<IngestFileResponse> {
+  return post<IngestFileResponse>('/ingest-file', { path });
+}
+
+/**
+ * Envoie un fichier (.sav, Kobo/CSPro .xlsx, .csv) dans le bucket privé
+ * « datastudio » puis renvoie son chemin. Le chemin est préfixé par
+ * l'identifiant de l'utilisateur (exigé par la RLS et par l'API).
+ */
+export async function uploadSpssFile(file: File): Promise<string> {
+  const supabase = createSupabaseBrowserClient();
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user?.id;
+  if (!userId) {
+    throw new Error('Session expirée. Reconnectez-vous pour importer un fichier.');
+  }
+  const safe = file.name.replace(/[^A-Za-z0-9._-]/g, '_');
+  const path = `${userId}/uploads/${crypto.randomUUID()}_${safe}`;
+  const { error } = await supabase.storage
+    .from('datastudio')
+    .upload(path, file, { upsert: false, contentType: file.type || 'application/octet-stream' });
+  if (error) {
+    throw new Error(`Envoi du fichier échoué : ${error.message}`);
+  }
+  return path;
 }

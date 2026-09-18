@@ -44,38 +44,51 @@ class DatasetInput(BaseModel):
         )
 
 
-class FrequencyRequest(BaseModel):
-    dataset: DatasetInput
+class SourceRequest(BaseModel):
+    """Base des requêtes de calcul : le jeu de données provient soit d'un envoi
+    JSON en ligne (`dataset`, cas des enquêtes), soit d'un fichier déjà déposé
+    dans Storage (`dataset_ref` = chemin de l'objet, cas des imports .sav)."""
+
+    dataset: Optional[DatasetInput] = None
+    dataset_ref: Optional[str] = None
+
+
+class FrequencyRequest(SourceRequest):
     cols: list[str]
     exclure: bool = False
 
 
-class CrosstabRequest(BaseModel):
-    dataset: DatasetInput
+class CrosstabRequest(SourceRequest):
     row: str
     col: str
     layer: Optional[str] = None
     pct_mode: Literal["Ligne", "Colonne"] = "Ligne"
 
 
-class StatTestRequest(BaseModel):
-    dataset: DatasetInput
+class StatTestRequest(SourceRequest):
     row: str
     col: str
 
 
-class MultiRequest(BaseModel):
-    dataset: DatasetInput
+class MultiRequest(SourceRequest):
     # Préfixe d'une batterie précise ; si absent, renvoie toutes les batteries.
     group: Optional[str] = None
 
 
-class CleanRequest(BaseModel):
-    dataset: DatasetInput
+class CleanRequest(SourceRequest):
     drop_empty: bool = True
     key_columns: list[str] = Field(default_factory=list)
     drop_duplicates: bool = True
 
 
-class AnalyzeRequest(BaseModel):
-    dataset: DatasetInput
+class AnalyzeRequest(SourceRequest):
+    pass
+
+
+class IngestFileRequest(BaseModel):
+    """Ingestion d'un fichier déjà déposé dans le bucket Storage « datastudio ».
+
+    `path` est le chemin de l'objet, sous la forme {user_id}/uploads/{fichier}.
+    """
+
+    path: str
