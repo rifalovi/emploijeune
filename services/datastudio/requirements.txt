@@ -1,10 +1,18 @@
-# Dépendances du moteur SCS DataStudio (version en ligne).
-# Le cœur ne requiert que pandas ; scipy et pyreadstat sont utilisés par les
-# tests statistiques et l'entrée/sortie SPSS et importés paresseusement.
+# Dépendances du moteur + API SCS DataStudio (dev / service autonome).
+# Le cœur de calcul ne requiert que pandas ; scipy et pyreadstat sont importés
+# paresseusement (tests statistiques et entrée/sortie SPSS).
 pandas>=2.2
+numpy>=1.26
 scipy>=1.11
 pyreadstat>=1.2
 openpyxl>=3.1
 
+# Couche API (FastAPI). L'authentification JWT Supabase (HS256) n'utilise que la
+# bibliothèque standard — aucune dépendance cryptographique native requise.
+fastapi>=0.111
+pydantic>=2
+uvicorn>=0.30            # service autonome (plan B)
+
 # Développement / tests
 pytest>=8.0
+httpx>=0.27             # client de test FastAPI
