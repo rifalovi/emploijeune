@@ -86,3 +86,9 @@ Thumbs.db
 # Configuration locale Claude Code (sessions dev preview)
 /.claude/
 .vercel
+
+# Python (moteur/API SCS DataStudio)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/

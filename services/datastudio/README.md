@@ -17,10 +17,10 @@ rapports structurés via l'API Claude.
 Les calculs sont portés à l'identique du desktop V4.8 pour garantir des
 résultats strictement identiques entre le bureau et l'en ligne.
 
-Étapes suivantes (voir la trajectoire dans la discussion projet) : couche
-FastAPI / fonctions Vercel Python (Fluid Compute) + auth JWT Supabase ;
-migration Supabase de l'historique ; module UI `atelier-analyse` ; pont Enquête ↔
-DataStudio ; génération de rapports via l'API Claude.
+**Étape 2 (couche API)** et **étape 3 (historique Supabase)** sont désormais en
+place. Étapes suivantes : module UI `atelier-analyse` ; pont Enquête ↔
+DataStudio ; endpoints d'import `.sav` / export fichiers sur Storage ;
+génération de rapports via l'API Claude.
 
 ## Structure
 
@@ -36,7 +36,42 @@ services/datastudio/
 │   ├── stats.py            Khi² d'indépendance, t-test de Welch
 │   ├── cleaning.py         Épuration (manquants, arrondis, dédoublonnage)
 │   └── sav_io.py           Lecture/écriture SPSS (.sav) et chargement multi-format
-└── tests/                  Suite pytest (jeu de données synthétique)
+├── api/                    Couche API FastAPI (étape 2)
+│   ├── app.py              Application + routes /api/datastudio/*
+│   ├── auth.py             Vérification JWT Supabase (HS256, stdlib pure)
+│   ├── schemas.py          Modèles pydantic (entrée/sortie)
+│   └── serialize.py        DataFrame -> JSON
+└── tests/                  Suite pytest (moteur + API)
+```
+
+## API (étape 2)
+
+Déployable en **fonction Python Vercel** (Fluid Compute ; entrypoint
+`api/datastudio/index.py` + `vercel.json` à la racine) ou en **service FastAPI
+autonome** (plan B). Toutes les routes de calcul exigent un **JWT Supabase**
+valide (`Authorization: Bearer`, vérifié en HS256 avec `SUPABASE_JWT_SECRET`) ;
+`/health` est publique.
+
+| Route (préfixe `/api/datastudio`) | Rôle |
+|---|---|
+| `GET /health` | sonde de disponibilité |
+| `POST /analyze` | ingestion : variables, niveaux de mesure, batteries multi |
+| `POST /frequency` | tris à plat |
+| `POST /crosstab` | croisements (couche + sens du %) |
+| `POST /stat-test` | Khi² / t-test de Welch |
+| `POST /multi` | questions à réponses multiples |
+| `POST /clean` | épuration (aperçu + caractéristiques) |
+
+Les données sont transmises en JSON (`dataset.rows` + libellés SPSS optionnels),
+ce qui correspond au flux depuis le module Enquête (JSONB). L'import `.sav`
+depuis Storage sera ajouté ensuite.
+
+Service autonome :
+
+```bash
+cd services/datastudio
+pip install -r requirements.txt
+SUPABASE_JWT_SECRET=... uvicorn api.app:app --reload
 ```
 
 ## Dépendances
