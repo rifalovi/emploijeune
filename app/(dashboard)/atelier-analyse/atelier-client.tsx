@@ -7,20 +7,28 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 import {
+  BarChart3,
+  BookOpen,
   CheckCheck,
+  ClipboardList,
   Database,
   Download,
   FileText,
   FlaskConical,
+  Gauge,
   ListChecks,
   Loader2,
   Search,
+  ScrollText,
   Sigma,
   Sparkles,
   SquareDashed,
@@ -170,6 +178,51 @@ function nomSur(base: string): string {
     .slice(0, 80);
 }
 
+// Guide en ligne adapté (repris de SCS DataStudio desktop, version web/IA).
+const GUIDE_MD = `## Prise en main de l'Atelier d'analyse
+
+L'Atelier reprend le moteur **SCS DataStudio** dans la plateforme, augmenté de l'IA. Le fichier source n'est jamais modifié : tous les calculs sont produits à la demande.
+
+### 1. Choisir la source
+- **Depuis une enquête** : sélectionnez un indicateur de la plateforme.
+- **Importer un fichier** : SPSS (.sav), Excel (.xlsx/.xls), LibreOffice (.ods), CSV/TSV/TAB, JSON, tableau Word (.docx), exports Kobo/CSPro.
+
+### 2. Explorer les données (section Données)
+- **Caractéristiques** : type de mesure (Nominale / Ordinale / Échelle) et cardinalité de chaque variable.
+- **Diagnostic** : vue d'ensemble du jeu de données (volume, types, variables techniques, batteries multi-réponses).
+- **Nettoyage** : aperçu d'une base épurée (lignes vides, doublons).
+
+### 3. Analyser (section Analyses)
+- **Tris à plat** : effectifs, %, % valide, % cumulé — recherche et filtres par type, présélection intelligente.
+- **Croisements** : tableaux croisés, couche/filtre, % ligne ou colonne.
+- **Tests statistiques** : Khi² d'indépendance et t-test de Welch.
+- **Réponses multiples** : batteries de questions 0/1.
+- **Graphiques** : barres ou camembert d'une variable.
+
+### 4. Restituer
+- **Rapport** : l'IA rédige une note à partir des résultats produits (jamais de chiffres inventés).
+
+### 5. Exporter
+- **CSV** et **Excel** mis en forme par tableau, **Export global** (un classeur), **Word documenté**, **PDF** du rapport.
+
+> Un signal détecté n'est pas une erreur confirmée : confrontez toujours au questionnaire et aux règles métier.`;
+
+const METHODE_MD = `## Méthodologie, IA et limites
+
+### Démarche reproductible
+1. Conserver le fichier source sans le modifier.
+2. Inventorier variables, libellés et types de mesure.
+3. Détecter valeurs manquantes, doublons stricts et incohérences de type.
+4. Épurer explicitement (transformations réversibles).
+5. Analyser sur la base active et filtrée, puis restituer.
+6. Valider humainement les règles métier avant diffusion.
+
+### Part confiée à l'IA
+L'IA aide à **rédiger** et **structurer** les rapports à partir des résultats calculés. Elle **ne décide pas seule** qu'une réponse est fausse, ne supprime personne, n'impute aucune valeur et ne transforme aucune catégorie métier. Les chiffres proviennent du moteur, pas du modèle.
+
+### Limites
+Un fichier lisible et un programme sans erreur ne prouvent pas l'exactitude des données. Les valeurs atypiques restent des signaux à vérifier. Pour les fichiers SPSS, les libellés de variables et de valeurs sont conservés.`;
+
 type Props = {
   indicateurs: IndicateurSource[];
   historique: { jobs: HistoriqueJob[]; erreur: string | null };
@@ -217,6 +270,12 @@ export function AtelierClient({ indicateurs, historique }: Props) {
   const [clean, setClean] = useState<CleanResponse | null>(null);
   const [busyClean, setBusyClean] = useState(false);
 
+  // Graphiques
+  const [graphVar, setGraphVar] = useState('');
+  const [graphType, setGraphType] = useState<'barres' | 'camembert'>('barres');
+  const [graphFreq, setGraphFreq] = useState<FrequencyResponse | null>(null);
+  const [busyGraph, setBusyGraph] = useState(false);
+
   // Rapport (API Claude)
   const [formatRapport, setFormatRapport] = useState<FormatRapport>('synthese');
   const [consignes, setConsignes] = useState('');
@@ -248,6 +307,7 @@ export function AtelierClient({ indicateurs, historique }: Props) {
     setStat(null);
     setMulti(null);
     setClean(null);
+    setGraphFreq(null);
     setRapport(null);
     setAnalyse(null);
   }
@@ -264,6 +324,8 @@ export function AtelierClient({ indicateurs, historique }: Props) {
     setCol(second);
     setStatRow(first);
     setStatCol(second);
+    setGraphVar(first);
+    setGraphFreq(null);
   }
 
   async function charger() {
@@ -433,6 +495,19 @@ export function AtelierClient({ indicateurs, historique }: Props) {
     }
   }
 
+  async function lancerGraph() {
+    if (!source || !graphVar) return;
+    setBusyGraph(true);
+    setErreur(null);
+    try {
+      setGraphFreq(await computeFrequency(source, [graphVar], true));
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyGraph(false);
+    }
+  }
+
   async function lancerRapport() {
     if (!freq && !cross) return;
     setBusyRapport(true);
@@ -568,10 +643,22 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                 {analyse.n_rows} lignes · {variables.length} variables
               </p>
             </div>
-            <p className="text-muted-foreground px-1 text-xs font-medium tracking-wide uppercase">
-              Commandes
-            </p>
             <TabsList className="flex h-auto w-full flex-col items-stretch gap-1 bg-transparent p-0">
+              <p className="text-muted-foreground px-1 pt-1 text-[10px] font-semibold tracking-wider uppercase">
+                Données
+              </p>
+              <TabsTrigger value="specs" className="w-full justify-start gap-2">
+                <ClipboardList className="size-4" /> Caractéristiques
+              </TabsTrigger>
+              <TabsTrigger value="diag" className="w-full justify-start gap-2">
+                <Gauge className="size-4" /> Diagnostic
+              </TabsTrigger>
+              <TabsTrigger value="clean" className="w-full justify-start gap-2">
+                <Wand2 className="size-4" /> Nettoyage
+              </TabsTrigger>
+              <p className="text-muted-foreground px-1 pt-2 text-[10px] font-semibold tracking-wider uppercase">
+                Analyses
+              </p>
               <TabsTrigger value="freq" className="w-full justify-start gap-2">
                 <Sigma className="size-4" /> Tris à plat
               </TabsTrigger>
@@ -584,11 +671,23 @@ export function AtelierClient({ indicateurs, historique }: Props) {
               <TabsTrigger value="multi" className="w-full justify-start gap-2">
                 <ListChecks className="size-4" /> Réponses multiples
               </TabsTrigger>
-              <TabsTrigger value="clean" className="w-full justify-start gap-2">
-                <Wand2 className="size-4" /> Nettoyage
+              <TabsTrigger value="graph" className="w-full justify-start gap-2">
+                <BarChart3 className="size-4" /> Graphiques
               </TabsTrigger>
+              <p className="text-muted-foreground px-1 pt-2 text-[10px] font-semibold tracking-wider uppercase">
+                Restitution
+              </p>
               <TabsTrigger value="rapport" className="w-full justify-start gap-2">
                 <FileText className="size-4" /> Rapport
+              </TabsTrigger>
+              <p className="text-muted-foreground px-1 pt-2 text-[10px] font-semibold tracking-wider uppercase">
+                Aide
+              </p>
+              <TabsTrigger value="guide" className="w-full justify-start gap-2">
+                <BookOpen className="size-4" /> Guide
+              </TabsTrigger>
+              <TabsTrigger value="method" className="w-full justify-start gap-2">
+                <ScrollText className="size-4" /> Méthodologie
               </TabsTrigger>
             </TabsList>
             <Separator />
@@ -1317,6 +1416,219 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* --- Caractéristiques des variables --- */}
+          <TabsContent value="specs" className="mt-0 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Caractéristiques des variables</CardTitle>
+                <CardDescription>
+                  Type de mesure inféré (Nominale / Ordinale / Échelle) et nombre de valeurs
+                  distinctes (cardinalité) de chaque variable.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Variable</TableHead>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Type de mesure</TableHead>
+                      <TableHead className="text-right">Cardinalité</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {variables.map((v) => {
+                      const m = MESURES[v.measure];
+                      return (
+                        <TableRow key={v.name}>
+                          <TableCell className="max-w-md truncate" title={v.display}>
+                            {v.display}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">{v.name}</TableCell>
+                          <TableCell>
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${m?.classe ?? 'bg-muted text-muted-foreground'}`}
+                            >
+                              {v.measure}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">{v.cardinality}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* --- Diagnostic --- */}
+          <TabsContent value="diag" className="mt-0 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Diagnostic du jeu de données</CardTitle>
+                <CardDescription>
+                  Vue d’ensemble technique à partir des métadonnées (volume, types de mesure,
+                  variables techniques, batteries de réponses multiples).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const nTech = variables.filter((v) =>
+                    estVariableTechnique(v, analyse.n_rows),
+                  ).length;
+                  const parType = (m: string) => variables.filter((v) => v.measure === m).length;
+                  const cardMoy = variables.length
+                    ? Math.round(
+                        variables.reduce((s, v) => s + v.cardinality, 0) / variables.length,
+                      )
+                    : 0;
+                  const tiles: { valeur: string | number; label: string }[] = [
+                    { valeur: analyse.n_rows, label: 'Lignes' },
+                    { valeur: variables.length, label: 'Variables' },
+                    { valeur: parType('NOMINAL'), label: 'Nominales' },
+                    { valeur: parType('ORDINAL'), label: 'Ordinales' },
+                    { valeur: parType('ÉCHELLE'), label: 'Échelle' },
+                    { valeur: nTech, label: 'Techniques (exclues)' },
+                    { valeur: Object.keys(analyse.multi_groups).length, label: 'Batteries multi' },
+                    { valeur: cardMoy, label: 'Cardinalité moyenne' },
+                  ];
+                  return (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {tiles.map((t) => (
+                        <div key={t.label} className="bg-muted/40 rounded-lg border p-3">
+                          <p className="text-2xl font-semibold tabular-nums">{t.valeur}</p>
+                          <p className="text-muted-foreground text-xs">{t.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* --- Graphiques --- */}
+          <TabsContent value="graph" className="mt-0 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Graphiques</CardTitle>
+                <CardDescription>
+                  Visualisez la répartition d’une variable (barres ou camembert). Les valeurs
+                  manquantes sont exclues.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap items-end gap-3">
+                <SelectChamp
+                  label="Variable"
+                  value={graphVar}
+                  onChange={setGraphVar}
+                  options={variables}
+                />
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs">Type</p>
+                  <Select
+                    value={graphType}
+                    onValueChange={(v) => setGraphType((v ?? 'barres') as 'barres' | 'camembert')}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="barres">Barres</SelectItem>
+                      <SelectItem value="camembert">Camembert</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={lancerGraph} disabled={busyGraph || !graphVar}>
+                  {busyGraph ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <BarChart3 className="size-4" />
+                  )}
+                  Générer
+                </Button>
+              </CardContent>
+            </Card>
+
+            {graphFreq && graphFreq.tables[graphVar] && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">{libelleVariable(graphVar)}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const data = graphFreq.tables[graphVar]!.filter(
+                      (r) => r.Modalité !== 'Total' && r.Modalité !== '[Manquant]',
+                    ).map((r) => ({ modalite: r.Modalité, effectif: r.Effectif }));
+                    return (
+                      <div className="h-80 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          {graphType === 'barres' ? (
+                            <BarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                              <XAxis
+                                dataKey="modalite"
+                                tick={{ fontSize: 11 }}
+                                interval={0}
+                                angle={-20}
+                                textAnchor="end"
+                                height={70}
+                              />
+                              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                              <Tooltip {...tooltipPropsPremium} />
+                              <Bar dataKey="effectif" radius={[4, 4, 0, 0]}>
+                                {data.map((_, i) => (
+                                  <Cell key={i} fill={couleurRang(i)} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          ) : (
+                            <PieChart>
+                              <Tooltip {...tooltipPropsPremium} />
+                              <Legend />
+                              <Pie
+                                data={data}
+                                dataKey="effectif"
+                                nameKey="modalite"
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={110}
+                                label
+                              >
+                                {data.map((_, i) => (
+                                  <Cell key={i} fill={couleurRang(i)} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          )}
+                        </ResponsiveContainer>
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* --- Guide --- */}
+          <TabsContent value="guide" className="mt-0 space-y-4">
+            <Card>
+              <CardContent className="pt-6">
+                <MarkdownRenderer>{GUIDE_MD}</MarkdownRenderer>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* --- Méthodologie --- */}
+          <TabsContent value="method" className="mt-0 space-y-4">
+            <Card>
+              <CardContent className="pt-6">
+                <MarkdownRenderer>{METHODE_MD}</MarkdownRenderer>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       )}
