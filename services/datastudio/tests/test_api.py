@@ -235,6 +235,20 @@ def test_clean_drop_missing_removes_incomplete_rows():
     assert body["n_rows_cleaned"] == 5
 
 
+def test_clean_key_columns_targeted():
+    # Épuration ciblée : seule la variable obligatoire Q1_sexe compte. La ligne
+    # dont Q1_sexe est vide est retirée ; les autres (complètes sur Q1_sexe) restent.
+    r = client.post(
+        "/api/datastudio/clean",
+        json={"dataset": DATASET, "key_columns": ["Q1_sexe"]},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["n_rows_source"] == 6
+    assert body["n_rows_cleaned"] == 5
+
+
 def test_list_exclure_vides():
     # Liste sur la seule variable Q1_sexe (une valeur manquante) : la ligne
     # entièrement vide sur les colonnes listées est masquée.

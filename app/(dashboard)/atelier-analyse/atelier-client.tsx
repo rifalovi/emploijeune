@@ -315,7 +315,11 @@ export function AtelierClient({
   // Nettoyage / épuration de la base
   const [dropEmpty, setDropEmpty] = useState(true);
   const [dropDuplicates, setDropDuplicates] = useState(true);
-  // Retirer les lignes comportant au moins une valeur manquante (incomplètes).
+  // Variables OBLIGATOIRES : une ligne est retirée si l'une d'elles est vide
+  // (ex. nom, prénom, contact). Épuration ciblée plutôt qu'aveugle.
+  const [keyCols, setKeyCols] = useState<string[]>([]);
+  // Option agressive : ne garder que les lignes 100 % complètes (toute valeur
+  // manquante, sur n'importe quelle variable, entraîne le retrait).
   const [dropMissing, setDropMissing] = useState(false);
   const [clean, setClean] = useState<CleanResponse | null>(null);
   const [busyClean, setBusyClean] = useState(false);
@@ -411,6 +415,7 @@ export function AtelierClient({
     setRapport(null);
     setAnalyse(null);
     setBaseEpuree(false);
+    setKeyCols([]);
   }
 
   function appliquerAnalyse(a: AnalyzeResponse) {
@@ -606,7 +611,12 @@ export function AtelierClient({
     setBusyClean(true);
     setErreur(null);
     try {
-      const res = await computeClean(source, { dropEmpty, dropDuplicates, dropMissing });
+      const res = await computeClean(source, {
+        dropEmpty,
+        dropDuplicates,
+        dropMissing,
+        keyColumns: keyCols,
+      });
       setClean(res);
       await enregistrerTraitementAction({
         type: 'cleaning',
@@ -617,6 +627,7 @@ export function AtelierClient({
           drop_empty: dropEmpty,
           drop_duplicates: dropDuplicates,
           drop_missing: dropMissing,
+          key_columns: keyCols,
           source: sourceRef,
           _reload: reloadInfo,
         },
@@ -646,6 +657,7 @@ export function AtelierClient({
         dropEmpty,
         dropDuplicates,
         dropMissing,
+        keyColumns: keyCols,
         full: true,
       });
       if (!res.dataset || !Array.isArray(res.dataset.rows)) {
@@ -674,8 +686,16 @@ export function AtelierClient({
           drop_empty: dropEmpty,
           drop_duplicates: dropDuplicates,
           drop_missing: dropMissing,
+          key_columns: keyCols,
           source: sourceRef,
-          _reload: { kind: 'epuree', base: reloadInfo, dropEmpty, dropDuplicates, dropMissing },
+          _reload: {
+            kind: 'epuree',
+            base: reloadInfo,
+            dropEmpty,
+            dropDuplicates,
+            dropMissing,
+            keyCols,
+          },
         },
         apercu: `Base de travail : ${res.n_rows_cleaned} lignes (${res.n_removed} retirée(s))`,
       });
@@ -802,6 +822,7 @@ export function AtelierClient({
         dropEmpty?: boolean;
         dropDuplicates?: boolean;
         dropMissing?: boolean;
+        keyCols?: string[];
       } | null;
 
       // Base épurée enregistrée : on recharge la source d'origine puis on
@@ -834,8 +855,10 @@ export function AtelierClient({
             dropEmpty: reload.dropEmpty ?? true,
             dropDuplicates: reload.dropDuplicates ?? true,
             dropMissing: reload.dropMissing ?? false,
+            keyColumns: Array.isArray(reload.keyCols) ? reload.keyCols : [],
             full: true,
           });
+          setKeyCols(Array.isArray(reload.keyCols) ? reload.keyCols : []);
           if (res.dataset && Array.isArray(res.dataset.rows)) {
             setDataset(res.dataset);
             setDatasetRef(null);
@@ -1758,11 +1781,13 @@ export function AtelierClient({
               <CardHeader>
                 <CardTitle className="text-base">Épuration de la base</CardTitle>
                 <CardDescription>
-                  Produit un aperçu de la base nettoyée. Les données source ne sont pas modifiées :
-                  l’aperçu et ses caractéristiques sont enregistrés dans l’historique.
+                  Nettoyage <strong>ciblé</strong> : on ne retire que les lignes vides, les doublons
+                  et — si vous le précisez — celles où une information <em>obligatoire</em> manque.
+                  On ne supprime pas des lignes utiles juste parce qu’une donnée secondaire est
+                  absente.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="flex items-center gap-2 text-sm">
                     <Switch checked={dropEmpty} onCheckedChange={setDropEmpty} />
@@ -1772,10 +1797,48 @@ export function AtelierClient({
                     <Switch checked={dropDuplicates} onCheckedChange={setDropDuplicates} />
                     Retirer les doublons
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
+                </div>
+
+                {/* Épuration CIBLÉE : on ne retire que les lignes auxquelles il
+                    manque une information jugée obligatoire (nom, contact…). */}
+                <div className="space-y-2 rounded-md border p-3">
+                  <p className="text-sm font-medium">
+                    Variables obligatoires{' '}
+                    <span className="text-muted-foreground font-normal">
+                      — une ligne est retirée uniquement si l’une d’elles est vide
+                    </span>
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    Sélectionnez les informations indispensables à l’analyse (ex. nom, prénom,
+                    contact, pays…). Les lignes complètes sur ces variables sont conservées, même
+                    s’il leur manque des informations secondaires. Laissez vide pour ne rien retirer
+                    sur ce critère.
+                  </p>
+                  {analyse ? (
+                    <VariablePicker
+                      variables={variables}
+                      selected={keyCols}
+                      onChange={setKeyCols}
+                    />
+                  ) : (
+                    <p className="text-muted-foreground text-sm italic">
+                      Chargez une base pour choisir les variables obligatoires.
+                    </p>
+                  )}
+                  <label className="flex items-center gap-2 pt-1 text-sm">
                     <Switch checked={dropMissing} onCheckedChange={setDropMissing} />
-                    Retirer les lignes avec valeurs manquantes
+                    <span>
+                      Ne garder que les lignes <strong>100 % complètes</strong>
+                      <span className="text-muted-foreground">
+                        {' '}
+                        (retire toute ligne à laquelle il manque une valeur, sur n’importe quelle
+                        variable — à utiliser avec prudence)
+                      </span>
+                    </span>
                   </label>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
                   <Button variant="outline" onClick={lancerClean} disabled={busyClean}>
                     {busyClean ? (
                       <Loader2 className="size-4 animate-spin" />
