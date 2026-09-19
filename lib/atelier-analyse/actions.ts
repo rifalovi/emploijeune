@@ -89,6 +89,30 @@ export async function enregistrerTraitementAction(
   return { ok: true, id: jobId };
 }
 
+/**
+ * Vide l'archive des traitements de l'utilisateur courant (soft-delete).
+ * RÉSERVÉ au super_admin (les autres n'ont pas cette action).
+ */
+export async function viderHistoriqueAction(): Promise<{
+  ok: boolean;
+  count?: number;
+  erreur?: string;
+}> {
+  const utilisateur = await requireUtilisateurValide();
+  if (utilisateur.role !== 'super_admin') {
+    return { ok: false, erreur: 'Action réservée au super administrateur.' };
+  }
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('datastudio_jobs')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('user_id', utilisateur.user_id)
+    .is('deleted_at', null)
+    .select('id');
+  if (error) return { ok: false, erreur: error.message };
+  return { ok: true, count: data?.length ?? 0 };
+}
+
 export type TraitementDetail = {
   id: string;
   type: string;

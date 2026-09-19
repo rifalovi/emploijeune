@@ -38,6 +38,9 @@ export type GenererRapportInput = {
   structureLibre?: string;
   /** Réponses de l'utilisateur aux questions de compréhension (Q → R). */
   precisions?: string;
+  /** Texte d'un fichier modèle/ressource joint (trame de présentation). */
+  modeleTexte?: string;
+  modeleNom?: string;
 };
 
 function fmtPct(v: number | null): string {
@@ -103,17 +106,24 @@ export type ClarifierRapportInput = {
   consignes?: string;
   /** Libellés des variables disponibles (aide l'IA à rattacher les axes). */
   variables?: string[];
+  /** Texte d'un fichier modèle/ressource joint par l'utilisateur (facultatif). */
+  modeleTexte?: string;
+  modeleNom?: string;
 };
 
 /**
- * Demande à l'IA de formuler des QUESTIONS DE COMPRÉHENSION pour lever les
- * ambiguïtés des axes demandés (ex. distinguer « utilisation des compétences »
- * de « retombées ») AVANT de rédiger le rapport. L'utilisateur y répond, et ses
- * réponses sont réinjectées dans la génération. Réservé SCS / super_admin.
+ * À partir de la DEMANDE de l'utilisateur (structure / axes du rapport), l'IA
+ * évalue si la requête est assez claire. Si oui, elle ne pose AUCUNE question.
+ * Sinon, elle formule quelques questions STRICTEMENT dérivées de cette demande
+ * pour mieux structurer le rapport, et peut suggérer de joindre un fichier
+ * modèle/ressource. Réservé SCS / super_admin.
  */
 export async function clarifierRapportAction(
   input: ClarifierRapportInput,
-): Promise<{ status: 'succes'; questions: string[] } | { status: 'erreur'; message: string }> {
+): Promise<
+  | { status: 'succes'; questions: string[]; suggestion: string }
+  | { status: 'erreur'; message: string }
+> {
   const utilisateur = await requireUtilisateurValide();
   if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
     return { status: 'erreur', message: 'Accès non autorisé.' };
@@ -123,30 +133,47 @@ export async function clarifierRapportAction(
     return { status: 'erreur', message: 'ANTHROPIC_API_KEY absente du serveur.' };
   }
   const structure = (input.structureLibre ?? '').trim();
+  if (!structure) {
+    return {
+      status: 'erreur',
+      message: 'Renseignez d’abord la structure / les axes du rapport souhaité.',
+    };
+  }
   const vars = (input.variables ?? []).slice(0, 120);
+  const modele = (input.modeleTexte ?? '').trim();
 
   const system =
-    "Tu es analyste senior en suivi-évaluation à l'OIF. Avant de rédiger un rapport, tu poses des " +
-    'QUESTIONS DE COMPRÉHENSION courtes et ciblées pour lever les ambiguïtés sur le sens exact des ' +
-    'axes demandés et les rattacher aux bonnes variables. Distingue notamment, dans la chaîne de ' +
-    'résultats : les ACTIVITÉS menées, l’ACQUISITION des compétences, l’UTILISATION des compétences ' +
-    '(comment les bénéficiaires ont mis en pratique les acquis issus de l’appui — usage effectif) et ' +
-    'les RETOMBÉES / effets induits (effets survenus APRÈS et du fait de cet usage). Si un axe peut ' +
-    'renvoyer à plusieurs variables ou à plusieurs maillons, demande lequel. ' +
-    'Réponds UNIQUEMENT par un tableau JSON de 2 à 6 chaînes (les questions), sans autre texte, ex. ' +
-    '["Par « utilisation des compétences », entendez-vous …"," …"]. Si tout est clair, renvoie [].';
+    "Tu es analyste senior en suivi-évaluation à l'OIF. On te fournit la DEMANDE d'un utilisateur " +
+    'décrivant la structure et les axes du rapport qu’il veut. Ta seule tâche : juger si SA demande ' +
+    'est assez claire et complète pour rédiger un rapport fidèle à son intention. ' +
+    '- Si la demande est claire et exploitable, ne pose AUCUNE question (tableau vide). ' +
+    '- Sinon, formule 1 à 5 questions COURTES, dérivées STRICTEMENT de SA demande (ses propres ' +
+    'termes, axes et intentions), pour lever les ambiguïtés réelles et préciser ce qu’il attend. ' +
+    'Ne plaque JAMAIS une grille toute faite ni un exemple préétabli : pars uniquement de ce qu’il ' +
+    'a écrit. Utilise ta connaissance du suivi-évaluation seulement pour repérer une vraie ambiguïté ' +
+    'dans SES mots (un terme qui peut renvoyer à plusieurs choses, un axe imprécis…). ' +
+    (modele
+      ? 'Un fichier MODÈLE/RESSOURCE est fourni : tiens-en compte (structure, rubriques attendues). '
+      : 'Si un document modèle (trame, rapport-type) ou une ressource aiderait à cadrer sa demande, ' +
+        'tu peux le suggérer dans « suggestion ». ') +
+    'Réponds STRICTEMENT en JSON, sans aucun texte autour : ' +
+    '{"questions": ["…"], "suggestion": "…"}. « questions » vide si tout est clair ; « suggestion » ' +
+    'vide s’il n’y a rien à suggérer.';
 
   const userMessage =
     `Format de rapport : ${FORMATS_RAPPORT[input.format]?.label ?? input.format}\n\n` +
-    (structure ? `Structure / axes demandés :\n${structure}\n\n` : '') +
-    (input.consignes ? `Consignes : ${input.consignes}\n\n` : '') +
-    (vars.length ? `Variables disponibles dans la base :\n- ${vars.join('\n- ')}\n` : '');
+    `Demande de l’utilisateur (structure / axes souhaités) :\n${structure}\n\n` +
+    (input.consignes ? `Consignes complémentaires : ${input.consignes}\n\n` : '') +
+    (vars.length ? `Variables disponibles dans la base :\n- ${vars.join('\n- ')}\n\n` : '') +
+    (modele
+      ? `Fichier modèle joint${input.modeleNom ? ` (${input.modeleNom})` : ''} :\n${modele.slice(0, 6000)}\n`
+      : '');
 
   const client = new Anthropic({ apiKey });
   try {
     const reponse = await client.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 1000,
+      max_tokens: 1200,
       system,
       messages: [{ role: 'user', content: userMessage }],
     });
@@ -156,29 +183,58 @@ export async function clarifierRapportAction(
       .join('')
       .trim();
     let questions: string[] = [];
+    let suggestion = '';
     try {
-      const m = /\[[\s\S]*\]/.exec(texte);
-      const parsed = JSON.parse(m ? m[0] : texte);
-      if (Array.isArray(parsed)) {
-        questions = parsed
+      const m = /\{[\s\S]*\}/.exec(texte);
+      const parsed = JSON.parse(m ? m[0] : texte) as {
+        questions?: unknown;
+        suggestion?: unknown;
+      };
+      if (Array.isArray(parsed.questions)) {
+        questions = parsed.questions
           .map((q) => String(q).trim())
           .filter(Boolean)
           .slice(0, 6);
       }
+      suggestion = typeof parsed.suggestion === 'string' ? parsed.suggestion.trim() : '';
     } catch {
       // Repli : une question par ligne si le JSON n'a pas pu être lu.
       questions = texte
         .split('\n')
         .map((l) => l.replace(/^[-*\d.\s]+/, '').trim())
-        .filter((l) => l.length > 8)
+        .filter((l) => l.length > 8 && l.includes('?'))
         .slice(0, 6);
     }
-    return { status: 'succes', questions };
+    return { status: 'succes', questions, suggestion };
   } catch (e) {
     const status = (e as { status?: number } | null)?.status;
     console.error('[atelier-analyse] Échec questions de clarification', { status });
     return { status: 'erreur', message: 'Génération des questions impossible. Réessayez.' };
   }
+}
+
+/**
+ * Extrait le texte d'un fichier MODÈLE/RESSOURCE joint par l'utilisateur (déposé
+ * dans le bucket « datastudio »). Sert de trame de présentation au rapport.
+ */
+export async function extraireModeleRapportAction(
+  path: string,
+): Promise<
+  { status: 'succes'; nom: string; texte: string } | { status: 'erreur'; message: string }
+> {
+  const utilisateur = await requireUtilisateurValide();
+  if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
+    return { status: 'erreur', message: 'Accès non autorisé.' };
+  }
+  const { extraireTexteFichierStockage } = await import('./rag');
+  const { nom, texte } = await extraireTexteFichierStockage(path);
+  if (!texte) {
+    return {
+      status: 'erreur',
+      message: 'Fichier illisible ou vide. Formats acceptés : PDF, Word (.docx), texte.',
+    };
+  }
+  return { status: 'succes', nom, texte };
 }
 
 /**
@@ -266,6 +322,11 @@ export async function genererRapportAction(
         'appuie-toi STRICTEMENT sur ces précisions pour interpréter ses axes et rattacher chaque ' +
         'axe aux bonnes variables/réponses.'
       : '') +
+    (input.modeleTexte
+      ? ' Un fichier MODÈLE/RESSOURCE est fourni : inspire-toi de sa STRUCTURE, ses rubriques, son ' +
+        'plan et son style pour présenter le rapport — mais n’en reprends AUCUN chiffre (seuls les ' +
+        '« Résultats calculés » font foi).'
+      : '') +
     (structure
       ? ' L’utilisateur impose une structure/des axes précis (fournis ci-après) : respecte-les ' +
         'fidèlement, dans l’ordre indiqué, comme plan du rapport.'
@@ -281,6 +342,9 @@ export async function genererRapportAction(
     (structure ? `Structure / axes demandés (à respecter fidèlement) :\n${structure}\n\n` : '') +
     (input.precisions
       ? `Précisions de l’utilisateur (questions de compréhension → réponses) :\n${input.precisions}\n\n`
+      : '') +
+    (input.modeleTexte
+      ? `Fichier modèle / ressource joint${input.modeleNom ? ` (${input.modeleNom})` : ''} — à suivre pour la présentation, sans en tirer de chiffres :\n${input.modeleTexte.slice(0, 12000)}\n\n`
       : '') +
     (input.consignes ? `Consignes complémentaires : ${input.consignes}\n` : '');
 

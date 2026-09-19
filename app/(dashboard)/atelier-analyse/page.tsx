@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import { exigerAccesDataStudio } from '@/lib/super-admin/permissions';
+import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import {
   listerHistorique,
   listerIndicateursSource,
@@ -25,6 +26,8 @@ export default async function AtelierAnalysePage() {
   // Accès réservé : super administrateur, ou tout utilisateur explicitement
   // autorisé au module SCS DataStudio (permissions_delegues).
   await exigerAccesDataStudio();
+  const utilisateur = await requireUtilisateurValide();
+  const estSuperAdmin = utilisateur.role === 'super_admin';
 
   const [indicateurs, historique, documentsReference, programmes, projets] = await Promise.all([
     listerIndicateursSource(),
@@ -51,6 +54,7 @@ export default async function AtelierAnalysePage() {
         documentsReference={documentsReference}
         programmes={programmes}
         projets={projets}
+        estSuperAdmin={estSuperAdmin}
       />
     </div>
   );

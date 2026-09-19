@@ -86,6 +86,7 @@ import {
   chargerDatasetMultiProjetsAction,
   chargerTraitementAction,
   enregistrerTraitementAction,
+  viderHistoriqueAction,
   type TraitementDetail,
 } from '@/lib/atelier-analyse/actions';
 import {
@@ -103,7 +104,11 @@ import {
   uploadSpssFile,
   type ComputeSource,
 } from '@/lib/atelier-analyse/api-client';
-import { clarifierRapportAction, genererRapportAction } from '@/lib/atelier-analyse/rapport';
+import {
+  clarifierRapportAction,
+  extraireModeleRapportAction,
+  genererRapportAction,
+} from '@/lib/atelier-analyse/rapport';
 import {
   exporterCrossExcel,
   exporterFreqExcel,
@@ -267,6 +272,7 @@ type Props = {
   documentsReference?: DocumentReference[];
   programmes?: Programme[];
   projets?: Projet[];
+  estSuperAdmin?: boolean;
 };
 
 export function AtelierClient({
@@ -275,6 +281,7 @@ export function AtelierClient({
   documentsReference = [],
   programmes = [],
   projets = [],
+  estSuperAdmin = false,
 }: Props) {
   const router = useRouter();
   const [ongletActif, setOngletActif] = useState('freq');
@@ -379,8 +386,12 @@ export function AtelierClient({
   // Questions de compréhension posées par l'IA + réponses de l'utilisateur.
   const [questionsClar, setQuestionsClar] = useState<string[]>([]);
   const [reponsesClar, setReponsesClar] = useState<Record<number, string>>({});
+  const [suggestionClar, setSuggestionClar] = useState('');
   const [busyClar, setBusyClar] = useState(false);
   const [clarFaite, setClarFaite] = useState(false);
+  // Fichier modèle / ressource joint pour cadrer la présentation du rapport.
+  const [modeleFichier, setModeleFichier] = useState<{ nom: string; texte: string } | null>(null);
+  const [busyModele, setBusyModele] = useState(false);
 
   const variables = analyse?.variables ?? [];
 
@@ -987,17 +998,24 @@ export function AtelierClient({
   // Demande à l'IA des questions de compréhension pour cadrer les axes du
   // rapport (ex. distinguer « utilisation des compétences » des « retombées »).
   async function clarifier() {
+    if (!structureLibre.trim()) {
+      setErreur('Renseignez d’abord la structure / les axes du rapport souhaité.');
+      return;
+    }
     setBusyClar(true);
     setErreur(null);
     try {
       const res = await clarifierRapportAction({
         format: formatRapport,
-        structureLibre: structureLibre || undefined,
+        structureLibre: structureLibre,
         consignes: consignes || undefined,
         variables: variables.map((v) => v.display),
+        modeleTexte: modeleFichier?.texte,
+        modeleNom: modeleFichier?.nom,
       });
       if (res.status === 'succes') {
         setQuestionsClar(res.questions);
+        setSuggestionClar(res.suggestion);
         setReponsesClar({});
         setClarFaite(true);
       } else {
@@ -1005,6 +1023,47 @@ export function AtelierClient({
       }
     } finally {
       setBusyClar(false);
+    }
+  }
+
+  // Joint un fichier MODÈLE / RESSOURCE (PDF, Word, texte) : l'IA s'en inspire
+  // pour la présentation du rapport (structure, rubriques), sans en tirer de chiffres.
+  async function joindreModele(file: File) {
+    setBusyModele(true);
+    setErreur(null);
+    try {
+      const path = await uploadSpssFile(file);
+      const res = await extraireModeleRapportAction(path);
+      if (res.status === 'succes') {
+        setModeleFichier({ nom: res.nom, texte: res.texte });
+      } else {
+        setErreur(res.message);
+      }
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Fichier non joint.');
+    } finally {
+      setBusyModele(false);
+    }
+  }
+
+  async function viderHistorique() {
+    if (!estSuperAdmin) return;
+    if (
+      !window.confirm('Vider toute l’archive de vos traitements ? Cette action est irréversible.')
+    )
+      return;
+    setBusyDetail(true);
+    setErreur(null);
+    try {
+      const res = await viderHistoriqueAction();
+      if (res.ok) {
+        setHistPage(0);
+        router.refresh();
+      } else {
+        setErreur(res.erreur ?? 'Suppression impossible.');
+      }
+    } finally {
+      setBusyDetail(false);
     }
   }
 
@@ -1049,6 +1108,8 @@ export function AtelierClient({
         reload: reloadCourant,
         structureLibre: structureLibre || undefined,
         precisions,
+        modeleTexte: modeleFichier?.texte,
+        modeleNom: modeleFichier?.nom,
       });
       if (res.status === 'succes') {
         setRapport(res.rapport);
@@ -2135,29 +2196,87 @@ export function AtelierClient({
                   </p>
                 </div>
 
-                {/* Questions de compréhension : l'IA lève les ambiguïtés d'axes
-                    (ex. « utilisation des compétences » vs « retombées ») avant de rédiger. */}
-                <div className="space-y-2 rounded-md border border-sky-200 bg-sky-50/60 p-3 dark:border-sky-900 dark:bg-sky-950/30">
+                {/* « Plus de précision » : à partir de la demande de l'utilisateur
+                    (structure / axes), l'IA pose des questions pour mieux cadrer le
+                    rapport — et rien si la demande est déjà claire. */}
+                <div className="space-y-3 rounded-md border border-sky-200 bg-sky-50/60 p-3 dark:border-sky-900 dark:bg-sky-950/30">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-medium">Questions de compréhension (recommandé)</p>
-                    <Button size="sm" variant="outline" onClick={clarifier} disabled={busyClar}>
+                    <p className="text-sm font-medium">Plus de précision</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={clarifier}
+                      disabled={busyClar || !structureLibre.trim()}
+                    >
                       {busyClar ? (
                         <Loader2 className="size-4 animate-spin" />
                       ) : (
                         <Sparkles className="size-4" />
                       )}
-                      {questionsClar.length > 0 ? 'Régénérer les questions' : 'Poser des questions'}
+                      {clarFaite ? 'Réanalyser ma demande' : 'Plus de précision'}
                     </Button>
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    L’IA vous pose quelques questions pour bien cadrer vos axes (par ex. distinguer
-                    <em> l’utilisation des compétences</em> — comment les bénéficiaires ont utilisé
-                    les acquis — des <em>retombées / effets induits</em>). Vos réponses guideront la
-                    rédaction.
+                    À partir de votre demande ci-dessus (structure / axes), l’IA vérifie si elle est
+                    assez claire. Si besoin, elle vous pose quelques questions pour mieux structurer
+                    le rapport — sinon, elle n’en pose aucune.{' '}
+                    {!structureLibre.trim() && 'Renseignez d’abord la structure / les axes.'}
                   </p>
+
+                  {/* Fichier modèle / ressource joint */}
+                  <div className="space-y-1">
+                    {modeleFichier ? (
+                      <div className="flex items-center justify-between gap-2 rounded border bg-white px-3 py-2 text-sm dark:bg-slate-900">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <FileText className="size-4 shrink-0" />
+                          <span className="truncate">Modèle joint : {modeleFichier.nom}</span>
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="Retirer le modèle"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => setModeleFichier(null)}
+                        >
+                          <X className="size-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
+                        <span className="border-input hover:bg-muted inline-flex items-center gap-2 rounded-md border px-3 py-1.5">
+                          {busyModele ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Upload className="size-4" />
+                          )}
+                          Joindre un fichier (modèle / ressource)
+                        </span>
+                        <input
+                          type="file"
+                          accept=".pdf,.docx,.txt,.md,.csv"
+                          className="hidden"
+                          disabled={busyModele}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) joindreModele(f);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                    )}
+                    <p className="text-muted-foreground text-xs">
+                      Trame, rapport-type ou ressource (PDF, Word, texte) : l’IA s’en inspire pour
+                      la présentation, sans en tirer de chiffres.
+                    </p>
+                  </div>
+
+                  {suggestionClar && (
+                    <p className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                      💡 {suggestionClar}
+                    </p>
+                  )}
                   {clarFaite && questionsClar.length === 0 && (
                     <p className="text-muted-foreground text-sm italic">
-                      L’IA n’a pas d’ambiguïté à lever : vous pouvez générer le rapport.
+                      Votre demande est claire : vous pouvez générer le rapport.
                     </p>
                   )}
                   {questionsClar.map((q, i) => (
@@ -2791,11 +2910,24 @@ export function AtelierClient({
 
       {/* Historique */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Historique des traitements</CardTitle>
-          <CardDescription>
-            Vos analyses enregistrées (base épurée, tris, croisements).
-          </CardDescription>
+        <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+          <div className="space-y-1">
+            <CardTitle className="text-base">Historique des traitements</CardTitle>
+            <CardDescription>
+              Vos analyses enregistrées (base épurée, tris, croisements).
+            </CardDescription>
+          </div>
+          {estSuperAdmin && historique.jobs.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 gap-1 text-red-600 hover:text-red-700"
+              onClick={viderHistorique}
+              disabled={busyDetail}
+            >
+              <Trash2 className="size-4" /> Vider l’archive
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {historique.erreur ? (

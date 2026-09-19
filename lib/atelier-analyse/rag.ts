@@ -62,6 +62,27 @@ async function extraireUnDocument(
 }
 
 /**
+ * Extrait le texte d'UN fichier déposé dans un bucket Storage (par défaut le
+ * bucket privé « datastudio », où l'utilisateur dépose un modèle/ressource).
+ * Sert de MODÈLE de présentation au rapport (structure, rubriques, style).
+ */
+export async function extraireTexteFichierStockage(
+  path: string,
+  bucket = 'datastudio',
+): Promise<{ nom: string; texte: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { data: blob, error } = await supabase.storage.from(bucket).download(path);
+  const nom = path.split('/').pop() || 'fichier';
+  if (error || !blob) return { nom, texte: '' };
+  const buffer = Buffer.from(await blob.arrayBuffer());
+  const texte = (await extraireUnDocument(buffer, nom, blob.type || ''))
+    .trim()
+    .replace(/\s+\n/g, '\n')
+    .slice(0, CAP_PAR_DOC);
+  return { nom, texte };
+}
+
+/**
  * Extrait et concatène le texte des documents choisis (par `cle`), sous un
  * budget de caractères. Renvoie un bloc de contexte prêt à insérer dans le
  * prompt, ou une chaîne vide si rien n'a pu être extrait.
