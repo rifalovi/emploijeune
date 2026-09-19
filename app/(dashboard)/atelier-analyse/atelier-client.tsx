@@ -15,6 +15,7 @@ import {
 import {
   CheckCheck,
   Database,
+  Download,
   FileText,
   FlaskConical,
   ListChecks,
@@ -125,6 +126,42 @@ function preselectionIntelligente(
   return retenues.length > 0 ? retenues : variables.slice(0, 20).map((v) => v.name);
 }
 
+// ------------------------------------------------------------------ Exports
+/** Déclenche le téléchargement d'un fichier texte (CSV/Markdown) côté navigateur. */
+function telechargerFichier(nom: string, contenu: string, type = 'text/csv;charset=utf-8;') {
+  const blob = new Blob(['﻿' + contenu], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nom;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** Convertit des enregistrements en CSV (séparateur « ; », compatible Excel FR). */
+function versCsv(rows: Record<string, unknown>[], colonnes?: string[]): string {
+  if (rows.length === 0) return '';
+  const cols = colonnes ?? Object.keys(rows[0] ?? {});
+  const esc = (v: unknown) => {
+    const s = v === null || v === undefined ? '' : String(v);
+    return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  return [cols.join(';'), ...rows.map((r) => cols.map((c) => esc(r[c])).join(';'))].join('\n');
+}
+
+/** Nom de fichier sûr (accents/espaces/ponctuation remplacés). */
+function nomSur(base: string): string {
+  return base
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Za-z0-9._-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 80);
+}
+
 type Props = {
   indicateurs: IndicateurSource[];
   historique: { jobs: HistoriqueJob[]; erreur: string | null };
@@ -179,6 +216,9 @@ export function AtelierClient({ indicateurs, historique }: Props) {
   const [busyRapport, setBusyRapport] = useState(false);
 
   const variables = analyse?.variables ?? [];
+
+  // Libellé lisible d'une variable (question posée) à partir de son code.
+  const libelleVariable = (code: string) => variables.find((v) => v.name === code)?.display ?? code;
 
   // Source active des calculs (enquête en ligne ou fichier importé).
   const source: ComputeSource | null = datasetRef ? { datasetRef } : dataset ? { dataset } : null;
@@ -573,8 +613,25 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                   .map((r) => ({ modalite: r.Modalité, effectif: r.Effectif }));
                 return (
                   <Card key={name}>
-                    <CardHeader>
-                      <CardTitle className="text-base">{name}</CardTitle>
+                    <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+                      <div className="min-w-0">
+                        <CardTitle className="text-base">{libelleVariable(name)}</CardTitle>
+                        <CardDescription className="font-mono text-xs">{name}</CardDescription>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 gap-1"
+                        onClick={() =>
+                          telechargerFichier(
+                            `tri_a_plat_${nomSur(name)}.csv`,
+                            versCsv(rows as unknown as Record<string, unknown>[]),
+                          )
+                        }
+                      >
+                        <Download className="size-4" /> CSV
+                      </Button>
                     </CardHeader>
                     <CardContent className="grid gap-4 lg:grid-cols-2">
                       <Table>
@@ -682,13 +739,37 @@ export function AtelierClient({ indicateurs, historique }: Props) {
             {cross &&
               cross.layers.map((lyr, li) => (
                 <Card key={li}>
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      {cross.layer ? `Couche : ${lyr.layer_value}` : 'Ensemble'}
-                    </CardTitle>
-                    <CardDescription>
-                      Base valide : {lyr.base} · pourcentages en {cross.pct_mode.toLowerCase()}
-                    </CardDescription>
+                  <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+                    <div className="min-w-0">
+                      <CardTitle className="text-base">
+                        {libelleVariable(cross.row)} × {libelleVariable(cross.col)}
+                        {cross.layer ? ` · ${lyr.layer_value}` : ''}
+                      </CardTitle>
+                      <CardDescription>
+                        Base valide : {lyr.base} · pourcentages en {cross.pct_mode.toLowerCase()}
+                      </CardDescription>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 gap-1"
+                      onClick={() => {
+                        const lignes = lyr.index.map((idx, ri) => {
+                          const row: Record<string, unknown> = { Modalité: idx };
+                          lyr.columns.forEach((c, ci) => {
+                            row[c] = lyr.counts[ri]?.[ci] ?? 0;
+                          });
+                          return row;
+                        });
+                        telechargerFichier(
+                          `croisement_${nomSur(cross.row)}_x_${nomSur(cross.col)}.csv`,
+                          versCsv(lignes, ['Modalité', ...lyr.columns]),
+                        );
+                      }}
+                    >
+                      <Download className="size-4" /> CSV
+                    </Button>
                   </CardHeader>
                   <CardContent className="overflow-auto">
                     <Table>
@@ -1088,8 +1169,34 @@ export function AtelierClient({ indicateurs, historique }: Props) {
 
             {rapport && (
               <Card>
-                <CardHeader>
+                <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
                   <CardTitle className="text-base">Rapport généré</CardTitle>
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() => navigator.clipboard?.writeText(rapport)}
+                    >
+                      Copier
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() =>
+                        telechargerFichier(
+                          `rapport_${nomSur(sourceRef || 'datastudio')}.md`,
+                          rapport,
+                          'text/markdown;charset=utf-8;',
+                        )
+                      }
+                    >
+                      <Download className="size-4" /> Markdown
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <MarkdownRenderer>{rapport}</MarkdownRenderer>
