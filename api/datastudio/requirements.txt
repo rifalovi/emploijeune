@@ -5,6 +5,7 @@
 # odfpy : .ods (LibreOffice) ; python-docx : tableaux Word .docx.
 fastapi>=0.111
 pydantic>=2
+ecdsa>=0.19
 pandas>=2.2
 numpy>=1.26
 scipy>=1.11
