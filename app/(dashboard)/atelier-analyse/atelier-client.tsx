@@ -8,6 +8,8 @@ import {
   CartesianGrid,
   Cell,
   Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -325,6 +327,9 @@ export function AtelierClient({
   const [busyClean, setBusyClean] = useState(false);
   // Vrai quand la base de travail active est la base ÉPURÉE (adoptée).
   const [baseEpuree, setBaseEpuree] = useState(false);
+  // Descripteur de rechargement de la base épurée courante (pour que les
+  // traitements enregistrés dessus rouvrent bien la base nettoyée, pas la brute).
+  const [epureeReload, setEpureeReload] = useState<Record<string, unknown> | null>(null);
 
   // Graphiques
   const [graphVar, setGraphVar] = useState('');
@@ -354,6 +359,9 @@ export function AtelierClient({
   // Consultation d'un traitement enregistré (historique)
   const [detail, setDetail] = useState<TraitementDetail | null>(null);
   const [busyDetail, setBusyDetail] = useState(false);
+  // Pagination de l'historique (pour ne pas allonger la page).
+  const [histPage, setHistPage] = useState(0);
+  const HIST_PAR_PAGE = 8;
 
   // Rapport (API Claude)
   const [formatRapport, setFormatRapport] = useState<FormatRapport>('synthese');
@@ -377,11 +385,13 @@ export function AtelierClient({
     fn().catch((e) => setErreur(e instanceof Error ? e.message : 'Export impossible.'));
 
   const aDesResultats = Boolean(freq || cross || multi || stat);
-  // Le rapport peut être généré dès qu'un résultat est produit ; le format
-  // « personnalisé » se génère aussi à partir de la seule structure libre
-  // (plan fourni + documents de cadrage), utile notamment en mode édition.
+  // Le rapport peut être généré dès qu'une base est chargée (les chiffres sont
+  // calculés en arrière-plan si aucun résultat n'a encore été produit), ou —
+  // même sans base — en format « personnalisé » à partir de la structure libre.
   const peutGenererRapport =
-    aDesResultats || (formatRapport === 'personnalise' && structureLibre.trim().length > 0);
+    aDesResultats ||
+    Boolean(analyse) ||
+    (formatRapport === 'personnalise' && structureLibre.trim().length > 0);
 
   // Source active des calculs (enquête en ligne ou fichier importé), filtres inclus.
   const source: ComputeSource | null = datasetRef
@@ -404,6 +414,10 @@ export function AtelierClient({
     : estMulti
       ? { kind: 'multi', indicateur: mpIndicateur, projets: mpProjets }
       : { kind: 'enquete', indicateur };
+  // Rechargement à mémoriser pour un traitement produit MAINTENANT : si la base
+  // de travail est la base épurée, on rouvre la base nettoyée (et non la brute).
+  const reloadCourant: Record<string, unknown> =
+    baseEpuree && epureeReload ? epureeReload : reloadInfo;
 
   function reinitAnalyse() {
     setFreq(null);
@@ -415,6 +429,7 @@ export function AtelierClient({
     setRapport(null);
     setAnalyse(null);
     setBaseEpuree(false);
+    setEpureeReload(null);
     setKeyCols([]);
   }
 
@@ -515,7 +530,7 @@ export function AtelierClient({
         titre: `Tris à plat — ${varsSel.length} variable(s)`,
         source: sourceKind,
         source_ref: sourceRef,
-        params: { cols: varsSel, exclure, source: sourceRef, _reload: reloadInfo },
+        params: { cols: varsSel, exclure, source: sourceRef, _reload: reloadCourant },
         payload: res as unknown as Record<string, unknown>,
         apercu: `${varsSel.length} variable(s)`,
       });
@@ -540,7 +555,7 @@ export function AtelierClient({
         titre: `Croisement ${row} × ${col}`,
         source: sourceKind,
         source_ref: sourceRef,
-        params: { row, col, layer: lyr, pctMode, source: sourceRef, _reload: reloadInfo },
+        params: { row, col, layer: lyr, pctMode, source: sourceRef, _reload: reloadCourant },
         payload: res as unknown as Record<string, unknown>,
         apercu: `${res.layers.length} table(s)`,
       });
@@ -564,7 +579,7 @@ export function AtelierClient({
         titre: `Tests statistiques ${statRow} × ${statCol}`,
         source: sourceKind,
         source_ref: sourceRef,
-        params: { row: statRow, col: statCol, source: sourceRef, _reload: reloadInfo },
+        params: { row: statRow, col: statCol, source: sourceRef, _reload: reloadCourant },
         payload: res as unknown as Record<string, unknown>,
         apercu: [
           res.chi_square.applicable ? `χ² p=${res.chi_square.p.toFixed(4)}` : 'χ² n/a',
@@ -593,7 +608,7 @@ export function AtelierClient({
           titre: `Réponses multiples — ${nb} batterie(s)`,
           source: sourceKind,
           source_ref: sourceRef,
-          params: { source: sourceRef, _reload: reloadInfo },
+          params: { source: sourceRef, _reload: reloadCourant },
           payload: res as unknown as Record<string, unknown>,
           apercu: `${nb} batterie(s)`,
         });
@@ -629,7 +644,7 @@ export function AtelierClient({
           drop_missing: dropMissing,
           key_columns: keyCols,
           source: sourceRef,
-          _reload: reloadInfo,
+          _reload: reloadCourant,
         },
         apercu: `${res.n_removed} ligne(s) retirée(s)`,
       });
@@ -677,6 +692,17 @@ export function AtelierClient({
       appliquerAnalyse(await analyzeDataset(ds));
       setClean(res);
       setBaseEpuree(true);
+      const reloadEpuree = {
+        kind: 'epuree',
+        base: reloadInfo,
+        dropEmpty,
+        dropDuplicates,
+        dropMissing,
+        keyCols,
+      };
+      // Mémorise ce descripteur : les traitements suivants (tris, rapport…)
+      // produits sur cette base rouvriront la base épurée.
+      setEpureeReload(reloadEpuree);
       await enregistrerTraitementAction({
         type: 'cleaning',
         titre: `Base épurée adoptée — ${res.n_rows_cleaned}/${res.n_rows_source} lignes`,
@@ -688,14 +714,7 @@ export function AtelierClient({
           drop_missing: dropMissing,
           key_columns: keyCols,
           source: sourceRef,
-          _reload: {
-            kind: 'epuree',
-            base: reloadInfo,
-            dropEmpty,
-            dropDuplicates,
-            dropMissing,
-            keyCols,
-          },
+          _reload: reloadEpuree,
         },
         apercu: `Base de travail : ${res.n_rows_cleaned} lignes (${res.n_removed} retirée(s))`,
       });
@@ -870,7 +889,11 @@ export function AtelierClient({
             appliquerAnalyse(await analyzeDataset(res.dataset));
             setClean(res);
             setBaseEpuree(true);
-            setOngletActif('clean');
+            setEpureeReload(reload);
+            // Réinjecte le résultat enregistré (rapport, tri…) dans son onglet,
+            // sinon on présente la base épurée prête à l'emploi.
+            if (d.type && d.type !== 'cleaning') chargerResultatDansOnglet(d);
+            else setOngletActif('clean');
           }
         }
         setDetail(null);
@@ -929,17 +952,34 @@ export function AtelierClient({
     setBusyRapport(true);
     setErreur(null);
     try {
+      // Charge les chiffres en arrière-plan : si aucune analyse n'a encore été
+      // produite mais qu'une base est chargée, on calcule un tri à plat sur les
+      // variables analysables pour que le rapport s'appuie sur de vraies données
+      // (au lieu d'un rapport « en l'absence de données »).
+      let freqRapport = freq;
+      if (!freq && !cross && !multi && !stat && source && analyse) {
+        const analysables = analyse.variables
+          .filter((v) => !estVariableTechnique(v, analyse.n_rows))
+          .map((v) => v.name);
+        const cibles = (
+          analysables.length > 0 ? analysables : analyse.variables.map((v) => v.name)
+        ).slice(0, 20);
+        if (cibles.length > 0) {
+          freqRapport = await computeFrequency(source, cibles, true);
+          setFreq(freqRapport);
+        }
+      }
       const res = await genererRapportAction({
         indicateur: sourceRef,
         indicateurLibelle: sourceLabel,
         format: formatRapport,
         consignes: consignes || undefined,
-        frequences: freq,
+        frequences: freqRapport,
         croisement: cross,
         multi,
         tests: stat,
         documentRefs: docsSel,
-        reload: reloadInfo,
+        reload: reloadCourant,
         structureLibre: structureLibre || undefined,
       });
       if (res.status === 'succes') {
@@ -1937,8 +1977,10 @@ export function AtelierClient({
               <CardHeader>
                 <CardTitle className="text-base">Générer un rapport</CardTitle>
                 <CardDescription>
-                  Claude rédige un rapport à partir des résultats déjà produits (tri à plat et/ou
-                  croisement de cet indicateur). Les chiffres ne sont ni inventés ni recalculés.
+                  Claude rédige un rapport structuré et illustré (tableaux + graphiques) à partir
+                  des résultats. Si aucune analyse n’a encore été produite, les tris à plat
+                  nécessaires sont calculés automatiquement en arrière-plan sur la base active. Les
+                  chiffres ne sont ni inventés ni recalculés.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -2043,9 +2085,9 @@ export function AtelierClient({
                 </p>
                 {!peutGenererRapport && (
                   <p className="text-muted-foreground text-sm italic">
-                    Produisez d’abord un tri à plat, un croisement, une analyse multi ou un test
-                    pour alimenter le rapport — ou choisissez le format « Rapport personnalisé » et
-                    renseignez la structure ci-dessus pour générer un rapport guidé par votre plan.
+                    Chargez une base (enquête, fichier ou multi-projets) pour générer un rapport —
+                    ou choisissez le format « Rapport personnalisé » et renseignez la structure
+                    ci-dessus pour un rapport guidé par votre plan.
                   </p>
                 )}
               </CardContent>
@@ -2600,24 +2642,56 @@ export function AtelierClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {historique.jobs.map((j) => (
-                  <TableRow
-                    key={j.id}
-                    className="hover:bg-muted/50 cursor-pointer"
-                    onClick={() => restaurerTraitement(j.id)}
-                  >
-                    <TableCell className="font-medium">{j.titre}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{j.type}</Badge>
-                    </TableCell>
-                    <TableCell>{j.source}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
-                      {new Date(j.created_at).toLocaleString('fr-FR')}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {historique.jobs
+                  .slice(histPage * HIST_PAR_PAGE, histPage * HIST_PAR_PAGE + HIST_PAR_PAGE)
+                  .map((j) => (
+                    <TableRow
+                      key={j.id}
+                      className="hover:bg-muted/50 cursor-pointer"
+                      onClick={() => restaurerTraitement(j.id)}
+                    >
+                      <TableCell className="font-medium">{j.titre}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{j.type}</Badge>
+                      </TableCell>
+                      <TableCell>{j.source}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {new Date(j.created_at).toLocaleString('fr-FR')}
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
+          )}
+          {historique.jobs.length > HIST_PAR_PAGE && (
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <span className="text-muted-foreground text-xs">
+                {historique.jobs.length} traitement(s) · page {histPage + 1} /{' '}
+                {Math.ceil(historique.jobs.length / HIST_PAR_PAGE)}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setHistPage((p) => Math.max(0, p - 1))}
+                  disabled={histPage === 0}
+                >
+                  Précédent
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setHistPage((p) =>
+                      Math.min(Math.ceil(historique.jobs.length / HIST_PAR_PAGE) - 1, p + 1),
+                    )
+                  }
+                  disabled={histPage >= Math.ceil(historique.jobs.length / HIST_PAR_PAGE) - 1}
+                >
+                  Suivant
+                </Button>
+              </div>
+            </div>
           )}
           <p className="text-muted-foreground mt-2 text-xs">
             Cliquez sur une ligne pour rouvrir le traitement dans l’espace de travail : la source
@@ -3025,12 +3099,12 @@ function TablePreview({ data }: { data: PreviewResponse }) {
 
 /** Graphique inséré par l'IA dans un rapport via un bloc ```chart {json}. */
 function ChartRapport({ spec }: { spec: string }) {
-  let type: 'bar' | 'pie' = 'bar';
+  let type: 'bar' | 'pie' | 'line' = 'bar';
   let titre = '';
   let data: { label: string; value: number }[] = [];
   try {
     const j = JSON.parse(spec.trim());
-    type = j.type === 'pie' ? 'pie' : 'bar';
+    type = j.type === 'pie' ? 'pie' : j.type === 'line' ? 'line' : 'bar';
     titre = String(j.titre ?? j.title ?? '');
     const arr = Array.isArray(j.data) ? j.data : [];
     data = arr
@@ -3066,6 +3140,27 @@ function ChartRapport({ spec }: { spec: string }) {
                 ))}
               </Pie>
             </PieChart>
+          ) : type === 'line' ? (
+            <LineChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11 }}
+                interval={0}
+                angle={-20}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip {...tooltipPropsPremium} />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={couleurRang(0)}
+                strokeWidth={2.5}
+                dot={{ r: 3 }}
+              />
+            </LineChart>
           ) : (
             <BarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />

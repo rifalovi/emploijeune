@@ -145,12 +145,22 @@ export async function genererRapportAction(
     preset.instruction +
     // Rapport RÉDIGÉ + illustré : garder l'analyse complète ET l'accompagner de
     // tableaux et de graphiques (sans réduire le texte).
-    ' Conserve une analyse rédigée complète, MAIS illustre-la systématiquement : (1) présente les ' +
-    'chiffres clés dans des TABLEAUX Markdown (colonnes Modalité / Effectif / % selon les cas) ; ' +
-    '(2) propose des GRAPHIQUES en insérant des blocs de code ```chart contenant un JSON ' +
-    '{"type":"bar"|"pie","titre":"…","data":[{"label":"…","value":n}]} construit UNIQUEMENT à partir ' +
-    'des chiffres fournis (l’application le transforme en graphique). Alterne texte, tableaux et ' +
-    'graphiques. Structure avec des titres ## / ###. Appuie chaque affirmation chiffrée sur un chiffre des résultats.' +
+    ' Conserve une analyse rédigée complète, MAIS illustre-la systématiquement. ' +
+    // Mise en forme INSTITUTIONNELLE, exploitable en document Word/PDF.
+    'Structure institutionnelle OBLIGATOIRE, avec des titres ## et ### : ' +
+    '(1) « ## Résumé exécutif » (5-8 lignes, constats chiffrés majeurs) ; ' +
+    '(2) les sections d’analyse principales (une par thème/axe), chacune avec un TABLEAU Markdown ' +
+    'propre des chiffres clés ET un GRAPHIQUE principal pertinent ; ' +
+    '(3) en toute fin, une section « ## Annexes » regroupant les TABLEAUX SECONDAIRES et détaillés ' +
+    '(ventilations fines, tableaux exhaustifs) — le corps du rapport ne garde que les tableaux de ' +
+    'synthèse, les tableaux d’approfondissement vont en annexe. ' +
+    'Pour chaque graphique, insère un bloc de code ```chart contenant un JSON ' +
+    '{"type":"bar"|"pie"|"line","titre":"…","data":[{"label":"…","value":n}]} construit UNIQUEMENT à ' +
+    'partir des chiffres fournis. CHOISIS le type selon la pertinence : « pie » (camembert) pour une ' +
+    'répartition en parts d’un tout (ex. structure par sexe, par statut) ; « bar » (histogramme) pour ' +
+    'comparer des modalités ou des effectifs ; « line » (courbe) pour une évolution ordonnée. ' +
+    'Un même chiffre ne doit pas être à la fois en camembert et en barres. Alterne texte, tableaux et ' +
+    'graphiques ; appuie chaque affirmation chiffrée sur un chiffre des résultats.' +
     (contexteDocs
       ? " Des « Documents de référence » sont fournis : sers-t'en UNIQUEMENT pour le cadrage " +
         "(contexte, objectifs du projet/programme, définitions, enjeux). N'en tire AUCUN chiffre " +

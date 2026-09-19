@@ -73,16 +73,44 @@ function makeTable(docx: any, headers: string[], rows: (string | number)[][]): a
   });
 }
 
-function blocsRapport(docx: any, markdown: string): any[] {
-  const { Paragraph, HeadingLevel, TextRun } = docx;
-  return parseMarkdown(markdown).map((b) => {
-    if (b.type === 'h1') return new Paragraph({ text: b.texte, heading: HeadingLevel.HEADING_1 });
-    if (b.type === 'h2') return new Paragraph({ text: b.texte, heading: HeadingLevel.HEADING_2 });
-    if (b.type === 'h3') return new Paragraph({ text: b.texte, heading: HeadingLevel.HEADING_3 });
-    if (b.type === 'li')
-      return new Paragraph({ children: [new TextRun(b.texte)], bullet: { level: 0 } });
-    return new Paragraph({ children: [new TextRun(b.texte)] });
-  });
+async function blocsRapport(docx: any, markdown: string): Promise<any[]> {
+  const { Paragraph, HeadingLevel, TextRun, ImageRun } = docx;
+  const { chartSpecToPng } = await import('./chart-svg');
+  const out: any[] = [];
+  for (const b of parseMarkdown(markdown)) {
+    if (b.type === 'h1') {
+      out.push(new Paragraph({ text: b.texte, heading: HeadingLevel.HEADING_1 }));
+    } else if (b.type === 'h2') {
+      out.push(new Paragraph({ text: b.texte, heading: HeadingLevel.HEADING_2 }));
+    } else if (b.type === 'h3') {
+      out.push(new Paragraph({ text: b.texte, heading: HeadingLevel.HEADING_3 }));
+    } else if (b.type === 'li') {
+      out.push(new Paragraph({ children: [new TextRun(b.texte)], bullet: { level: 0 } }));
+    } else if (b.type === 'table') {
+      out.push(makeTable(docx, b.headers, b.rows));
+      out.push(new Paragraph({ text: '' }));
+    } else if (b.type === 'chart') {
+      const png = await chartSpecToPng(b.spec, 560, 300);
+      if (png) {
+        out.push(
+          new Paragraph({
+            alignment: 'center',
+            children: [
+              new ImageRun({
+                type: 'png',
+                data: png.bytes,
+                transformation: { width: 520, height: 279 },
+              }),
+            ],
+          }),
+        );
+        out.push(new Paragraph({ text: '' }));
+      }
+    } else {
+      out.push(new Paragraph({ children: [new TextRun(b.texte)] }));
+    }
+  }
+  return out;
 }
 
 async function construireDocument(
@@ -116,12 +144,12 @@ async function construireDocument(
   return Packer.toBlob(doc);
 }
 
-/** Rapport IA rédigé exporté seul en .docx. */
+/** Rapport IA rédigé exporté seul en .docx (avec tableaux et graphiques). */
 export async function exporterRapportWord(markdown: string, titre = 'Rapport') {
   const docx = await import('docx');
   const blob = await construireDocument(
     docx,
-    blocsRapport(docx, markdown),
+    await blocsRapport(docx, markdown),
     titre,
     'Rapport généré',
   );
@@ -254,7 +282,7 @@ export async function exporterResultatsWord(opts: {
 
   if (opts.rapport) {
     children.push(new Paragraph({ text: '' }));
-    children.push(...blocsRapport(docx, opts.rapport));
+    children.push(...(await blocsRapport(docx, opts.rapport)));
   }
 
   if (children.length === 0) {
