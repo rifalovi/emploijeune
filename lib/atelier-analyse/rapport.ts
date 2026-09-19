@@ -36,6 +36,8 @@ export type GenererRapportInput = {
   reload?: Record<string, unknown>;
   /** Structure / axes libres décrits par l'utilisateur (rapport sur mesure). */
   structureLibre?: string;
+  /** Réponses de l'utilisateur aux questions de compréhension (Q → R). */
+  precisions?: string;
 };
 
 function fmtPct(v: number | null): string {
@@ -93,6 +95,90 @@ function formaterDonnees(input: GenererRapportInput): string {
     if (lignes.length) parts.push(`Tests statistiques :\n${lignes.join('\n')}`);
   }
   return parts.join('\n\n');
+}
+
+export type ClarifierRapportInput = {
+  format: FormatRapport;
+  structureLibre?: string;
+  consignes?: string;
+  /** Libellés des variables disponibles (aide l'IA à rattacher les axes). */
+  variables?: string[];
+};
+
+/**
+ * Demande à l'IA de formuler des QUESTIONS DE COMPRÉHENSION pour lever les
+ * ambiguïtés des axes demandés (ex. distinguer « utilisation des compétences »
+ * de « retombées ») AVANT de rédiger le rapport. L'utilisateur y répond, et ses
+ * réponses sont réinjectées dans la génération. Réservé SCS / super_admin.
+ */
+export async function clarifierRapportAction(
+  input: ClarifierRapportInput,
+): Promise<{ status: 'succes'; questions: string[] } | { status: 'erreur'; message: string }> {
+  const utilisateur = await requireUtilisateurValide();
+  if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
+    return { status: 'erreur', message: 'Accès non autorisé.' };
+  }
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return { status: 'erreur', message: 'ANTHROPIC_API_KEY absente du serveur.' };
+  }
+  const structure = (input.structureLibre ?? '').trim();
+  const vars = (input.variables ?? []).slice(0, 120);
+
+  const system =
+    "Tu es analyste senior en suivi-évaluation à l'OIF. Avant de rédiger un rapport, tu poses des " +
+    'QUESTIONS DE COMPRÉHENSION courtes et ciblées pour lever les ambiguïtés sur le sens exact des ' +
+    'axes demandés et les rattacher aux bonnes variables. Distingue notamment, dans la chaîne de ' +
+    'résultats : les ACTIVITÉS menées, l’ACQUISITION des compétences, l’UTILISATION des compétences ' +
+    '(comment les bénéficiaires ont mis en pratique les acquis issus de l’appui — usage effectif) et ' +
+    'les RETOMBÉES / effets induits (effets survenus APRÈS et du fait de cet usage). Si un axe peut ' +
+    'renvoyer à plusieurs variables ou à plusieurs maillons, demande lequel. ' +
+    'Réponds UNIQUEMENT par un tableau JSON de 2 à 6 chaînes (les questions), sans autre texte, ex. ' +
+    '["Par « utilisation des compétences », entendez-vous …"," …"]. Si tout est clair, renvoie [].';
+
+  const userMessage =
+    `Format de rapport : ${FORMATS_RAPPORT[input.format]?.label ?? input.format}\n\n` +
+    (structure ? `Structure / axes demandés :\n${structure}\n\n` : '') +
+    (input.consignes ? `Consignes : ${input.consignes}\n\n` : '') +
+    (vars.length ? `Variables disponibles dans la base :\n- ${vars.join('\n- ')}\n` : '');
+
+  const client = new Anthropic({ apiKey });
+  try {
+    const reponse = await client.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 1000,
+      system,
+      messages: [{ role: 'user', content: userMessage }],
+    });
+    const texte = reponse.content
+      .filter((b) => b.type === 'text')
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim();
+    let questions: string[] = [];
+    try {
+      const m = /\[[\s\S]*\]/.exec(texte);
+      const parsed = JSON.parse(m ? m[0] : texte);
+      if (Array.isArray(parsed)) {
+        questions = parsed
+          .map((q) => String(q).trim())
+          .filter(Boolean)
+          .slice(0, 6);
+      }
+    } catch {
+      // Repli : une question par ligne si le JSON n'a pas pu être lu.
+      questions = texte
+        .split('\n')
+        .map((l) => l.replace(/^[-*\d.\s]+/, '').trim())
+        .filter((l) => l.length > 8)
+        .slice(0, 6);
+    }
+    return { status: 'succes', questions };
+  } catch (e) {
+    const status = (e as { status?: number } | null)?.status;
+    console.error('[atelier-analyse] Échec questions de clarification', { status });
+    return { status: 'erreur', message: 'Génération des questions impossible. Réessayez.' };
+  }
 }
 
 /**
@@ -166,6 +252,20 @@ export async function genererRapportAction(
         "(contexte, objectifs du projet/programme, définitions, enjeux). N'en tire AUCUN chiffre " +
         'de résultat ; les seuls chiffres autorisés sont ceux des « Résultats calculés ».'
       : '') +
+    // Distinctions conceptuelles de la chaîne de résultats (à NE PAS confondre).
+    ' Respecte rigoureusement la chaîne de résultats et NE CONFONDS PAS ses maillons : ' +
+    '« activités menées » = ce que le projet a organisé (formations, appuis) ; ' +
+    '« acquisition des compétences » = ce que les bénéficiaires ont appris/acquis grâce à l’appui ; ' +
+    '« UTILISATION des compétences » = comment les bénéficiaires ont concrètement UTILISÉ/mis en ' +
+    'pratique les acquis issus de l’appui du projet (usage effectif), et NON les effets qui en découlent ; ' +
+    '« RETOMBÉES / effets induits » = les changements et effets survenus APRÈS et DU FAIT de cette ' +
+    'utilisation (revenus, insertion, autonomisation…). Traite « utilisation » et « retombées » dans ' +
+    'des sections distinctes, sans mélanger l’usage et ses effets.' +
+    (input.precisions
+      ? ' L’utilisateur a répondu à des questions de compréhension (fournies ci-après) : ' +
+        'appuie-toi STRICTEMENT sur ces précisions pour interpréter ses axes et rattacher chaque ' +
+        'axe aux bonnes variables/réponses.'
+      : '') +
     (structure
       ? ' L’utilisateur impose une structure/des axes précis (fournis ci-après) : respecte-les ' +
         'fidèlement, dans l’ordre indiqué, comme plan du rapport.'
@@ -179,6 +279,9 @@ export async function genererRapportAction(
         'imposée et des documents de cadrage, sans inventer de chiffres.\n\n') +
     (contexteDocs ? `Documents de référence (contexte de cadrage) :\n${contexteDocs}\n\n` : '') +
     (structure ? `Structure / axes demandés (à respecter fidèlement) :\n${structure}\n\n` : '') +
+    (input.precisions
+      ? `Précisions de l’utilisateur (questions de compréhension → réponses) :\n${input.precisions}\n\n`
+      : '') +
     (input.consignes ? `Consignes complémentaires : ${input.consignes}\n` : '');
 
   const client = new Anthropic({ apiKey });

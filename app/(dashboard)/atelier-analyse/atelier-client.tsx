@@ -103,7 +103,7 @@ import {
   uploadSpssFile,
   type ComputeSource,
 } from '@/lib/atelier-analyse/api-client';
-import { genererRapportAction } from '@/lib/atelier-analyse/rapport';
+import { clarifierRapportAction, genererRapportAction } from '@/lib/atelier-analyse/rapport';
 import {
   exporterCrossExcel,
   exporterFreqExcel,
@@ -376,6 +376,11 @@ export function AtelierClient({
   const [consignes, setConsignes] = useState('');
   const [rapport, setRapport] = useState<string | null>(null);
   const [busyRapport, setBusyRapport] = useState(false);
+  // Questions de compréhension posées par l'IA + réponses de l'utilisateur.
+  const [questionsClar, setQuestionsClar] = useState<string[]>([]);
+  const [reponsesClar, setReponsesClar] = useState<Record<number, string>>({});
+  const [busyClar, setBusyClar] = useState(false);
+  const [clarFaite, setClarFaite] = useState(false);
 
   const variables = analyse?.variables ?? [];
 
@@ -981,11 +986,41 @@ export function AtelierClient({
     }
   }
 
+  // Demande à l'IA des questions de compréhension pour cadrer les axes du
+  // rapport (ex. distinguer « utilisation des compétences » des « retombées »).
+  async function clarifier() {
+    setBusyClar(true);
+    setErreur(null);
+    try {
+      const res = await clarifierRapportAction({
+        format: formatRapport,
+        structureLibre: structureLibre || undefined,
+        consignes: consignes || undefined,
+        variables: variables.map((v) => v.display),
+      });
+      if (res.status === 'succes') {
+        setQuestionsClar(res.questions);
+        setReponsesClar({});
+        setClarFaite(true);
+      } else {
+        setErreur(res.message);
+      }
+    } finally {
+      setBusyClar(false);
+    }
+  }
+
   async function lancerRapport() {
     if (!peutGenererRapport) return;
     setBusyRapport(true);
     setErreur(null);
     try {
+      const precisions =
+        questionsClar.length > 0
+          ? questionsClar
+              .map((q, i) => `Q: ${q}\nR: ${(reponsesClar[i] ?? '').trim() || '(sans réponse)'}`)
+              .join('\n\n')
+          : undefined;
       // Charge les chiffres en arrière-plan : si aucune analyse n'a encore été
       // produite mais qu'une base est chargée, on calcule un tri à plat sur les
       // variables analysables pour que le rapport s'appuie sur de vraies données
@@ -1015,6 +1050,7 @@ export function AtelierClient({
         documentRefs: docsSel,
         reload: reloadCourant,
         structureLibre: structureLibre || undefined,
+        precisions,
       });
       if (res.status === 'succes') {
         setRapport(res.rapport);
@@ -2099,6 +2135,48 @@ export function AtelierClient({
                     L’IA suivra cette structure comme plan du rapport (et l’illustrera de tableaux
                     et de graphiques).
                   </p>
+                </div>
+
+                {/* Questions de compréhension : l'IA lève les ambiguïtés d'axes
+                    (ex. « utilisation des compétences » vs « retombées ») avant de rédiger. */}
+                <div className="space-y-2 rounded-md border border-sky-200 bg-sky-50/60 p-3 dark:border-sky-900 dark:bg-sky-950/30">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium">Questions de compréhension (recommandé)</p>
+                    <Button size="sm" variant="outline" onClick={clarifier} disabled={busyClar}>
+                      {busyClar ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="size-4" />
+                      )}
+                      {questionsClar.length > 0 ? 'Régénérer les questions' : 'Poser des questions'}
+                    </Button>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    L’IA vous pose quelques questions pour bien cadrer vos axes (par ex. distinguer
+                    <em> l’utilisation des compétences</em> — comment les bénéficiaires ont utilisé
+                    les acquis — des <em>retombées / effets induits</em>). Vos réponses guideront la
+                    rédaction.
+                  </p>
+                  {clarFaite && questionsClar.length === 0 && (
+                    <p className="text-muted-foreground text-sm italic">
+                      L’IA n’a pas d’ambiguïté à lever : vous pouvez générer le rapport.
+                    </p>
+                  )}
+                  {questionsClar.map((q, i) => (
+                    <div key={i} className="space-y-1">
+                      <p className="text-sm font-medium">
+                        {i + 1}. {q}
+                      </p>
+                      <Textarea
+                        value={reponsesClar[i] ?? ''}
+                        onChange={(e) =>
+                          setReponsesClar((prev) => ({ ...prev, [i]: e.target.value }))
+                        }
+                        placeholder="Votre réponse…"
+                        rows={2}
+                      />
+                    </div>
+                  ))}
                 </div>
 
                 <Textarea
