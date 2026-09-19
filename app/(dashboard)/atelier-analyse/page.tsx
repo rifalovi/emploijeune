@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { listerHistorique, listerIndicateursSource } from '@/lib/atelier-analyse/queries';
+import { listerDocumentsReference } from '@/lib/atelier-analyse/rag';
 import { AtelierClient } from './atelier-client';
 
 export const metadata: Metadata = {
@@ -22,9 +23,10 @@ export default async function AtelierAnalysePage() {
     redirect('/indicateurs');
   }
 
-  const [indicateurs, historique] = await Promise.all([
+  const [indicateurs, historique, documentsReference] = await Promise.all([
     listerIndicateursSource(),
     listerHistorique(),
+    listerDocumentsReference(),
   ]);
 
   return (
@@ -38,7 +40,11 @@ export default async function AtelierAnalysePage() {
         </p>
       </header>
 
-      <AtelierClient indicateurs={indicateurs} historique={historique} />
+      <AtelierClient
+        indicateurs={indicateurs}
+        historique={historique}
+        documentsReference={documentsReference}
+      />
     </div>
   );
 }

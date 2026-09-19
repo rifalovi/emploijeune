@@ -244,12 +244,15 @@ L'IA aide à **rédiger** et **structurer** les rapports à partir des résultat
 ### Limites
 Un fichier lisible et un programme sans erreur ne prouvent pas l'exactitude des données. Les valeurs atypiques restent des signaux à vérifier. Pour les fichiers SPSS, les libellés de variables et de valeurs sont conservés.`;
 
+type DocumentReference = { cle: string; libelle: string; nomFichier: string };
+
 type Props = {
   indicateurs: IndicateurSource[];
   historique: { jobs: HistoriqueJob[]; erreur: string | null };
+  documentsReference?: DocumentReference[];
 };
 
-export function AtelierClient({ indicateurs, historique }: Props) {
+export function AtelierClient({ indicateurs, historique, documentsReference = [] }: Props) {
   const router = useRouter();
   const [sourceMode, setSourceMode] = useState<'enquete' | 'fichier'>('enquete');
   const [indicateur, setIndicateur] = useState('');
@@ -320,6 +323,7 @@ export function AtelierClient({ indicateurs, historique }: Props) {
 
   // Rapport (API Claude)
   const [formatRapport, setFormatRapport] = useState<FormatRapport>('synthese');
+  const [docsSel, setDocsSel] = useState<string[]>([]);
   const [consignes, setConsignes] = useState('');
   const [rapport, setRapport] = useState<string | null>(null);
   const [busyRapport, setBusyRapport] = useState(false);
@@ -633,6 +637,7 @@ export function AtelierClient({ indicateurs, historique }: Props) {
         croisement: cross,
         multi,
         tests: stat,
+        documentRefs: docsSel,
       });
       if (res.status === 'succes') {
         setRapport(res.rapport);
@@ -1483,6 +1488,43 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                   placeholder="Consignes complémentaires (optionnel) : thème, projet, programme, angle, public visé, longueur…"
                   rows={2}
                 />
+
+                {documentsReference.length > 0 && (
+                  <div className="space-y-2 rounded-md border p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">
+                        Documents de référence (cadrage projet / programme)
+                      </p>
+                      {docsSel.length > 0 && (
+                        <Badge variant="secondary">{docsSel.length} sélectionné(s)</Badge>
+                      )}
+                    </div>
+                    <p className="text-muted-foreground text-xs">
+                      Sélectionnez des documents de la base documentaire : l’IA s’en servira pour le
+                      contexte et le cadrage (objectifs, définitions), sans en tirer de chiffres.
+                    </p>
+                    <div className="grid max-h-40 grid-cols-1 gap-1 overflow-auto sm:grid-cols-2">
+                      {documentsReference.map((d) => (
+                        <label key={d.cle} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={docsSel.includes(d.cle)}
+                            onCheckedChange={() =>
+                              setDocsSel((prev) =>
+                                prev.includes(d.cle)
+                                  ? prev.filter((c) => c !== d.cle)
+                                  : [...prev, d.cle],
+                              )
+                            }
+                          />
+                          <span className="truncate" title={`${d.libelle} — ${d.nomFichier}`}>
+                            {d.libelle}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <p className="text-muted-foreground text-xs">
                   Le rapport s’appuie sur TOUS les résultats produits (tris à plat, croisements,
                   réponses multiples, tests). Les chiffres ne sont ni inventés ni recalculés.

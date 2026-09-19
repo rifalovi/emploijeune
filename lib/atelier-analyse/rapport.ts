@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { enregistrerTraitementAction } from './actions';
+import { extraireTexteDocuments } from './rag';
 import {
   FORMATS_RAPPORT,
   type CrosstabResponse,
@@ -32,6 +33,7 @@ export type GenererRapportInput = {
   croisement?: CrosstabResponse | null;
   multi?: MultiResponse | null;
   tests?: StatTestResponse | null;
+  documentRefs?: string[];
 };
 
 function fmtPct(v: number | null): string {
@@ -118,6 +120,9 @@ export async function genererRapportAction(
   }
   const preset = FORMATS_RAPPORT[input.format] ?? FORMATS_RAPPORT.synthese;
 
+  // Contexte documentaire (RAG) : cadrage projet/programme, définitions, objectifs.
+  const contexteDocs = await extraireTexteDocuments(input.documentRefs ?? []);
+
   const system =
     "Tu es analyste senior en suivi-évaluation et statistique sociale à l'Organisation " +
     'internationale de la Francophonie (OIF). Tu rédiges en français, dans un style clair, ' +
@@ -126,11 +131,17 @@ export async function genererRapportAction(
     'ou les limites. Distingue corrélation et causalité. ' +
     preset.instruction +
     ' Mets en forme en Markdown (titres de niveau ##/###, listes, tableaux si utile). ' +
-    'Appuie chaque affirmation sur un chiffre issu des résultats.';
+    'Appuie chaque affirmation chiffrée sur un chiffre issu des résultats.' +
+    (contexteDocs
+      ? " Des « Documents de référence » sont fournis : sers-t'en UNIQUEMENT pour le cadrage " +
+        "(contexte, objectifs du projet/programme, définitions, enjeux). N'en tire AUCUN chiffre " +
+        'de résultat ; les seuls chiffres autorisés sont ceux des « Résultats calculés ».'
+      : '');
 
   const userMessage =
     `Indicateur : ${input.indicateurLibelle ?? input.indicateur}\n\n` +
     `Résultats calculés :\n${donnees}\n\n` +
+    (contexteDocs ? `Documents de référence (contexte de cadrage) :\n${contexteDocs}\n\n` : '') +
     (input.consignes ? `Consignes complémentaires : ${input.consignes}\n` : '');
 
   const client = new Anthropic({ apiKey });
