@@ -149,10 +149,10 @@ export async function listerHistorique(): Promise<{
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('datastudio_jobs')
-    .select('id, type, titre, source, statut, created_at')
+    .select('id, type, titre, source, source_ref, statut, created_at')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(200);
   if (error) return { jobs: [], erreur: error.message };
   return { jobs: (data ?? []) as HistoriqueJob[], erreur: null };
 }

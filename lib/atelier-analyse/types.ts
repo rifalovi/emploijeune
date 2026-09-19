@@ -152,6 +152,7 @@ export type HistoriqueJob = {
   type: string;
   titre: string;
   source: string;
+  source_ref: string | null;
   statut: string;
   created_at: string;
 };

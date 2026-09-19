@@ -22,12 +22,15 @@ import {
   BarChart3,
   BookOpen,
   CheckCheck,
+  ChevronDown,
   ClipboardList,
   Database,
   Download,
   FileStack,
   FileText,
   Filter,
+  Folder,
+  FolderOpen,
   FlaskConical,
   Gauge,
   Layers,
@@ -372,9 +375,10 @@ export function AtelierClient({
   // Consultation d'un traitement enregistré (historique)
   const [detail, setDetail] = useState<TraitementDetail | null>(null);
   const [busyDetail, setBusyDetail] = useState(false);
-  // Pagination de l'historique (pour ne pas allonger la page).
-  const [histPage, setHistPage] = useState(0);
-  const HIST_PAR_PAGE = 8;
+  // Historique organisé en DOSSIERS par projet / jeu de données (accordéons).
+  const [dossiersOuverts, setDossiersOuverts] = useState<Set<string>>(new Set());
+  // Nom du fichier sélectionné (avant import) — pour détecter un doublon.
+  const [refFichierChoisi, setRefFichierChoisi] = useState('');
 
   // Rapport (API Claude)
   const [formatRapport, setFormatRapport] = useState<FormatRapport>('synthese');
@@ -440,6 +444,73 @@ export function AtelierClient({
   // de travail est la base épurée, on rouvre la base nettoyée (et non la brute).
   const reloadCourant: Record<string, unknown> =
     baseEpuree && epureeReload ? epureeReload : reloadInfo;
+
+  // ---- Historique regroupé en DOSSIERS par projet / jeu de données ----
+  const libelleIndic = (code: string) => indicateurs.find((i) => i.code === code)?.libelle ?? code;
+  function labelDossier(kind: string, ref: string): string {
+    if (kind === 'upload') return ref || 'Fichier importé';
+    if (kind === 'multi') return `Multi-projets — ${libelleIndic(ref)}`;
+    return libelleIndic(ref);
+  }
+  type Dossier = {
+    cle: string;
+    kind: string;
+    ref: string;
+    label: string;
+    jobs: HistoriqueJob[];
+    derniere: string;
+  };
+  const dossiers: Dossier[] = (() => {
+    const map = new Map<string, Dossier>();
+    for (const j of historique.jobs) {
+      const ref = j.source_ref ?? '';
+      const cle = `${j.source}|${ref}`;
+      let d = map.get(cle);
+      if (!d) {
+        d = {
+          cle,
+          kind: j.source,
+          ref,
+          label: labelDossier(j.source, ref),
+          jobs: [],
+          derniere: j.created_at,
+        };
+        map.set(cle, d);
+      }
+      d.jobs.push(j);
+      if (j.created_at > d.derniere) d.derniere = j.created_at;
+    }
+    return [...map.values()].sort((a, b) => (a.derniere < b.derniere ? 1 : -1));
+  })();
+
+  // Détection de doublon : le jeu / projet en cours de sélection est-il déjà
+  // présent dans l'archive ? Si oui, on invite l'utilisateur à ouvrir son dossier.
+  const refImportCourant =
+    sourceMode === 'fichier'
+      ? refFichierChoisi || fichierNom
+      : sourceMode === 'multi'
+        ? mpIndicateur
+        : indicateur;
+  const kindImportCourant =
+    sourceMode === 'fichier' ? 'upload' : sourceMode === 'multi' ? 'multi' : 'enquete';
+  const dossierDoublon = refImportCourant
+    ? dossiers.find((d) => d.kind === kindImportCourant && d.ref === refImportCourant)
+    : undefined;
+
+  function ouvrirDossier(cle: string) {
+    setDossiersOuverts((prev) => new Set(prev).add(cle));
+    if (typeof document !== 'undefined') {
+      document.getElementById('archive-dossiers')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+  function basculerDossier(cle: string) {
+    setDossiersOuverts((prev) => {
+      const next = new Set(prev);
+      if (next.has(cle)) next.delete(cle);
+      else next.add(cle);
+      return next;
+    });
+  }
 
   function reinitAnalyse() {
     setFreq(null);
@@ -1057,7 +1128,7 @@ export function AtelierClient({
     try {
       const res = await viderHistoriqueAction();
       if (res.ok) {
-        setHistPage(0);
+        setDossiersOuverts(new Set());
         router.refresh();
       } else {
         setErreur(res.erreur ?? 'Suppression impossible.');
@@ -1197,7 +1268,11 @@ export function AtelierClient({
               <input
                 type="file"
                 accept=".sav,.xlsx,.xls,.ods,.csv,.tsv,.tab,.json,.docx"
-                onChange={(e) => setFichier(e.target.files?.[0] ?? null)}
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  setFichier(f);
+                  setRefFichierChoisi(f?.name ?? '');
+                }}
                 className="file:border-input file:bg-background text-sm file:mr-3 file:rounded-md file:border file:px-3 file:py-1.5 file:text-sm"
               />
               <Button onClick={chargerFichier} disabled={!fichier || chargement}>
@@ -1320,6 +1395,28 @@ export function AtelierClient({
                   <Layers className="size-4" />
                 )}
                 Charger la base multi-projets
+              </Button>
+            </div>
+          )}
+
+          {/* Détection automatique d'un jeu de données / projet DÉJÀ importé. */}
+          {dossierDoublon && !baseEpuree && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+              <span className="flex items-center gap-2">
+                <FolderOpen className="size-4 shrink-0" />
+                <span>
+                  «&nbsp;{dossierDoublon.label}&nbsp;» a déjà été importé —{' '}
+                  {dossierDoublon.jobs.length} traitement(s) dans l’archive. Ouvrez son dossier pour
+                  poursuivre votre travail.
+                </span>
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0"
+                onClick={() => ouvrirDossier(dossierDoublon.cle)}
+              >
+                Ouvrir le dossier
               </Button>
             </div>
           )}
@@ -2929,7 +3026,7 @@ export function AtelierClient({
             </Button>
           )}
         </CardHeader>
-        <CardContent>
+        <CardContent id="archive-dossiers">
           {historique.erreur ? (
             <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
               <p className="font-semibold">Historique indisponible</p>
@@ -2940,76 +3037,79 @@ export function AtelierClient({
                 rechargez.
               </p>
             </div>
-          ) : historique.jobs.length === 0 ? (
+          ) : dossiers.length === 0 ? (
             <p className="text-muted-foreground text-sm italic">
               Aucun traitement enregistré pour l’instant.
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Titre</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {historique.jobs
-                  .slice(histPage * HIST_PAR_PAGE, histPage * HIST_PAR_PAGE + HIST_PAR_PAGE)
-                  .map((j) => (
-                    <TableRow
-                      key={j.id}
-                      className="hover:bg-muted/50 cursor-pointer"
-                      onClick={() => restaurerTraitement(j.id)}
+            <div className="space-y-2">
+              {dossiers.map((d) => {
+                const ouvert = dossiersOuverts.has(d.cle);
+                return (
+                  <div key={d.cle} className="overflow-hidden rounded-md border">
+                    <button
+                      type="button"
+                      onClick={() => basculerDossier(d.cle)}
+                      className="hover:bg-muted/50 flex w-full items-center gap-3 px-3 py-2 text-left"
                     >
-                      <TableCell className="font-medium">{j.titre}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{j.type}</Badge>
-                      </TableCell>
-                      <TableCell>{j.source}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {new Date(j.created_at).toLocaleString('fr-FR')}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          )}
-          {historique.jobs.length > HIST_PAR_PAGE && (
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <span className="text-muted-foreground text-xs">
-                {historique.jobs.length} traitement(s) · page {histPage + 1} /{' '}
-                {Math.ceil(historique.jobs.length / HIST_PAR_PAGE)}
-              </span>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setHistPage((p) => Math.max(0, p - 1))}
-                  disabled={histPage === 0}
-                >
-                  Précédent
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    setHistPage((p) =>
-                      Math.min(Math.ceil(historique.jobs.length / HIST_PAR_PAGE) - 1, p + 1),
-                    )
-                  }
-                  disabled={histPage >= Math.ceil(historique.jobs.length / HIST_PAR_PAGE) - 1}
-                >
-                  Suivant
-                </Button>
-              </div>
+                      {ouvert ? (
+                        <FolderOpen className="size-4 shrink-0 text-sky-700" />
+                      ) : (
+                        <Folder className="size-4 shrink-0 text-sky-700" />
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">{d.label}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {d.jobs.length} traitement(s) · dernier le{' '}
+                          {new Date(d.derniere).toLocaleDateString('fr-FR')}
+                        </span>
+                      </span>
+                      <Badge variant="secondary" className="shrink-0">
+                        {d.kind}
+                      </Badge>
+                      <ChevronDown
+                        className={`size-4 shrink-0 transition-transform ${ouvert ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                    {ouvert && (
+                      <div className="border-t">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Titre</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Date</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {d.jobs.map((j) => (
+                              <TableRow
+                                key={j.id}
+                                className="hover:bg-muted/50 cursor-pointer"
+                                onClick={() => restaurerTraitement(j.id)}
+                              >
+                                <TableCell className="font-medium">{j.titre}</TableCell>
+                                <TableCell>
+                                  <Badge variant="secondary">{j.type}</Badge>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-xs">
+                                  {new Date(j.created_at).toLocaleString('fr-FR')}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
-          <p className="text-muted-foreground mt-2 text-xs">
-            Cliquez sur une ligne pour rouvrir le traitement dans l’espace de travail : la source
-            est rechargée et le résultat réinjecté dans son onglet, prêt à être édité, ré-exécuté ou
-            complété. (Les traitements les plus anciens s’ouvrent en aperçu seul.)
+          <p className="text-muted-foreground mt-3 text-xs">
+            Les traitements sont regroupés en <strong>dossiers par projet / jeu de données</strong>.
+            Cliquez un dossier pour le déplier, puis un traitement pour le rouvrir dans l’espace de
+            travail (source rechargée, résultat réinjecté, prêt à être édité ou ré-exécuté).
           </p>
         </CardContent>
       </Card>
