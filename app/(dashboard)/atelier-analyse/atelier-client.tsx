@@ -72,6 +72,12 @@ import {
   type ComputeSource,
 } from '@/lib/atelier-analyse/api-client';
 import { genererRapportAction } from '@/lib/atelier-analyse/rapport';
+import {
+  exporterCrossExcel,
+  exporterFreqExcel,
+  exporterGlobalExcel,
+  exporterMultiExcel,
+} from '@/lib/atelier-analyse/exports';
 import { FORMATS_RAPPORT } from '@/lib/atelier-analyse/types';
 import type {
   AnalyzeResponse,
@@ -219,6 +225,12 @@ export function AtelierClient({ indicateurs, historique }: Props) {
 
   // Libellé lisible d'une variable (question posée) à partir de son code.
   const libelleVariable = (code: string) => variables.find((v) => v.name === code)?.display ?? code;
+
+  // Enveloppe d'export : signale une éventuelle erreur sans casser l'UI.
+  const exporter = (fn: () => Promise<void>) =>
+    fn().catch((e) => setErreur(e instanceof Error ? e.message : 'Export impossible.'));
+
+  const aDesResultats = Boolean(freq || cross || multi || stat);
 
   // Source active des calculs (enquête en ligne ou fichier importé).
   const source: ComputeSource | null = datasetRef ? { datasetRef } : dataset ? { dataset } : null;
@@ -577,6 +589,29 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                 <FileText className="size-4" /> Rapport
               </TabsTrigger>
             </TabsList>
+            <Separator />
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full justify-start gap-2"
+              disabled={!aDesResultats}
+              onClick={() =>
+                exporter(() =>
+                  exporterGlobalExcel({
+                    freq,
+                    cross,
+                    multi,
+                    stat,
+                    statRow,
+                    statCol,
+                    libelle: libelleVariable,
+                    nomFichier: `export_global_${nomSur(sourceRef || 'datastudio')}.xlsx`,
+                  }),
+                )
+              }
+            >
+              <Download className="size-4" /> Export global (Excel)
+            </Button>
           </div>
 
           {/* --- Tris à plat --- */}
@@ -601,6 +636,14 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                   <Button onClick={lancerFreq} disabled={busyFreq || varsSel.length === 0}>
                     {busyFreq && <Loader2 className="size-4 animate-spin" />}
                     Produire les tris à plat ({varsSel.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-1"
+                    disabled={!freq}
+                    onClick={() => freq && exporter(() => exporterFreqExcel(freq, libelleVariable))}
+                  >
+                    <Download className="size-4" /> Excel
                   </Button>
                 </div>
               </CardContent>
@@ -732,6 +775,16 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                 <Button onClick={lancerCross} disabled={busyCross || !row || !col}>
                   {busyCross && <Loader2 className="size-4 animate-spin" />}
                   Croiser
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-1"
+                  disabled={!cross}
+                  onClick={() =>
+                    cross && exporter(() => exporterCrossExcel(cross, libelleVariable))
+                  }
+                >
+                  <Download className="size-4" /> Excel
                 </Button>
               </CardContent>
             </Card>
@@ -935,14 +988,24 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button onClick={lancerMulti} disabled={busyMulti}>
-                  {busyMulti ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <ListChecks className="size-4" />
-                  )}
-                  Analyser les réponses multiples
-                </Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button onClick={lancerMulti} disabled={busyMulti}>
+                    {busyMulti ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <ListChecks className="size-4" />
+                    )}
+                    Analyser les réponses multiples
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-1"
+                    disabled={!multi || Object.keys(multi.tables).length === 0}
+                    onClick={() => multi && exporter(() => exporterMultiExcel(multi))}
+                  >
+                    <Download className="size-4" /> Excel
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
