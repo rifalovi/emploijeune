@@ -273,7 +273,7 @@ def clean(req: CleanRequest, user: AuthUser = CurrentUser) -> dict:
         key_columns=req.key_columns,
         drop_duplicates=req.drop_duplicates,
     )
-    return {
+    result = {
         "n_rows_source": int(len(ds.frame)),
         "n_rows_cleaned": int(len(cleaned)),
         "n_removed": int(len(ds.frame) - len(cleaned)),
@@ -283,6 +283,19 @@ def clean(req: CleanRequest, user: AuthUser = CurrentUser) -> dict:
             for c, s in specs.items()
         ],
     }
+    if req.full:
+        # Base épurée complète, réutilisable comme jeu de données de travail.
+        result["dataset"] = {
+            "rows": frame_to_records(cleaned),
+            "columns": [str(c) for c in cleaned.columns],
+            "variable_labels": {str(k): str(v) for k, v in (ds.variable_labels or {}).items()},
+            "value_labels": {
+                str(col): {str(code): str(lab) for code, lab in mapping.items()}
+                for col, mapping in (ds.value_labels or {}).items()
+            },
+            "name": f"{ds.name} (épurée)",
+        }
+    return result
 
 
 @router.post("/preview")

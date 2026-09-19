@@ -91,6 +91,9 @@ class CleanRequest(SourceRequest):
     drop_empty: bool = True
     key_columns: list[str] = Field(default_factory=list)
     drop_duplicates: bool = True
+    # full=True : renvoie aussi la base épurée COMPLÈTE (rows + labels) pour
+    # l'adopter comme base de travail (et l'enregistrer).
+    full: bool = False
 
 
 class AnalyzeRequest(SourceRequest):

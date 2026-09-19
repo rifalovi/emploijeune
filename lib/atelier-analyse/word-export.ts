@@ -8,7 +8,13 @@
  */
 
 import { parseMarkdown } from './markdown-blocks';
-import type { CrosstabResponse, FrequencyResponse, MultiResponse, StatTestResponse } from './types';
+import type {
+  CrosstabResponse,
+  FrequencyResponse,
+  MultiResponse,
+  PreviewResponse,
+  StatTestResponse,
+} from './types';
 
 type Libelle = (code: string) => string;
 
@@ -120,6 +126,20 @@ export async function exporterRapportWord(markdown: string, titre = 'Rapport') {
     'Rapport généré',
   );
   telecharger(blob, 'rapport.docx');
+}
+
+/** Export Word d'une liste (variables juxtaposées) sous forme de tableau. */
+export async function exporterListeWord(liste: PreviewResponse, titre = 'Liste') {
+  const docx = await import('docx');
+  const rows = liste.rows.map((r) => liste.codes.map((c) => (r[c] ?? '') as string | number));
+  const table = makeTable(docx, liste.columns, rows);
+  const blob = await construireDocument(
+    docx,
+    [table],
+    titre,
+    `${liste.n_rows} ligne(s) · ${liste.columns.length} variable(s)`,
+  );
+  telecharger(blob, 'liste.docx');
 }
 
 /** Export Word documenté de tout ce qui a été produit (+ rapport si présent). */

@@ -103,6 +103,8 @@ export type CleanResponse = {
   n_removed: number;
   preview: Record<string, unknown>[];
   specs: { name: string; measure: string; decimals: number }[];
+  /** Base épurée complète (si demandée avec full=true), adoptable comme base de travail. */
+  dataset?: DatasetInput | null;
 };
 
 /** Condition de filtre (sous-population). op ∈ =, ≠, contient, >, ≥, <, ≤. */

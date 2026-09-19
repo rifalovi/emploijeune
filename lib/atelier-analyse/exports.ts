@@ -12,7 +12,13 @@
 /* exceljs n'expose pas de types précis pour Row/Cell : on manipule ses objets
    en `any` de façon localisée. */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { CrosstabResponse, FrequencyResponse, MultiResponse, StatTestResponse } from './types';
+import type {
+  CrosstabResponse,
+  FrequencyResponse,
+  MultiResponse,
+  PreviewResponse,
+  StatTestResponse,
+} from './types';
 
 type Libelle = (code: string) => string;
 
@@ -251,5 +257,25 @@ export async function exporterGlobalExcel(opts: {
       'Produisez au moins un tri à plat, un croisement, une analyse multi ou un test.';
   }
   await telechargerClasseur(wb, opts.nomFichier || 'export_global.xlsx');
+}
+
+/**
+ * Export Excel d'une liste (variables juxtaposées) : en-tête = libellés des
+ * variables, cellules = valeurs déjà mises en libellé par l'API.
+ */
+export async function exporterListeExcel(liste: PreviewResponse, nomFichier = 'liste.xlsx') {
+  const wb = await nouveauClasseur();
+  const ws = wb.addWorksheet('Liste');
+  const header = ws.addRow(liste.columns);
+  styleHeaderRow(header);
+  for (const r of liste.rows) {
+    ws.addRow(liste.codes.map((c) => (r[c] ?? '') as string | number));
+  }
+  setWidths(
+    ws,
+    liste.columns.map(() => 22),
+  );
+  ws.views = [{ state: 'frozen', ySplit: 1 }];
+  await telechargerClasseur(wb, nomFichier);
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

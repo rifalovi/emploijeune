@@ -196,6 +196,30 @@ def test_clean_ok():
     assert body["n_removed"] == body["n_rows_source"] - body["n_rows_cleaned"]
     assert isinstance(body["preview"], list)
     assert isinstance(body["specs"], list)
+    # Sans full, la base épurée complète n'est pas renvoyée.
+    assert body.get("dataset") in (None, {})
+
+
+def test_clean_full_returns_dataset():
+    r = client.post(
+        "/api/datastudio/clean",
+        json={
+            "dataset": DATASET,
+            "drop_empty": True,
+            "drop_duplicates": True,
+            "full": True,
+        },
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    ds = body["dataset"]
+    assert ds is not None
+    # La base épurée complète est adoptable comme base de travail.
+    assert isinstance(ds["rows"], list)
+    assert len(ds["rows"]) == body["n_rows_cleaned"]
+    assert isinstance(ds["columns"], list)
+    assert "(épurée)" in ds["name"]
 
 
 # ------------------------------------------------------------------ source par fichier

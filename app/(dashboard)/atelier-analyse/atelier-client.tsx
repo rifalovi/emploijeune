@@ -32,6 +32,7 @@ import {
   ListChecks,
   ListOrdered,
   Loader2,
+  Save,
   Search,
   ScrollText,
   Sigma,
@@ -104,9 +105,14 @@ import {
   exporterCrossExcel,
   exporterFreqExcel,
   exporterGlobalExcel,
+  exporterListeExcel,
   exporterMultiExcel,
 } from '@/lib/atelier-analyse/exports';
-import { exporterRapportWord, exporterResultatsWord } from '@/lib/atelier-analyse/word-export';
+import {
+  exporterListeWord,
+  exporterRapportWord,
+  exporterResultatsWord,
+} from '@/lib/atelier-analyse/word-export';
 import { exporterRapportPdf } from '@/lib/atelier-analyse/pdf-export';
 import { FORMATS_RAPPORT, OPERATEURS_FILTRE } from '@/lib/atelier-analyse/types';
 import type {
@@ -311,6 +317,8 @@ export function AtelierClient({
   const [dropDuplicates, setDropDuplicates] = useState(true);
   const [clean, setClean] = useState<CleanResponse | null>(null);
   const [busyClean, setBusyClean] = useState(false);
+  // Vrai quand la base de travail active est la base ÉPURÉE (adoptée).
+  const [baseEpuree, setBaseEpuree] = useState(false);
 
   // Graphiques
   const [graphVar, setGraphVar] = useState('');
@@ -361,6 +369,11 @@ export function AtelierClient({
     fn().catch((e) => setErreur(e instanceof Error ? e.message : 'Export impossible.'));
 
   const aDesResultats = Boolean(freq || cross || multi || stat);
+  // Le rapport peut être généré dès qu'un résultat est produit ; le format
+  // « personnalisé » se génère aussi à partir de la seule structure libre
+  // (plan fourni + documents de cadrage), utile notamment en mode édition.
+  const peutGenererRapport =
+    aDesResultats || (formatRapport === 'personnalise' && structureLibre.trim().length > 0);
 
   // Source active des calculs (enquête en ligne ou fichier importé), filtres inclus.
   const source: ComputeSource | null = datasetRef
@@ -393,6 +406,7 @@ export function AtelierClient({
     setGraphFreq(null);
     setRapport(null);
     setAnalyse(null);
+    setBaseEpuree(false);
   }
 
   function appliquerAnalyse(a: AnalyzeResponse) {
@@ -611,6 +625,57 @@ export function AtelierClient({
     }
   }
 
+  /**
+   * Adopte la base ÉPURÉE comme base de travail active (et l'enregistre dans
+   * l'historique). Toutes les analyses suivantes (tri à plat, liste, rapport…)
+   * portent alors sur cette base nettoyée. Le traitement enregistré mémorise la
+   * source d'origine et les options de nettoyage : rouvrir ce traitement
+   * reconstruit la base épurée à l'identique.
+   */
+  async function appliquerBaseEpuree() {
+    if (!source) return;
+    setBusyClean(true);
+    setErreur(null);
+    try {
+      const res = await computeClean(source, { dropEmpty, dropDuplicates, full: true });
+      if (!res.dataset || !Array.isArray(res.dataset.rows)) {
+        setErreur("La base épurée n'a pas pu être générée.");
+        return;
+      }
+      const ds = res.dataset;
+      setDataset(ds);
+      setDatasetRef(null);
+      // On repart d'une base propre côté analyses, mais on conserve l'aperçu
+      // du nettoyage et le drapeau « base épurée ».
+      setFreq(null);
+      setCross(null);
+      setStat(null);
+      setMulti(null);
+      setRapport(null);
+      appliquerAnalyse(await analyzeDataset(ds));
+      setClean(res);
+      setBaseEpuree(true);
+      await enregistrerTraitementAction({
+        type: 'cleaning',
+        titre: `Base épurée adoptée — ${res.n_rows_cleaned}/${res.n_rows_source} lignes`,
+        source: sourceKind,
+        source_ref: sourceRef,
+        params: {
+          drop_empty: dropEmpty,
+          drop_duplicates: dropDuplicates,
+          source: sourceRef,
+          _reload: { kind: 'epuree', base: reloadInfo, dropEmpty, dropDuplicates },
+        },
+        apercu: `Base de travail : ${res.n_rows_cleaned} lignes (${res.n_removed} retirée(s))`,
+      });
+      router.refresh();
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyClean(false);
+    }
+  }
+
   async function lancerGraph() {
     if (!source || !graphVar) return;
     setBusyGraph(true);
@@ -716,9 +781,65 @@ export function AtelierClient({
         nom?: string;
         indicateur?: string;
         projets?: string[];
+        base?: {
+          kind?: string;
+          datasetRef?: string;
+          nom?: string;
+          indicateur?: string;
+          projets?: string[];
+        };
+        dropEmpty?: boolean;
+        dropDuplicates?: boolean;
       } | null;
 
-      if (reload?.kind === 'upload' && reload.datasetRef) {
+      // Base épurée enregistrée : on recharge la source d'origine puis on
+      // reconstruit la base nettoyée, adoptée comme base de travail.
+      if (reload?.kind === 'epuree' && reload.base) {
+        const b = reload.base;
+        let baseSource: ComputeSource | null = null;
+        if (b.kind === 'upload' && b.datasetRef) {
+          const a = await ingestFile(b.datasetRef);
+          setDatasetRef(a.dataset_ref);
+          setDataset(null);
+          setFichierNom(b.nom || a.name);
+          setSourceMode('fichier');
+          baseSource = { datasetRef: a.dataset_ref };
+        } else if (b.kind === 'enquete' && b.indicateur) {
+          const ds = await chargerDatasetEnqueteAction(b.indicateur);
+          setIndicateur(b.indicateur);
+          setSourceMode('enquete');
+          baseSource = { dataset: ds };
+        } else if (b.kind === 'multi' && b.indicateur) {
+          const codes = Array.isArray(b.projets) ? b.projets : [];
+          const ds = await chargerDatasetMultiProjetsAction(b.indicateur, codes);
+          setSourceMode('multi');
+          setMpIndicateur(b.indicateur);
+          setMpProjets(codes);
+          baseSource = { dataset: ds };
+        }
+        if (baseSource) {
+          const res = await computeClean(baseSource, {
+            dropEmpty: reload.dropEmpty ?? true,
+            dropDuplicates: reload.dropDuplicates ?? true,
+            full: true,
+          });
+          if (res.dataset && Array.isArray(res.dataset.rows)) {
+            setDataset(res.dataset);
+            setDatasetRef(null);
+            setFreq(null);
+            setCross(null);
+            setStat(null);
+            setMulti(null);
+            setRapport(null);
+            appliquerAnalyse(await analyzeDataset(res.dataset));
+            setClean(res);
+            setBaseEpuree(true);
+            setOngletActif('clean');
+          }
+        }
+        setDetail(null);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (reload?.kind === 'upload' && reload.datasetRef) {
         if (datasetRef !== reload.datasetRef) {
           const a = await ingestFile(reload.datasetRef);
           setDatasetRef(a.dataset_ref);
@@ -768,7 +889,7 @@ export function AtelierClient({
   }
 
   async function lancerRapport() {
-    if (!freq && !cross && !multi && !stat) return;
+    if (!peutGenererRapport) return;
     setBusyRapport(true);
     setErreur(null);
     try {
@@ -1638,15 +1759,35 @@ export function AtelierClient({
                     <Switch checked={dropDuplicates} onCheckedChange={setDropDuplicates} />
                     Retirer les doublons
                   </label>
-                  <Button onClick={lancerClean} disabled={busyClean}>
+                  <Button variant="outline" onClick={lancerClean} disabled={busyClean}>
                     {busyClean ? (
                       <Loader2 className="size-4 animate-spin" />
                     ) : (
                       <Wand2 className="size-4" />
                     )}
-                    Épurer la base
+                    Aperçu de l’épuration
+                  </Button>
+                  <Button onClick={appliquerBaseEpuree} disabled={busyClean}>
+                    {busyClean ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Save className="size-4" />
+                    )}
+                    Adopter &amp; enregistrer la base épurée
                   </Button>
                 </div>
+                <p className="text-muted-foreground text-xs">
+                  « Aperçu » ne modifie pas la base. « Adopter » remplace la base de travail par la
+                  base épurée : tous les traitements suivants (tris, liste, rapport…) portent alors
+                  sur cette base nettoyée, et elle est retrouvée à l’identique en rouvrant le
+                  traitement depuis l’historique.
+                </p>
+                {baseEpuree && (
+                  <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+                    <Wand2 className="size-4" />
+                    Base de travail active : <strong>base épurée</strong>.
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1740,10 +1881,7 @@ export function AtelierClient({
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button
-                    onClick={lancerRapport}
-                    disabled={busyRapport || (!freq && !cross && !multi && !stat)}
-                  >
+                  <Button onClick={lancerRapport} disabled={busyRapport || !peutGenererRapport}>
                     {busyRapport ? (
                       <Loader2 className="size-4 animate-spin" />
                     ) : (
@@ -1823,10 +1961,11 @@ export function AtelierClient({
                   Le rapport s’appuie sur TOUS les résultats produits (tris à plat, croisements,
                   réponses multiples, tests). Les chiffres ne sont ni inventés ni recalculés.
                 </p>
-                {!freq && !cross && !multi && !stat && (
+                {!peutGenererRapport && (
                   <p className="text-muted-foreground text-sm italic">
                     Produisez d’abord un tri à plat, un croisement, une analyse multi ou un test
-                    pour alimenter le rapport.
+                    pour alimenter le rapport — ou choisissez le format « Rapport personnalisé » et
+                    renseignez la structure ci-dessus pour générer un rapport guidé par votre plan.
                   </p>
                 )}
               </CardContent>
@@ -2277,7 +2416,7 @@ export function AtelierClient({
                 <CardTitle className="text-base">Liste</CardTitle>
                 <CardDescription>
                   Juxtaposez plusieurs variables (ex. pays, nom, prénom, sexe…) sur la base active
-                  et filtrée.
+                  et filtrée{baseEpuree ? ' (base épurée)' : ''}. Exportable en Word et Excel.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -2295,8 +2434,24 @@ export function AtelierClient({
             </Card>
             {liste && (
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-start justify-between gap-2">
                   <CardTitle className="text-base">Liste ({liste.n_rows} lignes)</CardTitle>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => exporter(() => exporterListeWord(liste, 'Liste'))}
+                    >
+                      <FileText className="size-4" /> Word
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => exporter(() => exporterListeExcel(liste))}
+                    >
+                      <Download className="size-4" /> Excel
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <TablePreview data={liste} />

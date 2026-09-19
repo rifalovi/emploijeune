@@ -121,13 +121,14 @@ export function computeMulti(source: ComputeSource, group?: string): Promise<Mul
 
 export function computeClean(
   source: ComputeSource,
-  opts?: { dropEmpty?: boolean; keyColumns?: string[]; dropDuplicates?: boolean },
+  opts?: { dropEmpty?: boolean; keyColumns?: string[]; dropDuplicates?: boolean; full?: boolean },
 ): Promise<CleanResponse> {
   return post<CleanResponse>('/clean', {
     ...sourceBody(source),
     drop_empty: opts?.dropEmpty ?? true,
     key_columns: opts?.keyColumns ?? [],
     drop_duplicates: opts?.dropDuplicates ?? true,
+    full: opts?.full ?? false,
   });
 }
 

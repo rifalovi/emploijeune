@@ -117,15 +117,24 @@ export async function genererRapportAction(
   }
 
   const donnees = formaterDonnees(input);
-  if (!donnees.trim()) {
-    return { status: 'erreur', message: 'Produisez d’abord un tri à plat ou un croisement.' };
+  const structure = (input.structureLibre ?? '').trim();
+  const aDocuments = (input.documentRefs?.length ?? 0) > 0;
+  // Le rapport « personnalisé » peut être produit à partir de la seule structure
+  // libre (plan imposé) et/ou de documents de cadrage, sans résultat calculé.
+  const personnaliseSansResultats =
+    input.format === 'personnalise' && (structure.length > 0 || aDocuments);
+  if (!donnees.trim() && !personnaliseSansResultats) {
+    return {
+      status: 'erreur',
+      message:
+        'Produisez d’abord un tri à plat ou un croisement — ou, en « Rapport personnalisé », ' +
+        'renseignez la structure du rapport.',
+    };
   }
   const preset = FORMATS_RAPPORT[input.format] ?? FORMATS_RAPPORT.synthese;
 
   // Contexte documentaire (RAG) : cadrage projet/programme, définitions, objectifs.
   const contexteDocs = await extraireTexteDocuments(input.documentRefs ?? []);
-
-  const structure = (input.structureLibre ?? '').trim();
 
   const system =
     "Tu es analyste senior en suivi-évaluation et statistique sociale à l'Organisation " +
@@ -154,7 +163,10 @@ export async function genererRapportAction(
 
   const userMessage =
     `Indicateur : ${input.indicateurLibelle ?? input.indicateur}\n\n` +
-    `Résultats calculés :\n${donnees}\n\n` +
+    (donnees.trim()
+      ? `Résultats calculés :\n${donnees}\n\n`
+      : 'Aucun résultat chiffré n’est fourni : construis le rapport à partir de la structure ' +
+        'imposée et des documents de cadrage, sans inventer de chiffres.\n\n') +
     (contexteDocs ? `Documents de référence (contexte de cadrage) :\n${contexteDocs}\n\n` : '') +
     (structure ? `Structure / axes demandés (à respecter fidèlement) :\n${structure}\n\n` : '') +
     (input.consignes ? `Consignes complémentaires : ${input.consignes}\n` : '');
