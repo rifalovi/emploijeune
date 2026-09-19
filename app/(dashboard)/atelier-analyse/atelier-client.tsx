@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Bar,
@@ -94,6 +94,7 @@ import {
   computeCrosstab,
   computeFrequency,
   computeList,
+  computeModalities,
   computeMulti,
   computePreview,
   computeQuality,
@@ -106,11 +107,13 @@ import { genererRapportAction } from '@/lib/atelier-analyse/rapport';
 import {
   exporterCrossExcel,
   exporterFreqExcel,
+  exporterFreqTableExcel,
   exporterGlobalExcel,
   exporterListeExcel,
   exporterMultiExcel,
 } from '@/lib/atelier-analyse/exports';
 import {
+  exporterFreqTableWord,
   exporterListeWord,
   exporterRapportWord,
   exporterResultatsWord,
@@ -342,6 +345,9 @@ export function AtelierClient({
   const [fCol, setFCol] = useState('');
   const [fOp, setFOp] = useState<string>('=');
   const [fVal, setFVal] = useState('');
+  // Modalités de la variable de filtre choisie (chargées automatiquement).
+  const [modalites, setModalites] = useState<{ valeur: string; effectif: number }[]>([]);
+  const [busyModalites, setBusyModalites] = useState(false);
 
   // Base brute (aperçu) + Liste
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
@@ -783,6 +789,34 @@ export function AtelierClient({
     setFiltres((prev) => [...prev, { col: fCol, op: fOp, val: fVal }]);
     setFVal('');
   }
+
+  // Charge automatiquement les modalités de la variable de filtre choisie, pour
+  // que l'utilisateur sélectionne une valeur EXISTANTE (au lieu de la saisir).
+  useEffect(() => {
+    let annule = false;
+    async function charger() {
+      if (!fCol || !source) {
+        setModalites([]);
+        return;
+      }
+      setBusyModalites(true);
+      try {
+        const r = await computeModalities(source, fCol, 500);
+        if (!annule) setModalites(r.modalites);
+      } catch {
+        if (!annule) setModalites([]);
+      } finally {
+        if (!annule) setBusyModalites(false);
+      }
+    }
+    charger();
+    return () => {
+      annule = true;
+    };
+    // On ne dépend pas de `source` (recréé à chaque rendu) mais de l'identité de
+    // la base : la variable choisie, le dataset en mémoire ou la référence fichier.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fCol, dataset, datasetRef]);
 
   function chargerResultatDansOnglet(d: TraitementDetail) {
     const p = d.payload;
@@ -1391,20 +1425,51 @@ export function AtelierClient({
                         <CardTitle className="text-base">{libelleVariable(name)}</CardTitle>
                         <CardDescription className="font-mono text-xs">{name}</CardDescription>
                       </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="shrink-0 gap-1"
-                        onClick={() =>
-                          telechargerFichier(
-                            `tri_a_plat_${nomSur(name)}.csv`,
-                            versCsv(rows as unknown as Record<string, unknown>[]),
-                          )
-                        }
-                      >
-                        <Download className="size-4" /> CSV
-                      </Button>
+                      <div className="flex shrink-0 flex-wrap gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() =>
+                            telechargerFichier(
+                              `tri_a_plat_${nomSur(name)}.csv`,
+                              versCsv(rows as unknown as Record<string, unknown>[]),
+                            )
+                          }
+                        >
+                          <Download className="size-4" /> CSV
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() =>
+                            exporter(() =>
+                              exporterFreqTableExcel(
+                                name,
+                                libelleVariable(name),
+                                rows,
+                                `tri_a_plat_${nomSur(name)}.xlsx`,
+                              ),
+                            )
+                          }
+                        >
+                          <Download className="size-4" /> Excel
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() =>
+                            exporter(() => exporterFreqTableWord(libelleVariable(name), name, rows))
+                          }
+                        >
+                          <FileText className="size-4" /> Word
+                        </Button>
+                      </div>
                     </CardHeader>
                     <CardContent className="grid gap-4 lg:grid-cols-2">
                       <Table>
@@ -2483,14 +2548,54 @@ export function AtelierClient({
                   </div>
                   <div className="space-y-1">
                     <p className="text-muted-foreground text-xs">Valeur</p>
-                    <Input
-                      value={fVal}
-                      onChange={(e) => setFVal(e.target.value)}
-                      placeholder="ex. Femme, 2, Oui…"
-                      className="w-48"
-                    />
+                    {['>', '≥', '<', '≤'].includes(fOp) ? (
+                      // Comparaison numérique : saisie libre du seuil.
+                      <Input
+                        value={fVal}
+                        onChange={(e) => setFVal(e.target.value)}
+                        placeholder="ex. 25"
+                        inputMode="decimal"
+                        className="w-48"
+                      />
+                    ) : fOp === 'contient' ? (
+                      // « contient » : recherche de sous-chaîne, saisie libre.
+                      <Input
+                        value={fVal}
+                        onChange={(e) => setFVal(e.target.value)}
+                        placeholder="texte à rechercher…"
+                        className="w-48"
+                      />
+                    ) : (
+                      // « = » / « ≠ » : on choisit une modalité EXISTANTE.
+                      <Select
+                        value={fVal || undefined}
+                        onValueChange={(v) => setFVal(v ?? '')}
+                        disabled={!fCol || busyModalites || modalites.length === 0}
+                      >
+                        <SelectTrigger className="w-56">
+                          <SelectValue
+                            placeholder={
+                              !fCol
+                                ? 'Choisir une variable'
+                                : busyModalites
+                                  ? 'Chargement des modalités…'
+                                  : modalites.length === 0
+                                    ? 'Aucune modalité'
+                                    : 'Choisir une modalité'
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          {modalites.map((m) => (
+                            <SelectItem key={m.valeur} value={m.valeur}>
+                              {m.valeur} ({m.effectif})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
-                  <Button onClick={ajouterFiltre} disabled={!fCol}>
+                  <Button onClick={ajouterFiltre} disabled={!fCol || !fVal}>
                     Ajouter la condition
                   </Button>
                 </div>

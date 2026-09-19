@@ -14,6 +14,7 @@ import type {
   DatasetInput,
   FilterCond,
   FrequencyResponse,
+  ModalitiesResponse,
   MultiResponse,
   PreviewResponse,
   QualityResponse,
@@ -159,6 +160,15 @@ export function computeList(
 
 export function computeQuality(source: ComputeSource): Promise<QualityResponse> {
   return post<QualityResponse>('/quality', sourceBody(source));
+}
+
+/** Modalités d'une variable (en libellés), pour alimenter un champ de filtre. */
+export function computeModalities(
+  source: ComputeSource,
+  col: string,
+  limit = 500,
+): Promise<ModalitiesResponse> {
+  return post<ModalitiesResponse>('/modalities', { ...sourceBody(source), col, limit });
 }
 
 /** Réponse d'ingestion d'un fichier : métadonnées + référence Storage. */

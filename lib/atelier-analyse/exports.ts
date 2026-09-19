@@ -217,6 +217,18 @@ export async function exporterFreqExcel(freq: FrequencyResponse, libelle: Libell
   await telechargerClasseur(wb, 'tris_a_plat.xlsx');
 }
 
+/** Export Excel d'UN seul tri à plat (une feuille). */
+export async function exporterFreqTableExcel(
+  code: string,
+  titre: string,
+  rows: FrequencyResponse['tables'][string],
+  nomFichier = 'tri_a_plat.xlsx',
+) {
+  const wb = await nouveauClasseur();
+  ajouterFreqSheet(wb, titre, code, rows);
+  await telechargerClasseur(wb, nomFichier);
+}
+
 export async function exporterCrossExcel(cross: CrosstabResponse, libelle: Libelle) {
   const wb = await nouveauClasseur();
   ajouterCrossSheets(wb, cross, libelle);

@@ -41,6 +41,7 @@ from .schemas import (  # noqa: E402
     FrequencyRequest,
     IngestFileRequest,
     ListRequest,
+    ModalitiesRequest,
     MultiRequest,
     PreviewRequest,
     QualityRequest,
@@ -333,6 +334,33 @@ def liste(req: ListRequest, user: AuthUser = CurrentUser) -> dict:
         "columns": [ds.variable_display(c) for c in req.cols],
         "codes": [str(c) for c in req.cols],
         "rows": frame_to_records(display),
+    }
+
+
+@router.post("/modalities")
+def modalities(req: ModalitiesRequest, user: AuthUser = CurrentUser) -> dict:
+    """Modalités d'une variable (valeurs en libellés), triées par fréquence.
+
+    Sert à alimenter le champ « valeur » d'un filtre : l'utilisateur choisit une
+    modalité existante (le filtre `=`/`≠` compare sur ces libellés), au lieu de
+    la saisir à la main au risque de ne pas retomber sur la valeur exacte.
+    """
+    # On ne veut PAS que les filtres déjà posés restreignent la liste proposée.
+    base = SourceRequest(dataset=req.dataset, dataset_ref=req.dataset_ref, filters=None)
+    ds = _resolve_dataset(user, base)
+    _require_columns(ds, req.col)
+    lab = ds.labelled_series(req.col).astype(str)
+    counts = lab[lab != MISSING_LABEL].value_counts()
+    limit = max(1, min(int(req.limit), 2000))
+    valeurs = [
+        {"valeur": str(v), "effectif": int(n)} for v, n in counts.head(limit).items()
+    ]
+    return {
+        "col": req.col,
+        "display": ds.variable_display(req.col),
+        "n_modalites": int(counts.shape[0]),
+        "modalites": valeurs,
+        "tronque": bool(counts.shape[0] > limit),
     }
 
 

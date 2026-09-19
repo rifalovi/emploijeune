@@ -182,18 +182,51 @@ export async function genererRapportAction(
     (input.consignes ? `Consignes complémentaires : ${input.consignes}\n` : '');
 
   const client = new Anthropic({ apiKey });
+  const estLong = FORMATS_LONGS.includes(input.format);
+  const maxTokens = estLong ? 16000 : 5000;
   try {
-    const reponse = await client.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: FORMATS_LONGS.includes(input.format) ? 8000 : 4096,
-      system,
-      messages: [{ role: 'user', content: userMessage }],
-    });
-    const rapport =
-      reponse.content
+    // Génération avec CONTINUATION automatique : si le modèle atteint la limite
+    // de tokens (rapport coupé), on relance en poursuivant le texte déjà produit
+    // jusqu'à ce que le rapport soit complet (plafonné pour éviter les boucles).
+    const messages: { role: 'user' | 'assistant'; content: string }[] = [
+      { role: 'user', content: userMessage },
+    ];
+    const morceaux: string[] = [];
+    const maxTours = estLong ? 4 : 2;
+    let complet = false;
+    for (let tour = 0; tour < maxTours; tour += 1) {
+      const reponse = await client.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: maxTokens,
+        system,
+        messages,
+      });
+      const texte = reponse.content
         .filter((block) => block.type === 'text')
         .map((block) => (block.type === 'text' ? block.text : ''))
-        .join('\n') || '(Rapport vide.)';
+        .join('');
+      morceaux.push(texte);
+      if (reponse.stop_reason !== 'max_tokens') {
+        complet = true;
+        break;
+      }
+      // Rapport coupé : on demande la suite en reprenant exactement où il s'arrête.
+      messages.push({ role: 'assistant', content: texte });
+      messages.push({
+        role: 'user',
+        content:
+          'Poursuis le rapport EXACTEMENT là où tu t’es arrêté, sans rien répéter ni ' +
+          'réintroduire, en conservant la même structure et le même niveau de détail, ' +
+          'jusqu’à la conclusion et les annexes.',
+      });
+    }
+    // Recollage : les continuations reprennent la phrase en cours, on les joint bord à bord.
+    const rapport = morceaux.join('').trim() || '(Rapport vide.)';
+    if (!complet) {
+      console.warn('[atelier-analyse] Rapport tronqué après continuation', {
+        format: input.format,
+      });
+    }
 
     // Enregistrement best-effort dans l'historique.
     await enregistrerTraitementAction({

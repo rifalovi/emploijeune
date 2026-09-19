@@ -156,6 +156,28 @@ export async function exporterRapportWord(markdown: string, titre = 'Rapport') {
   telecharger(blob, 'rapport.docx');
 }
 
+/** Export Word d'UN seul tri à plat (tableau effectifs / %). */
+export async function exporterFreqTableWord(
+  titre: string,
+  code: string,
+  rows: FrequencyResponse['tables'][string],
+) {
+  const docx = await import('docx');
+  const table = makeTable(
+    docx,
+    ['Modalité', 'Effectif', '%', '% valide', '% cumulé'],
+    rows.map((r) => [
+      r.Modalité,
+      r.Effectif,
+      fmtPct(r['%']),
+      fmtPct(r['% valide']),
+      fmtPct(r['% cumulé']),
+    ]),
+  );
+  const blob = await construireDocument(docx, [table], titre, `Tri à plat · ${code}`);
+  telecharger(blob, 'tri_a_plat.docx');
+}
+
 /** Export Word d'une liste (variables juxtaposées) sous forme de tableau. */
 export async function exporterListeWord(liste: PreviewResponse, titre = 'Liste') {
   const docx = await import('docx');

@@ -125,6 +125,13 @@ class QualityRequest(SourceRequest):
     pass
 
 
+class ModalitiesRequest(SourceRequest):
+    """Modalités (valeurs en libellés) d'une variable, pour alimenter un filtre."""
+
+    col: str
+    limit: int = 500
+
+
 class IngestFileRequest(BaseModel):
     """Ingestion d'un fichier déjà déposé dans le bucket Storage « datastudio ».
 

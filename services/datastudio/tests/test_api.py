@@ -249,6 +249,22 @@ def test_clean_key_columns_targeted():
     assert body["n_rows_cleaned"] == 5
 
 
+def test_modalities_ok():
+    # Modalités en libellés d'une variable, triées par fréquence, sans manquants.
+    r = client.post(
+        "/api/datastudio/modalities",
+        json={"dataset": DATASET, "col": "Q1_sexe"},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    valeurs = [m["valeur"] for m in body["modalites"]]
+    # Le libellé « Homme »/« Femme » (value_labels) est proposé, jamais le manquant.
+    assert body["n_modalites"] == len(body["modalites"])
+    assert all(isinstance(m["effectif"], int) for m in body["modalites"])
+    assert "[Manquant]" not in valeurs
+
+
 def test_list_exclure_vides():
     # Liste sur la seule variable Q1_sexe (une valeur manquante) : la ligne
     # entièrement vide sur les colonnes listées est masquée.

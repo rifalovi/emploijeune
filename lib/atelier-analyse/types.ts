@@ -137,6 +137,15 @@ export type QualityResponse = {
   anomalies: { type: string; cible: string; detail: string; priorite: string }[];
 };
 
+/** Modalités (valeurs en libellés) d'une variable, pour alimenter un filtre. */
+export type ModalitiesResponse = {
+  col: string;
+  display: string;
+  n_modalites: number;
+  modalites: { valeur: string; effectif: number }[];
+  tronque: boolean;
+};
+
 /** Entrée de l'historique des traitements (table datastudio_jobs). */
 export type HistoriqueJob = {
   id: string;
