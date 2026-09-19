@@ -196,6 +196,13 @@ export const FORMATS_RAPPORT = {
       '**Discussion** (interprétation, mise en relation des résultats) ; **Limites méthodologiques** ; **Recommandations** ; **Conclusion**. ' +
       'Ton scientifique, précis et nuancé ; distingue corrélation et causalité ; signale les effectifs faibles.',
   },
+  personnalise: {
+    label: 'Rapport personnalisé (structure libre)',
+    instruction:
+      'Produis le rapport en suivant STRICTEMENT la structure et les axes demandés par ' +
+      'l’utilisateur (fournis ci-après). Organise le rapport selon ces axes, adosse chaque point ' +
+      'aux chiffres correspondants, et propose des sous-sections cohérentes si utile.',
+  },
 } as const;
 
 export type FormatRapport = keyof typeof FORMATS_RAPPORT;

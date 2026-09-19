@@ -325,6 +325,7 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
   // Rapport (API Claude)
   const [formatRapport, setFormatRapport] = useState<FormatRapport>('synthese');
   const [docsSel, setDocsSel] = useState<string[]>([]);
+  const [structureLibre, setStructureLibre] = useState('');
   const [consignes, setConsignes] = useState('');
   const [rapport, setRapport] = useState<string | null>(null);
   const [busyRapport, setBusyRapport] = useState(false);
@@ -719,6 +720,7 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
         tests: stat,
         documentRefs: docsSel,
         reload: reloadInfo,
+        structureLibre: structureLibre || undefined,
       });
       if (res.status === 'succes') {
         setRapport(res.rapport);
@@ -1564,10 +1566,34 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
                     Générer le rapport
                   </Button>
                 </div>
+
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    Structure / axes du rapport{' '}
+                    <span className="text-muted-foreground font-normal">
+                      {formatRapport === 'personnalise' ? '(requis)' : '(facultatif)'}
+                    </span>
+                  </p>
+                  <Textarea
+                    value={structureLibre}
+                    onChange={(e) => setStructureLibre(e.target.value)}
+                    placeholder={
+                      'Décrivez librement le plan / les axes à mettre en avant. Ex. : mettre en avant les ' +
+                      'résultats liés aux activités menées, à l’acquisition des compétences, à leur utilisation, ' +
+                      'aux effets induits / retombées après utilisation, puis un florilège de témoignages concrets…'
+                    }
+                    rows={4}
+                  />
+                  <p className="text-muted-foreground text-xs">
+                    L’IA suivra cette structure comme plan du rapport (et l’illustrera de tableaux
+                    et de graphiques).
+                  </p>
+                </div>
+
                 <Textarea
                   value={consignes}
                   onChange={(e) => setConsignes(e.target.value)}
-                  placeholder="Consignes complémentaires (optionnel) : thème, projet, programme, angle, public visé, longueur…"
+                  placeholder="Consignes complémentaires (optionnel) : angle, public visé, longueur…"
                   rows={2}
                 />
 
@@ -1674,7 +1700,7 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <MarkdownRenderer>{rapport}</MarkdownRenderer>
+                  <RapportView markdown={rapport} />
                 </CardContent>
               </Card>
             )}
@@ -2236,7 +2262,7 @@ function HistoriqueDetail({ detail }: { detail: TraitementDetail }) {
           </Button>
         </div>
         <div className="rounded-md border p-4">
-          <MarkdownRenderer>{md}</MarkdownRenderer>
+          <RapportView markdown={md} />
         </div>
       </div>
     );
@@ -2566,6 +2592,100 @@ function TablePreview({ data }: { data: PreviewResponse }) {
           ))}
         </TableBody>
       </Table>
+    </div>
+  );
+}
+
+/** Graphique inséré par l'IA dans un rapport via un bloc ```chart {json}. */
+function ChartRapport({ spec }: { spec: string }) {
+  let type: 'bar' | 'pie' = 'bar';
+  let titre = '';
+  let data: { label: string; value: number }[] = [];
+  try {
+    const j = JSON.parse(spec.trim());
+    type = j.type === 'pie' ? 'pie' : 'bar';
+    titre = String(j.titre ?? j.title ?? '');
+    const arr = Array.isArray(j.data) ? j.data : [];
+    data = arr
+      .map((d: { label?: unknown; name?: unknown; value?: unknown; effectif?: unknown }) => ({
+        label: String(d.label ?? d.name ?? ''),
+        value: Number(d.value ?? d.effectif ?? 0),
+      }))
+      .filter((d: { label: string; value: number }) => d.label && Number.isFinite(d.value));
+  } catch {
+    return null;
+  }
+  if (data.length === 0) return null;
+  return (
+    <div className="my-3 rounded-lg border p-3">
+      {titre && <p className="mb-2 text-sm font-medium">{titre}</p>}
+      <div className="h-64 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          {type === 'pie' ? (
+            <PieChart>
+              <Tooltip {...tooltipPropsPremium} />
+              <Legend />
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="label"
+                cx="50%"
+                cy="50%"
+                outerRadius={90}
+                label
+              >
+                {data.map((_, i) => (
+                  <Cell key={i} fill={couleurRang(i)} />
+                ))}
+              </Pie>
+            </PieChart>
+          ) : (
+            <BarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11 }}
+                interval={0}
+                angle={-20}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip {...tooltipPropsPremium} />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                {data.map((_, i) => (
+                  <Cell key={i} fill={couleurRang(i)} />
+                ))}
+              </Bar>
+            </BarChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+/** Rendu d'un rapport : Markdown (titres, tableaux) + graphiques ```chart. */
+function RapportView({ markdown }: { markdown: string }) {
+  const re = /```chart\s*([\s\S]*?)```/g;
+  const parts: { type: 'text' | 'chart'; content: string }[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(markdown)) !== null) {
+    if (m.index > last) parts.push({ type: 'text', content: markdown.slice(last, m.index) });
+    parts.push({ type: 'chart', content: m[1] ?? '' });
+    last = re.lastIndex;
+  }
+  if (last < markdown.length) parts.push({ type: 'text', content: markdown.slice(last) });
+  return (
+    <div className="space-y-2">
+      {parts.map((p, i) =>
+        p.type === 'chart' ? (
+          <ChartRapport key={i} spec={p.content} />
+        ) : p.content.trim() ? (
+          <MarkdownRenderer key={i}>{p.content}</MarkdownRenderer>
+        ) : null,
+      )}
     </div>
   );
 }

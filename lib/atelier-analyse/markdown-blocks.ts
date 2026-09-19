@@ -19,8 +19,15 @@ function nettoyerInline(s: string): string {
 
 export function parseMarkdown(markdown: string): BlocMd[] {
   const blocs: BlocMd[] = [];
+  let dansCodeBlock = false;
   for (const brute of markdown.split('\n')) {
     const ligne = brute.trimEnd();
+    // Ignore les blocs de code (```chart …```) : non rendus en Word/PDF.
+    if (ligne.trimStart().startsWith('```')) {
+      dansCodeBlock = !dansCodeBlock;
+      continue;
+    }
+    if (dansCodeBlock) continue;
     if (!ligne.trim()) continue;
     const h = /^(#{1,3})\s+(.*)$/.exec(ligne);
     if (h) {

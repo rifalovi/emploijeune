@@ -34,6 +34,8 @@ export type GenererRapportInput = {
   tests?: StatTestResponse | null;
   documentRefs?: string[];
   reload?: Record<string, unknown>;
+  /** Structure / axes libres décrits par l'utilisateur (rapport sur mesure). */
+  structureLibre?: string;
 };
 
 function fmtPct(v: number | null): string {
@@ -123,6 +125,8 @@ export async function genererRapportAction(
   // Contexte documentaire (RAG) : cadrage projet/programme, définitions, objectifs.
   const contexteDocs = await extraireTexteDocuments(input.documentRefs ?? []);
 
+  const structure = (input.structureLibre ?? '').trim();
+
   const system =
     "Tu es analyste senior en suivi-évaluation et statistique sociale à l'Organisation " +
     'internationale de la Francophonie (OIF). Tu rédiges en français, dans un style clair, ' +
@@ -130,18 +134,29 @@ export async function genererRapportAction(
     'recalcule pas, ne cite aucune donnée absente, et signale explicitement les effectifs faibles ' +
     'ou les limites. Distingue corrélation et causalité. ' +
     preset.instruction +
-    ' Mets en forme en Markdown (titres de niveau ##/###, listes, tableaux si utile). ' +
-    'Appuie chaque affirmation chiffrée sur un chiffre issu des résultats.' +
+    // Rapport RÉDIGÉ + illustré : garder l'analyse complète ET l'accompagner de
+    // tableaux et de graphiques (sans réduire le texte).
+    ' Conserve une analyse rédigée complète, MAIS illustre-la systématiquement : (1) présente les ' +
+    'chiffres clés dans des TABLEAUX Markdown (colonnes Modalité / Effectif / % selon les cas) ; ' +
+    '(2) propose des GRAPHIQUES en insérant des blocs de code ```chart contenant un JSON ' +
+    '{"type":"bar"|"pie","titre":"…","data":[{"label":"…","value":n}]} construit UNIQUEMENT à partir ' +
+    'des chiffres fournis (l’application le transforme en graphique). Alterne texte, tableaux et ' +
+    'graphiques. Structure avec des titres ## / ###. Appuie chaque affirmation chiffrée sur un chiffre des résultats.' +
     (contexteDocs
       ? " Des « Documents de référence » sont fournis : sers-t'en UNIQUEMENT pour le cadrage " +
         "(contexte, objectifs du projet/programme, définitions, enjeux). N'en tire AUCUN chiffre " +
         'de résultat ; les seuls chiffres autorisés sont ceux des « Résultats calculés ».'
+      : '') +
+    (structure
+      ? ' L’utilisateur impose une structure/des axes précis (fournis ci-après) : respecte-les ' +
+        'fidèlement, dans l’ordre indiqué, comme plan du rapport.'
       : '');
 
   const userMessage =
     `Indicateur : ${input.indicateurLibelle ?? input.indicateur}\n\n` +
     `Résultats calculés :\n${donnees}\n\n` +
     (contexteDocs ? `Documents de référence (contexte de cadrage) :\n${contexteDocs}\n\n` : '') +
+    (structure ? `Structure / axes demandés (à respecter fidèlement) :\n${structure}\n\n` : '') +
     (input.consignes ? `Consignes complémentaires : ${input.consignes}\n` : '');
 
   const client = new Anthropic({ apiKey });
