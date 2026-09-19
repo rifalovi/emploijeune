@@ -254,6 +254,7 @@ type Props = {
 
 export function AtelierClient({ indicateurs, historique, documentsReference = [] }: Props) {
   const router = useRouter();
+  const [ongletActif, setOngletActif] = useState('freq');
   const [sourceMode, setSourceMode] = useState<'enquete' | 'fichier'>('enquete');
   const [indicateur, setIndicateur] = useState('');
   const [dataset, setDataset] = useState<DatasetInput | null>(null);
@@ -351,6 +352,11 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
     ? fichierNom
     : (indicateurs.find((i) => i.code === indicateur)?.libelle ?? indicateur);
 
+  // De quoi recharger la source d'un traitement (pour rouvrir le workspace).
+  const reloadInfo: Record<string, unknown> = datasetRef
+    ? { kind: 'upload', datasetRef, nom: fichierNom }
+    : { kind: 'enquete', indicateur };
+
   function reinitAnalyse() {
     setFreq(null);
     setCross(null);
@@ -437,7 +443,7 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
         titre: `Tris à plat — ${varsSel.length} variable(s)`,
         source: sourceKind,
         source_ref: sourceRef,
-        params: { cols: varsSel, exclure, source: sourceRef },
+        params: { cols: varsSel, exclure, source: sourceRef, _reload: reloadInfo },
         payload: res as unknown as Record<string, unknown>,
         apercu: `${varsSel.length} variable(s)`,
       });
@@ -462,7 +468,7 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
         titre: `Croisement ${row} × ${col}`,
         source: sourceKind,
         source_ref: sourceRef,
-        params: { row, col, layer: lyr, pctMode, source: sourceRef },
+        params: { row, col, layer: lyr, pctMode, source: sourceRef, _reload: reloadInfo },
         payload: res as unknown as Record<string, unknown>,
         apercu: `${res.layers.length} table(s)`,
       });
@@ -486,7 +492,7 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
         titre: `Tests statistiques ${statRow} × ${statCol}`,
         source: sourceKind,
         source_ref: sourceRef,
-        params: { row: statRow, col: statCol, source: sourceRef },
+        params: { row: statRow, col: statCol, source: sourceRef, _reload: reloadInfo },
         payload: res as unknown as Record<string, unknown>,
         apercu: [
           res.chi_square.applicable ? `χ² p=${res.chi_square.p.toFixed(4)}` : 'χ² n/a',
@@ -515,7 +521,7 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
           titre: `Réponses multiples — ${nb} batterie(s)`,
           source: sourceKind,
           source_ref: sourceRef,
-          params: { source: sourceRef },
+          params: { source: sourceRef, _reload: reloadInfo },
           payload: res as unknown as Record<string, unknown>,
           apercu: `${nb} batterie(s)`,
         });
@@ -540,7 +546,12 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
         titre: `Base épurée — ${res.n_rows_cleaned}/${res.n_rows_source} lignes`,
         source: sourceKind,
         source_ref: sourceRef,
-        params: { drop_empty: dropEmpty, drop_duplicates: dropDuplicates, source: sourceRef },
+        params: {
+          drop_empty: dropEmpty,
+          drop_duplicates: dropDuplicates,
+          source: sourceRef,
+          _reload: reloadInfo,
+        },
         apercu: `${res.n_removed} ligne(s) retirée(s)`,
       });
       router.refresh();
@@ -609,13 +620,82 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
     setFVal('');
   }
 
-  async function ouvrirTraitement(jobId: string) {
+  function chargerResultatDansOnglet(d: TraitementDetail) {
+    const p = d.payload;
+    const params = (d.params ?? {}) as { row?: string; col?: string; format?: string };
+    if (d.type === 'frequency' && p) {
+      setFreq(p as unknown as FrequencyResponse);
+      setOngletActif('freq');
+    } else if (d.type === 'crosstab' && p) {
+      const cr = p as unknown as CrosstabResponse;
+      setCross(cr);
+      if (cr.row) setRow(cr.row);
+      if (cr.col) setCol(cr.col);
+      if (cr.layer) setLayer(cr.layer);
+      if (cr.pct_mode) setPctMode(cr.pct_mode as 'Ligne' | 'Colonne');
+      setOngletActif('cross');
+    } else if (d.type === 'multi' && p) {
+      setMulti(p as unknown as MultiResponse);
+      setOngletActif('multi');
+    } else if (d.type === 'stat_test' && p) {
+      setStat(p as unknown as StatTestResponse);
+      if (params.row) setStatRow(params.row);
+      if (params.col) setStatCol(params.col);
+      setOngletActif('stat');
+    } else if (d.type === 'report' && p) {
+      setRapport((p as { rapport?: string }).rapport ?? '');
+      if (params.format) setFormatRapport(params.format as FormatRapport);
+      setOngletActif('rapport');
+    } else if (d.type === 'cleaning') {
+      setOngletActif('clean');
+    }
+  }
+
+  async function restaurerTraitement(jobId: string) {
     setBusyDetail(true);
     setErreur(null);
     try {
       const res = await chargerTraitementAction(jobId);
-      if (res.ok) setDetail(res.detail);
-      else setErreur(res.erreur);
+      if (!res.ok) {
+        setErreur(res.erreur);
+        return;
+      }
+      const d = res.detail;
+      const reload = (d.params?._reload ?? null) as {
+        kind?: string;
+        datasetRef?: string;
+        nom?: string;
+        indicateur?: string;
+      } | null;
+
+      if (reload?.kind === 'upload' && reload.datasetRef) {
+        if (datasetRef !== reload.datasetRef) {
+          const a = await ingestFile(reload.datasetRef);
+          setDatasetRef(a.dataset_ref);
+          setDataset(null);
+          setFichierNom(reload.nom || a.name);
+          setSourceMode('fichier');
+          appliquerAnalyse(a);
+        }
+        chargerResultatDansOnglet(d);
+        setDetail(null);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (reload?.kind === 'enquete' && reload.indicateur) {
+        if (indicateur !== reload.indicateur || !dataset) {
+          const ds = await chargerDatasetEnqueteAction(reload.indicateur);
+          setIndicateur(reload.indicateur);
+          setDataset(ds);
+          setDatasetRef(null);
+          setSourceMode('enquete');
+          appliquerAnalyse(await analyzeDataset(ds));
+        }
+        chargerResultatDansOnglet(d);
+        setDetail(null);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        // Traitement ancien sans information de rechargement : aperçu seul.
+        setDetail(d);
+      }
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
     } finally {
@@ -638,6 +718,7 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
         multi,
         tests: stat,
         documentRefs: docsSel,
+        reload: reloadInfo,
       });
       if (res.status === 'succes') {
         setRapport(res.rapport);
@@ -747,7 +828,8 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
       {/* Espace d'analyse — rail des commandes (façon DataStudio desktop) + panneau */}
       {analyse && source && (
         <Tabs
-          defaultValue="freq"
+          value={ongletActif}
+          onValueChange={setOngletActif}
           orientation="vertical"
           className="grid items-start gap-4 md:grid-cols-[220px_minmax(0,1fr)]"
         >
@@ -2069,7 +2151,7 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
                   <TableRow
                     key={j.id}
                     className="hover:bg-muted/50 cursor-pointer"
-                    onClick={() => ouvrirTraitement(j.id)}
+                    onClick={() => restaurerTraitement(j.id)}
                   >
                     <TableCell className="font-medium">{j.titre}</TableCell>
                     <TableCell>
@@ -2085,8 +2167,9 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
             </Table>
           )}
           <p className="text-muted-foreground mt-2 text-xs">
-            Cliquez sur une ligne pour consulter le traitement (résultats, rapport) et l’exporter,
-            sans ré-importer ni relancer l’IA.
+            Cliquez sur une ligne pour rouvrir le traitement dans l’espace de travail : la source
+            est rechargée et le résultat réinjecté dans son onglet, prêt à être édité, ré-exécuté ou
+            complété. (Les traitements les plus anciens s’ouvrent en aperçu seul.)
           </p>
         </CardContent>
       </Card>

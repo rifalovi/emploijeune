@@ -34,6 +34,7 @@ export type GenererRapportInput = {
   multi?: MultiResponse | null;
   tests?: StatTestResponse | null;
   documentRefs?: string[];
+  reload?: Record<string, unknown>;
 };
 
 function fmtPct(v: number | null): string {
@@ -164,7 +165,12 @@ export async function genererRapportAction(
       titre: `Rapport — ${preset.label}`,
       source: 'enquete',
       source_ref: input.indicateur,
-      params: { format: input.format, consignes: input.consignes ?? null },
+      params: {
+        format: input.format,
+        consignes: input.consignes ?? null,
+        documentRefs: input.documentRefs ?? [],
+        _reload: input.reload ?? null,
+      },
       payload: { rapport, format: input.format },
       apercu: preset.label,
     });
