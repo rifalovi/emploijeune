@@ -12,8 +12,11 @@ import type {
   CleanResponse,
   CrosstabResponse,
   DatasetInput,
+  FilterCond,
   FrequencyResponse,
   MultiResponse,
+  PreviewResponse,
+  QualityResponse,
   StatTestResponse,
 } from './types';
 
@@ -61,10 +64,15 @@ async function post<T>(path: string, body: unknown): Promise<T> {
  * enquêtes), soit un fichier déjà déposé dans Storage (`datasetRef`, cas des
  * imports .sav — les données volumineuses ne transitent pas par le client).
  */
-export type ComputeSource = { dataset: DatasetInput } | { datasetRef: string };
+export type ComputeSource = ({ dataset: DatasetInput } | { datasetRef: string }) & {
+  filters?: FilterCond[];
+};
 
 function sourceBody(source: ComputeSource): Record<string, unknown> {
-  return 'datasetRef' in source ? { dataset_ref: source.datasetRef } : { dataset: source.dataset };
+  const base: Record<string, unknown> =
+    'datasetRef' in source ? { dataset_ref: source.datasetRef } : { dataset: source.dataset };
+  if (source.filters && source.filters.length > 0) base.filters = source.filters;
+  return base;
 }
 
 export function analyzeDataset(dataset: DatasetInput): Promise<AnalyzeResponse> {
@@ -121,6 +129,22 @@ export function computeClean(
     key_columns: opts?.keyColumns ?? [],
     drop_duplicates: opts?.dropDuplicates ?? true,
   });
+}
+
+export function computePreview(source: ComputeSource, limit = 100): Promise<PreviewResponse> {
+  return post<PreviewResponse>('/preview', { ...sourceBody(source), limit });
+}
+
+export function computeList(
+  source: ComputeSource,
+  cols: string[],
+  limit = 200,
+): Promise<PreviewResponse> {
+  return post<PreviewResponse>('/list', { ...sourceBody(source), cols, limit });
+}
+
+export function computeQuality(source: ComputeSource): Promise<QualityResponse> {
+  return post<QualityResponse>('/quality', sourceBody(source));
 }
 
 /** Réponse d'ingestion d'un fichier : métadonnées + référence Storage. */

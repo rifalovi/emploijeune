@@ -44,13 +44,25 @@ class DatasetInput(BaseModel):
         )
 
 
+class FilterCond(BaseModel):
+    """Condition de filtre (combinées par ET). op ∈ =, ≠, contient, >, ≥, <, ≤."""
+
+    col: str
+    op: Literal["=", "≠", "contient", ">", "≥", "<", "≤"]
+    val: str = ""
+
+
 class SourceRequest(BaseModel):
     """Base des requêtes de calcul : le jeu de données provient soit d'un envoi
     JSON en ligne (`dataset`, cas des enquêtes), soit d'un fichier déjà déposé
-    dans Storage (`dataset_ref` = chemin de l'objet, cas des imports .sav)."""
+    dans Storage (`dataset_ref` = chemin de l'objet, cas des imports .sav).
+
+    `filters` (optionnel) restreint la base à une sous-population (conditions ET),
+    appliqué à TOUTES les analyses qui étendent cette requête."""
 
     dataset: Optional[DatasetInput] = None
     dataset_ref: Optional[str] = None
+    filters: Optional[list[FilterCond]] = None
 
 
 class FrequencyRequest(SourceRequest):
@@ -82,6 +94,25 @@ class CleanRequest(SourceRequest):
 
 
 class AnalyzeRequest(SourceRequest):
+    pass
+
+
+class PreviewRequest(SourceRequest):
+    """Aperçu de la base (brute/filtrée) : premières lignes en libellés."""
+
+    limit: int = 100
+
+
+class ListRequest(SourceRequest):
+    """Liste : juxtaposition de variables choisies (en libellés)."""
+
+    cols: list[str]
+    limit: int = 200
+
+
+class QualityRequest(SourceRequest):
+    """Diagnostic qualité : complétude par variable, doublons, score."""
+
     pass
 
 

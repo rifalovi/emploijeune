@@ -16,16 +16,20 @@ import {
   YAxis,
 } from 'recharts';
 import {
+  AlertTriangle,
   BarChart3,
   BookOpen,
   CheckCheck,
   ClipboardList,
   Database,
   Download,
+  FileStack,
   FileText,
+  Filter,
   FlaskConical,
   Gauge,
   ListChecks,
+  ListOrdered,
   Loader2,
   Search,
   ScrollText,
@@ -33,8 +37,10 @@ import {
   Sparkles,
   SquareDashed,
   Table2,
+  Trash2,
   Upload,
   Wand2,
+  X,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -73,7 +79,10 @@ import {
   computeClean,
   computeCrosstab,
   computeFrequency,
+  computeList,
   computeMulti,
+  computePreview,
+  computeQuality,
   computeStatTest,
   ingestFile,
   uploadSpssFile,
@@ -88,17 +97,20 @@ import {
 } from '@/lib/atelier-analyse/exports';
 import { exporterRapportWord, exporterResultatsWord } from '@/lib/atelier-analyse/word-export';
 import { exporterRapportPdf } from '@/lib/atelier-analyse/pdf-export';
-import { FORMATS_RAPPORT } from '@/lib/atelier-analyse/types';
+import { FORMATS_RAPPORT, OPERATEURS_FILTRE } from '@/lib/atelier-analyse/types';
 import type {
   AnalyzeResponse,
   CleanResponse,
   CrosstabResponse,
   DatasetInput,
+  FilterCond,
   FormatRapport,
   FrequencyResponse,
   HistoriqueJob,
   IndicateurSource,
   MultiResponse,
+  PreviewResponse,
+  QualityResponse,
   StatTestResponse,
 } from '@/lib/atelier-analyse/types';
 
@@ -276,6 +288,23 @@ export function AtelierClient({ indicateurs, historique }: Props) {
   const [graphFreq, setGraphFreq] = useState<FrequencyResponse | null>(null);
   const [busyGraph, setBusyGraph] = useState(false);
 
+  // Filtres (sous-population appliquée à toutes les analyses)
+  const [filtres, setFiltres] = useState<FilterCond[]>([]);
+  const [fCol, setFCol] = useState('');
+  const [fOp, setFOp] = useState<string>('=');
+  const [fVal, setFVal] = useState('');
+
+  // Base brute (aperçu) + Liste
+  const [preview, setPreview] = useState<PreviewResponse | null>(null);
+  const [busyPreview, setBusyPreview] = useState(false);
+  const [listeCols, setListeCols] = useState<string[]>([]);
+  const [liste, setListe] = useState<PreviewResponse | null>(null);
+  const [busyListe, setBusyListe] = useState(false);
+
+  // Diagnostic qualité / anomalies
+  const [quality, setQuality] = useState<QualityResponse | null>(null);
+  const [busyQuality, setBusyQuality] = useState(false);
+
   // Rapport (API Claude)
   const [formatRapport, setFormatRapport] = useState<FormatRapport>('synthese');
   const [consignes, setConsignes] = useState('');
@@ -293,8 +322,12 @@ export function AtelierClient({ indicateurs, historique }: Props) {
 
   const aDesResultats = Boolean(freq || cross || multi || stat);
 
-  // Source active des calculs (enquête en ligne ou fichier importé).
-  const source: ComputeSource | null = datasetRef ? { datasetRef } : dataset ? { dataset } : null;
+  // Source active des calculs (enquête en ligne ou fichier importé), filtres inclus.
+  const source: ComputeSource | null = datasetRef
+    ? { datasetRef, filters: filtres }
+    : dataset
+      ? { dataset, filters: filtres }
+      : null;
   const sourceKind = datasetRef ? 'upload' : 'enquete';
   const sourceRef = datasetRef ? fichierNom : indicateur;
   const sourceLabel = datasetRef
@@ -326,6 +359,12 @@ export function AtelierClient({ indicateurs, historique }: Props) {
     setStatCol(second);
     setGraphVar(first);
     setGraphFreq(null);
+    setFCol(first);
+    setListeCols(a.variables.slice(0, 4).map((v) => v.name));
+    setFiltres([]);
+    setPreview(null);
+    setListe(null);
+    setQuality(null);
   }
 
   async function charger() {
@@ -508,6 +547,51 @@ export function AtelierClient({ indicateurs, historique }: Props) {
     }
   }
 
+  async function chargerPreview() {
+    if (!source) return;
+    setBusyPreview(true);
+    setErreur(null);
+    try {
+      setPreview(await computePreview(source, 100));
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyPreview(false);
+    }
+  }
+
+  async function lancerListe() {
+    if (!source || listeCols.length === 0) return;
+    setBusyListe(true);
+    setErreur(null);
+    try {
+      setListe(await computeList(source, listeCols, 200));
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyListe(false);
+    }
+  }
+
+  async function lancerQuality() {
+    if (!source) return;
+    setBusyQuality(true);
+    setErreur(null);
+    try {
+      setQuality(await computeQuality(source));
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyQuality(false);
+    }
+  }
+
+  function ajouterFiltre() {
+    if (!fCol) return;
+    setFiltres((prev) => [...prev, { col: fCol, op: fOp, val: fVal }]);
+    setFVal('');
+  }
+
   async function lancerRapport() {
     if (!freq && !cross) return;
     setBusyRapport(true);
@@ -647,11 +731,25 @@ export function AtelierClient({ indicateurs, historique }: Props) {
               <p className="text-muted-foreground px-1 pt-1 text-[10px] font-semibold tracking-wider uppercase">
                 Données
               </p>
+              <TabsTrigger value="brute" className="w-full justify-start gap-2">
+                <FileStack className="size-4" /> Base brute
+              </TabsTrigger>
               <TabsTrigger value="specs" className="w-full justify-start gap-2">
                 <ClipboardList className="size-4" /> Caractéristiques
               </TabsTrigger>
               <TabsTrigger value="diag" className="w-full justify-start gap-2">
                 <Gauge className="size-4" /> Diagnostic
+              </TabsTrigger>
+              <TabsTrigger value="anomalies" className="w-full justify-start gap-2">
+                <AlertTriangle className="size-4" /> Anomalies
+              </TabsTrigger>
+              <TabsTrigger value="filtres" className="w-full justify-start gap-2">
+                <Filter className="size-4" /> Filtres
+                {filtres.length > 0 && (
+                  <Badge variant="secondary" className="ml-auto">
+                    {filtres.length}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger value="clean" className="w-full justify-start gap-2">
                 <Wand2 className="size-4" /> Nettoyage
@@ -673,6 +771,9 @@ export function AtelierClient({ indicateurs, historique }: Props) {
               </TabsTrigger>
               <TabsTrigger value="graph" className="w-full justify-start gap-2">
                 <BarChart3 className="size-4" /> Graphiques
+              </TabsTrigger>
+              <TabsTrigger value="liste" className="w-full justify-start gap-2">
+                <ListOrdered className="size-4" /> Liste
               </TabsTrigger>
               <p className="text-muted-foreground px-1 pt-2 text-[10px] font-semibold tracking-wider uppercase">
                 Restitution
@@ -1613,6 +1714,224 @@ export function AtelierClient({ indicateurs, historique }: Props) {
             )}
           </TabsContent>
 
+          {/* --- Base brute --- */}
+          <TabsContent value="brute" className="mt-0 space-y-4">
+            <Card>
+              <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+                <div className="min-w-0">
+                  <CardTitle className="text-base">Base brute (aperçu)</CardTitle>
+                  <CardDescription>
+                    Aperçu des 100 premières lignes (en libellés), filtres appliqués.
+                  </CardDescription>
+                </div>
+                <Button onClick={chargerPreview} disabled={busyPreview} className="shrink-0">
+                  {busyPreview ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <FileStack className="size-4" />
+                  )}
+                  Charger l’aperçu
+                </Button>
+              </CardHeader>
+              {preview && (
+                <CardContent className="space-y-2">
+                  <Badge variant="secondary">{preview.n_rows} lignes (base active)</Badge>
+                  <TablePreview data={preview} />
+                </CardContent>
+              )}
+            </Card>
+          </TabsContent>
+
+          {/* --- Anomalies / Diagnostic qualité --- */}
+          <TabsContent value="anomalies" className="mt-0 space-y-4">
+            <Card>
+              <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+                <div className="min-w-0">
+                  <CardTitle className="text-base">Anomalies et qualité</CardTitle>
+                  <CardDescription>
+                    Complétude par variable, doublons stricts et registre d’anomalies.
+                  </CardDescription>
+                </div>
+                <Button onClick={lancerQuality} disabled={busyQuality} className="shrink-0">
+                  {busyQuality ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <AlertTriangle className="size-4" />
+                  )}
+                  Lancer le diagnostic
+                </Button>
+              </CardHeader>
+              {quality && (
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      {
+                        valeur: `${(quality.taux_completude * 100).toFixed(1)} %`,
+                        label: 'Complétude',
+                      },
+                      { valeur: `${(quality.taux_unicite * 100).toFixed(1)} %`, label: 'Unicité' },
+                      { valeur: quality.n_duplicates, label: 'Doublons' },
+                      { valeur: quality.n_rows, label: 'Lignes' },
+                    ].map((t) => (
+                      <div key={t.label} className="bg-muted/40 rounded-lg border p-3">
+                        <p className="text-2xl font-semibold tabular-nums">{t.valeur}</p>
+                        <p className="text-muted-foreground text-xs">{t.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {quality.anomalies.length > 0 && (
+                    <div className="overflow-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Cible</TableHead>
+                            <TableHead>Détail</TableHead>
+                            <TableHead>Priorité</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {quality.anomalies.map((a, i) => (
+                            <TableRow key={i}>
+                              <TableCell>{a.type}</TableCell>
+                              <TableCell className="max-w-xs truncate" title={a.cible}>
+                                {a.cible}
+                              </TableCell>
+                              <TableCell>{a.detail}</TableCell>
+                              <TableCell>
+                                <Badge variant={a.priorite === 'Haute' ? 'default' : 'secondary'}>
+                                  {a.priorite}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              )}
+            </Card>
+          </TabsContent>
+
+          {/* --- Filtres --- */}
+          <TabsContent value="filtres" className="mt-0 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Filtres (sous-population)</CardTitle>
+                <CardDescription>
+                  Ajoutez des conditions combinées par ET. Toutes les analyses (tris à plat,
+                  croisements, tests, listes…) porteront alors sur cette sous-population.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-end gap-3">
+                  <SelectChamp
+                    label="Variable"
+                    value={fCol}
+                    onChange={setFCol}
+                    options={variables}
+                  />
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs">Opérateur</p>
+                    <Select value={fOp} onValueChange={(v) => setFOp(v ?? '=')}>
+                      <SelectTrigger className="w-28">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {OPERATEURS_FILTRE.map((op) => (
+                          <SelectItem key={op} value={op}>
+                            {op}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground text-xs">Valeur</p>
+                    <Input
+                      value={fVal}
+                      onChange={(e) => setFVal(e.target.value)}
+                      placeholder="ex. Femme, 2, Oui…"
+                      className="w-48"
+                    />
+                  </div>
+                  <Button onClick={ajouterFiltre} disabled={!fCol}>
+                    Ajouter la condition
+                  </Button>
+                </div>
+
+                {filtres.length === 0 ? (
+                  <p className="text-muted-foreground text-sm italic">
+                    Aucun filtre actif : les analyses portent sur toute la base.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {filtres.map((f, i) => (
+                        <Badge key={i} variant="secondary" className="gap-1 py-1">
+                          {libelleVariable(f.col)} {f.op} {f.val || '∅'}
+                          <button
+                            type="button"
+                            aria-label="Retirer"
+                            onClick={() => setFiltres((prev) => prev.filter((_, j) => j !== i))}
+                            className="hover:text-destructive"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1"
+                      onClick={() => setFiltres([])}
+                    >
+                      <Trash2 className="size-4" /> Tout effacer
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* --- Liste --- */}
+          <TabsContent value="liste" className="mt-0 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Liste</CardTitle>
+                <CardDescription>
+                  Juxtaposez plusieurs variables (ex. pays, nom, prénom, sexe…) sur la base active
+                  et filtrée.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <VariablePicker
+                  variables={variables}
+                  selected={listeCols}
+                  onChange={setListeCols}
+                />
+                <Separator />
+                <Button onClick={lancerListe} disabled={busyListe || listeCols.length === 0}>
+                  {busyListe && <Loader2 className="size-4 animate-spin" />}
+                  Produire la liste ({listeCols.length})
+                </Button>
+              </CardContent>
+            </Card>
+            {liste && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Liste ({liste.n_rows} lignes)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TablePreview data={liste} />
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
           {/* --- Guide --- */}
           <TabsContent value="guide" className="mt-0 space-y-4">
             <Card>
@@ -1842,6 +2161,36 @@ function VariablePicker({
           })
         )}
       </div>
+    </div>
+  );
+}
+
+/** Rendu tabulaire d'un aperçu (Base brute / Liste) : en-têtes = libellés. */
+function TablePreview({ data }: { data: PreviewResponse }) {
+  return (
+    <div className="max-h-[28rem] overflow-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {data.columns.map((c, i) => (
+              <TableHead key={i} className="whitespace-nowrap">
+                {c}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.rows.map((r, ri) => (
+            <TableRow key={ri}>
+              {data.codes.map((code, ci) => (
+                <TableCell key={ci} className="whitespace-nowrap">
+                  {String(r[code] ?? '')}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

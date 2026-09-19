@@ -234,6 +234,83 @@ def test_ingest_file_ownership_403():
     assert r.status_code == 403
 
 
+# ------------------------------------------------------------------ vague 2
+def test_preview_ok():
+    r = client.post("/api/datastudio/preview", json={"dataset": DATASET}, headers=auth_headers())
+    assert r.status_code == 200
+    body = r.json()
+    assert body["n_rows"] == 6
+    assert "Q1_sexe" in body["codes"]
+    assert len(body["rows"]) == 6
+
+
+def test_list_ok():
+    r = client.post(
+        "/api/datastudio/list",
+        json={"dataset": DATASET, "cols": ["Q1_sexe", "Q2_satisf"]},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["codes"] == ["Q1_sexe", "Q2_satisf"]
+    assert len(body["rows"]) == 6
+    # Les libellés de valeur sont appliqués (Homme/Femme).
+    valeurs = {row["Q1_sexe"] for row in body["rows"]}
+    assert "Homme" in valeurs or "Femme" in valeurs
+
+
+def test_list_missing_col_422():
+    r = client.post(
+        "/api/datastudio/list",
+        json={"dataset": DATASET, "cols": ["Q9_absent"]},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 422
+
+
+def test_quality_ok():
+    r = client.post("/api/datastudio/quality", json={"dataset": DATASET}, headers=auth_headers())
+    assert r.status_code == 200
+    body = r.json()
+    assert body["n_rows"] == 6
+    assert body["n_variables"] == 5
+    # Q1_sexe a une valeur manquante (None) sur 6 lignes.
+    q1 = next(v for v in body["variables"] if v["name"] == "Q1_sexe")
+    assert q1["n_manquant"] == 1
+    assert 0.0 <= body["taux_completude"] <= 1.0
+
+
+def test_filters_reduisent_la_base():
+    # Filtre Q1_sexe = Femme (label) : la base passe de 6 à 3 lignes.
+    r = client.post(
+        "/api/datastudio/preview",
+        json={"dataset": DATASET, "filters": [{"col": "Q1_sexe", "op": "=", "val": "Femme"}]},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    assert r.json()["n_rows"] == 3
+
+
+def test_filters_numerique():
+    # Q3_note ≥ 15 : 3 lignes (15.5, 18.0, 16.0).
+    r = client.post(
+        "/api/datastudio/preview",
+        json={"dataset": DATASET, "filters": [{"col": "Q3_note", "op": "≥", "val": "15"}]},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    assert r.json()["n_rows"] == 3
+
+
+def test_filters_variable_inconnue_422():
+    r = client.post(
+        "/api/datastudio/preview",
+        json={"dataset": DATASET, "filters": [{"col": "Q9_absent", "op": "=", "val": "x"}]},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 422
+
+
 # ------------------------------------------------------------------ ES256 (JWKS)
 def _make_es256_token(sub: str = "user-123", exp_delta: int = 3600, aud: str = "authenticated"):
     """Génère une paire de clés EC P-256, enregistre le JWK dans le cache de

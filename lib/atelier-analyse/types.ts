@@ -105,6 +105,36 @@ export type CleanResponse = {
   specs: { name: string; measure: string; decimals: number }[];
 };
 
+/** Condition de filtre (sous-population). op ∈ =, ≠, contient, >, ≥, <, ≤. */
+export type FilterCond = { col: string; op: string; val: string };
+
+export const OPERATEURS_FILTRE = ['=', '≠', 'contient', '>', '≥', '<', '≤'] as const;
+
+/** Aperçu de base (brute/filtrée) ou liste de variables juxtaposées. */
+export type PreviewResponse = {
+  n_rows: number;
+  columns: string[];
+  codes: string[];
+  rows: Record<string, unknown>[];
+};
+
+/** Diagnostic qualité : complétude par variable, doublons, anomalies. */
+export type QualityResponse = {
+  n_rows: number;
+  n_variables: number;
+  n_duplicates: number;
+  taux_completude: number;
+  taux_unicite: number;
+  variables: {
+    name: string;
+    display: string;
+    n_rempli: number;
+    n_manquant: number;
+    taux_rempli: number;
+  }[];
+  anomalies: { type: string; cible: string; detail: string; priorite: string }[];
+};
+
 /** Entrée de l'historique des traitements (table datastudio_jobs). */
 export type HistoriqueJob = {
   id: string;
