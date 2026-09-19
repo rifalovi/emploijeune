@@ -108,9 +108,12 @@ export async function uploadSpssFile(file: File): Promise<string> {
   }
   const safe = file.name.replace(/[^A-Za-z0-9._-]/g, '_');
   const path = `${userId}/uploads/${crypto.randomUUID()}_${safe}`;
+  // On force application/octet-stream : la liste MIME du bucket l'autorise pour
+  // tous les formats, et le serveur lit le fichier par son extension (le chemin
+  // la conserve), pas par son type MIME.
   const { error } = await supabase.storage
     .from('datastudio')
-    .upload(path, file, { upsert: false, contentType: file.type || 'application/octet-stream' });
+    .upload(path, file, { upsert: false, contentType: 'application/octet-stream' });
   if (error) {
     throw new Error(`Envoi du fichier échoué : ${error.message}`);
   }

@@ -257,8 +257,9 @@ export function AtelierClient({ indicateurs, historique }: Props) {
             <Database className="size-4" /> Source des données
           </CardTitle>
           <CardDescription>
-            Analysez les réponses d’enquête de la plateforme, ou importez un fichier SPSS (.sav),
-            Kobo/CSPro (.xlsx) ou .csv.
+            Analysez les réponses d’enquête de la plateforme, ou importez un fichier : SPSS (.sav),
+            Excel (.xlsx, .xls), LibreOffice (.ods), CSV/TSV/TAB, JSON, tableau Word (.docx), et
+            tout export Kobo/CSPro.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -311,7 +312,7 @@ export function AtelierClient({ indicateurs, historique }: Props) {
             <div className="flex flex-wrap items-end gap-3">
               <input
                 type="file"
-                accept=".sav,.xlsx,.xls,.csv"
+                accept=".sav,.xlsx,.xls,.ods,.csv,.tsv,.tab,.json,.docx"
                 onChange={(e) => setFichier(e.target.files?.[0] ?? null)}
                 className="file:border-input file:bg-background text-sm file:mr-3 file:rounded-md file:border file:px-3 file:py-1.5 file:text-sm"
               />

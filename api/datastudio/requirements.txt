@@ -1,7 +1,8 @@
 # Dépendances de la fonction Python Vercel (API SCS DataStudio).
 # pandas/numpy/scipy : moteur et tests statistiques.
-# pyreadstat : lecture des fichiers SPSS .sav importés depuis Storage.
-# openpyxl : lecture des exports Kobo / CSPro .xlsx.
+# pyreadstat : lecture des fichiers SPSS .sav.
+# openpyxl : .xlsx (Kobo/CSPro) ; xlrd : ancien Excel .xls ;
+# odfpy : .ods (LibreOffice) ; python-docx : tableaux Word .docx.
 fastapi>=0.111
 pydantic>=2
 pandas>=2.2
@@ -9,3 +10,6 @@ numpy>=1.26
 scipy>=1.11
 pyreadstat>=1.2
 openpyxl>=3.1
+xlrd>=2.0
+odfpy>=1.4
+python-docx>=1.1
