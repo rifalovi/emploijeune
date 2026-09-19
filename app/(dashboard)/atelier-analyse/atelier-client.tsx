@@ -13,13 +13,16 @@ import {
   YAxis,
 } from 'recharts';
 import {
+  CheckCheck,
   Database,
   FileText,
   FlaskConical,
   ListChecks,
   Loader2,
+  Search,
   Sigma,
   Sparkles,
+  SquareDashed,
   Table2,
   Upload,
   Wand2,
@@ -28,6 +31,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { MarkdownRenderer } from '@/components/ia/markdown-renderer';
@@ -84,6 +89,40 @@ const AUCUNE = '__aucune__';
 
 function pct(v: number | null): string {
   return v === null || v === undefined ? '' : `${(v * 100).toFixed(1)} %`;
+}
+
+/** Types de mesure du moteur, avec libellé court et teinte de badge. */
+const MESURES: Record<string, { court: string; classe: string }> = {
+  NOMINAL: { court: 'Nom.', classe: 'bg-sky-100 text-sky-800' },
+  ORDINAL: { court: 'Ord.', classe: 'bg-violet-100 text-violet-800' },
+  ÉCHELLE: { court: 'Éch.', classe: 'bg-emerald-100 text-emerald-800' },
+};
+
+// Motifs de variables « techniques » (identifiants, métadonnées d'entretien…)
+// exclues de la présélection par défaut.
+const MOTIFS_TECHNIQUES =
+  /\b(id|ids|identifier|identifiant|uuid|guid|index|clé|cle|key|random|al[ée]atoire|interview|entretien|assignment|submission|instance|timestamp|status|statut|errors?\s*count|duration|dur[ée]e|d[ée]but|start|end|latitude|longitude|gps|geopoint|deviceid|version)\b/i;
+
+/** Une variable est « technique » (peu pertinente pour un tri à plat direct). */
+function estVariableTechnique(
+  v: { name: string; display: string; cardinality: number },
+  nRows: number,
+): boolean {
+  if (MOTIFS_TECHNIQUES.test(`${v.name} ${v.display}`)) return true;
+  // Identifiant / texte libre : cardinalité quasi unique ou très élevée.
+  if (v.cardinality > 100) return true;
+  if (nRows > 0 && v.cardinality >= 0.9 * nRows) return true;
+  return false;
+}
+
+/** Présélection intelligente : variables analysables, hors variables techniques. */
+function preselectionIntelligente(
+  variables: { name: string; display: string; cardinality: number }[],
+  nRows: number,
+): string[] {
+  const retenues = variables.filter((v) => !estVariableTechnique(v, nRows)).map((v) => v.name);
+  // Repli : si tout a été exclu, on garde les 20 premières pour ne pas bloquer.
+  return retenues.length > 0 ? retenues : variables.slice(0, 20).map((v) => v.name);
 }
 
 type Props = {
@@ -161,9 +200,12 @@ export function AtelierClient({ indicateurs, historique }: Props) {
 
   function appliquerAnalyse(a: AnalyzeResponse) {
     setAnalyse(a);
-    setVarsSel(a.variables.slice(0, 1).map((v) => v.name));
-    const first = a.variables[0]?.name ?? '';
-    const second = a.variables[1]?.name ?? first;
+    setVarsSel(preselectionIntelligente(a.variables, a.n_rows));
+    // Défauts de croisement/tests : premières variables non techniques.
+    const analysables = a.variables.filter((v) => !estVariableTechnique(v, a.n_rows));
+    const first = (analysables[0] ?? a.variables[0])?.name ?? '';
+    const second =
+      (analysables[1] ?? analysables[0] ?? a.variables[1] ?? a.variables[0])?.name ?? '';
     setRow(first);
     setCol(second);
     setStatRow(first);
@@ -337,10 +379,6 @@ export function AtelierClient({ indicateurs, historique }: Props) {
     }
   }
 
-  function toggleVar(name: string) {
-    setVarsSel((prev) => (prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]));
-  }
-
   async function lancerRapport() {
     if (!freq && !cross) return;
     setBusyRapport(true);
@@ -459,50 +497,62 @@ export function AtelierClient({ indicateurs, historique }: Props) {
         </div>
       )}
 
-      {/* Espace d'analyse */}
+      {/* Espace d'analyse — rail des commandes (façon DataStudio desktop) + panneau */}
       {analyse && source && (
-        <Tabs defaultValue="freq" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="freq" className="gap-1">
-              <Sigma className="size-4" /> Tris à plat
-            </TabsTrigger>
-            <TabsTrigger value="cross" className="gap-1">
-              <Table2 className="size-4" /> Croisements
-            </TabsTrigger>
-            <TabsTrigger value="stat" className="gap-1">
-              <Sparkles className="size-4" /> Tests stat.
-            </TabsTrigger>
-            <TabsTrigger value="multi" className="gap-1">
-              <ListChecks className="size-4" /> Réponses multiples
-            </TabsTrigger>
-            <TabsTrigger value="clean" className="gap-1">
-              <Wand2 className="size-4" /> Nettoyage
-            </TabsTrigger>
-            <TabsTrigger value="rapport" className="gap-1">
-              <FileText className="size-4" /> Rapport
-            </TabsTrigger>
-          </TabsList>
+        <Tabs
+          defaultValue="freq"
+          orientation="vertical"
+          className="grid items-start gap-4 md:grid-cols-[220px_minmax(0,1fr)]"
+        >
+          <div className="space-y-3 md:sticky md:top-4">
+            <div className="bg-muted/40 rounded-lg border p-3">
+              <p className="text-muted-foreground text-xs font-medium">Jeu de données</p>
+              <p className="mt-1 truncate text-sm font-semibold" title={sourceLabel}>
+                {sourceLabel}
+              </p>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                {analyse.n_rows} lignes · {variables.length} variables
+              </p>
+            </div>
+            <p className="text-muted-foreground px-1 text-xs font-medium tracking-wide uppercase">
+              Commandes
+            </p>
+            <TabsList className="flex h-auto w-full flex-col items-stretch gap-1 bg-transparent p-0">
+              <TabsTrigger value="freq" className="w-full justify-start gap-2">
+                <Sigma className="size-4" /> Tris à plat
+              </TabsTrigger>
+              <TabsTrigger value="cross" className="w-full justify-start gap-2">
+                <Table2 className="size-4" /> Croisements
+              </TabsTrigger>
+              <TabsTrigger value="stat" className="w-full justify-start gap-2">
+                <Sparkles className="size-4" /> Tests statistiques
+              </TabsTrigger>
+              <TabsTrigger value="multi" className="w-full justify-start gap-2">
+                <ListChecks className="size-4" /> Réponses multiples
+              </TabsTrigger>
+              <TabsTrigger value="clean" className="w-full justify-start gap-2">
+                <Wand2 className="size-4" /> Nettoyage
+              </TabsTrigger>
+              <TabsTrigger value="rapport" className="w-full justify-start gap-2">
+                <FileText className="size-4" /> Rapport
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* --- Tris à plat --- */}
-          <TabsContent value="freq" className="space-y-4">
+          <TabsContent value="freq" className="mt-0 space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Variables à analyser</CardTitle>
+                <CardTitle className="text-base">Tris à plat</CardTitle>
+                <CardDescription>
+                  Choisissez les variables à analyser. Recherchez, filtrez par type de mesure ou
+                  sélectionnez en masse. Les variables techniques (identifiants, métadonnées) sont
+                  décochées par défaut.
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid max-h-56 grid-cols-1 gap-1 overflow-auto sm:grid-cols-2 lg:grid-cols-3">
-                  {variables.map((v) => (
-                    <label key={v.name} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={varsSel.includes(v.name)}
-                        onCheckedChange={() => toggleVar(v.name)}
-                      />
-                      <span className="truncate" title={v.display}>
-                        {v.display}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+              <CardContent className="space-y-4">
+                <VariablePicker variables={variables} selected={varsSel} onChange={setVarsSel} />
+                <Separator />
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="flex items-center gap-2 text-sm">
                     <Switch checked={exclure} onCheckedChange={setExclure} />
@@ -510,7 +560,7 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                   </label>
                   <Button onClick={lancerFreq} disabled={busyFreq || varsSel.length === 0}>
                     {busyFreq && <Loader2 className="size-4 animate-spin" />}
-                    Produire les tris à plat
+                    Produire les tris à plat ({varsSel.length})
                   </Button>
                 </div>
               </CardContent>
@@ -1101,6 +1151,164 @@ export function AtelierClient({ indicateurs, historique }: Props) {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+/**
+ * Sélecteur de variables riche : recherche plein texte, filtres par type de
+ * mesure, sélection en masse (tout / aucun / inverser) sur la liste filtrée,
+ * compteur, libellés complets + code + badge de mesure. Remplace la grille de
+ * cases à cocher ingérable sur les bases à nombreuses variables.
+ */
+function VariablePicker({
+  variables,
+  selected,
+  onChange,
+}: {
+  variables: { name: string; display: string; measure: string; cardinality: number }[];
+  selected: string[];
+  onChange: (names: string[]) => void;
+}) {
+  const [q, setQ] = useState('');
+  const [mesure, setMesure] = useState<string>('TOUTES');
+
+  const requete = q.trim().toLowerCase();
+  const filtrees = variables.filter((v) => {
+    if (mesure !== 'TOUTES' && v.measure !== mesure) return false;
+    if (!requete) return true;
+    return `${v.display} ${v.name}`.toLowerCase().includes(requete);
+  });
+
+  const selSet = new Set(selected);
+  const nbFiltreesSel = filtrees.filter((v) => selSet.has(v.name)).length;
+
+  function toggle(name: string) {
+    const next = new Set(selected);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    onChange([...next]);
+  }
+  function toutFiltrees() {
+    onChange([...new Set([...selected, ...filtrees.map((v) => v.name)])]);
+  }
+  function aucuneFiltrees() {
+    const noms = new Set(filtrees.map((v) => v.name));
+    onChange(selected.filter((n) => !noms.has(n)));
+  }
+  function inverserFiltrees() {
+    const next = new Set(selected);
+    for (const v of filtrees) {
+      if (next.has(v.name)) next.delete(v.name);
+      else next.add(v.name);
+    }
+    onChange([...next]);
+  }
+
+  const compteMesure = (m: string) =>
+    m === 'TOUTES' ? variables.length : variables.filter((v) => v.measure === m).length;
+  const filtresMesure: { cle: string; label: string }[] = [
+    { cle: 'TOUTES', label: 'Toutes' },
+    { cle: 'NOMINAL', label: 'Nominales' },
+    { cle: 'ORDINAL', label: 'Ordinales' },
+    { cle: 'ÉCHELLE', label: 'Échelle' },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Rechercher une variable (libellé ou code)…"
+          className="pl-9"
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {filtresMesure.map((f) => (
+          <Button
+            key={f.cle}
+            type="button"
+            size="sm"
+            variant={mesure === f.cle ? 'default' : 'outline'}
+            className="h-7 px-2.5 text-xs"
+            onClick={() => setMesure(f.cle)}
+          >
+            {f.label} ({compteMesure(f.cle)})
+          </Button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          className="h-7 gap-1 px-2.5 text-xs"
+          onClick={toutFiltrees}
+        >
+          <CheckCheck className="size-3.5" /> Tout sélectionner
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-7 gap-1 px-2.5 text-xs"
+          onClick={aucuneFiltrees}
+        >
+          <SquareDashed className="size-3.5" /> Aucun
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2.5 text-xs"
+          onClick={inverserFiltrees}
+        >
+          Inverser
+        </Button>
+        <span className="text-muted-foreground ml-auto text-xs">
+          {selected.length} sélectionnée(s) · {nbFiltreesSel}/{filtrees.length} affichée(s)
+        </span>
+      </div>
+
+      <div className="max-h-72 divide-y overflow-auto rounded-md border">
+        {filtrees.length === 0 ? (
+          <p className="text-muted-foreground p-4 text-center text-sm italic">
+            Aucune variable ne correspond à la recherche.
+          </p>
+        ) : (
+          filtrees.map((v) => {
+            const m = MESURES[v.measure];
+            return (
+              <label
+                key={v.name}
+                className="hover:bg-muted/50 flex cursor-pointer items-start gap-2.5 px-3 py-2 text-sm"
+              >
+                <Checkbox
+                  className="mt-0.5"
+                  checked={selSet.has(v.name)}
+                  onCheckedChange={() => toggle(v.name)}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block leading-snug" title={v.display}>
+                    {v.display}
+                  </span>
+                  <span className="text-muted-foreground font-mono text-xs">{v.name}</span>
+                </span>
+                <span
+                  className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${m?.classe ?? 'bg-muted text-muted-foreground'}`}
+                  title={v.measure}
+                >
+                  {m?.court ?? v.measure}
+                </span>
+              </label>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
