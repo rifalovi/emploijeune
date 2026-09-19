@@ -883,102 +883,100 @@ export function AtelierClient({
         keyCols?: string[];
       } | null;
 
-      // Base épurée enregistrée : on recharge la source d'origine puis on
-      // reconstruit la base nettoyée, adoptée comme base de travail.
-      if (reload?.kind === 'epuree' && reload.base) {
-        const b = reload.base;
-        let baseSource: ComputeSource | null = null;
-        if (b.kind === 'upload' && b.datasetRef) {
-          const a = await ingestFile(b.datasetRef);
-          setDatasetRef(a.dataset_ref);
-          setDataset(null);
-          setFichierNom(b.nom || a.name);
-          setSourceMode('fichier');
-          baseSource = { datasetRef: a.dataset_ref };
-        } else if (b.kind === 'enquete' && b.indicateur) {
-          const ds = await chargerDatasetEnqueteAction(b.indicateur);
-          setIndicateur(b.indicateur);
-          setSourceMode('enquete');
-          baseSource = { dataset: ds };
-        } else if (b.kind === 'multi' && b.indicateur) {
-          const codes = Array.isArray(b.projets) ? b.projets : [];
-          const ds = await chargerDatasetMultiProjetsAction(b.indicateur, codes);
-          setSourceMode('multi');
-          setMpIndicateur(b.indicateur);
-          setMpProjets(codes);
-          baseSource = { dataset: ds };
-        }
-        if (baseSource) {
-          const res = await computeClean(baseSource, {
-            dropEmpty: reload.dropEmpty ?? true,
-            dropDuplicates: reload.dropDuplicates ?? true,
-            dropMissing: reload.dropMissing ?? false,
-            keyColumns: Array.isArray(reload.keyCols) ? reload.keyCols : [],
-            full: true,
-          });
-          setKeyCols(Array.isArray(reload.keyCols) ? reload.keyCols : []);
-          if (res.dataset && Array.isArray(res.dataset.rows)) {
-            setDataset(res.dataset);
+      // Rechargement de la source en MEILLEUR EFFORT : on tente de rouvrir la
+      // base d'origine pour pouvoir ré-exécuter/compléter le traitement. Même si
+      // cela échoue (fichier expiré, ancien traitement sans info de source), on
+      // réinjecte ensuite le résultat enregistré dans l'espace de travail —
+      // jamais un simple aperçu en lecture seule.
+      try {
+        if (reload?.kind === 'epuree' && reload.base) {
+          // Base épurée : on recharge la source puis on reconstruit la base nettoyée.
+          const b = reload.base;
+          let baseSource: ComputeSource | null = null;
+          if (b.kind === 'upload' && b.datasetRef) {
+            const a = await ingestFile(b.datasetRef);
+            setDatasetRef(a.dataset_ref);
+            setDataset(null);
+            setFichierNom(b.nom || a.name);
+            setSourceMode('fichier');
+            baseSource = { datasetRef: a.dataset_ref };
+          } else if (b.kind === 'enquete' && b.indicateur) {
+            const ds = await chargerDatasetEnqueteAction(b.indicateur);
+            setIndicateur(b.indicateur);
+            setSourceMode('enquete');
+            baseSource = { dataset: ds };
+          } else if (b.kind === 'multi' && b.indicateur) {
+            const codes = Array.isArray(b.projets) ? b.projets : [];
+            const ds = await chargerDatasetMultiProjetsAction(b.indicateur, codes);
+            setSourceMode('multi');
+            setMpIndicateur(b.indicateur);
+            setMpProjets(codes);
+            baseSource = { dataset: ds };
+          }
+          if (baseSource) {
+            const rClean = await computeClean(baseSource, {
+              dropEmpty: reload.dropEmpty ?? true,
+              dropDuplicates: reload.dropDuplicates ?? true,
+              dropMissing: reload.dropMissing ?? false,
+              keyColumns: Array.isArray(reload.keyCols) ? reload.keyCols : [],
+              full: true,
+            });
+            setKeyCols(Array.isArray(reload.keyCols) ? reload.keyCols : []);
+            if (rClean.dataset && Array.isArray(rClean.dataset.rows)) {
+              setDataset(rClean.dataset);
+              setDatasetRef(null);
+              setFreq(null);
+              setCross(null);
+              setStat(null);
+              setMulti(null);
+              setRapport(null);
+              appliquerAnalyse(await analyzeDataset(rClean.dataset));
+              setClean(rClean);
+              setBaseEpuree(true);
+              setEpureeReload(reload);
+            }
+          }
+        } else if (reload?.kind === 'upload' && reload.datasetRef) {
+          if (datasetRef !== reload.datasetRef) {
+            const a = await ingestFile(reload.datasetRef);
+            setDatasetRef(a.dataset_ref);
+            setDataset(null);
+            setFichierNom(reload.nom || a.name);
+            setSourceMode('fichier');
+            appliquerAnalyse(a);
+          }
+        } else if (reload?.kind === 'enquete' && reload.indicateur) {
+          if (indicateur !== reload.indicateur || !dataset) {
+            const ds = await chargerDatasetEnqueteAction(reload.indicateur);
+            setIndicateur(reload.indicateur);
+            setDataset(ds);
             setDatasetRef(null);
-            setFreq(null);
-            setCross(null);
-            setStat(null);
-            setMulti(null);
-            setRapport(null);
-            appliquerAnalyse(await analyzeDataset(res.dataset));
-            setClean(res);
-            setBaseEpuree(true);
-            setEpureeReload(reload);
-            // Réinjecte le résultat enregistré (rapport, tri…) dans son onglet,
-            // sinon on présente la base épurée prête à l'emploi.
-            if (d.type && d.type !== 'cleaning') chargerResultatDansOnglet(d);
-            else setOngletActif('clean');
+            setSourceMode('enquete');
+            appliquerAnalyse(await analyzeDataset(ds));
+          }
+        } else if (reload?.kind === 'multi' && reload.indicateur) {
+          const codes = Array.isArray(reload.projets) ? reload.projets : [];
+          if (sourceMode !== 'multi' || mpIndicateur !== reload.indicateur || !dataset) {
+            const ds = await chargerDatasetMultiProjetsAction(reload.indicateur, codes);
+            setSourceMode('multi');
+            setMpIndicateur(reload.indicateur);
+            setMpProjets(codes);
+            setDataset(ds);
+            setDatasetRef(null);
+            appliquerAnalyse(await analyzeDataset(ds));
           }
         }
-        setDetail(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (reload?.kind === 'upload' && reload.datasetRef) {
-        if (datasetRef !== reload.datasetRef) {
-          const a = await ingestFile(reload.datasetRef);
-          setDatasetRef(a.dataset_ref);
-          setDataset(null);
-          setFichierNom(reload.nom || a.name);
-          setSourceMode('fichier');
-          appliquerAnalyse(a);
-        }
-        chargerResultatDansOnglet(d);
-        setDetail(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (reload?.kind === 'enquete' && reload.indicateur) {
-        if (indicateur !== reload.indicateur || !dataset) {
-          const ds = await chargerDatasetEnqueteAction(reload.indicateur);
-          setIndicateur(reload.indicateur);
-          setDataset(ds);
-          setDatasetRef(null);
-          setSourceMode('enquete');
-          appliquerAnalyse(await analyzeDataset(ds));
-        }
-        chargerResultatDansOnglet(d);
-        setDetail(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (reload?.kind === 'multi' && reload.indicateur) {
-        const codes = Array.isArray(reload.projets) ? reload.projets : [];
-        if (sourceMode !== 'multi' || mpIndicateur !== reload.indicateur || !dataset) {
-          const ds = await chargerDatasetMultiProjetsAction(reload.indicateur, codes);
-          setSourceMode('multi');
-          setMpIndicateur(reload.indicateur);
-          setMpProjets(codes);
-          setDataset(ds);
-          setDatasetRef(null);
-          appliquerAnalyse(await analyzeDataset(ds));
-        }
-        chargerResultatDansOnglet(d);
-        setDetail(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        // Traitement ancien sans information de rechargement : aperçu seul.
-        setDetail(d);
+      } catch (eSource) {
+        // La source n'a pas pu être rechargée : on garde quand même le résultat
+        // éditable (le rapport/tri reste consultable, exportable et regénérable).
+        console.warn('[atelier-analyse] Source du traitement non rechargée', eSource);
       }
+
+      // Dans TOUS les cas : réinjection du résultat dans son onglet (édition
+      // complète), au lieu d'un aperçu en lecture seule.
+      chargerResultatDansOnglet(d);
+      setDetail(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
     } finally {
