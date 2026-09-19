@@ -7,7 +7,15 @@
  */
 
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-import type { AnalyzeResponse, CrosstabResponse, DatasetInput, FrequencyResponse } from './types';
+import type {
+  AnalyzeResponse,
+  CleanResponse,
+  CrosstabResponse,
+  DatasetInput,
+  FrequencyResponse,
+  MultiResponse,
+  StatTestResponse,
+} from './types';
 
 const BASE = '/api/datastudio';
 
@@ -84,6 +92,34 @@ export function computeCrosstab(
     col,
     layer,
     pct_mode: pctMode,
+  });
+}
+
+export function computeStatTest(
+  source: ComputeSource,
+  row: string,
+  col: string,
+): Promise<StatTestResponse> {
+  return post<StatTestResponse>('/stat-test', { ...sourceBody(source), row, col });
+}
+
+/** Batteries multi-réponses : une batterie précise (`group`) ou toutes. */
+export function computeMulti(source: ComputeSource, group?: string): Promise<MultiResponse> {
+  return post<MultiResponse>('/multi', {
+    ...sourceBody(source),
+    group: group ?? null,
+  });
+}
+
+export function computeClean(
+  source: ComputeSource,
+  opts?: { dropEmpty?: boolean; keyColumns?: string[]; dropDuplicates?: boolean },
+): Promise<CleanResponse> {
+  return post<CleanResponse>('/clean', {
+    ...sourceBody(source),
+    drop_empty: opts?.dropEmpty ?? true,
+    key_columns: opts?.keyColumns ?? [],
+    drop_duplicates: opts?.dropDuplicates ?? true,
   });
 }
 
