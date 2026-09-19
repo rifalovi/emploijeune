@@ -78,6 +78,8 @@ import {
   exporterGlobalExcel,
   exporterMultiExcel,
 } from '@/lib/atelier-analyse/exports';
+import { exporterRapportWord, exporterResultatsWord } from '@/lib/atelier-analyse/word-export';
+import { exporterRapportPdf } from '@/lib/atelier-analyse/pdf-export';
 import { FORMATS_RAPPORT } from '@/lib/atelier-analyse/types';
 import type {
   AnalyzeResponse,
@@ -590,6 +592,9 @@ export function AtelierClient({ indicateurs, historique }: Props) {
               </TabsTrigger>
             </TabsList>
             <Separator />
+            <p className="text-muted-foreground px-1 text-xs font-medium tracking-wide uppercase">
+              Exporter
+            </p>
             <Button
               variant="secondary"
               size="sm"
@@ -610,7 +615,31 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                 )
               }
             >
-              <Download className="size-4" /> Export global (Excel)
+              <Download className="size-4" /> Excel global
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full justify-start gap-2"
+              disabled={!aDesResultats && !rapport}
+              onClick={() =>
+                exporter(() =>
+                  exporterResultatsWord({
+                    freq,
+                    cross,
+                    multi,
+                    stat,
+                    statRow,
+                    statCol,
+                    rapport,
+                    libelle: libelleVariable,
+                    source: sourceLabel,
+                    nomFichier: `rapport_analyse_${nomSur(sourceRef || 'datastudio')}.docx`,
+                  }),
+                )
+              }
+            >
+              <FileText className="size-4" /> Word documenté
             </Button>
           </div>
 
@@ -1234,7 +1263,7 @@ export function AtelierClient({ indicateurs, historique }: Props) {
               <Card>
                 <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
                   <CardTitle className="text-base">Rapport généré</CardTitle>
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex shrink-0 flex-wrap gap-2">
                     <Button
                       type="button"
                       size="sm"
@@ -1243,6 +1272,28 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                       onClick={() => navigator.clipboard?.writeText(rapport)}
                     >
                       Copier
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() =>
+                        exporter(() => exporterRapportPdf(rapport, `Rapport — ${sourceLabel}`))
+                      }
+                    >
+                      <Download className="size-4" /> PDF
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() =>
+                        exporter(() => exporterRapportWord(rapport, `Rapport — ${sourceLabel}`))
+                      }
+                    >
+                      <Download className="size-4" /> Word
                     </Button>
                     <Button
                       type="button"
