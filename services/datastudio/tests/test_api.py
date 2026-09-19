@@ -158,7 +158,44 @@ def test_stat_test_ok():
         headers=auth_headers(),
     )
     assert r.status_code == 200
-    assert r.json()["welch_ttest"]["applicable"] is True
+    body = r.json()
+    assert body["welch_ttest"]["applicable"] is True
+    assert "chi_square" in body
+
+
+def test_stat_test_same_variable_422():
+    r = client.post(
+        "/api/datastudio/stat-test",
+        json={"dataset": DATASET, "row": "Q1_sexe", "col": "Q1_sexe"},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 422
+
+
+def test_multi_shape():
+    r = client.post("/api/datastudio/multi", json={"dataset": DATASET}, headers=auth_headers())
+    assert r.status_code == 200
+    body = r.json()
+    assert "Canal d'information" in body["tables"]
+    table = body["tables"]["Canal d'information"]
+    assert "base" in table
+    cols = set(table["rows"][0].keys())
+    assert {"Option", "Effectif", "Pourcentage répondants"}.issubset(cols)
+
+
+def test_clean_ok():
+    r = client.post(
+        "/api/datastudio/clean",
+        json={"dataset": DATASET, "drop_empty": True, "drop_duplicates": True},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["n_rows_source"] == 6
+    assert body["n_rows_cleaned"] <= body["n_rows_source"]
+    assert body["n_removed"] == body["n_rows_source"] - body["n_rows_cleaned"]
+    assert isinstance(body["preview"], list)
+    assert isinstance(body["specs"], list)
 
 
 # ------------------------------------------------------------------ source par fichier

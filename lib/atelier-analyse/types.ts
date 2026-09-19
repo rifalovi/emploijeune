@@ -55,6 +55,56 @@ export type CrosstabResponse = {
   pct_mode: string;
 };
 
+/** Résultat d'un test statistique sur un croisement (Khi² + Welch). */
+export type ChiSquareResult =
+  | { applicable: false; message: string }
+  | {
+      applicable: true;
+      chi2: number;
+      dof: number;
+      p: number;
+      significatif: boolean;
+      message: string;
+    };
+
+export type WelchResult =
+  | { applicable: false; message: string }
+  | {
+      applicable: true;
+      t: number;
+      p: number;
+      significatif: boolean;
+      variable: string;
+      groups: { nom: string; moyenne: number; n: number }[];
+      message: string;
+    };
+
+export type StatTestResponse = {
+  chi_square: ChiSquareResult;
+  welch_ttest: WelchResult;
+};
+
+/** Tri à plat d'une batterie de questions à réponses multiples. */
+export type MultiRow = {
+  Option: string;
+  Effectif: number;
+  'Pourcentage répondants': number;
+};
+
+export type MultiResponse = {
+  groups: Record<string, { column: string; option: string }[]>;
+  tables: Record<string, { base: number; rows: MultiRow[] }>;
+};
+
+/** Aperçu de la base épurée (nettoyage). */
+export type CleanResponse = {
+  n_rows_source: number;
+  n_rows_cleaned: number;
+  n_removed: number;
+  preview: Record<string, unknown>[];
+  specs: { name: string; measure: string; decimals: number }[];
+};
+
 /** Entrée de l'historique des traitements (table datastudio_jobs). */
 export type HistoriqueJob = {
   id: string;

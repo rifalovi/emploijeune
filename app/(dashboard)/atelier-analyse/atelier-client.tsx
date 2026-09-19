@@ -12,7 +12,18 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Database, FileText, FlaskConical, Loader2, Sigma, Table2, Upload } from 'lucide-react';
+import {
+  Database,
+  FileText,
+  FlaskConical,
+  ListChecks,
+  Loader2,
+  Sigma,
+  Sparkles,
+  Table2,
+  Upload,
+  Wand2,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,8 +56,11 @@ import {
 } from '@/lib/atelier-analyse/actions';
 import {
   analyzeDataset,
+  computeClean,
   computeCrosstab,
   computeFrequency,
+  computeMulti,
+  computeStatTest,
   ingestFile,
   uploadSpssFile,
   type ComputeSource,
@@ -55,12 +69,15 @@ import { genererRapportAction } from '@/lib/atelier-analyse/rapport';
 import { FORMATS_RAPPORT } from '@/lib/atelier-analyse/types';
 import type {
   AnalyzeResponse,
+  CleanResponse,
   CrosstabResponse,
   DatasetInput,
   FormatRapport,
   FrequencyResponse,
   HistoriqueJob,
   IndicateurSource,
+  MultiResponse,
+  StatTestResponse,
 } from '@/lib/atelier-analyse/types';
 
 const AUCUNE = '__aucune__';
@@ -100,6 +117,22 @@ export function AtelierClient({ indicateurs, historique }: Props) {
   const [cross, setCross] = useState<CrosstabResponse | null>(null);
   const [busyCross, setBusyCross] = useState(false);
 
+  // Tests statistiques (Khi² / Welch)
+  const [statRow, setStatRow] = useState('');
+  const [statCol, setStatCol] = useState('');
+  const [stat, setStat] = useState<StatTestResponse | null>(null);
+  const [busyStat, setBusyStat] = useState(false);
+
+  // Réponses multiples (batteries 0/1)
+  const [multi, setMulti] = useState<MultiResponse | null>(null);
+  const [busyMulti, setBusyMulti] = useState(false);
+
+  // Nettoyage / épuration de la base
+  const [dropEmpty, setDropEmpty] = useState(true);
+  const [dropDuplicates, setDropDuplicates] = useState(true);
+  const [clean, setClean] = useState<CleanResponse | null>(null);
+  const [busyClean, setBusyClean] = useState(false);
+
   // Rapport (API Claude)
   const [formatRapport, setFormatRapport] = useState<FormatRapport>('synthese');
   const [consignes, setConsignes] = useState('');
@@ -119,6 +152,9 @@ export function AtelierClient({ indicateurs, historique }: Props) {
   function reinitAnalyse() {
     setFreq(null);
     setCross(null);
+    setStat(null);
+    setMulti(null);
+    setClean(null);
     setRapport(null);
     setAnalyse(null);
   }
@@ -126,8 +162,12 @@ export function AtelierClient({ indicateurs, historique }: Props) {
   function appliquerAnalyse(a: AnalyzeResponse) {
     setAnalyse(a);
     setVarsSel(a.variables.slice(0, 1).map((v) => v.name));
-    setRow(a.variables[0]?.name ?? '');
-    setCol(a.variables[1]?.name ?? a.variables[0]?.name ?? '');
+    const first = a.variables[0]?.name ?? '';
+    const second = a.variables[1]?.name ?? first;
+    setRow(first);
+    setCol(second);
+    setStatRow(first);
+    setStatCol(second);
   }
 
   async function charger() {
@@ -217,6 +257,83 @@ export function AtelierClient({ indicateurs, historique }: Props) {
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
     } finally {
       setBusyCross(false);
+    }
+  }
+
+  async function lancerStat() {
+    if (!source || !statRow || !statCol) return;
+    setBusyStat(true);
+    setErreur(null);
+    try {
+      const res = await computeStatTest(source, statRow, statCol);
+      setStat(res);
+      await enregistrerTraitementAction({
+        type: 'stat_test',
+        titre: `Tests statistiques ${statRow} × ${statCol}`,
+        source: sourceKind,
+        source_ref: sourceRef,
+        params: { row: statRow, col: statCol, source: sourceRef },
+        payload: res as unknown as Record<string, unknown>,
+        apercu: [
+          res.chi_square.applicable ? `χ² p=${res.chi_square.p.toFixed(4)}` : 'χ² n/a',
+          res.welch_ttest.applicable ? `t p=${res.welch_ttest.p.toFixed(4)}` : 't n/a',
+        ].join(' · '),
+      });
+      router.refresh();
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyStat(false);
+    }
+  }
+
+  async function lancerMulti() {
+    if (!source) return;
+    setBusyMulti(true);
+    setErreur(null);
+    try {
+      const res = await computeMulti(source);
+      setMulti(res);
+      const nb = Object.keys(res.tables).length;
+      if (nb > 0) {
+        await enregistrerTraitementAction({
+          type: 'multi',
+          titre: `Réponses multiples — ${nb} batterie(s)`,
+          source: sourceKind,
+          source_ref: sourceRef,
+          params: { source: sourceRef },
+          payload: res as unknown as Record<string, unknown>,
+          apercu: `${nb} batterie(s)`,
+        });
+        router.refresh();
+      }
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyMulti(false);
+    }
+  }
+
+  async function lancerClean() {
+    if (!source) return;
+    setBusyClean(true);
+    setErreur(null);
+    try {
+      const res = await computeClean(source, { dropEmpty, dropDuplicates });
+      setClean(res);
+      await enregistrerTraitementAction({
+        type: 'cleaning',
+        titre: `Base épurée — ${res.n_rows_cleaned}/${res.n_rows_source} lignes`,
+        source: sourceKind,
+        source_ref: sourceRef,
+        params: { drop_empty: dropEmpty, drop_duplicates: dropDuplicates, source: sourceRef },
+        apercu: `${res.n_removed} ligne(s) retirée(s)`,
+      });
+      router.refresh();
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyClean(false);
     }
   }
 
@@ -351,6 +468,15 @@ export function AtelierClient({ indicateurs, historique }: Props) {
             </TabsTrigger>
             <TabsTrigger value="cross" className="gap-1">
               <Table2 className="size-4" /> Croisements
+            </TabsTrigger>
+            <TabsTrigger value="stat" className="gap-1">
+              <Sparkles className="size-4" /> Tests stat.
+            </TabsTrigger>
+            <TabsTrigger value="multi" className="gap-1">
+              <ListChecks className="size-4" /> Réponses multiples
+            </TabsTrigger>
+            <TabsTrigger value="clean" className="gap-1">
+              <Wand2 className="size-4" /> Nettoyage
             </TabsTrigger>
             <TabsTrigger value="rapport" className="gap-1">
               <FileText className="size-4" /> Rapport
@@ -552,6 +678,309 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                   </CardContent>
                 </Card>
               ))}
+          </TabsContent>
+
+          {/* --- Tests statistiques (Khi² / Welch) --- */}
+          <TabsContent value="stat" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Tests statistiques</CardTitle>
+                <CardDescription>
+                  Khi² d’indépendance entre deux variables, et t-test de Welch lorsqu’une variable
+                  d’échelle est croisée à une variable à exactement 2 modalités. Valeurs manquantes
+                  exclues, seuil de 5 %.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap items-end gap-3">
+                <SelectChamp
+                  label="Variable 1"
+                  value={statRow}
+                  onChange={setStatRow}
+                  options={variables}
+                />
+                <SelectChamp
+                  label="Variable 2"
+                  value={statCol}
+                  onChange={setStatCol}
+                  options={variables}
+                />
+                <Button
+                  onClick={lancerStat}
+                  disabled={busyStat || !statRow || !statCol || statRow === statCol}
+                >
+                  {busyStat ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="size-4" />
+                  )}
+                  Lancer les tests
+                </Button>
+              </CardContent>
+            </Card>
+
+            {stat && (
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Khi² d’indépendance</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {stat.chi_square.applicable ? (
+                      <>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="secondary">χ² = {stat.chi_square.chi2.toFixed(3)}</Badge>
+                          <Badge variant="secondary">ddl = {stat.chi_square.dof}</Badge>
+                          <Badge variant="secondary">p = {stat.chi_square.p.toFixed(4)}</Badge>
+                          <Badge variant={stat.chi_square.significatif ? 'default' : 'outline'}>
+                            {stat.chi_square.significatif ? 'Significatif' : 'Non significatif'}
+                          </Badge>
+                        </div>
+                        <p className="text-muted-foreground text-sm">{stat.chi_square.message}</p>
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground text-sm italic">
+                        {stat.chi_square.message}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">t-test de Welch</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {stat.welch_ttest.applicable ? (
+                      <>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="secondary">t = {stat.welch_ttest.t.toFixed(3)}</Badge>
+                          <Badge variant="secondary">p = {stat.welch_ttest.p.toFixed(4)}</Badge>
+                          <Badge variant={stat.welch_ttest.significatif ? 'default' : 'outline'}>
+                            {stat.welch_ttest.significatif ? 'Significatif' : 'Non significatif'}
+                          </Badge>
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Groupe</TableHead>
+                              <TableHead className="text-right">Moyenne</TableHead>
+                              <TableHead className="text-right">n</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {stat.welch_ttest.groups.map((g) => (
+                              <TableRow key={g.nom}>
+                                <TableCell>{g.nom}</TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {g.moyenne.toFixed(2)}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">{g.n}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        <p className="text-muted-foreground text-sm">{stat.welch_ttest.message}</p>
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground text-sm italic">
+                        {stat.welch_ttest.message}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* --- Réponses multiples --- */}
+          <TabsContent value="multi" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Questions à réponses multiples</CardTitle>
+                <CardDescription>
+                  Détection automatique des batteries de variables binaires (0/1) partageant un même
+                  intitulé. Le total des pourcentages peut dépasser 100 % (plusieurs réponses par
+                  répondant).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={lancerMulti} disabled={busyMulti}>
+                  {busyMulti ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <ListChecks className="size-4" />
+                  )}
+                  Analyser les réponses multiples
+                </Button>
+              </CardContent>
+            </Card>
+
+            {multi && Object.keys(multi.tables).length === 0 && (
+              <p className="text-muted-foreground text-sm italic">
+                Aucune batterie de réponses multiples détectée dans ce jeu de données.
+              </p>
+            )}
+
+            {multi &&
+              Object.entries(multi.tables).map(([prefix, table]) => {
+                const chartData = table.rows
+                  .filter((r) => r.Option !== 'Total répondants valides')
+                  .map((r) => ({ option: r.Option, effectif: r.Effectif }));
+                return (
+                  <Card key={prefix}>
+                    <CardHeader>
+                      <CardTitle className="text-base">{prefix}</CardTitle>
+                      <CardDescription>Base valide : {table.base} répondant(s)</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 lg:grid-cols-2">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Option</TableHead>
+                            <TableHead className="text-right">Effectif</TableHead>
+                            <TableHead className="text-right">% répondants</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {table.rows.map((r, idx) => (
+                            <TableRow
+                              key={idx}
+                              className={
+                                r.Option === 'Total répondants valides' ? 'font-semibold' : ''
+                              }
+                            >
+                              <TableCell>{r.Option}</TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {r.Effectif}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {pct(r['Pourcentage répondants'])}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      <div className="h-64 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={chartData}
+                            margin={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis
+                              dataKey="option"
+                              tick={{ fontSize: 11 }}
+                              interval={0}
+                              angle={-20}
+                              textAnchor="end"
+                              height={60}
+                            />
+                            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                            <Tooltip {...tooltipPropsPremium} />
+                            <Bar dataKey="effectif" radius={[4, 4, 0, 0]}>
+                              {chartData.map((_, i) => (
+                                <Cell key={i} fill={couleurRang(i)} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+          </TabsContent>
+
+          {/* --- Nettoyage / épuration --- */}
+          <TabsContent value="clean" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Épuration de la base</CardTitle>
+                <CardDescription>
+                  Produit un aperçu de la base nettoyée. Les données source ne sont pas modifiées :
+                  l’aperçu et ses caractéristiques sont enregistrés dans l’historique.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch checked={dropEmpty} onCheckedChange={setDropEmpty} />
+                    Retirer les lignes entièrement vides
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch checked={dropDuplicates} onCheckedChange={setDropDuplicates} />
+                    Retirer les doublons
+                  </label>
+                  <Button onClick={lancerClean} disabled={busyClean}>
+                    {busyClean ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Wand2 className="size-4" />
+                    )}
+                    Épurer la base
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {clean && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Résultat de l’épuration</CardTitle>
+                  <CardDescription>
+                    <span className="inline-flex flex-wrap gap-2">
+                      <Badge variant="secondary">Source : {clean.n_rows_source} lignes</Badge>
+                      <Badge variant="secondary">Épurée : {clean.n_rows_cleaned} lignes</Badge>
+                      <Badge variant={clean.n_removed > 0 ? 'default' : 'outline'}>
+                        {clean.n_removed} retirée(s)
+                      </Badge>
+                    </span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {clean.preview.length > 0 ? (
+                    <>
+                      <p className="text-muted-foreground text-xs">
+                        Aperçu des {Math.min(clean.preview.length, 100)} premières lignes épurées.
+                      </p>
+                      <div className="overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              {clean.specs.map((s) => (
+                                <TableHead key={s.name} title={`${s.measure}`}>
+                                  {s.name}
+                                </TableHead>
+                              ))}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {clean.preview.slice(0, 20).map((r, ri) => (
+                              <TableRow key={ri}>
+                                {clean.specs.map((s) => (
+                                  <TableCell key={s.name} className="tabular-nums">
+                                    {String(r[s.name] ?? '')}
+                                  </TableCell>
+                                ))}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      {clean.preview.length > 20 && (
+                        <p className="text-muted-foreground text-xs italic">
+                          20 lignes affichées sur {clean.preview.length} de l’aperçu.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground text-sm italic">
+                      La base épurée ne contient aucune ligne.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* --- Rapport (API Claude) --- */}
