@@ -2,6 +2,7 @@ import { requireUtilisateurValide, getNotificationsAdminCount } from '@/lib/supa
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getUtilisateurEffectif } from '@/lib/auth/view-as';
 import { Sidebar } from '@/components/layout/sidebar';
+import { SidebarShell } from '@/components/layout/sidebar-shell';
 import { MobileHeader } from '@/components/layout/mobile-header';
 import { BandeauViewAs } from '@/components/admin/bandeau-view-as';
 import { getPermissionsUtilisateur } from '@/lib/super-admin/permissions';
@@ -56,23 +57,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
           expiresAt={effectif.viewAsContext.expiresAt}
         />
       )}
-      <div className="flex min-h-0 flex-1">
-        <Sidebar
-          utilisateur={utilisateur}
-          organisationLibelle={organisationLibelle}
-          notificationsCount={notificationsCount}
-          moduleIaActif={moduleIaActif}
-          adminDelegue={adminDelegue}
-        />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <MobileHeader
+      <SidebarShell
+        sidebar={
+          <Sidebar
             utilisateur={utilisateur}
+            organisationLibelle={organisationLibelle}
             notificationsCount={notificationsCount}
             moduleIaActif={moduleIaActif}
+            adminDelegue={adminDelegue}
           />
-          <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
-        </div>
-      </div>
+        }
+      >
+        <MobileHeader
+          utilisateur={utilisateur}
+          notificationsCount={notificationsCount}
+          moduleIaActif={moduleIaActif}
+        />
+        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+      </SidebarShell>
     </div>
   );
 }
