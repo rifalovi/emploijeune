@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Database, FileText, FlaskConical, Loader2, Sigma, Table2 } from 'lucide-react';
+import { Database, FileText, FlaskConical, Loader2, Sigma, Table2, Upload } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +47,9 @@ import {
   analyzeDataset,
   computeCrosstab,
   computeFrequency,
+  ingestFile,
+  uploadSpssFile,
+  type ComputeSource,
 } from '@/lib/atelier-analyse/api-client';
 import { genererRapportAction } from '@/lib/atelier-analyse/rapport';
 import { FORMATS_RAPPORT } from '@/lib/atelier-analyse/types';
@@ -73,8 +76,12 @@ type Props = {
 
 export function AtelierClient({ indicateurs, historique }: Props) {
   const router = useRouter();
+  const [sourceMode, setSourceMode] = useState<'enquete' | 'fichier'>('enquete');
   const [indicateur, setIndicateur] = useState('');
   const [dataset, setDataset] = useState<DatasetInput | null>(null);
+  const [datasetRef, setDatasetRef] = useState<string | null>(null);
+  const [fichier, setFichier] = useState<File | null>(null);
+  const [fichierNom, setFichierNom] = useState('');
   const [analyse, setAnalyse] = useState<AnalyzeResponse | null>(null);
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -101,25 +108,61 @@ export function AtelierClient({ indicateurs, historique }: Props) {
 
   const variables = analyse?.variables ?? [];
 
+  // Source active des calculs (enquête en ligne ou fichier importé).
+  const source: ComputeSource | null = datasetRef ? { datasetRef } : dataset ? { dataset } : null;
+  const sourceKind = datasetRef ? 'upload' : 'enquete';
+  const sourceRef = datasetRef ? fichierNom : indicateur;
+  const sourceLabel = datasetRef
+    ? fichierNom
+    : (indicateurs.find((i) => i.code === indicateur)?.libelle ?? indicateur);
+
+  function reinitAnalyse() {
+    setFreq(null);
+    setCross(null);
+    setRapport(null);
+    setAnalyse(null);
+  }
+
+  function appliquerAnalyse(a: AnalyzeResponse) {
+    setAnalyse(a);
+    setVarsSel(a.variables.slice(0, 1).map((v) => v.name));
+    setRow(a.variables[0]?.name ?? '');
+    setCol(a.variables[1]?.name ?? a.variables[0]?.name ?? '');
+  }
+
   async function charger() {
     if (!indicateur) return;
     setChargement(true);
     setErreur(null);
-    setFreq(null);
-    setCross(null);
-    setAnalyse(null);
+    reinitAnalyse();
     try {
       const ds = await chargerDatasetEnqueteAction(indicateur);
-      setDataset(ds);
       if (ds.rows.length === 0) {
         setErreur('Aucune réponse d’enquête pour cet indicateur.');
         return;
       }
-      const a = await analyzeDataset(ds);
-      setAnalyse(a);
-      setVarsSel(a.variables.slice(0, 1).map((v) => v.name));
-      setRow(a.variables[0]?.name ?? '');
-      setCol(a.variables[1]?.name ?? a.variables[0]?.name ?? '');
+      setDataset(ds);
+      setDatasetRef(null);
+      appliquerAnalyse(await analyzeDataset(ds));
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setChargement(false);
+    }
+  }
+
+  async function chargerFichier() {
+    if (!fichier) return;
+    setChargement(true);
+    setErreur(null);
+    reinitAnalyse();
+    try {
+      const path = await uploadSpssFile(fichier);
+      const res = await ingestFile(path);
+      setDatasetRef(res.dataset_ref);
+      setDataset(null);
+      setFichierNom(res.name || fichier.name);
+      appliquerAnalyse(res);
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
     } finally {
@@ -128,19 +171,19 @@ export function AtelierClient({ indicateurs, historique }: Props) {
   }
 
   async function lancerFreq() {
-    if (!dataset || varsSel.length === 0) return;
+    if (!source || varsSel.length === 0) return;
     setBusyFreq(true);
     setErreur(null);
     try {
-      const res = await computeFrequency(dataset, varsSel, exclure);
+      const res = await computeFrequency(source, varsSel, exclure);
       setFreq(res);
       // Enregistrement best-effort dans l'historique (n'interrompt pas l'analyse).
       await enregistrerTraitementAction({
         type: 'frequency',
         titre: `Tris à plat — ${varsSel.length} variable(s)`,
-        source: 'enquete',
-        source_ref: indicateur,
-        params: { cols: varsSel, exclure, indicateur },
+        source: sourceKind,
+        source_ref: sourceRef,
+        params: { cols: varsSel, exclure, source: sourceRef },
         payload: res as unknown as Record<string, unknown>,
         apercu: `${varsSel.length} variable(s)`,
       });
@@ -153,19 +196,19 @@ export function AtelierClient({ indicateurs, historique }: Props) {
   }
 
   async function lancerCross() {
-    if (!dataset || !row || !col) return;
+    if (!source || !row || !col) return;
     setBusyCross(true);
     setErreur(null);
     try {
       const lyr = layer === AUCUNE ? null : layer;
-      const res = await computeCrosstab(dataset, row, col, lyr, pctMode);
+      const res = await computeCrosstab(source, row, col, lyr, pctMode);
       setCross(res);
       await enregistrerTraitementAction({
         type: 'crosstab',
         titre: `Croisement ${row} × ${col}`,
-        source: 'enquete',
-        source_ref: indicateur,
-        params: { row, col, layer: lyr, pctMode, indicateur },
+        source: sourceKind,
+        source_ref: sourceRef,
+        params: { row, col, layer: lyr, pctMode, source: sourceRef },
         payload: res as unknown as Record<string, unknown>,
         apercu: `${res.layers.length} table(s)`,
       });
@@ -187,8 +230,8 @@ export function AtelierClient({ indicateurs, historique }: Props) {
     setErreur(null);
     try {
       const res = await genererRapportAction({
-        indicateur,
-        indicateurLibelle: indicateurs.find((i) => i.code === indicateur)?.libelle,
+        indicateur: sourceRef,
+        indicateurLibelle: sourceLabel,
         format: formatRapport,
         consignes: consignes || undefined,
         frequences: freq,
@@ -214,35 +257,80 @@ export function AtelierClient({ indicateurs, historique }: Props) {
             <Database className="size-4" /> Source des données
           </CardTitle>
           <CardDescription>
-            Choisissez un indicateur : ses réponses d’enquête sont chargées comme jeu de données.
+            Analysez les réponses d’enquête de la plateforme, ou importez un fichier : SPSS (.sav),
+            Excel (.xlsx, .xls), LibreOffice (.ods), CSV/TSV/TAB, JSON, tableau Word (.docx), et
+            tout export Kobo/CSPro.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap items-end gap-3">
-          <div className="min-w-64 flex-1">
-            <Select value={indicateur} onValueChange={(v) => setIndicateur(v ?? '')}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un indicateur…" />
-              </SelectTrigger>
-              <SelectContent>
-                {indicateurs.map((i) => (
-                  <SelectItem key={i.code} value={i.code}>
-                    {i.libelle} [{i.code}]
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <CardContent className="space-y-3">
+          {/* Choix de la source */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={sourceMode === 'enquete' ? 'default' : 'outline'}
+              onClick={() => setSourceMode('enquete')}
+            >
+              <Database className="size-4" /> Depuis une enquête
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={sourceMode === 'fichier' ? 'default' : 'outline'}
+              onClick={() => setSourceMode('fichier')}
+            >
+              <Upload className="size-4" /> Importer un fichier
+            </Button>
           </div>
-          <Button onClick={charger} disabled={!indicateur || chargement}>
-            {chargement ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <FlaskConical className="size-4" />
-            )}
-            Charger
-          </Button>
-          {dataset && analyse && (
+
+          {sourceMode === 'enquete' ? (
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="min-w-64 flex-1">
+                <Select value={indicateur} onValueChange={(v) => setIndicateur(v ?? '')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un indicateur…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {indicateurs.map((i) => (
+                      <SelectItem key={i.code} value={i.code}>
+                        {i.libelle} [{i.code}]
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={charger} disabled={!indicateur || chargement}>
+                {chargement ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <FlaskConical className="size-4" />
+                )}
+                Charger
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-end gap-3">
+              <input
+                type="file"
+                accept=".sav,.xlsx,.xls,.ods,.csv,.tsv,.tab,.json,.docx"
+                onChange={(e) => setFichier(e.target.files?.[0] ?? null)}
+                className="file:border-input file:bg-background text-sm file:mr-3 file:rounded-md file:border file:px-3 file:py-1.5 file:text-sm"
+              />
+              <Button onClick={chargerFichier} disabled={!fichier || chargement}>
+                {chargement ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Upload className="size-4" />
+                )}
+                Importer et analyser
+              </Button>
+            </div>
+          )}
+
+          {analyse && (
             <Badge variant="secondary">
-              {analyse.n_rows} réponses · {variables.length} variables
+              {datasetRef ? fichierNom : `${analyse.n_rows} réponses`} · {analyse.n_rows} lignes ·{' '}
+              {variables.length} variables
             </Badge>
           )}
         </CardContent>
@@ -255,7 +343,7 @@ export function AtelierClient({ indicateurs, historique }: Props) {
       )}
 
       {/* Espace d'analyse */}
-      {analyse && dataset && (
+      {analyse && source && (
         <Tabs defaultValue="freq" className="space-y-4">
           <TabsList>
             <TabsTrigger value="freq" className="gap-1">

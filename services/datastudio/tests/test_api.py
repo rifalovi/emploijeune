@@ -159,3 +159,39 @@ def test_stat_test_ok():
     )
     assert r.status_code == 200
     assert r.json()["welch_ttest"]["applicable"] is True
+
+
+# ------------------------------------------------------------------ source par fichier
+def test_no_source_422():
+    # Ni dataset ni dataset_ref → requête invalide.
+    r = client.post("/api/datastudio/analyze", json={}, headers=auth_headers())
+    assert r.status_code == 422
+
+
+def test_dataset_ref_ownership_403():
+    # Le token a sub="user-123" ; un chemin appartenant à un autre utilisateur
+    # est refusé AVANT tout accès à Storage.
+    r = client.post(
+        "/api/datastudio/frequency",
+        json={"dataset_ref": "autre-user/uploads/enquete.sav", "cols": ["Q1_sexe"]},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 403
+
+
+def test_dataset_ref_chemin_invalide_422():
+    r = client.post(
+        "/api/datastudio/frequency",
+        json={"dataset_ref": "../etc/passwd", "cols": ["Q1_sexe"]},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 422
+
+
+def test_ingest_file_ownership_403():
+    r = client.post(
+        "/api/datastudio/ingest-file",
+        json={"path": "autre-user/uploads/enquete.sav"},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 403

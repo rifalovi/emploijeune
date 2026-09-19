@@ -39,15 +39,54 @@ def read_sav(path: str, name: str = "Données SPSS") -> SurveyDataset:
     )
 
 
+# Extensions tabulaires prises en charge (hors .sav), pour l'UI et les messages.
+TABULAR_EXTENSIONS = (
+    ".xlsx",
+    ".xls",
+    ".ods",
+    ".csv",
+    ".tsv",
+    ".tab",
+    ".json",
+    ".docx",
+)
+
+
+def _read_docx_table(path: str) -> pd.DataFrame:
+    """Extrait le premier tableau d'un document Word (.docx) en DataFrame.
+
+    La première ligne du tableau sert d'en-tête. Utile pour les résultats
+    d'enquête présentés sous forme de tableau dans un document Word.
+    """
+    try:
+        import docx  # python-docx, import paresseux
+    except ImportError as exc:  # pragma: no cover - dépend de l'environnement
+        raise RuntimeError(
+            "Le module python-docx est requis pour les fichiers .docx : pip install python-docx"
+        ) from exc
+    document = docx.Document(path)
+    if not document.tables:
+        raise ValueError(
+            "Ce document Word ne contient aucun tableau exploitable. "
+            "Fournissez un tableau (ou exportez les données en Excel/CSV)."
+        )
+    table = document.tables[0]
+    rows = [[cell.text.strip() for cell in row.cells] for row in table.rows]
+    if len(rows) < 2:
+        raise ValueError("Le tableau du document Word est vide (pas de données sous l'en-tête).")
+    header = rows[0]
+    return pd.DataFrame(rows[1:], columns=header)
+
+
 def read_tabular(path: str) -> SurveyDataset:
-    """Lit un fichier tabulaire non-SPSS (Excel Kobo/CSPro, CSV, TSV, ODS...).
+    """Lit un fichier tabulaire non-SPSS (Excel Kobo/CSPro, CSV, ODS, Word...).
 
     Aucune métadonnée SPSS n'accompagne ces formats ; les libellés de valeurs
     sont donc vides et les modalités s'affichent avec leur code.
     """
     ext = Path(path).suffix.lower()
     if ext in (".xlsx", ".xls"):
-        engine = "openpyxl" if ext == ".xlsx" else None
+        engine = "openpyxl" if ext == ".xlsx" else "xlrd"
         sheets = pd.read_excel(path, sheet_name=None, engine=engine)
         first = next(iter(sheets))
         return SurveyDataset(frame=sheets[first], name=str(first))
@@ -60,7 +99,24 @@ def read_tabular(path: str) -> SurveyDataset:
         return SurveyDataset(frame=pd.read_csv(path, sep=sep, engine="python"))
     if ext == ".json":
         return SurveyDataset(frame=pd.read_json(path))
-    raise ValueError(f"Format non pris en charge : {ext}")
+    if ext == ".docx":
+        return SurveyDataset(frame=_read_docx_table(path), name=Path(path).stem)
+    if ext == ".pbix":
+        raise ValueError(
+            "Les fichiers Power BI (.pbix) ne sont pas lisibles directement (format "
+            "propriétaire compressé). Dans Power BI, exportez les données en CSV ou "
+            "Excel (ou via Power Query), puis importez ce fichier."
+        )
+    if ext == ".doc":
+        raise ValueError(
+            "L'ancien format Word (.doc) n'est pas lisible. Enregistrez le document "
+            "en .docx (avec un tableau) ou exportez les données en Excel/CSV."
+        )
+    raise ValueError(
+        f"Format non pris en charge : {ext}. Formats acceptés : .sav, "
+        + ", ".join(TABULAR_EXTENSIONS)
+        + "."
+    )
 
 
 def load_dataset(path: str) -> SurveyDataset:
