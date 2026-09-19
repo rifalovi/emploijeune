@@ -5,7 +5,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { SidebarShell } from '@/components/layout/sidebar-shell';
 import { MobileHeader } from '@/components/layout/mobile-header';
 import { BandeauViewAs } from '@/components/admin/bandeau-view-as';
-import { getPermissionsUtilisateur } from '@/lib/super-admin/permissions';
+import { getPermissionsUtilisateur, peutAccederDataStudio } from '@/lib/super-admin/permissions';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   await requireUtilisateurValide();
@@ -48,6 +48,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       ? (await getPermissionsUtilisateur(utilisateur.id)).size > 0
       : false;
 
+  // Accès au module SCS DataStudio (super_admin, ou tout utilisateur autorisé).
+  const dataStudioActif = await peutAccederDataStudio(utilisateur.id, utilisateur.role);
+
   return (
     <div className="bg-background flex min-h-screen flex-col">
       {effectif.isViewAs && effectif.viewAsContext && (
@@ -65,6 +68,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             notificationsCount={notificationsCount}
             moduleIaActif={moduleIaActif}
             adminDelegue={adminDelegue}
+            dataStudioActif={dataStudioActif}
           />
         }
       >
@@ -72,6 +76,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           utilisateur={utilisateur}
           notificationsCount={notificationsCount}
           moduleIaActif={moduleIaActif}
+          dataStudioActif={dataStudioActif}
         />
         <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
       </SidebarShell>

@@ -25,6 +25,7 @@ type SidebarProps = {
   notificationsCount?: number;
   moduleIaActif?: boolean;
   adminDelegue?: boolean;
+  dataStudioActif?: boolean;
 };
 
 function initialsFromName(name: string): string {
@@ -38,8 +39,13 @@ export function Sidebar({
   notificationsCount,
   moduleIaActif = false,
   adminDelegue = false,
+  dataStudioActif = false,
 }: SidebarProps) {
-  const groups = visibleNavGroups(utilisateur.role, { module_ia: moduleIaActif, admin_delegue: adminDelegue });
+  const groups = visibleNavGroups(utilisateur.role, {
+    module_ia: moduleIaActif,
+    admin_delegue: adminDelegue,
+    data_studio: dataStudioActif,
+  });
 
   // Badge de notification sur Administration
   const adminBadges: Record<string, number | undefined> =
@@ -66,7 +72,10 @@ export function Sidebar({
       className="bg-sidebar text-sidebar-foreground sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r md:flex"
     >
       {/* Header logo + sous-marque (shrink-0 pour ne pas être compressé) */}
-      <Link href="/dashboard" className="block shrink-0 px-3 py-4 transition-opacity hover:opacity-80">
+      <Link
+        href="/dashboard"
+        className="block shrink-0 px-3 py-4 transition-opacity hover:opacity-80"
+      >
         <LogoOIF
           variant="quadri"
           size="sm"

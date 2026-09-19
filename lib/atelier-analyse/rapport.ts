@@ -3,6 +3,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
+import { peutAccederDataStudio } from '@/lib/super-admin/permissions';
 import { enregistrerTraitementAction } from './actions';
 import { extraireTexteDocuments } from './rag';
 import {
@@ -13,8 +14,6 @@ import {
   type MultiResponse,
   type StatTestResponse,
 } from './types';
-
-const ROLES_AUTORISES = ['super_admin', 'admin_scs'];
 
 // Formats longs (scientifiques / stratégiques) : on autorise davantage de sortie.
 const FORMATS_LONGS: FormatRapport[] = [
@@ -104,7 +103,7 @@ export async function genererRapportAction(
   input: GenererRapportInput,
 ): Promise<{ status: 'succes'; rapport: string } | { status: 'erreur'; message: string }> {
   const utilisateur = await requireUtilisateurValide();
-  if (!ROLES_AUTORISES.includes(utilisateur.role)) {
+  if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
     return { status: 'erreur', message: 'Accès non autorisé.' };
   }
   const apiKey = process.env.ANTHROPIC_API_KEY;

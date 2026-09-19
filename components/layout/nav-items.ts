@@ -26,7 +26,7 @@ export type NavItem = {
   label: string;
   icon: LucideIcon;
   roles: RoleUtilisateur[];
-  conditional?: 'module_ia' | 'admin_delegue';
+  conditional?: 'module_ia' | 'admin_delegue' | 'data_studio';
 };
 
 export type NavGroupDef = {
@@ -119,7 +119,8 @@ export const NAV_GROUPS: NavGroupDef[] = [
         href: '/atelier-analyse',
         label: "Atelier d'analyse",
         icon: FlaskConical,
-        roles: ['super_admin', 'admin_scs'],
+        roles: ['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire', 'lecteur'],
+        conditional: 'data_studio',
       },
     ],
   },
@@ -174,7 +175,7 @@ export const NAV_GROUPS: NavGroupDef[] = [
 
 export function visibleNavGroups(
   role: RoleUtilisateur,
-  flags: { module_ia?: boolean; admin_delegue?: boolean } = {},
+  flags: { module_ia?: boolean; admin_delegue?: boolean; data_studio?: boolean } = {},
 ): Array<{ group: NavGroupDef; items: NavItem[] }> {
   return NAV_GROUPS.map((group) => ({
     group,
@@ -182,6 +183,7 @@ export function visibleNavGroups(
       if (!item.roles.includes(role)) return false;
       if (item.conditional === 'module_ia' && !flags.module_ia) return false;
       if (item.conditional === 'admin_delegue' && !flags.admin_delegue) return false;
+      if (item.conditional === 'data_studio' && !flags.data_studio) return false;
       return true;
     }),
   })).filter(({ items }) => items.length > 0);
@@ -192,11 +194,12 @@ export const NAV_ITEMS: NavItem[] = [HOME_NAV_ITEM, ...NAV_GROUPS.flatMap((g) =>
 
 export function visibleNavItems(
   role: RoleUtilisateur,
-  flags: { module_ia?: boolean } = {},
+  flags: { module_ia?: boolean; data_studio?: boolean } = {},
 ): NavItem[] {
   return NAV_ITEMS.filter((item) => {
     if (!item.roles.includes(role)) return false;
     if (item.conditional === 'module_ia' && !flags.module_ia) return false;
+    if (item.conditional === 'data_studio' && !flags.data_studio) return false;
     return true;
   });
 }

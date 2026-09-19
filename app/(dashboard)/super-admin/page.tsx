@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   ArrowRight,
   Eraser,
+  FlaskConical,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -63,6 +64,14 @@ export default async function SuperAdminHomePage() {
           description="Activer ou désactiver les modules optionnels (Assistant IA) par rôle cible."
           tag={`Assistant IA : ${iaActiveCount} rôle(s) actif(s)`}
           tagColor={iaActiveCount > 0 ? '#7EB301' : '#94a3b8'}
+        />
+        <SectionCard
+          href="/super-admin/datastudio-acces"
+          icon={FlaskConical}
+          titre="Accès SCS DataStudio"
+          description="Autoriser l'Atelier d'analyse (SCS DataStudio) pour un administrateur ou un utilisateur précis."
+          tag="Réservé au super admin par défaut"
+          tagColor="#009fe3"
         />
         <SectionCard
           href="/super-admin/utilisateurs"

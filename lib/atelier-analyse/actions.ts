@@ -2,11 +2,10 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
+import { peutAccederDataStudio } from '@/lib/super-admin/permissions';
 import type { Json } from '@/lib/supabase/database.types';
 import { chargerDatasetEnquete } from './queries';
 import type { DatasetInput } from './types';
-
-const ROLES_AUTORISES = ['super_admin', 'admin_scs'];
 
 /**
  * Action serveur : charge le jeu de données d'un indicateur (réponses
@@ -17,7 +16,7 @@ export async function chargerDatasetEnqueteAction(
   projetCode?: string,
 ): Promise<DatasetInput> {
   const utilisateur = await requireUtilisateurValide();
-  if (!ROLES_AUTORISES.includes(utilisateur.role)) {
+  if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
     throw new Error('Accès non autorisé.');
   }
   return chargerDatasetEnquete(indicateurCode, projetCode);
@@ -43,7 +42,7 @@ export async function enregistrerTraitementAction(
   input: EnregistrerTraitementInput,
 ): Promise<{ ok: boolean; id?: string; erreur?: string }> {
   const utilisateur = await requireUtilisateurValide();
-  if (!ROLES_AUTORISES.includes(utilisateur.role)) {
+  if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
     return { ok: false, erreur: 'Accès non autorisé.' };
   }
   const supabase = await createSupabaseServerClient();
@@ -95,7 +94,7 @@ export async function chargerTraitementAction(
   jobId: string,
 ): Promise<{ ok: true; detail: TraitementDetail } | { ok: false; erreur: string }> {
   const utilisateur = await requireUtilisateurValide();
-  if (!ROLES_AUTORISES.includes(utilisateur.role)) {
+  if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
     return { ok: false, erreur: 'Accès non autorisé.' };
   }
   const supabase = await createSupabaseServerClient();

@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 
-import { requireUtilisateurValide } from '@/lib/supabase/auth';
+import { exigerAccesDataStudio } from '@/lib/super-admin/permissions';
 import { listerHistorique, listerIndicateursSource } from '@/lib/atelier-analyse/queries';
 import { listerDocumentsReference } from '@/lib/atelier-analyse/rag';
 import { AtelierClient } from './atelier-client';
@@ -18,10 +17,9 @@ export const dynamic = 'force-dynamic';
  * et conserve l'historique des traitements. Réservé SCS / super_admin.
  */
 export default async function AtelierAnalysePage() {
-  const utilisateur = await requireUtilisateurValide();
-  if (!['super_admin', 'admin_scs'].includes(utilisateur.role)) {
-    redirect('/indicateurs');
-  }
+  // Accès réservé : super administrateur, ou tout utilisateur explicitement
+  // autorisé au module SCS DataStudio (permissions_delegues).
+  await exigerAccesDataStudio();
 
   const [indicateurs, historique, documentsReference] = await Promise.all([
     listerIndicateursSource(),

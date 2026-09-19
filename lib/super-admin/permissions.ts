@@ -77,6 +77,95 @@ export async function exigerAccesModuleAction(module: ModuleKey): Promise<void> 
   throw new Error('Acces non autorise.');
 }
 
+// -- Accès au module SCS DataStudio (Atelier d'analyse) -----------------------
+//
+// Réservé au super administrateur par défaut. Le super admin peut l'activer,
+// pour un administrateur SCS OU pour n'importe quel utilisateur, via une ligne
+// permissions_delegues (module_key = 'data_studio'). Isolé de la délégation
+// admin_scs générique (MODULES_DELEGABLES) pour ne pas influer sur son menu.
+
+export const DATASTUDIO_MODULE_KEY = 'data_studio';
+
+/** True si l'utilisateur peut accéder au module SCS DataStudio. */
+export async function peutAccederDataStudio(userId: string, role: string): Promise<boolean> {
+  if (role === 'super_admin') return true;
+  const db = createSupabaseAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (db as any)
+    .from('permissions_delegues')
+    .select('actif')
+    .eq('utilisateur_id', userId)
+    .eq('module_key', DATASTUDIO_MODULE_KEY)
+    .maybeSingle();
+  return (data as { actif: boolean } | null)?.actif === true;
+}
+
+/** Guard de page : redirige (notFound) si pas d'accès DataStudio. */
+export async function exigerAccesDataStudio(): Promise<void> {
+  const u = await requireUtilisateurValide();
+  if (await peutAccederDataStudio(u.id, u.role)) return;
+  notFound();
+}
+
+/** Guard de server action : lève une erreur si pas d'accès DataStudio. */
+export async function exigerAccesDataStudioAction(): Promise<void> {
+  const u = await requireUtilisateurValide();
+  if (await peutAccederDataStudio(u.id, u.role)) return;
+  throw new Error('Accès non autorisé au module SCS DataStudio.');
+}
+
+export type UtilisateurAccesDataStudio = {
+  id: string;
+  nom_complet: string;
+  email: string;
+  role: string;
+  actif: boolean; // a accès au module
+  verrouille: boolean; // super_admin : accès permanent, non modifiable
+};
+
+/** Liste tous les utilisateurs actifs avec leur accès au module DataStudio. */
+export async function listerAccesDataStudio(): Promise<UtilisateurAccesDataStudio[]> {
+  const admin = createSupabaseAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = admin as any;
+  const { data: users } = await db
+    .from('utilisateurs')
+    .select('id, nom_complet, role, user_id')
+    .is('deleted_at', null)
+    .order('nom_complet');
+  if (!users?.length) return [];
+
+  const { data: authData } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const emailMap = new Map<string, string>(
+    (authData?.users ?? []).map((u: { id: string; email?: string }) => [u.id, u.email ?? '']),
+  );
+
+  const { data: perms } = await db
+    .from('permissions_delegues')
+    .select('utilisateur_id, actif')
+    .eq('module_key', DATASTUDIO_MODULE_KEY);
+  const permMap = new Map<string, boolean>(
+    (perms ?? []).map((p: { utilisateur_id: string; actif: boolean }) => [
+      p.utilisateur_id,
+      p.actif,
+    ]),
+  );
+
+  return (users as { id: string; nom_complet: string; role: string; user_id: string }[]).map(
+    (u) => {
+      const sa = u.role === 'super_admin';
+      return {
+        id: u.id,
+        nom_complet: u.nom_complet,
+        email: emailMap.get(u.user_id) ?? '',
+        role: u.role,
+        actif: sa || permMap.get(u.id) === true,
+        verrouille: sa,
+      };
+    },
+  );
+}
+
 // -- Lire toutes les permissions pour un utilisateur --------------------------
 
 export async function getPermissionsUtilisateur(userId: string): Promise<Set<ModuleKey>> {

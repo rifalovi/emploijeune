@@ -17,15 +17,21 @@ type MobileHeaderProps = {
   notificationsCount?: number;
   /** Module IA activé pour le rôle de l'utilisateur courant (V2.0.0). */
   moduleIaActif?: boolean;
+  /** Accès au module SCS DataStudio (Atelier d'analyse). */
+  dataStudioActif?: boolean;
 };
 
 export function MobileHeader({
   utilisateur,
   notificationsCount,
   moduleIaActif = false,
+  dataStudioActif = false,
 }: MobileHeaderProps) {
   const [open, setOpen] = useState(false);
-  const items = visibleNavItems(utilisateur.role, { module_ia: moduleIaActif });
+  const items = visibleNavItems(utilisateur.role, {
+    module_ia: moduleIaActif,
+    data_studio: dataStudioActif,
+  });
 
   return (
     <header className="bg-background sticky top-0 z-30 flex h-14 items-center justify-between border-b px-3 md:hidden">

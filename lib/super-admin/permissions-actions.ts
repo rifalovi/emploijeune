@@ -17,15 +17,17 @@ function err(e: unknown): Err {
   return { ok: false, message: e instanceof Error ? e.message : 'Erreur inconnue' };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function db() { return createSupabaseAdminClient() as any; }
+function db() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return createSupabaseAdminClient() as any;
+}
 
 // ── Activer ou désactiver une permission ──────────────────────────────────────
 
 export async function togglePermission(
   utilisateur_id: string,
   module_key: ModuleKey,
-  actif: boolean
+  actif: boolean,
 ): Promise<Ok | Err> {
   try {
     const granted_by = (await exigerSuperAdmin()).id;
@@ -33,7 +35,28 @@ export async function togglePermission(
       .from('permissions_delegues')
       .upsert(
         { utilisateur_id, module_key, actif, granted_by },
-        { onConflict: 'utilisateur_id,module_key' }
+        { onConflict: 'utilisateur_id,module_key' },
+      );
+    if (error) return { ok: false, message: error.message };
+    return { ok: true };
+  } catch (e) {
+    return err(e);
+  }
+}
+
+// ── Accès au module SCS DataStudio (tout utilisateur) ────────────────────────
+
+export async function toggleAccesDataStudio(
+  utilisateur_id: string,
+  actif: boolean,
+): Promise<Ok | Err> {
+  try {
+    const granted_by = (await exigerSuperAdmin()).id;
+    const { error } = await db()
+      .from('permissions_delegues')
+      .upsert(
+        { utilisateur_id, module_key: 'data_studio', actif, granted_by },
+        { onConflict: 'utilisateur_id,module_key' },
       );
     if (error) return { ok: false, message: error.message };
     return { ok: true };
@@ -72,7 +95,7 @@ export async function saveContenuSectionPermissions(
 
 export async function setPermissions(
   utilisateur_id: string,
-  modules: Partial<Record<ModuleKey, boolean>>
+  modules: Partial<Record<ModuleKey, boolean>>,
 ): Promise<Ok | Err> {
   try {
     const granted_by = (await exigerSuperAdmin()).id;
