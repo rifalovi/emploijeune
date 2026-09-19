@@ -74,3 +74,56 @@ export async function enregistrerTraitementAction(
   }
   return { ok: true, id: jobId };
 }
+
+export type TraitementDetail = {
+  id: string;
+  type: string;
+  titre: string;
+  source: string;
+  source_ref: string | null;
+  params: Record<string, unknown> | null;
+  payload: Record<string, unknown> | null;
+  created_at: string;
+};
+
+/**
+ * Recharge un traitement enregistré (métadonnées + résultat stocké) pour le
+ * consulter, l'exporter ou l'éditer SANS ré-importer ni relancer l'IA.
+ * La RLS garantit que l'utilisateur n'accède qu'à ses propres traitements.
+ */
+export async function chargerTraitementAction(
+  jobId: string,
+): Promise<{ ok: true; detail: TraitementDetail } | { ok: false; erreur: string }> {
+  const utilisateur = await requireUtilisateurValide();
+  if (!ROLES_AUTORISES.includes(utilisateur.role)) {
+    return { ok: false, erreur: 'Accès non autorisé.' };
+  }
+  const supabase = await createSupabaseServerClient();
+  const { data: job, error } = await supabase
+    .from('datastudio_jobs')
+    .select('id, type, titre, source, source_ref, params, created_at')
+    .eq('id', jobId)
+    .is('deleted_at', null)
+    .single();
+  if (error || !job) return { ok: false, erreur: error?.message ?? 'Traitement introuvable.' };
+
+  const { data: res } = await supabase
+    .from('datastudio_results')
+    .select('payload')
+    .eq('job_id', jobId)
+    .maybeSingle();
+
+  return {
+    ok: true,
+    detail: {
+      id: job.id,
+      type: job.type,
+      titre: job.titre,
+      source: job.source,
+      source_ref: job.source_ref,
+      params: (job.params ?? null) as Record<string, unknown> | null,
+      payload: (res?.payload ?? null) as Record<string, unknown> | null,
+      created_at: job.created_at,
+    },
+  };
+}

@@ -52,6 +52,13 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { MarkdownRenderer } from '@/components/ia/markdown-renderer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -72,7 +79,9 @@ import { couleurRang, tooltipPropsPremium } from '@/lib/design/charts';
 
 import {
   chargerDatasetEnqueteAction,
+  chargerTraitementAction,
   enregistrerTraitementAction,
+  type TraitementDetail,
 } from '@/lib/atelier-analyse/actions';
 import {
   analyzeDataset,
@@ -304,6 +313,10 @@ export function AtelierClient({ indicateurs, historique }: Props) {
   // Diagnostic qualité / anomalies
   const [quality, setQuality] = useState<QualityResponse | null>(null);
   const [busyQuality, setBusyQuality] = useState(false);
+
+  // Consultation d'un traitement enregistré (historique)
+  const [detail, setDetail] = useState<TraitementDetail | null>(null);
+  const [busyDetail, setBusyDetail] = useState(false);
 
   // Rapport (API Claude)
   const [formatRapport, setFormatRapport] = useState<FormatRapport>('synthese');
@@ -590,6 +603,20 @@ export function AtelierClient({ indicateurs, historique }: Props) {
     if (!fCol) return;
     setFiltres((prev) => [...prev, { col: fCol, op: fOp, val: fVal }]);
     setFVal('');
+  }
+
+  async function ouvrirTraitement(jobId: string) {
+    setBusyDetail(true);
+    setErreur(null);
+    try {
+      const res = await chargerTraitementAction(jobId);
+      if (res.ok) setDetail(res.detail);
+      else setErreur(res.erreur);
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyDetail(false);
+    }
   }
 
   async function lancerRapport() {
@@ -1987,8 +2014,12 @@ export function AtelierClient({ indicateurs, historique }: Props) {
               </TableHeader>
               <TableBody>
                 {historique.jobs.map((j) => (
-                  <TableRow key={j.id}>
-                    <TableCell>{j.titre}</TableCell>
+                  <TableRow
+                    key={j.id}
+                    className="hover:bg-muted/50 cursor-pointer"
+                    onClick={() => ouvrirTraitement(j.id)}
+                  >
+                    <TableCell className="font-medium">{j.titre}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">{j.type}</Badge>
                     </TableCell>
@@ -2001,9 +2032,218 @@ export function AtelierClient({ indicateurs, historique }: Props) {
               </TableBody>
             </Table>
           )}
+          <p className="text-muted-foreground mt-2 text-xs">
+            Cliquez sur une ligne pour consulter le traitement (résultats, rapport) et l’exporter,
+            sans ré-importer ni relancer l’IA.
+          </p>
         </CardContent>
       </Card>
+
+      {busyDetail && (
+        <div className="text-muted-foreground fixed right-4 bottom-4 z-50 flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm shadow">
+          <Loader2 className="size-4 animate-spin" /> Chargement du traitement…
+        </div>
+      )}
+
+      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="max-h-[85vh] max-w-4xl overflow-auto">
+          {detail && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{detail.titre}</DialogTitle>
+                <DialogDescription>
+                  {detail.type} · {detail.source_ref ?? detail.source} ·{' '}
+                  {new Date(detail.created_at).toLocaleString('fr-FR')}
+                </DialogDescription>
+              </DialogHeader>
+              <HistoriqueDetail detail={detail} />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+/** Rendu d'un traitement enregistré (consultation depuis l'historique). */
+function HistoriqueDetail({ detail }: { detail: TraitementDetail }) {
+  const id = (c: string) => c; // pas de libellés hors contexte : on garde le code
+  const payload = detail.payload;
+
+  if (detail.type === 'report') {
+    const md = (payload?.rapport as string) ?? '(Rapport indisponible.)';
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1"
+            onClick={() => navigator.clipboard?.writeText(md)}
+          >
+            Copier
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1"
+            onClick={() => exporterRapportPdf(md, detail.titre).catch(() => undefined)}
+          >
+            <Download className="size-4" /> PDF
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1"
+            onClick={() => exporterRapportWord(md, detail.titre).catch(() => undefined)}
+          >
+            <Download className="size-4" /> Word
+          </Button>
+        </div>
+        <div className="rounded-md border p-4">
+          <MarkdownRenderer>{md}</MarkdownRenderer>
+        </div>
+      </div>
+    );
+  }
+
+  if (detail.type === 'frequency' && payload) {
+    const freq = payload as unknown as FrequencyResponse;
+    return (
+      <div className="space-y-3">
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1"
+          onClick={() => exporterFreqExcel(freq, id).catch(() => undefined)}
+        >
+          <Download className="size-4" /> Excel
+        </Button>
+        {Object.entries(freq.tables).map(([name, rows]) => (
+          <Card key={name}>
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm">{name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Modalité</TableHead>
+                    <TableHead className="text-right">Effectif</TableHead>
+                    <TableHead className="text-right">%</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((r, i) => (
+                    <TableRow key={i} className={r.Modalité === 'Total' ? 'font-semibold' : ''}>
+                      <TableCell>{r.Modalité}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.Effectif}</TableCell>
+                      <TableCell className="text-right tabular-nums">{pct(r['%'])}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (detail.type === 'crosstab' && payload) {
+    const cross = payload as unknown as CrosstabResponse;
+    return (
+      <div className="space-y-3">
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1"
+          onClick={() => exporterCrossExcel(cross, id).catch(() => undefined)}
+        >
+          <Download className="size-4" /> Excel
+        </Button>
+        {cross.layers.map((lyr, li) => (
+          <div key={li} className="overflow-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Modalité</TableHead>
+                  {lyr.columns.map((c) => (
+                    <TableHead key={c} className="text-right">
+                      {c}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lyr.index.map((idx, ri) => (
+                  <TableRow key={idx} className={idx === 'Total' ? 'font-semibold' : ''}>
+                    <TableCell>{idx}</TableCell>
+                    {lyr.columns.map((c, ci) => (
+                      <TableCell key={c} className="text-right tabular-nums">
+                        {lyr.counts[ri]?.[ci] ?? 0}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (detail.type === 'multi' && payload) {
+    const multi = payload as unknown as MultiResponse;
+    return (
+      <div className="space-y-3">
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1"
+          onClick={() => exporterMultiExcel(multi).catch(() => undefined)}
+        >
+          <Download className="size-4" /> Excel
+        </Button>
+        {Object.entries(multi.tables).map(([prefix, table]) => (
+          <Card key={prefix}>
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm">{prefix}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Option</TableHead>
+                    <TableHead className="text-right">Effectif</TableHead>
+                    <TableHead className="text-right">% répondants</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {table.rows.map((r, i) => (
+                    <TableRow key={i}>
+                      <TableCell>{r.Option}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.Effectif}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {pct(r['Pourcentage répondants'])}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <p className="text-muted-foreground text-sm">
+      Ce traitement ne conserve pas de résultat détaillé consultable (paramètres enregistrés
+      seulement).
+    </p>
   );
 }
 
