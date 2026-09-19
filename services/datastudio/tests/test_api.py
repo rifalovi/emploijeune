@@ -222,6 +222,39 @@ def test_clean_full_returns_dataset():
     assert "(épurée)" in ds["name"]
 
 
+def test_clean_drop_missing_removes_incomplete_rows():
+    # Une ligne du jeu de test a Q1_sexe manquant : drop_missing doit la retirer.
+    r = client.post(
+        "/api/datastudio/clean",
+        json={"dataset": DATASET, "drop_missing": True},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["n_rows_source"] == 6
+    assert body["n_rows_cleaned"] == 5
+
+
+def test_list_exclure_vides():
+    # Liste sur la seule variable Q1_sexe (une valeur manquante) : la ligne
+    # entièrement vide sur les colonnes listées est masquée.
+    r = client.post(
+        "/api/datastudio/list",
+        json={"dataset": DATASET, "cols": ["Q1_sexe"], "exclure_vides": True},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    assert r.json()["n_rows"] == 5
+    # Sans exclusion, toutes les lignes sont listées.
+    r2 = client.post(
+        "/api/datastudio/list",
+        json={"dataset": DATASET, "cols": ["Q1_sexe"], "exclure_vides": False},
+        headers=auth_headers(),
+    )
+    assert r2.status_code == 200
+    assert r2.json()["n_rows"] == 6
+
+
 # ------------------------------------------------------------------ source par fichier
 def test_no_source_422():
     # Ni dataset ni dataset_ref → requête invalide.

@@ -315,6 +315,8 @@ export function AtelierClient({
   // Nettoyage / épuration de la base
   const [dropEmpty, setDropEmpty] = useState(true);
   const [dropDuplicates, setDropDuplicates] = useState(true);
+  // Retirer les lignes comportant au moins une valeur manquante (incomplètes).
+  const [dropMissing, setDropMissing] = useState(false);
   const [clean, setClean] = useState<CleanResponse | null>(null);
   const [busyClean, setBusyClean] = useState(false);
   // Vrai quand la base de travail active est la base ÉPURÉE (adoptée).
@@ -338,6 +340,8 @@ export function AtelierClient({
   const [listeCols, setListeCols] = useState<string[]>([]);
   const [liste, setListe] = useState<PreviewResponse | null>(null);
   const [busyListe, setBusyListe] = useState(false);
+  // Masquer les lignes vides sur toutes les variables listées.
+  const [listeExclureVides, setListeExclureVides] = useState(true);
 
   // Diagnostic qualité / anomalies
   const [quality, setQuality] = useState<QualityResponse | null>(null);
@@ -602,7 +606,7 @@ export function AtelierClient({
     setBusyClean(true);
     setErreur(null);
     try {
-      const res = await computeClean(source, { dropEmpty, dropDuplicates });
+      const res = await computeClean(source, { dropEmpty, dropDuplicates, dropMissing });
       setClean(res);
       await enregistrerTraitementAction({
         type: 'cleaning',
@@ -612,6 +616,7 @@ export function AtelierClient({
         params: {
           drop_empty: dropEmpty,
           drop_duplicates: dropDuplicates,
+          drop_missing: dropMissing,
           source: sourceRef,
           _reload: reloadInfo,
         },
@@ -637,7 +642,12 @@ export function AtelierClient({
     setBusyClean(true);
     setErreur(null);
     try {
-      const res = await computeClean(source, { dropEmpty, dropDuplicates, full: true });
+      const res = await computeClean(source, {
+        dropEmpty,
+        dropDuplicates,
+        dropMissing,
+        full: true,
+      });
       if (!res.dataset || !Array.isArray(res.dataset.rows)) {
         setErreur("La base épurée n'a pas pu être générée.");
         return;
@@ -663,8 +673,9 @@ export function AtelierClient({
         params: {
           drop_empty: dropEmpty,
           drop_duplicates: dropDuplicates,
+          drop_missing: dropMissing,
           source: sourceRef,
-          _reload: { kind: 'epuree', base: reloadInfo, dropEmpty, dropDuplicates },
+          _reload: { kind: 'epuree', base: reloadInfo, dropEmpty, dropDuplicates, dropMissing },
         },
         apercu: `Base de travail : ${res.n_rows_cleaned} lignes (${res.n_removed} retirée(s))`,
       });
@@ -707,7 +718,7 @@ export function AtelierClient({
     setBusyListe(true);
     setErreur(null);
     try {
-      setListe(await computeList(source, listeCols, 200));
+      setListe(await computeList(source, listeCols, 200, listeExclureVides));
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
     } finally {
@@ -790,6 +801,7 @@ export function AtelierClient({
         };
         dropEmpty?: boolean;
         dropDuplicates?: boolean;
+        dropMissing?: boolean;
       } | null;
 
       // Base épurée enregistrée : on recharge la source d'origine puis on
@@ -821,6 +833,7 @@ export function AtelierClient({
           const res = await computeClean(baseSource, {
             dropEmpty: reload.dropEmpty ?? true,
             dropDuplicates: reload.dropDuplicates ?? true,
+            dropMissing: reload.dropMissing ?? false,
             full: true,
           });
           if (res.dataset && Array.isArray(res.dataset.rows)) {
@@ -1759,6 +1772,10 @@ export function AtelierClient({
                     <Switch checked={dropDuplicates} onCheckedChange={setDropDuplicates} />
                     Retirer les doublons
                   </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch checked={dropMissing} onCheckedChange={setDropMissing} />
+                    Retirer les lignes avec valeurs manquantes
+                  </label>
                   <Button variant="outline" onClick={lancerClean} disabled={busyClean}>
                     {busyClean ? (
                       <Loader2 className="size-4 animate-spin" />
@@ -2426,10 +2443,16 @@ export function AtelierClient({
                   onChange={setListeCols}
                 />
                 <Separator />
-                <Button onClick={lancerListe} disabled={busyListe || listeCols.length === 0}>
-                  {busyListe && <Loader2 className="size-4 animate-spin" />}
-                  Produire la liste ({listeCols.length})
-                </Button>
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch checked={listeExclureVides} onCheckedChange={setListeExclureVides} />
+                    Masquer les lignes vides
+                  </label>
+                  <Button onClick={lancerListe} disabled={busyListe || listeCols.length === 0}>
+                    {busyListe && <Loader2 className="size-4 animate-spin" />}
+                    Produire la liste ({listeCols.length})
+                  </Button>
+                </div>
               </CardContent>
             </Card>
             {liste && (

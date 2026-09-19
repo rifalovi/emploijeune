@@ -121,13 +121,20 @@ export function computeMulti(source: ComputeSource, group?: string): Promise<Mul
 
 export function computeClean(
   source: ComputeSource,
-  opts?: { dropEmpty?: boolean; keyColumns?: string[]; dropDuplicates?: boolean; full?: boolean },
+  opts?: {
+    dropEmpty?: boolean;
+    keyColumns?: string[];
+    dropDuplicates?: boolean;
+    dropMissing?: boolean;
+    full?: boolean;
+  },
 ): Promise<CleanResponse> {
   return post<CleanResponse>('/clean', {
     ...sourceBody(source),
     drop_empty: opts?.dropEmpty ?? true,
     key_columns: opts?.keyColumns ?? [],
     drop_duplicates: opts?.dropDuplicates ?? true,
+    drop_missing: opts?.dropMissing ?? false,
     full: opts?.full ?? false,
   });
 }
@@ -140,8 +147,14 @@ export function computeList(
   source: ComputeSource,
   cols: string[],
   limit = 200,
+  exclureVides = true,
 ): Promise<PreviewResponse> {
-  return post<PreviewResponse>('/list', { ...sourceBody(source), cols, limit });
+  return post<PreviewResponse>('/list', {
+    ...sourceBody(source),
+    cols,
+    limit,
+    exclure_vides: exclureVides,
+  });
 }
 
 export function computeQuality(source: ComputeSource): Promise<QualityResponse> {

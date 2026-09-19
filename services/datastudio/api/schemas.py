@@ -91,6 +91,9 @@ class CleanRequest(SourceRequest):
     drop_empty: bool = True
     key_columns: list[str] = Field(default_factory=list)
     drop_duplicates: bool = True
+    # drop_missing=True : retire toute ligne comportant au moins une valeur
+    # manquante (lignes incomplètes), en plus des lignes entièrement vides.
+    drop_missing: bool = False
     # full=True : renvoie aussi la base épurée COMPLÈTE (rows + labels) pour
     # l'adopter comme base de travail (et l'enregistrer).
     full: bool = False
@@ -111,6 +114,9 @@ class ListRequest(SourceRequest):
 
     cols: list[str]
     limit: int = 200
+    # exclure_vides=True : n'affiche pas les lignes vides sur TOUTES les
+    # variables sélectionnées (évite les lignes blanches dans la liste).
+    exclure_vides: bool = True
 
 
 class QualityRequest(SourceRequest):

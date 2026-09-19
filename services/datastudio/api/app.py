@@ -272,6 +272,7 @@ def clean(req: CleanRequest, user: AuthUser = CurrentUser) -> dict:
         drop_empty=req.drop_empty,
         key_columns=req.key_columns,
         drop_duplicates=req.drop_duplicates,
+        drop_missing=req.drop_missing,
     )
     result = {
         "n_rows_source": int(len(ds.frame)),
@@ -320,10 +321,15 @@ def liste(req: ListRequest, user: AuthUser = CurrentUser) -> dict:
     if not req.cols:
         raise HTTPException(status_code=422, detail="Choisissez au moins une variable.")
     limit = max(1, min(int(req.limit), 1000))
-    sub = ds.frame[list(req.cols)].head(limit)
-    display = ds.to_display_frame(mode_libelle=True, frame=sub)
+    sub = ds.frame[list(req.cols)]
+    if req.exclure_vides:
+        # Retire les lignes vides sur TOUTES les variables listées (lignes
+        # blanches sans nom/prénom/… qui n'apportent rien à une liste).
+        sub = sub.dropna(how="all")
+    n_listees = int(len(sub))
+    display = ds.to_display_frame(mode_libelle=True, frame=sub.head(limit))
     return {
-        "n_rows": int(len(ds.frame)),
+        "n_rows": n_listees,
         "columns": [ds.variable_display(c) for c in req.cols],
         "codes": [str(c) for c in req.cols],
         "rows": frame_to_records(display),

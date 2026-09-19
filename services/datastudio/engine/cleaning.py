@@ -23,6 +23,7 @@ def cleaned_frame(
     drop_empty: bool = True,
     key_columns: Optional[list] = None,
     drop_duplicates: bool = True,
+    drop_missing: bool = False,
 ) -> pd.DataFrame:
     """Retourne une copie épurée du tableau de `dataset`.
 
@@ -32,6 +33,8 @@ def cleaned_frame(
         drop_empty: retirer les lignes entièrement vides.
         key_columns: variables-clés dont l'absence entraîne le retrait de la ligne.
         drop_duplicates: retirer les doublons stricts.
+        drop_missing: retirer toute ligne comportant AU MOINS une valeur manquante
+            (après normalisation des codes d'absence en NA).
     """
     if specs is None:
         specs = infer_variable_specs(dataset)
@@ -63,6 +66,9 @@ def cleaned_frame(
     keys = [c for c in (key_columns or []) if c in d.columns]
     if keys:
         d = d.dropna(subset=keys)
+    if drop_missing:
+        # Retire toute ligne incomplète (au moins une valeur manquante).
+        d = d.dropna(how="any")
     if drop_duplicates:
         d = d.drop_duplicates()
     return d
