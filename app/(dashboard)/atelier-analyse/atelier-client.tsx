@@ -620,7 +620,7 @@ export function AtelierClient({ indicateurs, historique }: Props) {
   }
 
   async function lancerRapport() {
-    if (!freq && !cross) return;
+    if (!freq && !cross && !multi && !stat) return;
     setBusyRapport(true);
     setErreur(null);
     try {
@@ -631,6 +631,8 @@ export function AtelierClient({ indicateurs, historique }: Props) {
         consignes: consignes || undefined,
         frequences: freq,
         croisement: cross,
+        multi,
+        tests: stat,
       });
       if (res.status === 'succes') {
         setRapport(res.rapport);
@@ -1463,7 +1465,10 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={lancerRapport} disabled={busyRapport || (!freq && !cross)}>
+                  <Button
+                    onClick={lancerRapport}
+                    disabled={busyRapport || (!freq && !cross && !multi && !stat)}
+                  >
                     {busyRapport ? (
                       <Loader2 className="size-4 animate-spin" />
                     ) : (
@@ -1475,12 +1480,17 @@ export function AtelierClient({ indicateurs, historique }: Props) {
                 <Textarea
                   value={consignes}
                   onChange={(e) => setConsignes(e.target.value)}
-                  placeholder="Consignes complémentaires (optionnel) : angle, public visé, longueur…"
+                  placeholder="Consignes complémentaires (optionnel) : thème, projet, programme, angle, public visé, longueur…"
                   rows={2}
                 />
-                {!freq && !cross && (
+                <p className="text-muted-foreground text-xs">
+                  Le rapport s’appuie sur TOUS les résultats produits (tris à plat, croisements,
+                  réponses multiples, tests). Les chiffres ne sont ni inventés ni recalculés.
+                </p>
+                {!freq && !cross && !multi && !stat && (
                   <p className="text-muted-foreground text-sm italic">
-                    Produisez d’abord un tri à plat ou un croisement pour alimenter le rapport.
+                    Produisez d’abord un tri à plat, un croisement, une analyse multi ou un test
+                    pour alimenter le rapport.
                   </p>
                 )}
               </CardContent>

@@ -172,6 +172,30 @@ export const FORMATS_RAPPORT = {
     instruction:
       "Produis une restitution de suivi-évaluation : rappel de l'indicateur, résultats par modalité, interprétation orientée pilotage de projet, points d'attention et pistes d'action pour l'équipe S&E de l'OIF.",
   },
+  note_thematique: {
+    label: 'Analyse thématique',
+    instruction:
+      "Produis une note d'analyse THÉMATIQUE : identifie 2 à 4 thèmes transversaux qui émergent des résultats (ex. accès, satisfaction, sécurisation, équité de genre…). Pour chaque thème : un titre, les constats chiffrés qui le soutiennent, une interprétation nuancée, et son enjeu. Termine par une lecture d'ensemble reliant les thèmes.",
+  },
+  rapport_projet: {
+    label: 'Rapport par projet',
+    instruction:
+      "Produis un rapport orienté PROJET : rappel de l'objet et de la population, résultats clés par dimension du projet, analyse de la performance au regard des cibles (si connues), facteurs explicatifs, points de vigilance, et recommandations opérationnelles concrètes pour l'équipe projet. Structure claire avec sections.",
+  },
+  rapport_programme: {
+    label: 'Rapport par programme stratégique',
+    instruction:
+      'Produis une analyse au niveau du PROGRAMME STRATÉGIQUE : mets les résultats en perspective au regard des objectifs programmatiques et des effets attendus, dégage les enseignements transversaux, apprécie la contribution aux résultats de haut niveau, et formule des recommandations de PILOTAGE STRATÉGIQUE. Ton institutionnel et prospectif.',
+  },
+  rapport_scientifique: {
+    label: 'Rapport scientifique complet',
+    instruction:
+      'Produis un RAPPORT SCIENTIFIQUE complet et rigoureux, avec ces sections : ' +
+      '**Résumé exécutif** (5-8 lignes) ; **Contexte et objectifs** ; **Méthodologie** (base de données, effectifs, variables et traitements mobilisés) ; ' +
+      '**Résultats** (lecture détaillée des tris à plat, croisements, réponses multiples et tests statistiques fournis, avec les chiffres) ; ' +
+      '**Discussion** (interprétation, mise en relation des résultats) ; **Limites méthodologiques** ; **Recommandations** ; **Conclusion**. ' +
+      'Ton scientifique, précis et nuancé ; distingue corrélation et causalité ; signale les effectifs faibles.',
+  },
 } as const;
 
 export type FormatRapport = keyof typeof FORMATS_RAPPORT;

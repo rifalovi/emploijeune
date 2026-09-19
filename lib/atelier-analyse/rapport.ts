@@ -9,9 +9,19 @@ import {
   type CrosstabResponse,
   type FormatRapport,
   type FrequencyResponse,
+  type MultiResponse,
+  type StatTestResponse,
 } from './types';
 
 const ROLES_AUTORISES = ['super_admin', 'admin_scs'];
+
+// Formats longs (scientifiques / stratégiques) : on autorise davantage de sortie.
+const FORMATS_LONGS: FormatRapport[] = [
+  'note_thematique',
+  'rapport_projet',
+  'rapport_programme',
+  'rapport_scientifique',
+];
 
 export type GenererRapportInput = {
   indicateur: string;
@@ -20,6 +30,8 @@ export type GenererRapportInput = {
   consignes?: string;
   frequences?: FrequencyResponse | null;
   croisement?: CrosstabResponse | null;
+  multi?: MultiResponse | null;
+  tests?: StatTestResponse | null;
 };
 
 function fmtPct(v: number | null): string {
@@ -50,6 +62,31 @@ function formaterDonnees(input: GenererRapportInput): string {
         .join('\n');
       parts.push(`${entete}\n${corps}`);
     }
+  }
+  if (input.multi) {
+    for (const [prefix, table] of Object.entries(input.multi.tables)) {
+      const lignes = table.rows.map(
+        (r) =>
+          `  - ${r.Option} : ${r.Effectif} (${(r['Pourcentage répondants'] * 100).toFixed(1)} %)`,
+      );
+      parts.push(`Réponses multiples « ${prefix} » (base ${table.base}) :\n${lignes.join('\n')}`);
+    }
+  }
+  if (input.tests) {
+    const chi = input.tests.chi_square;
+    const w = input.tests.welch_ttest;
+    const lignes: string[] = [];
+    if (chi.applicable) {
+      lignes.push(
+        `  - Khi² : χ²=${chi.chi2.toFixed(3)}, ddl=${chi.dof}, p=${chi.p.toFixed(4)} → ${chi.significatif ? 'association significative' : 'association non significative'} (seuil 5 %).`,
+      );
+    }
+    if (w.applicable) {
+      lignes.push(
+        `  - t-test de Welch : t=${w.t.toFixed(3)}, p=${w.p.toFixed(4)} → différence ${w.significatif ? 'significative' : 'non significative'} (seuil 5 %).`,
+      );
+    }
+    if (lignes.length) parts.push(`Tests statistiques :\n${lignes.join('\n')}`);
   }
   return parts.join('\n\n');
 }
@@ -82,11 +119,14 @@ export async function genererRapportAction(
   const preset = FORMATS_RAPPORT[input.format] ?? FORMATS_RAPPORT.synthese;
 
   const system =
-    "Tu es analyste suivi-évaluation à l'Organisation internationale de la Francophonie (OIF). " +
-    'Tu rédiges en français, à partir UNIQUEMENT des chiffres fournis : ne les invente pas, ne les ' +
-    'recalcule pas, ne cite aucune donnée absente. ' +
+    "Tu es analyste senior en suivi-évaluation et statistique sociale à l'Organisation " +
+    'internationale de la Francophonie (OIF). Tu rédiges en français, dans un style clair, ' +
+    'rigoureux et nuancé, à partir UNIQUEMENT des chiffres fournis : ne les invente pas, ne les ' +
+    'recalcule pas, ne cite aucune donnée absente, et signale explicitement les effectifs faibles ' +
+    'ou les limites. Distingue corrélation et causalité. ' +
     preset.instruction +
-    ' Mets en forme en Markdown (titres, listes, tableaux si utile).';
+    ' Mets en forme en Markdown (titres de niveau ##/###, listes, tableaux si utile). ' +
+    'Appuie chaque affirmation sur un chiffre issu des résultats.';
 
   const userMessage =
     `Indicateur : ${input.indicateurLibelle ?? input.indicateur}\n\n` +
@@ -97,7 +137,7 @@ export async function genererRapportAction(
   try {
     const reponse = await client.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 4096,
+      max_tokens: FORMATS_LONGS.includes(input.format) ? 8000 : 4096,
       system,
       messages: [{ role: 'user', content: userMessage }],
     });
