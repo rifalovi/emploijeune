@@ -195,3 +195,87 @@ def test_ingest_file_ownership_403():
         headers=auth_headers(),
     )
     assert r.status_code == 403
+
+
+# ------------------------------------------------------------------ ES256 (JWKS)
+def _make_es256_token(sub: str = "user-123", exp_delta: int = 3600, aud: str = "authenticated"):
+    """Génère une paire de clés EC P-256, enregistre le JWK dans le cache de
+    l'auth (pas d'appel réseau) et forge un jeton ES256 signé (r‖s, 64 octets).
+
+    Returns (token, kid).
+    """
+    ecdsa = pytest.importorskip("ecdsa")
+    from api import auth as auth_mod
+
+    sk = ecdsa.SigningKey.generate(curve=ecdsa.NIST256p)
+    vk = sk.get_verifying_key()
+    point = vk.pubkey.point
+    kid = "test-kid-es256"
+    jwk = {
+        "kty": "EC",
+        "crv": "P-256",
+        "kid": kid,
+        "x": _b64url(point.x().to_bytes(32, "big")),
+        "y": _b64url(point.y().to_bytes(32, "big")),
+    }
+    auth_mod._jwks_cache[kid] = jwk  # pré-remplit le cache : aucun appel HTTP
+
+    header = {"alg": "ES256", "typ": "JWT", "kid": kid}
+    payload = {"sub": sub, "role": "authenticated", "aud": aud, "exp": int(time.time()) + exp_delta}
+    h = _b64url(json.dumps(header).encode())
+    p = _b64url(json.dumps(payload).encode())
+    signing_input = f"{h}.{p}".encode("ascii")
+    sig = sk.sign(signing_input, hashfunc=hashlib.sha256, sigencode=ecdsa.util.sigencode_string)
+    return f"{h}.{p}.{_b64url(sig)}", kid
+
+
+def test_frequency_es256_ok():
+    token, _ = _make_es256_token()
+    r = client.post(
+        "/api/datastudio/frequency",
+        json={"dataset": DATASET, "cols": ["Q1_sexe"], "exclure": False},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    modal = {row["Modalité"]: row["Effectif"] for row in r.json()["tables"]["Q1_sexe"]}
+    assert modal["Homme"] == 2
+    assert modal["Femme"] == 3
+
+
+def test_es256_bad_signature_rejected():
+    # Jeton ES256 signé par une autre clé que celle publiée dans le cache.
+    ecdsa = pytest.importorskip("ecdsa")
+    from api import auth as auth_mod
+
+    good, kid = _make_es256_token()
+    # Remplace la clé publique du cache par une clé sans rapport.
+    other = ecdsa.SigningKey.generate(curve=ecdsa.NIST256p)
+    pt = other.get_verifying_key().pubkey.point
+    auth_mod._jwks_cache[kid] = {
+        "kty": "EC",
+        "crv": "P-256",
+        "kid": kid,
+        "x": _b64url(pt.x().to_bytes(32, "big")),
+        "y": _b64url(pt.y().to_bytes(32, "big")),
+    }
+    r = client.post(
+        "/api/datastudio/frequency",
+        json={"dataset": DATASET, "cols": ["Q1_sexe"]},
+        headers={"Authorization": f"Bearer {good}"},
+    )
+    assert r.status_code == 401
+
+
+def test_unsupported_algorithm_rejected():
+    # Un en-tête avec un algorithme non géré doit être refusé (401), pas planter.
+    header = {"alg": "RS512", "typ": "JWT", "kid": "x"}
+    payload = {"sub": "user-123", "aud": "authenticated", "exp": int(time.time()) + 3600}
+    h = _b64url(json.dumps(header).encode())
+    p = _b64url(json.dumps(payload).encode())
+    token = f"{h}.{p}.{_b64url(b'signature-bidon')}"
+    r = client.post(
+        "/api/datastudio/frequency",
+        json={"dataset": DATASET, "cols": ["Q1_sexe"]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 401
