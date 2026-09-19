@@ -28,6 +28,7 @@ import {
   Filter,
   FlaskConical,
   Gauge,
+  Layers,
   ListChecks,
   ListOrdered,
   Loader2,
@@ -79,6 +80,7 @@ import { couleurRang, tooltipPropsPremium } from '@/lib/design/charts';
 
 import {
   chargerDatasetEnqueteAction,
+  chargerDatasetMultiProjetsAction,
   chargerTraitementAction,
   enregistrerTraitementAction,
   type TraitementDetail,
@@ -245,17 +247,32 @@ L'IA aide à **rédiger** et **structurer** les rapports à partir des résultat
 Un fichier lisible et un programme sans erreur ne prouvent pas l'exactitude des données. Les valeurs atypiques restent des signaux à vérifier. Pour les fichiers SPSS, les libellés de variables et de valeurs sont conservés.`;
 
 type DocumentReference = { cle: string; libelle: string; nomFichier: string };
+type Programme = { code: string; libelle: string };
+type Projet = { code: string; libelle: string; programme: string };
 
 type Props = {
   indicateurs: IndicateurSource[];
   historique: { jobs: HistoriqueJob[]; erreur: string | null };
   documentsReference?: DocumentReference[];
+  programmes?: Programme[];
+  projets?: Projet[];
 };
 
-export function AtelierClient({ indicateurs, historique, documentsReference = [] }: Props) {
+export function AtelierClient({
+  indicateurs,
+  historique,
+  documentsReference = [],
+  programmes = [],
+  projets = [],
+}: Props) {
   const router = useRouter();
   const [ongletActif, setOngletActif] = useState('freq');
-  const [sourceMode, setSourceMode] = useState<'enquete' | 'fichier'>('enquete');
+  const [sourceMode, setSourceMode] = useState<'enquete' | 'fichier' | 'multi'>('enquete');
+
+  // Multi-projets (traitement mensuel, section à part)
+  const [mpProgramme, setMpProgramme] = useState('__tous__');
+  const [mpIndicateur, setMpIndicateur] = useState('');
+  const [mpProjets, setMpProjets] = useState<string[]>([]);
   const [indicateur, setIndicateur] = useState('');
   const [dataset, setDataset] = useState<DatasetInput | null>(null);
   const [datasetRef, setDatasetRef] = useState<string | null>(null);
@@ -332,6 +349,10 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
 
   const variables = analyse?.variables ?? [];
 
+  // Projets du programme sélectionné (ou tous, en transversal).
+  const projetsProgramme =
+    mpProgramme === '__tous__' ? projets : projets.filter((p) => p.programme === mpProgramme);
+
   // Libellé lisible d'une variable (question posée) à partir de son code.
   const libelleVariable = (code: string) => variables.find((v) => v.name === code)?.display ?? code;
 
@@ -347,16 +368,21 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
     : dataset
       ? { dataset, filters: filtres }
       : null;
-  const sourceKind = datasetRef ? 'upload' : 'enquete';
-  const sourceRef = datasetRef ? fichierNom : indicateur;
+  const estMulti = sourceMode === 'multi';
+  const sourceKind = datasetRef ? 'upload' : estMulti ? 'multi' : 'enquete';
+  const sourceRef = datasetRef ? fichierNom : estMulti ? mpIndicateur : indicateur;
   const sourceLabel = datasetRef
     ? fichierNom
-    : (indicateurs.find((i) => i.code === indicateur)?.libelle ?? indicateur);
+    : estMulti
+      ? `Multi-projets — ${indicateurs.find((i) => i.code === mpIndicateur)?.libelle ?? mpIndicateur}`
+      : (indicateurs.find((i) => i.code === indicateur)?.libelle ?? indicateur);
 
   // De quoi recharger la source d'un traitement (pour rouvrir le workspace).
   const reloadInfo: Record<string, unknown> = datasetRef
     ? { kind: 'upload', datasetRef, nom: fichierNom }
-    : { kind: 'enquete', indicateur };
+    : estMulti
+      ? { kind: 'multi', indicateur: mpIndicateur, projets: mpProjets }
+      : { kind: 'enquete', indicateur };
 
   function reinitAnalyse() {
     setFreq(null);
@@ -400,6 +426,28 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
       const ds = await chargerDatasetEnqueteAction(indicateur);
       if (ds.rows.length === 0) {
         setErreur('Aucune réponse d’enquête pour cet indicateur.');
+        return;
+      }
+      setDataset(ds);
+      setDatasetRef(null);
+      appliquerAnalyse(await analyzeDataset(ds));
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setChargement(false);
+    }
+  }
+
+  async function chargerMultiProjets() {
+    if (!mpIndicateur) return;
+    setChargement(true);
+    setErreur(null);
+    reinitAnalyse();
+    try {
+      const codes = mpProjets.length > 0 ? mpProjets : projetsProgramme.map((p) => p.code);
+      const ds = await chargerDatasetMultiProjetsAction(mpIndicateur, codes);
+      if (ds.rows.length === 0) {
+        setErreur('Aucune réponse d’enquête pour cette sélection multi-projets.');
         return;
       }
       setDataset(ds);
@@ -667,6 +715,7 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
         datasetRef?: string;
         nom?: string;
         indicateur?: string;
+        projets?: string[];
       } | null;
 
       if (reload?.kind === 'upload' && reload.datasetRef) {
@@ -688,6 +737,20 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
           setDataset(ds);
           setDatasetRef(null);
           setSourceMode('enquete');
+          appliquerAnalyse(await analyzeDataset(ds));
+        }
+        chargerResultatDansOnglet(d);
+        setDetail(null);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (reload?.kind === 'multi' && reload.indicateur) {
+        const codes = Array.isArray(reload.projets) ? reload.projets : [];
+        if (sourceMode !== 'multi' || mpIndicateur !== reload.indicateur || !dataset) {
+          const ds = await chargerDatasetMultiProjetsAction(reload.indicateur, codes);
+          setSourceMode('multi');
+          setMpIndicateur(reload.indicateur);
+          setMpProjets(codes);
+          setDataset(ds);
+          setDatasetRef(null);
           appliquerAnalyse(await analyzeDataset(ds));
         }
         chargerResultatDansOnglet(d);
@@ -766,9 +829,17 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
             >
               <Upload className="size-4" /> Importer un fichier
             </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={sourceMode === 'multi' ? 'default' : 'outline'}
+              onClick={() => setSourceMode('multi')}
+            >
+              <Layers className="size-4" /> Multi-projets
+            </Button>
           </div>
 
-          {sourceMode === 'enquete' ? (
+          {sourceMode === 'enquete' && (
             <div className="flex flex-wrap items-end gap-3">
               <div className="min-w-64 flex-1">
                 <Select value={indicateur} onValueChange={(v) => setIndicateur(v ?? '')}>
@@ -793,7 +864,9 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
                 Charger
               </Button>
             </div>
-          ) : (
+          )}
+
+          {sourceMode === 'fichier' && (
             <div className="flex flex-wrap items-end gap-3">
               <input
                 type="file"
@@ -808,6 +881,119 @@ export function AtelierClient({ indicateurs, historique, documentsReference = []
                   <Upload className="size-4" />
                 )}
                 Importer et analyser
+              </Button>
+            </div>
+          )}
+
+          {sourceMode === 'multi' && (
+            <div className="space-y-3 rounded-md border border-dashed p-3">
+              <p className="text-muted-foreground text-xs">
+                Analyse mensuelle : empile les réponses d’un indicateur sur plusieurs projets. Les
+                colonnes <strong>Projet</strong> et <strong>Programme stratégique</strong> sont
+                ajoutées pour croiser les résultats par projet ou par programme.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs">Programme stratégique</p>
+                  <Select
+                    value={mpProgramme}
+                    onValueChange={(v) => {
+                      setMpProgramme(v ?? '__tous__');
+                      setMpProjets([]);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__tous__">Tous (transversal)</SelectItem>
+                      {programmes.map((p) => (
+                        <SelectItem key={p.code} value={p.code}>
+                          {p.libelle}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs">Indicateur / questionnaire</p>
+                  <Select value={mpIndicateur} onValueChange={(v) => setMpIndicateur(v ?? '')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un indicateur…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {indicateurs.map((i) => (
+                        <SelectItem key={i.code} value={i.code}>
+                          {i.libelle} [{i.code}]
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-muted-foreground text-xs">
+                    Projets ({mpProjets.length > 0 ? `${mpProjets.length} sélectionné(s)` : 'tous'})
+                  </p>
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setMpProjets(projetsProgramme.map((p) => p.code))}
+                    >
+                      Tout
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setMpProjets([])}
+                    >
+                      Aucun
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid max-h-36 grid-cols-1 gap-1 overflow-auto rounded border p-2 sm:grid-cols-2">
+                  {projetsProgramme.map((p) => (
+                    <label key={p.code} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={mpProjets.includes(p.code)}
+                        onCheckedChange={() =>
+                          setMpProjets((prev) =>
+                            prev.includes(p.code)
+                              ? prev.filter((c) => c !== p.code)
+                              : [...prev, p.code],
+                          )
+                        }
+                      />
+                      <span className="truncate" title={p.libelle}>
+                        {p.libelle}
+                      </span>
+                    </label>
+                  ))}
+                  {projetsProgramme.length === 0 && (
+                    <p className="text-muted-foreground text-xs italic">
+                      Aucun projet actif pour ce programme.
+                    </p>
+                  )}
+                </div>
+                <p className="text-muted-foreground text-xs">
+                  Aucun projet coché = tous les projets du programme sélectionné.
+                </p>
+              </div>
+
+              <Button onClick={chargerMultiProjets} disabled={!mpIndicateur || chargement}>
+                {chargement ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Layers className="size-4" />
+                )}
+                Charger la base multi-projets
               </Button>
             </div>
           )}

@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { peutAccederDataStudio } from '@/lib/super-admin/permissions';
 import type { Json } from '@/lib/supabase/database.types';
-import { chargerDatasetEnquete } from './queries';
+import { chargerDatasetEnquete, chargerDatasetMultiProjets } from './queries';
 import type { DatasetInput } from './types';
 
 /**
@@ -20,6 +20,21 @@ export async function chargerDatasetEnqueteAction(
     throw new Error('Accès non autorisé.');
   }
   return chargerDatasetEnquete(indicateurCode, projetCode);
+}
+
+/**
+ * Action serveur : charge une base MULTI-PROJETS (réponses d'un indicateur
+ * empilées sur plusieurs projets, avec colonnes Projet / Programme).
+ */
+export async function chargerDatasetMultiProjetsAction(
+  indicateurCode: string,
+  projetCodes: string[],
+): Promise<DatasetInput> {
+  const utilisateur = await requireUtilisateurValide();
+  if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
+    throw new Error('Accès non autorisé.');
+  }
+  return chargerDatasetMultiProjets(indicateurCode, projetCodes);
 }
 
 export type EnregistrerTraitementInput = {

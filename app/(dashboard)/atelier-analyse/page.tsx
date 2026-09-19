@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 
 import { exigerAccesDataStudio } from '@/lib/super-admin/permissions';
-import { listerHistorique, listerIndicateursSource } from '@/lib/atelier-analyse/queries';
+import {
+  listerHistorique,
+  listerIndicateursSource,
+  listerProgrammes,
+  listerProjets,
+} from '@/lib/atelier-analyse/queries';
 import { listerDocumentsReference } from '@/lib/atelier-analyse/rag';
 import { AtelierClient } from './atelier-client';
 
@@ -21,10 +26,12 @@ export default async function AtelierAnalysePage() {
   // autorisé au module SCS DataStudio (permissions_delegues).
   await exigerAccesDataStudio();
 
-  const [indicateurs, historique, documentsReference] = await Promise.all([
+  const [indicateurs, historique, documentsReference, programmes, projets] = await Promise.all([
     listerIndicateursSource(),
     listerHistorique(),
     listerDocumentsReference(),
+    listerProgrammes(),
+    listerProjets(),
   ]);
 
   return (
@@ -42,6 +49,8 @@ export default async function AtelierAnalysePage() {
         indicateurs={indicateurs}
         historique={historique}
         documentsReference={documentsReference}
+        programmes={programmes}
+        projets={projets}
       />
     </div>
   );
