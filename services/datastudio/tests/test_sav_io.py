@@ -8,7 +8,13 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from engine.sav_io import TABULAR_EXTENSIONS, load_dataset, read_tabular
+from engine.sav_io import (
+    TABULAR_EXTENSIONS,
+    _detect_header_row,
+    list_sheets,
+    load_dataset,
+    read_tabular,
+)
 
 
 def test_csv(tmp_path):
@@ -80,4 +86,86 @@ def test_xlsx(tmp_path):
     pd.DataFrame({"q1": [1, 2], "q2": ["a", "b"]}).to_excel(p, index=False)
     ds = read_tabular(str(p))
     assert list(ds.frame.columns) == ["q1", "q2"]
+    assert len(ds.frame) == 2
+
+
+# --- v4.9 : préparation de la base brute (multi-feuilles + en-tête auto) ------
+
+
+def _classeur_multi(path):
+    """Écrit un classeur 2 feuilles ; la 1re a un préambule Kobo avant l'en-tête."""
+    openpyxl = pytest.importorskip("openpyxl")
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Réponses"
+    ws.append(["Export Kobo — projet 14"])  # préambule (1 cellule)
+    ws.append([])  # ligne vide
+    ws.append(["Sexe", "Âge", "Statut", "Domaine"])  # en-tête réel (ligne 2)
+    ws.append(["Homme", 30, "Actif", "Couture"])
+    ws.append(["Femme", 25, "Actif", "Élevage"])
+    autre = wb.create_sheet("Métadonnées")
+    autre.append(["clé", "valeur"])
+    autre.append(["version", "4.9"])
+    wb.save(str(path))
+
+
+def test_list_sheets(tmp_path):
+    p = tmp_path / "classeur.xlsx"
+    _classeur_multi(p)
+    assert list_sheets(str(p)) == ["Réponses", "Métadonnées"]
+
+
+def test_list_sheets_non_classeur(tmp_path):
+    p = tmp_path / "enquete.csv"
+    p.write_text("a,b\n1,2\n", encoding="utf-8")
+    assert list_sheets(str(p)) == []
+
+
+def test_xlsx_entete_auto_ignore_preambule(tmp_path):
+    """La 1re feuille : l'en-tête réel (ligne 2) est détecté, préambule ignoré."""
+    p = tmp_path / "classeur.xlsx"
+    _classeur_multi(p)
+    ds = read_tabular(str(p))
+    assert list(ds.frame.columns) == ["Sexe", "Âge", "Statut", "Domaine"]
+    assert len(ds.frame) == 2
+    assert ds.name == "Réponses"
+
+
+def test_xlsx_choix_feuille(tmp_path):
+    p = tmp_path / "classeur.xlsx"
+    _classeur_multi(p)
+    ds = read_tabular(str(p), sheet="Métadonnées")
+    assert list(ds.frame.columns) == ["clé", "valeur"]
+    assert ds.name == "Métadonnées"
+
+
+def test_header_row_explicite(tmp_path):
+    """header_row explicite force la ligne d'en-tête (0-indexée)."""
+    p = tmp_path / "classeur.xlsx"
+    _classeur_multi(p)
+    ds = read_tabular(str(p), header_row=0)
+    # Ligne 0 = préambule à cellule unique → 1re colonne nommée, reste Colonne_k.
+    assert ds.frame.columns[0] == "Export Kobo — projet 14"
+
+
+def test_detect_header_row_prend_ligne_remplie():
+    raw = pd.DataFrame(
+        [
+            ["Titre", None, None, None],
+            [None, None, None, None],
+            ["a", "b", "c", "d"],
+            ["1", "2", "3", "4"],
+        ]
+    )
+    assert _detect_header_row(raw) == 2
+
+
+def test_csv_entete_auto_ignore_preambule(tmp_path):
+    p = tmp_path / "kobo.csv"
+    p.write_text(
+        "Rapport CSPro\n,,,\nnom,sexe,age,statut\nAli,H,30,Actif\nBia,F,25,Actif\n",
+        encoding="utf-8",
+    )
+    ds = read_tabular(str(p))
+    assert list(ds.frame.columns) == ["nom", "sexe", "age", "statut"]
     assert len(ds.frame) == 2

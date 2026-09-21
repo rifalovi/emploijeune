@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import os
 import sys
+from typing import Optional
+from urllib.parse import quote, unquote
 
 # Rend le paquet `engine` importable, que l'app tourne depuis services/datastudio
 # (dev/tests) ou depuis la racine du dépôt (fonction Vercel).
@@ -31,7 +33,7 @@ from engine import (  # noqa: E402
     infer_variable_specs,
     run_tests,
 )
-from engine.sav_io import load_dataset  # noqa: E402
+from engine.sav_io import list_sheets, load_dataset  # noqa: E402
 
 from .auth import AuthUser, CurrentUser  # noqa: E402
 from .schemas import (  # noqa: E402
@@ -70,11 +72,36 @@ def _require_columns(dataset, *cols: str) -> None:
         )
 
 
+def _parse_ref(ref: str) -> tuple[str, Optional[str], Optional[int]]:
+    """Sépare un `dataset_ref` de la forme `chemin#sheet=Feuille&header=3`.
+
+    La feuille et la ligne d'en-tête (0-indexée) voyagent AVEC la référence, pour
+    que chaque calcul relise la BONNE feuille sans état serveur. Renvoie
+    (chemin, feuille|None, header_row|None)."""
+    base, sep, frag = ref.partition("#")
+    if not sep:
+        return ref, None, None
+    sheet: Optional[str] = None
+    header: Optional[int] = None
+    for part in frag.split("&"):
+        cle, _, val = part.partition("=")
+        val = unquote(val)
+        if cle == "sheet" and val:
+            sheet = val
+        elif cle == "header" and val:
+            try:
+                header = int(val)
+            except ValueError:
+                header = None
+    return base, sheet, header
+
+
 def _load_from_storage(user: AuthUser, ref: str) -> SurveyDataset:
     """Charge un dataset depuis un fichier Storage, en vérifiant qu'il appartient
     à l'utilisateur (1er segment du chemin = son identifiant)."""
+    base, sheet, header_row = _parse_ref(ref)
     try:
-        path = validate_object_path(ref)
+        path = validate_object_path(base)
     except StorageError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     if path.split("/")[0] != user.user_id:
@@ -84,7 +111,7 @@ def _load_from_storage(user: AuthUser, ref: str) -> SurveyDataset:
     except StorageError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     try:
-        return load_dataset(tmp)
+        return load_dataset(tmp, sheet=sheet, header_row=header_row)
     except Exception as exc:  # lecture/format
         raise HTTPException(status_code=422, detail=f"Lecture du fichier impossible : {exc}") from exc
     finally:
@@ -189,13 +216,43 @@ def ingest_file(req: IngestFileRequest, user: AuthUser = CurrentUser) -> dict:
     """Ingère un fichier déposé dans Storage (.sav / Kobo-CSPro .xlsx / .csv...).
 
     Le fichier est lu côté serveur (pyreadstat pour SPSS) ; on renvoie ses
-    métadonnées et un `dataset_ref` (le chemin) que les calculs suivants
-    référencent — les données volumineuses ne transitent jamais par le client.
+    métadonnées et un `dataset_ref` (le chemin, éventuellement suffixé de la
+    feuille/ligne d'en-tête choisies) que les calculs suivants référencent — les
+    données volumineuses ne transitent jamais par le client. On renvoie aussi la
+    liste des feuilles (`sheets`) et la ligne d'en-tête retenue (`header_row`).
     """
-    ds = _load_from_storage(user, req.path)
+    base, _, _ = _parse_ref(req.path)
+    # Construit la référence portant la feuille / l'en-tête choisies.
+    frags: list[str] = []
+    if req.sheet:
+        frags.append(f"sheet={quote(req.sheet)}")
+    if req.header_row is not None:
+        frags.append(f"header={int(req.header_row)}")
+    ref = base + ("#" + "&".join(frags) if frags else "")
+
+    ds = _load_from_storage(user, ref)
     payload = _analyze_payload(ds)
-    payload["dataset_ref"] = validate_object_path(req.path)
+    payload["dataset_ref"] = validate_object_path(base) + ("#" + "&".join(frags) if frags else "")
     payload["name"] = ds.name
+    payload["sheet"] = req.sheet
+    payload["header_row"] = req.header_row
+
+    # Feuilles disponibles (pour un classeur multi-feuilles) — téléchargement léger.
+    sheets: list[str] = []
+    try:
+        p = validate_object_path(base)
+        if p.split("/")[0] == user.user_id:
+            tmp = download_to_temp(p)
+            try:
+                sheets = list_sheets(tmp)
+            finally:
+                try:
+                    os.unlink(tmp)
+                except OSError:
+                    pass
+    except Exception:  # liste de feuilles best-effort
+        sheets = []
+    payload["sheets"] = sheets
     return payload
 
 

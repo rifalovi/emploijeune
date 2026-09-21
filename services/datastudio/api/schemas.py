@@ -136,6 +136,10 @@ class IngestFileRequest(BaseModel):
     """Ingestion d'un fichier déjà déposé dans le bucket Storage « datastudio ».
 
     `path` est le chemin de l'objet, sous la forme {user_id}/uploads/{fichier}.
+    `sheet` (classeurs multi-feuilles) et `header_row` (n° 0-indexé de la ligne
+    d'en-tête ; auto-détecté si absent) sont optionnels.
     """
 
     path: str
+    sheet: Optional[str] = None
+    header_row: Optional[int] = None

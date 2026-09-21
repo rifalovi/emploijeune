@@ -305,6 +305,11 @@ export function AtelierClient({
   const [datasetRef, setDatasetRef] = useState<string | null>(null);
   const [fichier, setFichier] = useState<File | null>(null);
   const [fichierNom, setFichierNom] = useState('');
+  // Import multi-feuilles : chemin Storage brut + feuilles disponibles + feuille
+  // active, pour re-lire la BONNE feuille sans re-téléverser le fichier.
+  const [fichierPath, setFichierPath] = useState<string | null>(null);
+  const [feuilles, setFeuilles] = useState<string[]>([]);
+  const [feuilleSel, setFeuilleSel] = useState<string | null>(null);
   const [analyse, setAnalyse] = useState<AnalyzeResponse | null>(null);
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -654,9 +659,33 @@ export function AtelierClient({
     try {
       const path = await uploadSpssFile(fichier);
       const res = await ingestFile(path);
+      setFichierPath(path);
+      setFeuilles(res.sheets ?? []);
+      setFeuilleSel(res.sheet ?? res.sheets?.[0] ?? null);
       setDatasetRef(res.dataset_ref);
       setDataset(null);
       setFichierNom(res.name || fichier.name);
+      appliquerAnalyse(res);
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setChargement(false);
+    }
+  }
+
+  /** Change la feuille active d'un classeur importé : re-lit sans re-téléverser. */
+  async function changerFeuille(feuille: string) {
+    if (!fichierPath || feuille === feuilleSel) return;
+    setChargement(true);
+    setErreur(null);
+    reinitAnalyse();
+    try {
+      const res = await ingestFile(fichierPath, { sheet: feuille });
+      setFeuilles(res.sheets ?? feuilles);
+      setFeuilleSel(res.sheet ?? feuille);
+      setDatasetRef(res.dataset_ref);
+      setDataset(null);
+      setFichierNom(res.name || feuille);
       appliquerAnalyse(res);
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
@@ -1081,6 +1110,10 @@ export function AtelierClient({
             setDataset(null);
             setFichierNom(reload.nom || a.name);
             setSourceMode('fichier');
+            // Restaure le sélecteur de feuilles (base = chemin sans fragment).
+            setFichierPath(reload.datasetRef.split('#')[0] ?? null);
+            setFeuilles(a.sheets ?? []);
+            setFeuilleSel(a.sheet ?? a.sheets?.[0] ?? null);
             appliquerAnalyse(a);
           }
         } else if (reload?.kind === 'enquete' && reload.indicateur) {
@@ -1387,6 +1420,10 @@ export function AtelierClient({
                   const f = e.target.files?.[0] ?? null;
                   setFichier(f);
                   setRefFichierChoisi(f?.name ?? '');
+                  // Nouveau fichier : on oublie le sélecteur de feuilles précédent.
+                  setFichierPath(null);
+                  setFeuilles([]);
+                  setFeuilleSel(null);
                 }}
                 className="file:border-input file:bg-background text-sm file:mr-3 file:rounded-md file:border file:px-3 file:py-1.5 file:text-sm"
               />
@@ -1398,7 +1435,36 @@ export function AtelierClient({
                 )}
                 Importer et analyser
               </Button>
+              {feuilles.length > 1 && (
+                <div className="min-w-56 space-y-1">
+                  <p className="text-muted-foreground text-xs">
+                    Feuille du classeur ({feuilles.length})
+                  </p>
+                  <Select
+                    value={feuilleSel ?? feuilles[0]}
+                    onValueChange={(v) => v && changerFeuille(v)}
+                    disabled={chargement}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {feuilles.map((f) => (
+                        <SelectItem key={f} value={f}>
+                          {f}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
+          )}
+          {sourceMode === 'fichier' && feuilles.length > 1 && (
+            <p className="text-muted-foreground mt-2 text-xs">
+              Classeur multi-feuilles : l’en-tête est détecté automatiquement (les préambules Kobo /
+              CSPro sont ignorés). Changez de feuille ci-dessus pour analyser un autre onglet.
+            </p>
           )}
 
           {sourceMode === 'multi' && (

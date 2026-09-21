@@ -171,11 +171,34 @@ export function computeModalities(
   return post<ModalitiesResponse>('/modalities', { ...sourceBody(source), col, limit });
 }
 
-/** Réponse d'ingestion d'un fichier : métadonnées + référence Storage. */
-export type IngestFileResponse = AnalyzeResponse & { dataset_ref: string; name: string };
+/**
+ * Réponse d'ingestion d'un fichier : métadonnées + référence Storage.
+ * `sheets` liste les feuilles d'un classeur multi-feuilles (vide sinon) ; `name`,
+ * `sheet` et `header_row` décrivent la feuille et la ligne d'en-tête retenues.
+ */
+export type IngestFileResponse = AnalyzeResponse & {
+  dataset_ref: string;
+  name: string;
+  sheets: string[];
+  sheet: string | null;
+  header_row: number | null;
+};
 
-export function ingestFile(path: string): Promise<IngestFileResponse> {
-  return post<IngestFileResponse>('/ingest-file', { path });
+/**
+ * Ingère un fichier déposé dans Storage. `sheet` (feuille d'un classeur) et
+ * `headerRow` (ligne d'en-tête 0-indexée ; auto-détectée si absente) permettent
+ * de re-lire la BONNE feuille ; ils voyagent ensuite avec le `dataset_ref`.
+ */
+export function ingestFile(
+  path: string,
+  opts?: { sheet?: string | null; headerRow?: number | null },
+): Promise<IngestFileResponse> {
+  const body: Record<string, unknown> = { path };
+  if (opts?.sheet) body.sheet = opts.sheet;
+  if (opts?.headerRow !== undefined && opts?.headerRow !== null) {
+    body.header_row = opts.headerRow;
+  }
+  return post<IngestFileResponse>('/ingest-file', body);
 }
 
 /**
