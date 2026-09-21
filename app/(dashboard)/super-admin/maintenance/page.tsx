@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { Wrench } from 'lucide-react';
-import { getCurrentUtilisateur } from '@/lib/supabase/auth';
+import { getUtilisateurEffectif } from '@/lib/auth/view-as';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { MaintenanceClient } from './maintenance-client';
 
@@ -45,7 +45,10 @@ async function getEffectifs(): Promise<EffectifsActuels> {
 }
 
 export default async function MaintenancePage() {
-  const utilisateur = await getCurrentUtilisateur();
+  // Profil effectif (compatible view-as) : évite le throw de
+  // getCurrentUtilisateur() sous aperçu et reflète le rôle de la cible.
+  const effectif = await getUtilisateurEffectif();
+  const utilisateur = effectif?.profil;
   if (!utilisateur || utilisateur.role !== 'super_admin') {
     redirect('/dashboard');
   }

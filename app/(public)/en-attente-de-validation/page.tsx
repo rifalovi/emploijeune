@@ -13,7 +13,9 @@ export default async function EnAttenteValidationPage() {
   const user = await getAuthUser();
   if (!user) redirect('/connexion');
 
-  const profile = await getCurrentUtilisateur();
+  // allowViewAs: true — page de rendu : ne doit pas lever d'erreur si un cookie
+  // view-as est présent (elle ne fait qu'un contrôle de statut de compte).
+  const profile = await getCurrentUtilisateur({ allowViewAs: true });
 
   // Si déjà validé, rediriger vers le dashboard
   if (profile?.statut_validation === 'valide') redirect('/dashboard');

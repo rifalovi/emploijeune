@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Activity, ExternalLink } from 'lucide-react';
-import { getCurrentUtilisateur } from '@/lib/supabase/auth';
+import { getUtilisateurEffectif } from '@/lib/auth/view-as';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -56,7 +56,12 @@ function couleurPct(pct: number) {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function QualiteDonneesPage() {
-  const utilisateur = await getCurrentUtilisateur();
+  // Profil EFFECTIF (compatible mode view-as) : `getCurrentUtilisateur()` sans
+  // option LÈVE une erreur si un aperçu view-as est actif, ce qui faisait
+  // planter cette page. On gate donc sur le profil effectif (rôle de la cible
+  // en aperçu, de l'admin réel sinon).
+  const effectif = await getUtilisateurEffectif();
+  const utilisateur = effectif?.profil;
   if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
     redirect('/dashboard');
   }

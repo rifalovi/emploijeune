@@ -42,9 +42,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
     moduleIaActif = false;
   }
 
-  // Modules délégués : visibles dans la sidebar uniquement si l'admin_scs a ≥1 permission
+  // Modules délégués : visibles dans la sidebar si l'admin_scs a ≥1 permission.
+  // On se base sur le profil EFFECTIF (`utilisateur`) : en mode view-as, l'aperçu
+  // reflète ainsi les délégations de la CIBLE (son onglet « Admin. avancée »),
+  // et non celles — inexistantes — de l'admin réel.
   const adminDelegue =
-    utilisateur.role === 'admin_scs' && !effectif.isViewAs
+    utilisateur.role === 'admin_scs'
       ? (await getPermissionsUtilisateur(utilisateur.id)).size > 0
       : false;
 

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { Eraser, ShieldAlert, Database } from 'lucide-react';
-import { getCurrentUtilisateur } from '@/lib/supabase/auth';
+import { getUtilisateurEffectif } from '@/lib/auth/view-as';
 import { NettoyageClient } from './nettoyage-client';
 import { GARBAGE_EXACT } from '@/lib/imports/normalizer-garbage';
 
@@ -12,7 +12,10 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function NettoyageDonneesPage() {
-  const utilisateur = await getCurrentUtilisateur();
+  // Profil effectif (compatible view-as) : évite le throw de
+  // getCurrentUtilisateur() sous aperçu et reflète le rôle de la cible.
+  const effectif = await getUtilisateurEffectif();
+  const utilisateur = effectif?.profil;
   if (!utilisateur || !['super_admin', 'admin_scs'].includes(utilisateur.role)) {
     redirect('/dashboard');
   }
