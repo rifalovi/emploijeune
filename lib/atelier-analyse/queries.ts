@@ -1,7 +1,28 @@
 import 'server-only';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getNomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';
+import { SEXE_LIBELLES } from '@/lib/schemas/nomenclatures';
+import type { Sexe } from '@/lib/schemas/nomenclatures';
 import type { DatasetInput, HistoriqueJob, IndicateurSource } from './types';
+
+/** Âge (années révolues) à partir d'une date de naissance ISO, ou null. */
+function ageDepuis(dateNaissance: string | null | undefined): number | null {
+  if (!dateNaissance) return null;
+  const d = new Date(dateNaissance);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = new Date();
+  let a = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a -= 1;
+  return a >= 0 && a < 130 ? a : null;
+}
+
+const STATUT_CREATION_LIBELLES: Record<string, string> = {
+  creation: 'Création',
+  renforcement: 'Renforcement',
+  relance: 'Relance',
+};
 
 /**
  * Liste les indicateurs actifs pouvant servir de source à l'Atelier d'analyse.
@@ -135,6 +156,154 @@ export async function chargerDatasetMultiProjets(
     name: `Multi-projets — ${indicateurCode}`,
     variable_labels: { Projet: 'Projet', Programme: 'Programme stratégique' },
   };
+}
+
+/** Libellé du programme stratégique d'un projet (via les nomenclatures). */
+async function mapProgrammes(): Promise<Map<string, string>> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.from('programmes_strategiques').select('code, libelle');
+  return new Map((data ?? []).map((p) => [p.code, p.libelle]));
+}
+
+/**
+ * Base BÉNÉFICIAIRES (indicateur A1) en jeu de données DataStudio : colonnes
+ * analytiques en libellés (sexe, tranche d'âge, pays, projet, programme,
+ * domaine/modalité de formation, statut…), filtrable par projet. Les données
+ * d'identité (nom, contact…) sont volontairement exclues.
+ */
+export async function chargerDatasetBeneficiaires(projetCode?: string): Promise<DatasetInput> {
+  const supabase = await createSupabaseServerClient();
+  const [nom, progMap] = await Promise.all([getNomenclatures(), mapProgrammes()]);
+
+  let query = supabase
+    .from('beneficiaires')
+    .select(
+      'sexe, date_naissance, tranche_age_declaree, projet_code, pays_code, partenaire_accompagnement, domaine_formation_code, modalite_formation_code, annee_formation, statut_code, fonction_actuelle, localite_residence',
+    )
+    .is('deleted_at', null)
+    .limit(50000);
+  if (projetCode) query = query.eq('projet_code', projetCode);
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  const rows = (data ?? []).map((b) => {
+    const projMeta = b.projet_code ? nom.projets.get(b.projet_code) : undefined;
+    const prog = projMeta?.programme_strategique ?? null;
+    const age = ageDepuis(b.date_naissance as string | null);
+    const tranche =
+      (b.tranche_age_declaree as string | null) ??
+      (age === null ? null : age <= 34 ? 'Jeune (≤ 34 ans)' : 'Adulte (35 ans et +)');
+    return {
+      Sexe: SEXE_LIBELLES[b.sexe as Sexe] ?? b.sexe ?? '',
+      Âge: age,
+      "Tranche d'âge": tranche ?? '',
+      Pays: (b.pays_code ? nom.pays.get(b.pays_code) : null) ?? b.pays_code ?? '',
+      Projet: projMeta?.libelle ?? b.projet_code ?? '',
+      'Programme stratégique': (prog ? progMap.get(prog) : null) ?? prog ?? '',
+      Partenaire: b.partenaire_accompagnement ?? '',
+      'Domaine de formation':
+        (b.domaine_formation_code ? nom.domaines.get(b.domaine_formation_code) : null) ??
+        b.domaine_formation_code ??
+        '',
+      Modalité:
+        (b.modalite_formation_code ? nom.modalites.get(b.modalite_formation_code) : null) ??
+        b.modalite_formation_code ??
+        '',
+      'Année de formation': b.annee_formation ?? null,
+      Statut: (b.statut_code ? nom.statuts.get(b.statut_code) : null) ?? b.statut_code ?? '',
+      'Fonction actuelle': b.fonction_actuelle ?? '',
+      Localité: b.localite_residence ?? '',
+    } as Record<string, unknown>;
+  });
+
+  const columns = [
+    'Sexe',
+    'Âge',
+    "Tranche d'âge",
+    'Pays',
+    'Projet',
+    'Programme stratégique',
+    'Partenaire',
+    'Domaine de formation',
+    'Modalité',
+    'Année de formation',
+    'Statut',
+    'Fonction actuelle',
+    'Localité',
+  ];
+  return { rows, columns, name: projetCode ? `Bénéficiaires — ${projetCode}` : 'Bénéficiaires' };
+}
+
+/**
+ * Base STRUCTURES (indicateur B1) en jeu de données DataStudio : colonnes
+ * analytiques en libellés (type, secteur, statut de création, pays, projet,
+ * programme, sexe du porteur, nature/montant de l'appui…), filtrable par projet.
+ */
+export async function chargerDatasetStructures(projetCode?: string): Promise<DatasetInput> {
+  const supabase = await createSupabaseServerClient();
+  const [nom, progMap] = await Promise.all([getNomenclatures(), mapProgrammes()]);
+
+  let query = supabase
+    .from('structures')
+    .select(
+      'type_structure_code, secteur_activite_code, secteur_precis, statut_creation, projet_code, pays_code, porteur_sexe, annee_appui, nature_appui_code, montant_appui, devise_code, localite',
+    )
+    .is('deleted_at', null)
+    .limit(50000);
+  if (projetCode) query = query.eq('projet_code', projetCode);
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  const rows = (data ?? []).map((s) => {
+    const projMeta = s.projet_code ? nom.projets.get(s.projet_code) : undefined;
+    const prog = projMeta?.programme_strategique ?? null;
+    return {
+      'Type de structure':
+        (s.type_structure_code ? nom.typesStructure.get(s.type_structure_code) : null) ??
+        s.type_structure_code ??
+        '',
+      Secteur:
+        (s.secteur_activite_code ? nom.secteursActivite.get(s.secteur_activite_code) : null) ??
+        s.secteur_activite_code ??
+        '',
+      'Secteur précis': s.secteur_precis ?? '',
+      'Statut de création':
+        STATUT_CREATION_LIBELLES[String(s.statut_creation)] ?? s.statut_creation ?? '',
+      Pays: (s.pays_code ? nom.pays.get(s.pays_code) : null) ?? s.pays_code ?? '',
+      Projet: projMeta?.libelle ?? s.projet_code ?? '',
+      'Programme stratégique': (prog ? progMap.get(prog) : null) ?? prog ?? '',
+      'Sexe du porteur': s.porteur_sexe
+        ? (SEXE_LIBELLES[s.porteur_sexe as Sexe] ?? s.porteur_sexe)
+        : '',
+      "Année d'appui": s.annee_appui ?? null,
+      "Nature de l'appui":
+        (s.nature_appui_code ? nom.naturesAppui.get(s.nature_appui_code) : null) ??
+        s.nature_appui_code ??
+        '',
+      "Montant de l'appui": s.montant_appui ?? null,
+      Devise: (s.devise_code ? nom.devises.get(s.devise_code) : null) ?? s.devise_code ?? '',
+      Localité: s.localite ?? '',
+    } as Record<string, unknown>;
+  });
+
+  const columns = [
+    'Type de structure',
+    'Secteur',
+    'Secteur précis',
+    'Statut de création',
+    'Pays',
+    'Projet',
+    'Programme stratégique',
+    'Sexe du porteur',
+    "Année d'appui",
+    "Nature de l'appui",
+    "Montant de l'appui",
+    'Devise',
+    'Localité',
+  ];
+  return { rows, columns, name: projetCode ? `Structures — ${projetCode}` : 'Structures' };
 }
 
 /**

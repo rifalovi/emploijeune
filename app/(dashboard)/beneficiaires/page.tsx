@@ -2,13 +2,20 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
+import { peutSupprimerEnLot } from '@/lib/super-admin/permissions';
 import { beneficiaireFiltersSchema } from '@/lib/schemas/beneficiaire';
 import { listBeneficiaires } from '@/lib/beneficiaires/queries';
+import {
+  supprimerBeneficiairesEnLot,
+  viderProjetBeneficiaires,
+  compterBeneficiairesProjet,
+} from '@/lib/beneficiaires/mutations';
 import { getNomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';
 import { buttonVariants } from '@/components/ui/button';
 import { BeneficiaireFilters } from '@/components/beneficiaires/beneficiaire-filters';
 import { BeneficiaireTable } from '@/components/beneficiaires/beneficiaire-table';
 import { BeneficiairePagination } from '@/components/beneficiaires/beneficiaire-pagination';
+import { SelectionLotProvider } from '@/components/shared/suppression-lot/selection-lot';
 import { BeneficiaireEmptyState } from '@/components/beneficiaires/beneficiaire-empty-state';
 import { BoutonExporter } from '@/components/beneficiaires/bouton-exporter';
 import { cn } from '@/lib/utils';
@@ -86,6 +93,17 @@ export default async function BeneficiairesPage({ searchParams }: PageProps) {
     utilisateur.role === 'super_admin' ||
     utilisateur.role === 'editeur_projet';
   const peutSupprimer = utilisateur.role === 'admin_scs' || utilisateur.role === 'super_admin';
+  // Suppression groupée / par projet : super_admin, ou admin_scs délégué.
+  const peutLot = await peutSupprimerEnLot(utilisateur.id, utilisateur.role);
+  // Projets pour la purge par projet (libellé brut, même périmètre que les filtres).
+  const projetsLot = Array.from(nomenclatures.projets.entries())
+    .filter(
+      ([, meta]) =>
+        utilisateur.role === 'admin_scs' ||
+        utilisateur.role === 'super_admin' ||
+        meta.programme_strategique === 'PS3',
+    )
+    .map(([code, meta]) => ({ code, libelle: meta.libelle }));
 
   const hasActiveFilters = Boolean(
     filters.q ||
@@ -138,13 +156,23 @@ export default async function BeneficiairesPage({ searchParams }: PageProps) {
           peutCreer={peutCreer}
         />
       ) : (
-        <>
+        <SelectionLotProvider
+          entiteSingulier="bénéficiaire"
+          entitePluriel="bénéficiaires"
+          pageIds={result.rows.map((r) => r.id)}
+          projets={projetsLot}
+          peutSupprimerEnLot={peutLot}
+          supprimerLotAction={supprimerBeneficiairesEnLot}
+          viderProjetAction={viderProjetBeneficiaires}
+          compterProjetAction={compterBeneficiairesProjet}
+        >
           <BeneficiaireTable
             rows={result.rows}
             nomenclatures={nomenclatures}
             peutEditerTout={peutEditerTout}
             peutSupprimer={peutSupprimer}
             utilisateurId={utilisateur.user_id}
+            selectionnable={peutLot}
           />
           <BeneficiairePagination
             page={result.page}
@@ -152,7 +180,7 @@ export default async function BeneficiairesPage({ searchParams }: PageProps) {
             total={result.total}
             totalPages={result.totalPages}
           />
-        </>
+        </SelectionLotProvider>
       )}
     </div>
   );

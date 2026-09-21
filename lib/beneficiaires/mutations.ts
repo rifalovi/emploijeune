@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUtilisateur } from '@/lib/supabase/auth';
+import { peutSupprimerEnLot } from '@/lib/super-admin/permissions';
 import { beneficiaireInsertSchema, beneficiaireUpdateSchema } from '@/lib/schemas/beneficiaire';
 
 /**
@@ -318,4 +319,108 @@ export async function setBeneficiaireDeleted(
   revalidatePath('/dashboard');
 
   return { status: 'succes' };
+}
+
+/** Résultat d'une suppression groupée / par projet (soft-delete). */
+export type SuppressionLotResult =
+  | { status: 'succes'; count: number }
+  | { status: 'erreur_rls'; message: string }
+  | { status: 'erreur_inconnue'; message: string };
+
+/**
+ * Suppression GROUPÉE de bénéficiaires (soft-delete) à partir d'une liste d'ids.
+ * Réservée au super_admin ou à un admin_scs délégué (module 'suppression_lot').
+ * Les triggers d'audit émettent une entrée SOFT_DELETE par ligne.
+ */
+export async function supprimerBeneficiairesEnLot(
+  ids: string[],
+  raison?: string,
+): Promise<SuppressionLotResult> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || !(await peutSupprimerEnLot(utilisateur.id, utilisateur.role))) {
+    return { status: 'erreur_rls', message: 'Suppression par lot non autorisée.' };
+  }
+  const cibles = Array.from(new Set((ids ?? []).filter((v) => typeof v === 'string' && v)));
+  if (cibles.length === 0) return { status: 'succes', count: 0 };
+
+  const supabase = await createSupabaseServerClient();
+  const raisonTrim = raison?.trim();
+  const { data, error } = await supabase
+    .from('beneficiaires')
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: utilisateur.user_id,
+      deleted_reason: raisonTrim && raisonTrim.length > 0 ? raisonTrim : null,
+    })
+    .in('id', cibles)
+    .is('deleted_at', null)
+    .select('id');
+
+  if (error) {
+    if (error.code === '42501' || error.message.includes('row-level security')) {
+      return { status: 'erreur_rls', message: 'Action refusée par la base de données.' };
+    }
+    return { status: 'erreur_inconnue', message: error.message };
+  }
+  revalidatePath('/beneficiaires');
+  revalidatePath('/dashboard');
+  return { status: 'succes', count: data?.length ?? 0 };
+}
+
+/**
+ * Purge PAR PROJET : soft-delete de TOUS les bénéficiaires (non déjà supprimés)
+ * d'un projet. Réservée au super_admin ou à un admin_scs délégué.
+ */
+export async function viderProjetBeneficiaires(
+  projetCode: string,
+  raison?: string,
+): Promise<SuppressionLotResult> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || !(await peutSupprimerEnLot(utilisateur.id, utilisateur.role))) {
+    return { status: 'erreur_rls', message: 'Suppression par lot non autorisée.' };
+  }
+  if (!projetCode) return { status: 'erreur_inconnue', message: 'Projet non précisé.' };
+
+  const supabase = await createSupabaseServerClient();
+  const raisonTrim = raison?.trim();
+  const { data, error } = await supabase
+    .from('beneficiaires')
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: utilisateur.user_id,
+      deleted_reason:
+        raisonTrim && raisonTrim.length > 0 ? raisonTrim : `Purge du projet ${projetCode}`,
+    })
+    .eq('projet_code', projetCode)
+    .is('deleted_at', null)
+    .select('id');
+
+  if (error) {
+    if (error.code === '42501' || error.message.includes('row-level security')) {
+      return { status: 'erreur_rls', message: 'Action refusée par la base de données.' };
+    }
+    return { status: 'erreur_inconnue', message: error.message };
+  }
+  revalidatePath('/beneficiaires');
+  revalidatePath('/dashboard');
+  return { status: 'succes', count: data?.length ?? 0 };
+}
+
+/** Compte les bénéficiaires actifs (non supprimés) d'un projet (aperçu avant purge). */
+export async function compterBeneficiairesProjet(
+  projetCode: string,
+): Promise<{ ok: boolean; count: number }> {
+  const utilisateur = await getCurrentUtilisateur();
+  if (!utilisateur || !(await peutSupprimerEnLot(utilisateur.id, utilisateur.role))) {
+    return { ok: false, count: 0 };
+  }
+  if (!projetCode) return { ok: true, count: 0 };
+  const supabase = await createSupabaseServerClient();
+  const { count, error } = await supabase
+    .from('beneficiaires')
+    .select('id', { count: 'exact', head: true })
+    .eq('projet_code', projetCode)
+    .is('deleted_at', null);
+  if (error) return { ok: false, count: 0 };
+  return { ok: true, count: count ?? 0 };
 }

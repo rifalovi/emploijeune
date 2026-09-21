@@ -15,6 +15,10 @@ import { BeneficiaireRowActions } from './beneficiaire-row-actions';
 import { calculerTrancheAge } from './tranche-age';
 import { TrancheAgeCalculeeBadge } from '@/components/shared/tranche-age-badge';
 import { EnteteTriable } from '@/components/donnees/entete-triable';
+import {
+  SelectionCheckbox,
+  SelectionHeaderCheckbox,
+} from '@/components/shared/suppression-lot/selection-lot';
 import type { BeneficiaireListItem } from '@/lib/beneficiaires/queries';
 import type { Nomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';
 import type {
@@ -32,6 +36,8 @@ export type BeneficiaireTableProps = {
   peutEditerTout: boolean;
   peutSupprimer: boolean;
   utilisateurId: string;
+  /** Ajoute une colonne de cases à cocher (sélection multiple pour actions groupées). */
+  selectionnable?: boolean;
 };
 
 /**
@@ -50,12 +56,18 @@ export function BeneficiaireTable({
   peutEditerTout,
   peutSupprimer,
   utilisateurId,
+  selectionnable = false,
 }: BeneficiaireTableProps) {
   return (
     <div className="overflow-x-auto rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow className="whitespace-nowrap">
+            {selectionnable && (
+              <TableHead className="w-8">
+                <SelectionHeaderCheckbox pageIds={rows.map((r) => r.id)} />
+              </TableHead>
+            )}
             <TableHead className="w-1" aria-hidden />
             <TableHead>
               <EnteteTriable colonne="nom">Prénom Nom</EnteteTriable>
@@ -99,6 +111,7 @@ export function BeneficiaireTable({
               nomenclatures={nomenclatures}
               peutEditer={peutEditerTout || r.created_by === utilisateurId}
               peutSupprimer={peutSupprimer}
+              selectionnable={selectionnable}
             />
           ))}
         </TableBody>
@@ -112,11 +125,13 @@ function BeneficiaireRow({
   nomenclatures,
   peutEditer,
   peutSupprimer,
+  selectionnable,
 }: {
   row: BeneficiaireListItem;
   nomenclatures: Nomenclatures;
   peutEditer: boolean;
   peutSupprimer: boolean;
+  selectionnable?: boolean;
 }) {
   const projetMeta = nomenclatures.projets.get(row.projet_code);
   const ps = projetMeta?.programme_strategique as ProgrammeStrategiqueCode | null | undefined;
@@ -125,6 +140,11 @@ function BeneficiaireRow({
 
   return (
     <TableRow className="group relative cursor-pointer">
+      {selectionnable && (
+        <TableCell className="w-8">
+          <SelectionCheckbox id={row.id} />
+        </TableCell>
+      )}
       {/* La bordure gauche colorée selon le PS du projet — encodée en cellule
           fantôme pour rester dans la grille de la table shadcn. */}
       <TableCell className="p-0" aria-hidden>

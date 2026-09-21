@@ -87,6 +87,8 @@ import { couleurRang, tooltipPropsPremium } from '@/lib/design/charts';
 import {
   chargerDatasetEnqueteAction,
   chargerDatasetMultiProjetsAction,
+  chargerDatasetBeneficiairesAction,
+  chargerDatasetStructuresAction,
   chargerTraitementAction,
   enregistrerTraitementAction,
   viderHistoriqueAction,
@@ -288,12 +290,16 @@ export function AtelierClient({
 }: Props) {
   const router = useRouter();
   const [ongletActif, setOngletActif] = useState('freq');
-  const [sourceMode, setSourceMode] = useState<'enquete' | 'fichier' | 'multi'>('enquete');
+  const [sourceMode, setSourceMode] = useState<
+    'enquete' | 'fichier' | 'multi' | 'beneficiaires' | 'structures'
+  >('enquete');
 
   // Multi-projets (traitement mensuel, section à part)
   const [mpProgramme, setMpProgramme] = useState('__tous__');
   const [mpIndicateur, setMpIndicateur] = useState('');
   const [mpProjets, setMpProjets] = useState<string[]>([]);
+  // Bases plateforme (bénéficiaires / structures) : filtre projet optionnel.
+  const [bdProjet, setBdProjet] = useState('__tous__');
   const [indicateur, setIndicateur] = useState('');
   const [dataset, setDataset] = useState<DatasetInput | null>(null);
   const [datasetRef, setDatasetRef] = useState<string | null>(null);
@@ -426,20 +432,35 @@ export function AtelierClient({
       ? { dataset, filters: filtres }
       : null;
   const estMulti = sourceMode === 'multi';
-  const sourceKind = datasetRef ? 'upload' : estMulti ? 'multi' : 'enquete';
-  const sourceRef = datasetRef ? fichierNom : estMulti ? mpIndicateur : indicateur;
+  const estBd = sourceMode === 'beneficiaires' || sourceMode === 'structures';
+  const bdProjetCode = bdProjet !== '__tous__' ? bdProjet : '';
+  const bdLabel = sourceMode === 'structures' ? 'Structures' : 'Bénéficiaires';
+  const sourceKind = datasetRef ? 'upload' : estBd ? sourceMode : estMulti ? 'multi' : 'enquete';
+  const sourceRef = datasetRef
+    ? fichierNom
+    : estBd
+      ? bdProjetCode || sourceMode
+      : estMulti
+        ? mpIndicateur
+        : indicateur;
   const sourceLabel = datasetRef
     ? fichierNom
-    : estMulti
-      ? `Multi-projets — ${indicateurs.find((i) => i.code === mpIndicateur)?.libelle ?? mpIndicateur}`
-      : (indicateurs.find((i) => i.code === indicateur)?.libelle ?? indicateur);
+    : estBd
+      ? bdProjetCode
+        ? `${bdLabel} — ${projets.find((p) => p.code === bdProjetCode)?.libelle ?? bdProjetCode}`
+        : bdLabel
+      : estMulti
+        ? `Multi-projets — ${indicateurs.find((i) => i.code === mpIndicateur)?.libelle ?? mpIndicateur}`
+        : (indicateurs.find((i) => i.code === indicateur)?.libelle ?? indicateur);
 
   // De quoi recharger la source d'un traitement (pour rouvrir le workspace).
   const reloadInfo: Record<string, unknown> = datasetRef
     ? { kind: 'upload', datasetRef, nom: fichierNom }
-    : estMulti
-      ? { kind: 'multi', indicateur: mpIndicateur, projets: mpProjets }
-      : { kind: 'enquete', indicateur };
+    : estBd
+      ? { kind: sourceMode, projet: bdProjetCode || null }
+      : estMulti
+        ? { kind: 'multi', indicateur: mpIndicateur, projets: mpProjets }
+        : { kind: 'enquete', indicateur };
   // Rechargement à mémoriser pour un traitement produit MAINTENANT : si la base
   // de travail est la base épurée, on rouvre la base nettoyée (et non la brute).
   const reloadCourant: Record<string, unknown> =
@@ -450,6 +471,11 @@ export function AtelierClient({
   function labelDossier(kind: string, ref: string): string {
     if (kind === 'upload') return ref || 'Fichier importé';
     if (kind === 'multi') return `Multi-projets — ${libelleIndic(ref)}`;
+    if (kind === 'beneficiaires' || kind === 'structures') {
+      const base = kind === 'structures' ? 'Structures' : 'Bénéficiaires';
+      const proj = projets.find((p) => p.code === ref);
+      return ref && ref !== kind ? `${base} — ${proj?.libelle ?? ref}` : base;
+    }
     return libelleIndic(ref);
   }
   type Dossier = {
@@ -579,6 +605,35 @@ export function AtelierClient({
       const ds = await chargerDatasetMultiProjetsAction(mpIndicateur, codes);
       if (ds.rows.length === 0) {
         setErreur('Aucune réponse d’enquête pour cette sélection multi-projets.');
+        return;
+      }
+      setDataset(ds);
+      setDatasetRef(null);
+      appliquerAnalyse(await analyzeDataset(ds));
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setChargement(false);
+    }
+  }
+
+  // Charge une base plateforme (bénéficiaires / structures), filtre projet inclus.
+  async function chargerBaseBd(mode: 'beneficiaires' | 'structures') {
+    setChargement(true);
+    setErreur(null);
+    reinitAnalyse();
+    try {
+      const projet = bdProjet !== '__tous__' ? bdProjet : undefined;
+      const ds =
+        mode === 'structures'
+          ? await chargerDatasetStructuresAction(projet)
+          : await chargerDatasetBeneficiairesAction(projet);
+      if (ds.rows.length === 0) {
+        setErreur(
+          mode === 'structures'
+            ? 'Aucune structure pour cette sélection.'
+            : 'Aucun bénéficiaire pour cette sélection.',
+        );
         return;
       }
       setDataset(ds);
@@ -963,6 +1018,7 @@ export function AtelierClient({
         dropDuplicates?: boolean;
         dropMissing?: boolean;
         keyCols?: string[];
+        projet?: string | null;
       } | null;
 
       // Rechargement de la source en MEILLEUR EFFORT : on tente de rouvrir la
@@ -1047,6 +1103,17 @@ export function AtelierClient({
             setDatasetRef(null);
             appliquerAnalyse(await analyzeDataset(ds));
           }
+        } else if (reload?.kind === 'beneficiaires' || reload?.kind === 'structures') {
+          const projet = reload.projet || undefined;
+          const ds =
+            reload.kind === 'structures'
+              ? await chargerDatasetStructuresAction(projet)
+              : await chargerDatasetBeneficiairesAction(projet);
+          setSourceMode(reload.kind);
+          setBdProjet(reload.projet || '__tous__');
+          setDataset(ds);
+          setDatasetRef(null);
+          appliquerAnalyse(await analyzeDataset(ds));
         }
       } catch (eSource) {
         // La source n'a pas pu être rechargée : on garde quand même le résultat
@@ -1234,7 +1301,55 @@ export function AtelierClient({
             >
               <Layers className="size-4" /> Multi-projets
             </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={sourceMode === 'beneficiaires' ? 'default' : 'outline'}
+              onClick={() => setSourceMode('beneficiaires')}
+            >
+              <Database className="size-4" /> Bénéficiaires
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={sourceMode === 'structures' ? 'default' : 'outline'}
+              onClick={() => setSourceMode('structures')}
+            >
+              <Database className="size-4" /> Structures
+            </Button>
           </div>
+
+          {estBd && (
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="min-w-64 flex-1 space-y-1">
+                <p className="text-muted-foreground text-xs">Projet (facultatif)</p>
+                <Select value={bdProjet} onValueChange={(v) => setBdProjet(v ?? '__tous__')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="__tous__">Tous les projets</SelectItem>
+                    {projets.map((p) => (
+                      <SelectItem key={p.code} value={p.code}>
+                        {p.libelle} [{p.code}]
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={() => chargerBaseBd(sourceMode as 'beneficiaires' | 'structures')}
+                disabled={chargement}
+              >
+                {chargement ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <FlaskConical className="size-4" />
+                )}
+                Charger {sourceMode === 'structures' ? 'les structures' : 'les bénéficiaires'}
+              </Button>
+            </div>
+          )}
 
           {sourceMode === 'enquete' && (
             <div className="flex flex-wrap items-end gap-3">

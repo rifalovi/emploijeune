@@ -22,6 +22,9 @@ export const MODULES_DELEGABLES = {
   // la permission sert \u00e0 RETIRER l'acc\u00e8s (opt-out), pas \u00e0 l'ouvrir.
   analyses_tcd: { label: 'Analyses crois\u00e9es (TCD)', href: '/analyses/tcd' },
   realisations: { label: 'Indicateurs / R\u00e9alisations', href: '/indicateurs' },
+  // Capacit\u00e9 (pas une page) : suppression group\u00e9e / par projet des b\u00e9n\u00e9ficiaires
+  // et structures. Opt-in : r\u00e9serv\u00e9e au super_admin, d\u00e9l\u00e9gable \u00e0 un admin_scs.
+  suppression_lot: { label: 'Suppression par lot / par projet', href: '' },
 } as const;
 
 export type ModuleKey = keyof typeof MODULES_DELEGABLES;
@@ -112,6 +115,27 @@ export async function exigerAccesDataStudioAction(): Promise<void> {
   const u = await requireUtilisateurValide();
   if (await peutAccederDataStudio(u.id, u.role)) return;
   throw new Error('Accès non autorisé au module SCS DataStudio.');
+}
+
+// -- Suppression par lot / par projet (bénéficiaires & structures) -------------
+//
+// Capacité destructive réservée au super administrateur ; délégable à un
+// administrateur SCS via permissions_delegues (module_key = 'suppression_lot').
+
+export const SUPPRESSION_LOT_MODULE_KEY: ModuleKey = 'suppression_lot';
+
+/** True si l'utilisateur peut supprimer par lot / vider un projet. */
+export async function peutSupprimerEnLot(userId: string, role: string): Promise<boolean> {
+  if (role === 'super_admin') return true;
+  if (role !== 'admin_scs') return false;
+  return hasPermission(userId, SUPPRESSION_LOT_MODULE_KEY);
+}
+
+/** Guard de server action : lève une erreur si pas de droit de suppression en lot. */
+export async function exigerSuppressionLotAction(): Promise<void> {
+  const u = await requireUtilisateurValide();
+  if (await peutSupprimerEnLot(u.id, u.role)) return;
+  throw new Error('Action réservée : suppression par lot non autorisée.');
 }
 
 export type UtilisateurAccesDataStudio = {

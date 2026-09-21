@@ -2,13 +2,20 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
+import { peutSupprimerEnLot } from '@/lib/super-admin/permissions';
 import { structureFiltersSchema } from '@/lib/schemas/structure';
 import { listStructures } from '@/lib/structures/queries';
+import {
+  supprimerStructuresEnLot,
+  viderProjetStructures,
+  compterStructuresProjet,
+} from '@/lib/structures/mutations';
 import { getNomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';
 import { buttonVariants } from '@/components/ui/button';
 import { StructureFilters } from '@/components/structures/structure-filters';
 import { StructureTable } from '@/components/structures/structure-table';
 import { StructurePagination } from '@/components/structures/structure-pagination';
+import { SelectionLotProvider } from '@/components/shared/suppression-lot/selection-lot';
 import { StructureEmptyState } from '@/components/structures/structure-empty-state';
 import { BoutonExporterStructures } from '@/components/structures/bouton-exporter';
 import { cn } from '@/lib/utils';
@@ -82,6 +89,16 @@ export default async function StructuresPage({ searchParams }: PageProps) {
   // rôles utilisent l'export bénéficiaires A1 ou les tableaux de bord agrégés
   // — l'export structurel est un outil de pilotage transverse).
   const peutExporter = utilisateur.role === 'admin_scs' || utilisateur.role === 'super_admin';
+  // Suppression groupée / par projet : super_admin, ou admin_scs délégué.
+  const peutLot = await peutSupprimerEnLot(utilisateur.id, utilisateur.role);
+  const projetsLot = Array.from(nomenclatures.projets.entries())
+    .filter(
+      ([, meta]) =>
+        utilisateur.role === 'admin_scs' ||
+        utilisateur.role === 'super_admin' ||
+        meta.programme_strategique === 'PS3',
+    )
+    .map(([code, meta]) => ({ code, libelle: meta.libelle }));
 
   const hasActiveFilters = Boolean(
     filters.q ||
@@ -128,13 +145,23 @@ export default async function StructuresPage({ searchParams }: PageProps) {
           peutCreer={peutCreer}
         />
       ) : (
-        <>
+        <SelectionLotProvider
+          entiteSingulier="structure"
+          entitePluriel="structures"
+          pageIds={result.rows.map((r) => r.id)}
+          projets={projetsLot}
+          peutSupprimerEnLot={peutLot}
+          supprimerLotAction={supprimerStructuresEnLot}
+          viderProjetAction={viderProjetStructures}
+          compterProjetAction={compterStructuresProjet}
+        >
           <StructureTable
             rows={result.rows}
             nomenclatures={nomenclatures}
             peutEditerTout={peutEditerTout}
             peutSupprimer={peutSupprimer}
             utilisateurId={utilisateur.user_id}
+            selectionnable={peutLot}
           />
           <StructurePagination
             page={result.page}
@@ -142,7 +169,7 @@ export default async function StructuresPage({ searchParams }: PageProps) {
             total={result.total}
             totalPages={result.totalPages}
           />
-        </>
+        </SelectionLotProvider>
       )}
     </div>
   );

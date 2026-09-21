@@ -13,6 +13,10 @@ import { BadgeProjet } from '@/components/shared/badge-projet';
 import { StatutStructureBadge } from './statut-structure-badge';
 import { StructureRowActions } from './structure-row-actions';
 import { EnteteTriable } from '@/components/donnees/entete-triable';
+import {
+  SelectionCheckbox,
+  SelectionHeaderCheckbox,
+} from '@/components/shared/suppression-lot/selection-lot';
 import type { StructureListItem } from '@/lib/structures/queries';
 import type { Nomenclatures } from '@/lib/beneficiaires/nomenclatures-cache';
 import type { ProgrammeStrategiqueCode, StatutStructure } from '@/lib/schemas/nomenclatures';
@@ -27,6 +31,8 @@ export type StructureTableProps = {
   peutEditerTout: boolean;
   peutSupprimer: boolean;
   utilisateurId: string;
+  /** Ajoute une colonne de cases à cocher (sélection multiple pour actions groupées). */
+  selectionnable?: boolean;
 };
 
 /**
@@ -43,12 +49,18 @@ export function StructureTable({
   peutEditerTout,
   peutSupprimer,
   utilisateurId,
+  selectionnable = false,
 }: StructureTableProps) {
   return (
     <div className="overflow-x-auto rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow className="whitespace-nowrap">
+            {selectionnable && (
+              <TableHead className="w-8">
+                <SelectionHeaderCheckbox pageIds={rows.map((r) => r.id)} />
+              </TableHead>
+            )}
             <TableHead className="w-1" aria-hidden />
             <TableHead>
               <EnteteTriable colonne="nom">Structure</EnteteTriable>
@@ -98,6 +110,7 @@ export function StructureTable({
               nomenclatures={nomenclatures}
               peutEditer={peutEditerTout || r.created_by === utilisateurId}
               peutSupprimer={peutSupprimer}
+              selectionnable={selectionnable}
             />
           ))}
         </TableBody>
@@ -111,11 +124,13 @@ function StructureRow({
   nomenclatures,
   peutEditer,
   peutSupprimer,
+  selectionnable,
 }: {
   row: StructureListItem;
   nomenclatures: Nomenclatures;
   peutEditer: boolean;
   peutSupprimer: boolean;
+  selectionnable?: boolean;
 }) {
   const projetMeta = nomenclatures.projets.get(row.projet_code);
   const ps = projetMeta?.programme_strategique as ProgrammeStrategiqueCode | null | undefined;
@@ -136,6 +151,11 @@ function StructureRow({
 
   return (
     <TableRow className="group relative cursor-pointer">
+      {selectionnable && (
+        <TableCell className="w-8">
+          <SelectionCheckbox id={row.id} />
+        </TableCell>
+      )}
       <TableCell className="p-0" aria-hidden>
         <span className="block h-full w-1" style={{ backgroundColor: couleurBordure }} />
       </TableCell>

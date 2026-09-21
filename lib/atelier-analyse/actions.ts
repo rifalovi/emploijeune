@@ -4,7 +4,12 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { peutAccederDataStudio } from '@/lib/super-admin/permissions';
 import type { Json } from '@/lib/supabase/database.types';
-import { chargerDatasetEnquete, chargerDatasetMultiProjets } from './queries';
+import {
+  chargerDatasetEnquete,
+  chargerDatasetMultiProjets,
+  chargerDatasetBeneficiaires,
+  chargerDatasetStructures,
+} from './queries';
 import type { DatasetInput } from './types';
 
 /**
@@ -35,6 +40,32 @@ export async function chargerDatasetMultiProjetsAction(
     throw new Error('Accès non autorisé.');
   }
   return chargerDatasetMultiProjets(indicateurCode, projetCodes);
+}
+
+/**
+ * Action serveur : charge la base BÉNÉFICIAIRES (indicateur A1) comme jeu de
+ * données DataStudio, éventuellement filtrée par projet. Réservée SCS / super_admin.
+ */
+export async function chargerDatasetBeneficiairesAction(
+  projetCode?: string,
+): Promise<DatasetInput> {
+  const utilisateur = await requireUtilisateurValide();
+  if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
+    throw new Error('Accès non autorisé.');
+  }
+  return chargerDatasetBeneficiaires(projetCode);
+}
+
+/**
+ * Action serveur : charge la base STRUCTURES (indicateur B1) comme jeu de
+ * données DataStudio, éventuellement filtrée par projet. Réservée SCS / super_admin.
+ */
+export async function chargerDatasetStructuresAction(projetCode?: string): Promise<DatasetInput> {
+  const utilisateur = await requireUtilisateurValide();
+  if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
+    throw new Error('Accès non autorisé.');
+  }
+  return chargerDatasetStructures(projetCode);
 }
 
 export type EnregistrerTraitementInput = {
