@@ -5,7 +5,13 @@ import { ArrowLeft, BarChart3, CheckCircle2, Clock, Info } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { hasPermission } from '@/lib/super-admin/permissions';
-import { indicateurParCode, PILIERS, type CodePilier } from '@/lib/referentiels/indicateurs';
+import {
+  indicateurParCode,
+  MENTIONS_NON_MESURABLE,
+  PILIERS,
+  TYPE_INDICATEUR,
+  type CodePilier,
+} from '@/lib/referentiels/indicateurs';
 import {
   getIndicateursAnnuels,
   getConfigIndicateurs,
@@ -26,29 +32,15 @@ import { ToggleVisuClient } from './toggle-visu-client';
 import { SaisieValeursClient } from './saisie-valeurs-client';
 import { SaisieContexteKpisClient } from './saisie-contexte-kpis-client';
 
-/** Indicateurs de type "taux" : nécessitent numérateur + dénominateur. */
-const INDICATEURS_TAUX = new Set(['A2', 'A3', 'A5', 'B2', 'C2', 'C5', 'D3']);
-
-const INDICATEUR_TYPE_MAP: Record<string, 'count' | 'rate' | 'score' | 'amount'> = {
-  A1: 'count',
-  A2: 'rate',
-  A3: 'rate',
-  A4: 'score',
-  A5: 'rate',
-  B1: 'count',
-  B2: 'rate',
-  B3: 'count',
-  B4: 'amount',
-  C1: 'count',
-  C2: 'rate',
-  C3: 'count',
-  C4: 'count',
-  C5: 'rate',
-  D1: 'count',
-  D2: 'count',
-  D3: 'rate',
-  F1: 'count',
-};
+/**
+ * Indicateurs de type « taux » (numérateur + dénominateur) — DÉRIVÉ de la table
+ * de types unique du référentiel (plus de liste dupliquée à maintenir).
+ */
+const INDICATEURS_TAUX = new Set(
+  Object.entries(TYPE_INDICATEUR)
+    .filter(([, type]) => type === 'rate')
+    .map(([code]) => code),
+);
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -237,7 +229,7 @@ export default async function IndicateurDetailPage({ params }: Props) {
       {isSuperAdmin && (
         <SaisieContexteKpisClient
           code={ind.code}
-          typeInd={INDICATEUR_TYPE_MAP[ind.code] ?? 'count'}
+          typeInd={TYPE_INDICATEUR[ind.code] ?? 'count'}
           afficherVentilateur={ind.afficherVentilateurPersonne ?? true}
           kpisInit={kpisContexte}
           kpisMerges={kpisMerges}
@@ -326,15 +318,18 @@ export default async function IndicateurDetailPage({ params }: Props) {
         </dl>
       </section>
 
-      {valeurs.statut_calcul === 'non_mesurable' && valeurs.mention && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="flex items-center gap-2 font-semibold">
-            <Info className="size-4" aria-hidden />
-            Pourquoi cet indicateur n&apos;est pas encore mesurable
-          </p>
-          <p className="mt-2">{valeurs.mention}</p>
-        </div>
-      )}
+      {valeurs.statut_calcul === 'non_mesurable' &&
+        (MENTIONS_NON_MESURABLE[ind.code] || valeurs.mention) && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="flex items-center gap-2 font-semibold">
+              <Info className="size-4" aria-hidden />
+              Pourquoi cet indicateur n&apos;est pas encore mesurable
+            </p>
+            {/* Texte issu du référentiel (source unique, éditable sans migration
+                SQL) ; repli sur la mention renvoyée par la RPC. */}
+            <p className="mt-2">{MENTIONS_NON_MESURABLE[ind.code] || valeurs.mention}</p>
+          </div>
+        )}
     </div>
   );
 }

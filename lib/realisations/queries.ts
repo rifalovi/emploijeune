@@ -6,6 +6,35 @@
  */
 import 'server-only';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { INDICATEURS_AUTO_BDD } from '@/lib/referentiels/indicateurs';
+
+/**
+ * SOURCE DE VÉRITÉ UNIQUE des indicateurs disposant de « données réelles ».
+ *
+ * Combine les indicateurs calculés automatiquement depuis la BDD
+ * (`INDICATEURS_AUTO_BDD`) et ceux alimentés par au moins une saisie publiée.
+ * Remplace les trois codages en dur qui divergeaient (« A1 et B1 » dans la
+ * page Réalisations, `DONNEES_DISPONIBLES` dans Référentiels, l'ancien champ
+ * `donneeLiveCle`). Dès qu'un indicateur est alimenté, les badges se mettent à
+ * jour sans modification de code.
+ */
+export async function getIndicateursAvecDonnees(): Promise<Set<string>> {
+  const codes = new Set<string>(INDICATEURS_AUTO_BDD);
+  try {
+    const admin = createSupabaseAdminClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (admin as any)
+      .from('valeurs_indicateurs_saisies')
+      .select('indicateur_code')
+      .eq('publie', true);
+    for (const row of (data ?? []) as { indicateur_code: string | null }[]) {
+      if (row.indicateur_code) codes.add(row.indicateur_code);
+    }
+  } catch {
+    // Repli : au pire on n'affiche que les indicateurs auto-BDD (jamais faux).
+  }
+  return codes;
+}
 
 export type ValeurPubliee = {
   annee: number;

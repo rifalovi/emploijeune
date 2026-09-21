@@ -6,6 +6,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { HeaderPublic } from '@/components/landing/header-public';
 import { getAuthUser } from '@/lib/supabase/auth';
 import { PILIERS, indicateursParPilier, type CodePilier } from '@/lib/referentiels/indicateurs';
+import { getIndicateursAvecDonnees } from '@/lib/realisations/queries';
+
+// ISR horaire : les badges « données réelles » reflètent les indicateurs
+// alimentés ; publierAnalyse revalide déjà /realisations à la publication.
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Réalisations – Plateforme OIF Emploi Jeunes',
@@ -17,6 +22,8 @@ export default async function RealisationsPage() {
   const user = await getAuthUser();
   const isAuthenticated = Boolean(user);
   const piliers = Object.values(PILIERS) as (typeof PILIERS)[CodePilier][];
+  // Source de vérité unique : liste dynamique des indicateurs avec données réelles.
+  const codesAvecDonnees = [...(await getIndicateursAvecDonnees())].sort();
 
   return (
     <div className="bg-background min-h-screen">
@@ -106,7 +113,15 @@ export default async function RealisationsPage() {
           <p className="font-semibold text-[#0E4F88]">Cadre méthodologique</p>
           <p className="text-muted-foreground mt-1 leading-relaxed">
             Les indicateurs sont structurés selon le <em>Cadre Commun OIF</em>, validé par le SCS.
-            Données réelles disponibles pour A1 et B1. Les autres sont en cours d&apos;alimentation.
+            {codesAvecDonnees.length > 0 ? (
+              <>
+                {' '}
+                Données réelles disponibles pour {codesAvecDonnees.join(', ')}. Les autres sont en
+                cours d&apos;alimentation.
+              </>
+            ) : (
+              <> Les indicateurs sont en cours d&apos;alimentation.</>
+            )}
           </p>
         </section>
       </main>

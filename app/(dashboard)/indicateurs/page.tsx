@@ -4,7 +4,12 @@ import { CheckCircle2, Clock, BarChart3, AlertCircle, ArrowRight, Upload } from 
 import { redirect } from 'next/navigation';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { hasPermission } from '@/lib/super-admin/permissions';
-import { INDICATEURS, PILIERS, type CodePilier } from '@/lib/referentiels/indicateurs';
+import {
+  INDICATEURS,
+  MENTIONS_NON_MESURABLE,
+  PILIERS,
+  type CodePilier,
+} from '@/lib/referentiels/indicateurs';
 import { getIndicateursAnnuels, getConfigIndicateurs } from '@/lib/indicateurs-annuels/queries';
 import { doitAfficherVisualisation } from '@/lib/indicateurs-annuels/types';
 import { Badge } from '@/components/ui/badge';
@@ -163,6 +168,14 @@ export default async function IndicateursPage() {
                         )
                       : false;
                     const statut = valeurs?.statut_calcul ?? 'pas_de_donnees';
+                    // Mention « pourquoi non mesurable » : texte du référentiel
+                    // (source unique) prioritaire, uniquement pour les indicateurs
+                    // réellement non mesurables (un indicateur alimenté n'affiche
+                    // aucune mention de collecte manquante).
+                    const mentionAffichee =
+                      statut === 'non_mesurable'
+                        ? (MENTIONS_NON_MESURABLE[ind.code] ?? valeurs?.mention ?? null)
+                        : null;
 
                     return (
                       <tr key={ind.code} className="hover:bg-slate-50/60">
@@ -176,9 +189,9 @@ export default async function IndicateursPage() {
                         </td>
                         <td className="px-3 py-2.5">
                           <p className="font-medium text-slate-800">{ind.intitule}</p>
-                          {valeurs?.mention && (
+                          {mentionAffichee && (
                             <p className="text-muted-foreground mt-0.5 line-clamp-1 text-xs">
-                              {valeurs.mention}
+                              {mentionAffichee}
                             </p>
                           )}
                         </td>

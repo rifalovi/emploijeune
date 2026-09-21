@@ -24,7 +24,9 @@ import {
   PILIERS,
   INDICATEURS,
   indicateurParCode,
+  TYPE_INDICATEUR,
   type CodePilier,
+  type TypeIndicateur,
 } from '@/lib/referentiels/indicateurs';
 import { getKpisPublics, getRepartitionTrancheAge } from '@/lib/landing/queries';
 import {
@@ -63,33 +65,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 // ─── Types d'indicateurs ──────────────────────────────────────────────────────
-type TypeIndicateur = 'count' | 'rate' | 'score' | 'amount';
-
-const INDICATEUR_TYPE: Record<string, TypeIndicateur> = {
-  A1: 'count',
-  A2: 'rate',
-  A3: 'rate',
-  A4: 'score',
-  A5: 'rate',
-  B1: 'count',
-  // B2 = Taux de survie à 12/24 mois (rate), B3 = Emplois créés ou maintenus
-  // (count). Source : lib/referentiels/indicateurs.ts. Précédemment inversés.
-  B2: 'rate',
-  B3: 'count',
-  B4: 'amount',
-  C1: 'count',
-  C2: 'rate',
-  C3: 'count',
-  // C4 = Délai d'accès à l'opportunité (rendu en jours via count + unite='jours').
-  // Pas de ventilation personnes (cf. afficherVentilateurPersonne=false dans le réf).
-  C4: 'count',
-  // C5 = Satisfaction / utilité : taux de jeunes jugeant l'appui déterminant.
-  C5: 'rate',
-  D1: 'count',
-  D2: 'count',
-  D3: 'rate',
-  F1: 'count',
-};
+// La table type-par-code vit désormais dans le référentiel (source unique,
+// partagée avec le tableau de bord) : voir TYPE_INDICATEUR ci-importé.
 
 // ─── Labels métier pour indicateurs de type RATE ──────────────────────────────
 // Utilisés même pour les données réelles (numérateur / dénominateur labels).
@@ -161,7 +138,7 @@ export default async function IndicateurRealisationPage({ params }: Props) {
 
   const pilierData = PILIERS[ind.pilier as CodePilier];
   const user = await getAuthUser();
-  const typeInd: TypeIndicateur = INDICATEUR_TYPE[ind.code] ?? 'count';
+  const typeInd: TypeIndicateur = TYPE_INDICATEUR[ind.code] ?? 'count';
 
   // Données réelles :
   //  - A1 / B1 → calcul automatique BDD (bénéficiaires / structures)
@@ -827,6 +804,11 @@ function KpisScore({ data, couleur }: { data: DonneesScore; couleur: string }) {
               {data.participantsTotal.toLocaleString('fr-FR')} participants
             </span>
           </div>
+          {/* Gain moyen et effectifs de progression sont déclarés (saisie
+              manuelle), pas calculés à partir des scores individuels. */}
+          <p className="mt-2 text-[11px] text-slate-400 italic">
+            Données déclaratives (saisie manuelle).
+          </p>
         </CardContent>
       </Card>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
@@ -872,16 +854,25 @@ function KpisAmount({ data, couleur }: { data: DonneesAmount; couleur: string })
               <Euro className="size-6" style={{ color: couleur }} aria-hidden />
             </div>
           </div>
-          <div className="mt-4 flex flex-wrap gap-6 border-t border-slate-100 pt-4 text-sm">
-            <div>
-              <span className="font-bold text-slate-800">{data.sourcesPublic}%</span>
-              <span className="ml-1 text-slate-500">Fonds publics</span>
-            </div>
-            <div>
-              <span className="font-bold text-slate-800">{data.sourcesPrive}%</span>
-              <span className="ml-1 text-slate-500">Secteur privé</span>
-            </div>
-          </div>
+          {(data.sourcesPublic > 0 || data.sourcesPrive > 0) && (
+            <>
+              <div className="mt-4 flex flex-wrap gap-6 border-t border-slate-100 pt-4 text-sm">
+                <div>
+                  <span className="font-bold text-slate-800">{data.sourcesPublic}%</span>
+                  <span className="ml-1 text-slate-500">Fonds publics</span>
+                </div>
+                <div>
+                  <span className="font-bold text-slate-800">{data.sourcesPrive}%</span>
+                  <span className="ml-1 text-slate-500">Secteur privé</span>
+                </div>
+              </div>
+              {/* La répartition public/privé n'est pas calculée : elle est saisie
+                  manuellement par l'administrateur — on le signale honnêtement. */}
+              <p className="mt-2 text-[11px] text-slate-400 italic">
+                Répartition déclarative (saisie manuelle), non calculée automatiquement.
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
       <div className="grid grid-cols-2 gap-4">

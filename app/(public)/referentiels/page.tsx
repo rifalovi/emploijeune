@@ -5,7 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { PILIERS, indicateursParPilier, type CodePilier } from '@/lib/referentiels/indicateurs';
 import { getDocumentPublic } from '@/lib/documents-publics/queries';
+import { getIndicateursAvecDonnees } from '@/lib/realisations/queries';
 import { cn } from '@/lib/utils';
+
+// ISR horaire : le badge « Données disponibles » suit les indicateurs alimentés.
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Référentiels – Cadre Commun OIF',
@@ -13,14 +17,11 @@ export const metadata: Metadata = {
     'Tableau de bord des 18 indicateurs du Cadre Commun de mesure du rendement OIF pour le suivi-évaluation des projets emploi jeunes.',
 };
 
-/**
- * Indicateurs pour lesquels des données réelles sont disponibles sur la plateforme.
- * Les autres sont marqués « Collecte en cours ».
- */
-const DONNEES_DISPONIBLES = new Set(['A1', 'B1']);
-
 export default async function ReferentielsAccueil() {
   const noteCadrage = await getDocumentPublic('note_cadrage');
+  // Source de vérité unique : indicateurs disposant de données réelles (auto-BDD
+  // + saisies publiées). Les autres sont marqués « Collecte en cours ».
+  const DONNEES_DISPONIBLES = await getIndicateursAvecDonnees();
 
   return (
     <div className="space-y-12">

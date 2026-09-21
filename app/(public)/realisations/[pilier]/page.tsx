@@ -7,8 +7,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { HeaderPublic } from '@/components/landing/header-public';
 import { getAuthUser } from '@/lib/supabase/auth';
 import { PILIERS, indicateursParPilier, type CodePilier } from '@/lib/referentiels/indicateurs';
+import { getIndicateursAvecDonnees } from '@/lib/realisations/queries';
 
 type Props = { params: Promise<{ pilier: string }> };
+
+// ISR horaire : le badge « Données réelles » suit les indicateurs alimentés.
+export const revalidate = 3600;
 
 export async function generateStaticParams() {
   return Object.keys(PILIERS).map((code) => ({ pilier: code.toLowerCase() }));
@@ -29,6 +33,8 @@ export default async function PilierPage({ params }: Props) {
   if (!pilierData) notFound();
 
   const indicateurs = indicateursParPilier(code);
+  // Source de vérité unique : quels indicateurs disposent de données réelles.
+  const avecDonnees = await getIndicateursAvecDonnees();
   const user = await getAuthUser();
 
   return (
@@ -94,7 +100,7 @@ export default async function PilierPage({ params }: Props) {
                       >
                         {ind.code}
                       </Badge>
-                      {ind.donneeLiveCle && (
+                      {avecDonnees.has(ind.code) && (
                         <Badge
                           className="text-[10px]"
                           style={{

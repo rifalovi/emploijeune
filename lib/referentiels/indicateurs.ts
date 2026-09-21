@@ -81,8 +81,6 @@ export type Indicateur = {
   precautions: string[];
   /** Codes projets concernés (P14, P15, P16 D-CLIC, …). */
   projetsConcernes: string[];
-  /** Donnée live disponible dans la plateforme V1, sinon null. */
-  donneeLiveCle?: 'A1' | 'B1' | null;
   /**
    * Label affiché sous la métrique principale sur /realisations/[pilier]/[code]
    * (ex. « Structures appuyées » pour B1). Si absent → fallback « Bénéficiaires ».
@@ -134,7 +132,6 @@ Cet indicateur porte sur la formation directe des jeunes. Il se rattache d'abord
       'Définir ce qu’on entend par « effectivement participé »',
     ],
     projetsConcernes: ['PROJ_A16a', 'PROJ_A20', 'PROJ_A19', 'PROJ_A15'],
-    donneeLiveCle: 'A1',
     labelMetrique: 'Personnes formées',
     unitePrincipale: 'personnes',
     afficherVentilateurPersonne: true,
@@ -270,7 +267,6 @@ Cet indicateur vise les AGR et micro-entreprises soutenues. Il correspond surtou
       'Éviter de compter plusieurs fois une même structure',
     ],
     projetsConcernes: ['PROJ_A14', 'PROJ_A15', 'PROJ_A19', 'PROJ_A20', 'PROJ_A17'],
-    donneeLiveCle: 'B1',
     labelMetrique: 'Structures appuyées',
     unitePrincipale: 'structures',
     afficherVentilateurPersonne: false,
@@ -597,6 +593,70 @@ export function indicateurSuivant(code: string): Indicateur | undefined {
 export function indicateursParPilier(code: CodePilier): Indicateur[] {
   return INDICATEURS.filter((i) => i.pilier === code);
 }
+
+/**
+ * Type de rendu d'un indicateur (SOURCE DE VÉRITÉ UNIQUE).
+ *
+ * Auparavant dupliqué à l'identique entre la page détail du tableau de bord et
+ * la page publique (risque de divergence). Les deux importent désormais cette
+ * table. `count` = effectif/volume, `rate` = taux (%), `score` = score/points,
+ * `amount` = montant financier.
+ */
+export type TypeIndicateur = 'count' | 'rate' | 'score' | 'amount';
+
+export const TYPE_INDICATEUR: Record<string, TypeIndicateur> = {
+  A1: 'count',
+  A2: 'rate',
+  A3: 'rate',
+  A4: 'score',
+  A5: 'rate',
+  B1: 'count',
+  B2: 'rate',
+  B3: 'count',
+  B4: 'amount',
+  C1: 'count',
+  C2: 'rate',
+  C3: 'count',
+  C4: 'count',
+  C5: 'rate',
+  D1: 'count',
+  D2: 'count',
+  D3: 'rate',
+  F1: 'count',
+};
+
+/**
+ * Indicateurs calculés AUTOMATIQUEMENT à partir des données de la plateforme
+ * (tables `beneficiaires` / `structures`), via la RPC des réalisations. C'est la
+ * SOURCE DE VÉRITÉ UNIQUE de « donnée réelle disponible » côté auto-BDD ; la
+ * présence effective de données combine cet ensemble aux saisies publiées
+ * (voir `lib/realisations/donnees-disponibles.ts`).
+ */
+export const INDICATEURS_AUTO_BDD = new Set<string>(['A1', 'A2', 'B1']);
+
+/**
+ * Mention explicative affichée quand un indicateur n'est pas (encore) mesurable
+ * — SOURCE DE VÉRITÉ UNIQUE côté application. Elle était figée dans la RPC SQL,
+ * imposant une migration pour tout ajustement de texte ; le tableau de bord
+ * privilégie désormais cette table (le texte SQL ne sert plus que de repli).
+ */
+export const MENTIONS_NON_MESURABLE: Record<string, string> = {
+  A3: 'Nécessite les données de certification / attestation (enquête A V2).',
+  A4: 'Nécessite les scores avant / après formation (enquête A V2).',
+  A5: 'Nécessite un suivi 6 / 12 mois post-formation (enquête A V2).',
+  B2: 'Nécessite un suivi des structures à 12 / 24 mois (enquête B V2).',
+  B3: 'Nécessite la déclaration des emplois créés (enquête B V2).',
+  B4: 'Emplois indirects estimés (déclaratif / rapport d’enquête).',
+  C1: 'Pas encore de collecte sur les demandes d’accompagnement.',
+  C2: 'Pas encore de collecte sur les mises en relation.',
+  C3: 'Pas encore de collecte sur les partenariats économiques.',
+  C4: 'Pas encore de collecte.',
+  C5: 'Pas encore de collecte.',
+  D1: 'Nécessite un suivi des politiques publiques (collecte qualitative).',
+  D2: 'Nécessite un suivi des réformes adoptées.',
+  D3: 'Nécessite un suivi de l’adoption des recommandations.',
+  F1: 'Nécessite une question dédiée sur l’apport du français (enquête F).',
+};
 
 /**
  * Projets emblématiques de l'OIF concernés par la thématique emploi-jeunes.

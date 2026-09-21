@@ -4,7 +4,11 @@ import Anthropic from '@anthropic-ai/sdk';
 import mammoth from 'mammoth';
 import ExcelJS from 'exceljs';
 import { extractText, getDocumentProxy } from 'unpdf';
-import { INDICATEURS, indicateurParCode } from '@/lib/referentiels/indicateurs';
+import {
+  INDICATEURS,
+  INDICATEURS_AUTO_BDD,
+  indicateurParCode,
+} from '@/lib/referentiels/indicateurs';
 import { normaliserCodeProjet } from '@/lib/imports/smart-mapper';
 
 /**
@@ -65,9 +69,8 @@ export type ExtraireIndicateursResult =
     };
 
 const CODES_VALIDES = new Set(INDICATEURS.map((i) => i.code));
-const CODES_AUTO = new Set(
-  INDICATEURS.filter((i) => i.donneeLiveCle).map((i) => i.code), // A1, B1
-);
+// Indicateurs calculés automatiquement depuis la BDD (source de vérité unique).
+const CODES_AUTO = INDICATEURS_AUTO_BDD;
 /**
  * Indicateurs exprimés en pourcentage (le référentiel ne les marque pas tous
  * via unitePrincipale). On détecte aussi « taux » dans l'intitulé en complément.
