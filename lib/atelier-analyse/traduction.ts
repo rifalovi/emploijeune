@@ -196,9 +196,6 @@ export type TraduireTextesResult =
   | { status: 'succes'; langueDetectee: string; map: Record<string, string> }
   | { status: 'erreur'; message: string };
 
-/** Taille de lot recommandée côté client (nombre de réponses par appel IA). */
-export const TAILLE_LOT_TEXTES = 60;
-
 /**
  * Traduit UN LOT de réponses ouvertes vers la langue cible. Le client découpe la
  * liste des valeurs distinctes en lots et appelle cette action successivement,

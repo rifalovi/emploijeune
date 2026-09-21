@@ -118,11 +118,7 @@ import {
   extraireModeleRapportAction,
   genererRapportAction,
 } from '@/lib/atelier-analyse/rapport';
-import {
-  TAILLE_LOT_TEXTES,
-  traduireTermesAction,
-  traduireTextesLibresAction,
-} from '@/lib/atelier-analyse/traduction';
+import { traduireTermesAction, traduireTextesLibresAction } from '@/lib/atelier-analyse/traduction';
 import {
   exporterCrossExcel,
   exporterFreqExcel,
@@ -156,6 +152,10 @@ import type {
 } from '@/lib/atelier-analyse/types';
 
 const AUCUNE = '__aucune__';
+// Taille de lot pour la traduction des réponses ouvertes (nb de réponses par
+// appel IA). Défini ici (composant client) et non dans un fichier « use server »
+// — un tel fichier ne peut exporter que des fonctions async.
+const TAILLE_LOT_TEXTES = 60;
 
 function pct(v: number | null): string {
   return v === null || v === undefined ? '' : `${(v * 100).toFixed(1)} %`;
