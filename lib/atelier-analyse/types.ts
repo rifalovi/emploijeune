@@ -107,6 +107,22 @@ export type CleanResponse = {
   dataset?: DatasetInput | null;
 };
 
+/** Termes à traduire d'une base importée (en-têtes + modalités catégorielles). */
+export type TranslationTermsResponse = {
+  columns: string[];
+  values: Record<string, string[]>;
+  sample: string;
+  n_rows: number;
+};
+
+/** Base traduite : renvoie la base complète (si full=true), adoptable en base de travail. */
+export type TranslateResponse = {
+  n_rows: number;
+  columns: string[];
+  n_columns_renamed: number;
+  dataset?: DatasetInput | null;
+};
+
 /** Condition de filtre (sous-population). op ∈ =, ≠, contient, >, ≥, <, ≤. */
 export type FilterCond = { col: string; op: string; val: string };
 

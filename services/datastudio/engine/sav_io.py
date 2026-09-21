@@ -138,7 +138,52 @@ def _apply_header(raw: pd.DataFrame, header_row: int) -> pd.DataFrame:
     return corps
 
 
-def _sniff_csv_sep(path: str, limite: int = 40) -> str:
+def _detect_encoding(path: str) -> str:
+    """Devine l'encodage d'un fichier texte (CSV importé en langue étrangère).
+
+    Les exports d'enquête d'Asie (mandarin GB18030/Big5, japonais Shift-JIS,
+    coréen…) ou d'Europe (Latin-1/Windows-1252) ne sont pas toujours en UTF-8.
+    On respecte d'abord un BOM, puis on s'appuie sur charset-normalizer si
+    disponible, sinon on retombe sur UTF-8. Le décodage réel se fait ensuite avec
+    errors='replace' pour ne jamais échouer."""
+    try:
+        with open(path, "rb") as fh:
+            brut = fh.read(65536)
+    except OSError:  # pragma: no cover
+        return "utf-8"
+    # Marqueurs d'ordre des octets explicites.
+    if brut.startswith(b"\xef\xbb\xbf"):
+        return "utf-8-sig"
+    if brut.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return "utf-16"
+    # UTF-8 d'abord : un décodage strict qui réussit est quasi certain (c'est le
+    # format des exports Kobo modernes, y compris vietnamien et écritures d'Asie).
+    # On ne consulte charset-normalizer que si l'UTF-8 échoue (fichiers hérités
+    # GB18030/Shift-JIS/Latin-1), car il confond les encodages CJK sur de petits
+    # échantillons.
+    try:
+        brut.decode("utf-8")
+        return "utf-8"
+    except UnicodeDecodeError:
+        pass
+    try:
+        from charset_normalizer import from_bytes  # import paresseux, optionnel
+
+        best = from_bytes(brut).best()
+        if best and best.encoding:
+            enc = best.encoding.lower()
+            # Normalise quelques alias vers des codecs Python sûrs et englobants.
+            if enc in ("gb2312", "gbk"):
+                return "gb18030"  # sur-ensemble : couvre le mandarin étendu
+            if enc in ("big5", "big5hkscs"):
+                return "big5hkscs"
+            return best.encoding
+    except Exception:  # pragma: no cover - lib absente ou indécis
+        pass
+    return "utf-8"
+
+
+def _sniff_csv_sep(path: str, encoding: str, limite: int = 40) -> str:
     """Devine le séparateur d'un CSV en le cherchant sur PLUSIEURS lignes.
 
     csv.Sniffer se fie à la 1re ligne, ce qui échoue quand un préambule
@@ -150,7 +195,7 @@ def _sniff_csv_sep(path: str, limite: int = 40) -> str:
 
     comptes: dict[str, list[int]] = {c: [] for c in candidats}
     try:
-        with open(path, "r", encoding="utf-8", errors="replace", newline="") as fh:
+        with open(path, "r", encoding=encoding, errors="replace", newline="") as fh:
             for ligne in fh:
                 if len(comptes[candidats[0]]) >= limite:
                     break
@@ -173,7 +218,7 @@ def _sniff_csv_sep(path: str, limite: int = 40) -> str:
     return meilleur
 
 
-def _read_csv_raw(path: str, sep: str) -> pd.DataFrame:
+def _read_csv_raw(path: str, sep: str, encoding: str) -> pd.DataFrame:
     """Lit un CSV/TSV en DataFrame SANS en-tête, tolérant aux lignes ragged.
 
     Un préambule Kobo/CSPro a souvent moins de colonnes que les données ; on lit
@@ -183,7 +228,7 @@ def _read_csv_raw(path: str, sep: str) -> pd.DataFrame:
     import csv as _csv
 
     lignes: list[list[Optional[str]]] = []
-    with open(path, "r", encoding="utf-8", errors="replace", newline="") as fh:
+    with open(path, "r", encoding=encoding, errors="replace", newline="") as fh:
         for cells in _csv.reader(fh, delimiter=sep):
             # Cellule vide → None : notna()/dropna() traitent correctement les
             # préambules et lignes blanches lors de la détection d'en-tête.
@@ -217,8 +262,9 @@ def read_tabular(
         hr = header_row if header_row is not None else _detect_header_row(raw)
         return SurveyDataset(frame=_apply_header(raw, hr), name=str(nom))
     if ext in (".csv", ".tsv", ".tab"):
-        sep = "\t" if ext in (".tsv", ".tab") else _sniff_csv_sep(path)
-        raw = _read_csv_raw(path, sep)
+        encoding = _detect_encoding(path)
+        sep = "\t" if ext in (".tsv", ".tab") else _sniff_csv_sep(path, encoding)
+        raw = _read_csv_raw(path, sep, encoding)
         hr = header_row if header_row is not None else _detect_header_row(raw)
         return SurveyDataset(frame=_apply_header(raw, hr))
     if ext == ".json":

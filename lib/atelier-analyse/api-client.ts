@@ -19,6 +19,8 @@ import type {
   PreviewResponse,
   QualityResponse,
   StatTestResponse,
+  TranslateResponse,
+  TranslationTermsResponse,
 } from './types';
 
 const BASE = '/api/datastudio';
@@ -160,6 +162,34 @@ export function computeList(
 
 export function computeQuality(source: ComputeSource): Promise<QualityResponse> {
   return post<QualityResponse>('/quality', sourceBody(source));
+}
+
+/**
+ * Termes à traduire d'une base importée (en-têtes + modalités catégorielles).
+ * Sert d'entrée à la détection de langue et à la traduction IA (côté serveur).
+ */
+export function computeTranslationTerms(source: ComputeSource): Promise<TranslationTermsResponse> {
+  return post<TranslationTermsResponse>('/translation-terms', sourceBody(source));
+}
+
+/**
+ * Applique une table de traduction (renommage d'en-têtes + remplacement de
+ * valeurs) et renvoie la base traduite complète (full=true) à adopter comme
+ * base de travail. Les valeurs hors table restent inchangées (aucune déformation).
+ */
+export function computeTranslate(
+  source: ComputeSource,
+  columnMap: Record<string, string>,
+  valueMaps: Record<string, Record<string, string>>,
+  opts?: { full?: boolean; name?: string },
+): Promise<TranslateResponse> {
+  return post<TranslateResponse>('/translate', {
+    ...sourceBody(source),
+    column_map: columnMap,
+    value_maps: valueMaps,
+    full: opts?.full ?? true,
+    name: opts?.name ?? null,
+  });
 }
 
 /** Modalités d'une variable (en libellés), pour alimenter un champ de filtre. */

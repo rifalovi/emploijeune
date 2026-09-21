@@ -34,6 +34,7 @@ import {
   FlaskConical,
   Gauge,
   Layers,
+  Languages,
   ListChecks,
   ListOrdered,
   Loader2,
@@ -105,6 +106,8 @@ import {
   computePreview,
   computeQuality,
   computeStatTest,
+  computeTranslate,
+  computeTranslationTerms,
   ingestFile,
   uploadSpssFile,
   type ComputeSource,
@@ -114,6 +117,7 @@ import {
   extraireModeleRapportAction,
   genererRapportAction,
 } from '@/lib/atelier-analyse/rapport';
+import { traduireTermesAction } from '@/lib/atelier-analyse/traduction';
 import {
   exporterCrossExcel,
   exporterFreqExcel,
@@ -271,6 +275,32 @@ type DocumentReference = { cle: string; libelle: string; nomFichier: string };
 type Programme = { code: string; libelle: string };
 type Projet = { code: string; libelle: string; programme: string };
 
+/**
+ * Descripteur de rechargement d'une base de travail. Une base transformée
+ * (épurée, traduite) référence sa base d'origine via `base`, ce qui permet de
+ * reconstruire la chaîne complète (ex. importer → traduire → épurer) en rouvrant
+ * un traitement depuis l'historique.
+ */
+type ReloadDesc = {
+  kind?: string;
+  datasetRef?: string;
+  nom?: string;
+  indicateur?: string;
+  projets?: string[];
+  projet?: string | null;
+  base?: ReloadDesc;
+  // Traduction
+  columnMap?: Record<string, string>;
+  valueMaps?: Record<string, Record<string, string>>;
+  name?: string;
+  langueCible?: string;
+  // Épuration
+  dropEmpty?: boolean;
+  dropDuplicates?: boolean;
+  dropMissing?: boolean;
+  keyCols?: string[];
+};
+
 type Props = {
   indicateurs: IndicateurSource[];
   historique: { jobs: HistoriqueJob[]; erreur: string | null };
@@ -354,6 +384,21 @@ export function AtelierClient({
   // Descripteur de rechargement de la base épurée courante (pour que les
   // traitements enregistrés dessus rouvrent bien la base nettoyée, pas la brute).
   const [epureeReload, setEpureeReload] = useState<Record<string, unknown> | null>(null);
+
+  // Traduction (IA) : base importée en langue étrangère ramenée en langue cible.
+  const [langueCible, setLangueCible] = useState('Français');
+  const [busyTrad, setBusyTrad] = useState(false);
+  // Vrai quand la base de travail active est la base TRADUITE (adoptée).
+  const [traduit, setTraduit] = useState(false);
+  // Descripteur de rechargement de la base traduite (mêmes rôle que epureeReload).
+  const [traduitReload, setTraduitReload] = useState<Record<string, unknown> | null>(null);
+  // Récapitulatif de la dernière traduction (langue détectée + volumétrie).
+  const [traductionInfo, setTraductionInfo] = useState<{
+    langueDetectee: string;
+    langueCible: string;
+    nbColonnes: number;
+    nbValeurs: number;
+  } | null>(null);
 
   // Graphiques
   const [graphVar, setGraphVar] = useState('');
@@ -469,7 +514,11 @@ export function AtelierClient({
   // Rechargement à mémoriser pour un traitement produit MAINTENANT : si la base
   // de travail est la base épurée, on rouvre la base nettoyée (et non la brute).
   const reloadCourant: Record<string, unknown> =
-    baseEpuree && epureeReload ? epureeReload : reloadInfo;
+    baseEpuree && epureeReload
+      ? epureeReload
+      : traduit && traduitReload
+        ? traduitReload
+        : reloadInfo;
 
   // ---- Historique regroupé en DOSSIERS par projet / jeu de données ----
   const libelleIndic = (code: string) => indicateurs.find((i) => i.code === code)?.libelle ?? code;
@@ -554,6 +603,9 @@ export function AtelierClient({
     setAnalyse(null);
     setBaseEpuree(false);
     setEpureeReload(null);
+    setTraduit(false);
+    setTraduitReload(null);
+    setTraductionInfo(null);
     setKeyCols([]);
   }
 
@@ -871,7 +923,9 @@ export function AtelierClient({
       setBaseEpuree(true);
       const reloadEpuree = {
         kind: 'epuree',
-        base: reloadInfo,
+        // Si la base de travail est déjà traduite, on épure PAR-DESSUS la
+        // traduction : le descripteur pointe la base traduite (chaîne complète).
+        base: traduit && traduitReload ? traduitReload : reloadInfo,
         dropEmpty,
         dropDuplicates,
         dropMissing,
@@ -900,6 +954,86 @@ export function AtelierClient({
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
     } finally {
       setBusyClean(false);
+    }
+  }
+
+  /**
+   * Traduction (IA) de la base importée vers la langue cible (français par
+   * défaut). On envoie à Claude UNIQUEMENT les en-têtes + modalités catégorielles
+   * (jamais toute la base), on détecte la langue, puis on applique la table de
+   * traduction pour adopter une base traduite comme base de travail. Les valeurs
+   * hors table restent inchangées : le contexte n'est pas déformé.
+   */
+  async function lancerTraduction() {
+    if (!source) {
+      setErreur('Chargez d’abord une base à traduire.');
+      return;
+    }
+    setBusyTrad(true);
+    setErreur(null);
+    try {
+      // 1) Termes à traduire (en-têtes + modalités), calculés côté moteur.
+      const termes = await computeTranslationTerms(source);
+      if (!termes.columns || termes.columns.length === 0) {
+        setErreur('Aucune colonne à traduire dans cette base.');
+        return;
+      }
+      // 2) Détection de langue + table de traduction via l'IA.
+      const trad = await traduireTermesAction({
+        columns: termes.columns,
+        values: termes.values,
+        sample: termes.sample,
+        langueCible,
+      });
+      if (trad.status !== 'succes') {
+        setErreur(trad.message);
+        return;
+      }
+      const nbValeurs = Object.values(trad.valueMaps).reduce(
+        (acc, m) => acc + Object.keys(m).length,
+        0,
+      );
+      // 3) Application de la table à la base → base traduite complète.
+      const nomTraduit = `${sourceLabel || 'Base'} (traduit ${langueCible})`;
+      const rt = await computeTranslate(source, trad.columnMap, trad.valueMaps, {
+        full: true,
+        name: nomTraduit,
+      });
+      if (!rt.dataset || !Array.isArray(rt.dataset.rows)) {
+        setErreur('La base traduite n’a pas pu être générée.');
+        return;
+      }
+      const ds = rt.dataset;
+      // 4) Adoption comme base de travail : la suite se fait en langue cible.
+      setDataset(ds);
+      setDatasetRef(null);
+      setFreq(null);
+      setCross(null);
+      setStat(null);
+      setMulti(null);
+      setRapport(null);
+      appliquerAnalyse(await analyzeDataset(ds));
+      setTraduit(true);
+      setTraductionInfo({
+        langueDetectee: trad.langueDetectee,
+        langueCible: trad.langueCible,
+        nbColonnes: Object.keys(trad.columnMap).length,
+        nbValeurs,
+      });
+      // Descripteur de rechargement : reproduit la traduction sur la base d'origine.
+      const reloadTraduit: ReloadDesc = {
+        kind: 'traduit',
+        base: reloadInfo as ReloadDesc,
+        columnMap: trad.columnMap,
+        valueMaps: trad.valueMaps,
+        name: nomTraduit,
+        langueCible: trad.langueCible,
+      };
+      setTraduitReload(reloadTraduit as unknown as Record<string, unknown>);
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyTrad(false);
     }
   }
 
@@ -989,6 +1123,78 @@ export function AtelierClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fCol, dataset, datasetRef]);
 
+  /**
+   * Reconstruit une base de travail (et l'état UI de sa source) à partir d'un
+   * descripteur de rechargement. Gère les sources simples (fichier importé,
+   * enquête, multi-projets, bénéficiaires, structures) et, récursivement, les
+   * bases transformées (traduite) — ce qui permet de rouvrir une chaîne
+   * « importer → traduire ». Renvoie la source de calcul, ou null si elle n'a
+   * pas pu être reconstruite. (L'épuration reste gérée dans son propre bloc.)
+   */
+  async function chargerSourceReload(
+    desc: ReloadDesc | null | undefined,
+  ): Promise<ComputeSource | null> {
+    if (!desc || !desc.kind) return null;
+    if (desc.kind === 'upload' && desc.datasetRef) {
+      const a = await ingestFile(desc.datasetRef);
+      setDatasetRef(a.dataset_ref);
+      setDataset(null);
+      setFichierNom(desc.nom || a.name);
+      setSourceMode('fichier');
+      setFichierPath(desc.datasetRef.split('#')[0] ?? null);
+      setFeuilles(a.sheets ?? []);
+      setFeuilleSel(a.sheet ?? a.sheets?.[0] ?? null);
+      return { datasetRef: a.dataset_ref };
+    }
+    if (desc.kind === 'enquete' && desc.indicateur) {
+      const ds = await chargerDatasetEnqueteAction(desc.indicateur);
+      setIndicateur(desc.indicateur);
+      setSourceMode('enquete');
+      setDataset(ds);
+      setDatasetRef(null);
+      return { dataset: ds };
+    }
+    if (desc.kind === 'multi' && desc.indicateur) {
+      const codes = Array.isArray(desc.projets) ? desc.projets : [];
+      const ds = await chargerDatasetMultiProjetsAction(desc.indicateur, codes);
+      setSourceMode('multi');
+      setMpIndicateur(desc.indicateur);
+      setMpProjets(codes);
+      setDataset(ds);
+      setDatasetRef(null);
+      return { dataset: ds };
+    }
+    if (desc.kind === 'beneficiaires' || desc.kind === 'structures') {
+      const projet = desc.projet || undefined;
+      const ds =
+        desc.kind === 'structures'
+          ? await chargerDatasetStructuresAction(projet)
+          : await chargerDatasetBeneficiairesAction(projet);
+      setSourceMode(desc.kind);
+      setBdProjet(desc.projet || '__tous__');
+      setDataset(ds);
+      setDatasetRef(null);
+      return { dataset: ds };
+    }
+    if (desc.kind === 'traduit' && desc.base) {
+      const baseSource = await chargerSourceReload(desc.base);
+      if (!baseSource) return null;
+      const rt = await computeTranslate(baseSource, desc.columnMap ?? {}, desc.valueMaps ?? {}, {
+        full: true,
+        name: desc.name,
+      });
+      if (rt.dataset && Array.isArray(rt.dataset.rows)) {
+        setDataset(rt.dataset);
+        setDatasetRef(null);
+        setTraduit(true);
+        setTraduitReload(desc as unknown as Record<string, unknown>);
+        return { dataset: rt.dataset };
+      }
+      return null;
+    }
+    return null;
+  }
+
   function chargerResultatDansOnglet(d: TraitementDetail) {
     const p = d.payload;
     const params = (d.params ?? {}) as { row?: string; col?: string; format?: string };
@@ -1030,25 +1236,7 @@ export function AtelierClient({
         return;
       }
       const d = res.detail;
-      const reload = (d.params?._reload ?? null) as {
-        kind?: string;
-        datasetRef?: string;
-        nom?: string;
-        indicateur?: string;
-        projets?: string[];
-        base?: {
-          kind?: string;
-          datasetRef?: string;
-          nom?: string;
-          indicateur?: string;
-          projets?: string[];
-        };
-        dropEmpty?: boolean;
-        dropDuplicates?: boolean;
-        dropMissing?: boolean;
-        keyCols?: string[];
-        projet?: string | null;
-      } | null;
+      const reload = (d.params?._reload ?? null) as ReloadDesc | null;
 
       // Rechargement de la source en MEILLEUR EFFORT : on tente de rouvrir la
       // base d'origine pour pouvoir ré-exécuter/compléter le traitement. Même si
@@ -1057,29 +1245,9 @@ export function AtelierClient({
       // jamais un simple aperçu en lecture seule.
       try {
         if (reload?.kind === 'epuree' && reload.base) {
-          // Base épurée : on recharge la source puis on reconstruit la base nettoyée.
-          const b = reload.base;
-          let baseSource: ComputeSource | null = null;
-          if (b.kind === 'upload' && b.datasetRef) {
-            const a = await ingestFile(b.datasetRef);
-            setDatasetRef(a.dataset_ref);
-            setDataset(null);
-            setFichierNom(b.nom || a.name);
-            setSourceMode('fichier');
-            baseSource = { datasetRef: a.dataset_ref };
-          } else if (b.kind === 'enquete' && b.indicateur) {
-            const ds = await chargerDatasetEnqueteAction(b.indicateur);
-            setIndicateur(b.indicateur);
-            setSourceMode('enquete');
-            baseSource = { dataset: ds };
-          } else if (b.kind === 'multi' && b.indicateur) {
-            const codes = Array.isArray(b.projets) ? b.projets : [];
-            const ds = await chargerDatasetMultiProjetsAction(b.indicateur, codes);
-            setSourceMode('multi');
-            setMpIndicateur(b.indicateur);
-            setMpProjets(codes);
-            baseSource = { dataset: ds };
-          }
+          // Base épurée : on recharge la source (y compris une base traduite,
+          // via le résolveur récursif) puis on reconstruit la base nettoyée.
+          const baseSource = await chargerSourceReload(reload.base);
           if (baseSource) {
             const rClean = await computeClean(baseSource, {
               dropEmpty: reload.dropEmpty ?? true,
@@ -1147,6 +1315,22 @@ export function AtelierClient({
           setDataset(ds);
           setDatasetRef(null);
           appliquerAnalyse(await analyzeDataset(ds));
+        } else if (reload?.kind === 'traduit' && reload.base) {
+          // Base traduite : on recharge la source d'origine puis on réapplique la
+          // traduction mémorisée (le résolveur pose la base traduite en mémoire).
+          const src = await chargerSourceReload(reload);
+          if (src && 'dataset' in src && src.dataset) {
+            setTraductionInfo({
+              langueDetectee: '',
+              langueCible: reload.langueCible || 'Français',
+              nbColonnes: Object.keys(reload.columnMap ?? {}).length,
+              nbValeurs: Object.values(reload.valueMaps ?? {}).reduce(
+                (acc, m) => acc + Object.keys(m).length,
+                0,
+              ),
+            });
+            appliquerAnalyse(await analyzeDataset(src.dataset));
+          }
         }
       } catch (eSource) {
         // La source n'a pas pu être rechargée : on garde quand même le résultat
@@ -1661,6 +1845,14 @@ export function AtelierClient({
               </TabsTrigger>
               <TabsTrigger value="clean" className="w-full justify-start gap-2">
                 <Wand2 className="size-4" /> Nettoyage
+              </TabsTrigger>
+              <TabsTrigger value="trad" className="w-full justify-start gap-2">
+                <Languages className="size-4" /> Traduction
+                {traduit && (
+                  <Badge variant="secondary" className="ml-auto">
+                    ✓
+                  </Badge>
+                )}
               </TabsTrigger>
               <p className="text-muted-foreground px-1 pt-2 text-[10px] font-semibold tracking-wider uppercase">
                 Analyses
@@ -2254,6 +2446,80 @@ export function AtelierClient({
           </TabsContent>
 
           {/* --- Nettoyage / épuration --- */}
+          <TabsContent value="trad" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Traduction assistée par IA</CardTitle>
+                <CardDescription>
+                  Pour les enquêtes en <strong>langue étrangère</strong> (vietnamien, khmer,
+                  portugais, mandarin, japonais…). L’IA détecte la langue puis traduit les{' '}
+                  <strong>en-têtes de colonnes</strong> et les <strong>modalités</strong> (valeurs
+                  catégorielles) vers la langue cible, afin que la suite — nettoyage, croisements,
+                  rapport — se fasse dans cette langue. Le sens d’origine est préservé : les valeurs
+                  hors table (texte libre, noms propres, nombres) restent inchangées.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!analyse ? (
+                  <p className="text-muted-foreground text-sm italic">
+                    Chargez d’abord une base (onglet Source) pour la traduire.
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div className="min-w-56 space-y-1">
+                        <p className="text-muted-foreground text-xs">Langue cible</p>
+                        <Select
+                          value={langueCible}
+                          onValueChange={(v) => setLangueCible(v ?? 'Français')}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {['Français', 'Anglais', 'Espagnol', 'Portugais', 'Arabe'].map((l) => (
+                              <SelectItem key={l} value={l}>
+                                {l}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button onClick={lancerTraduction} disabled={busyTrad}>
+                        {busyTrad ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Languages className="size-4" />
+                        )}
+                        Détecter la langue &amp; traduire
+                      </Button>
+                    </div>
+                    <p className="text-muted-foreground text-xs">
+                      La traduction remplace la base de travail : tous les traitements suivants
+                      portent sur la base traduite, retrouvée à l’identique en rouvrant le
+                      traitement depuis l’historique. Seuls les en-têtes et les modalités sont
+                      envoyés à l’IA — jamais la base entière.
+                    </p>
+                    {traduit && traductionInfo && (
+                      <div className="flex flex-wrap items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+                        <Languages className="size-4" />
+                        <span>
+                          Base traduite active
+                          {traductionInfo.langueDetectee
+                            ? ` — depuis « ${traductionInfo.langueDetectee} »`
+                            : ''}{' '}
+                          vers <strong>{traductionInfo.langueCible}</strong>.
+                        </span>
+                        <Badge variant="secondary">{traductionInfo.nbColonnes} en-tête(s)</Badge>
+                        <Badge variant="secondary">{traductionInfo.nbValeurs} modalité(s)</Badge>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="clean" className="space-y-4">
             <Card>
               <CardHeader>

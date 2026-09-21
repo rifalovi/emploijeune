@@ -49,6 +49,8 @@ from .schemas import (  # noqa: E402
     QualityRequest,
     SourceRequest,
     StatTestRequest,
+    TranslateRequest,
+    TranslationTermsRequest,
 )
 from .serialize import (  # noqa: E402
     crosstab_to_json,
@@ -474,6 +476,129 @@ def quality(req: QualityRequest, user: AuthUser = CurrentUser) -> dict:
         "variables": variables,
         "anomalies": anomalies,
     }
+
+
+def _est_nombre(txt: str) -> bool:
+    """Vrai si la chaîne est purement numérique (rien à traduire)."""
+    s = str(txt).strip().replace(" ", "").replace(" ", "")
+    if not s:
+        return True
+    s = s.replace(",", ".")
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
+@router.post("/translation-terms")
+def translation_terms(req: TranslationTermsRequest, user: AuthUser = CurrentUser) -> dict:
+    """Recense les termes à traduire d'une base importée en langue étrangère :
+    en-têtes de colonnes + valeurs distinctes des colonnes catégorielles. Sert
+    d'entrée à la détection de langue et à la traduction IA (côté Next)."""
+    # Les filtres ne doivent pas restreindre les termes proposés à la traduction.
+    base = SourceRequest(dataset=req.dataset, dataset_ref=req.dataset_ref, filters=None)
+    ds = _resolve_dataset(user, base)
+    frame = ds.frame
+    columns = [str(c) for c in frame.columns]
+    values: dict[str, list[str]] = {}
+    total = 0
+    for c in frame.columns:
+        serie = frame[c].dropna()
+        distinct = []
+        vus: set[str] = set()
+        for v in serie.tolist():
+            s = str(v).strip()
+            if not s or s in vus or _est_nombre(s):
+                continue
+            vus.add(s)
+            distinct.append(s)
+            if len(distinct) > req.max_cardinalite:
+                break
+        # Colonne catégorielle (peu de modalités textuelles) → valeurs traduisibles.
+        if distinct and len(distinct) <= req.max_cardinalite:
+            if total + len(distinct) > req.max_valeurs:
+                continue
+            values[str(c)] = distinct
+            total += len(distinct)
+    # Échantillon pour la détection de langue : en-têtes + quelques valeurs.
+    apercu = list(columns[:60])
+    for vals in list(values.values())[:20]:
+        apercu.extend(vals[:5])
+    return {
+        "columns": columns,
+        "values": values,
+        "sample": " | ".join(apercu[:200]),
+        "n_rows": int(len(frame)),
+    }
+
+
+def _uniquifier(noms: list[str]) -> list[str]:
+    """Suffixe les doublons d'en-têtes (deux termes traduits identiques)."""
+    vus: dict[str, int] = {}
+    sortie: list[str] = []
+    for nom in noms:
+        base = nom if nom else "Colonne"
+        if base in vus:
+            vus[base] += 1
+            sortie.append(f"{base}_{vus[base]}")
+        else:
+            vus[base] = 1
+            sortie.append(base)
+    return sortie
+
+
+@router.post("/translate")
+def translate(req: TranslateRequest, user: AuthUser = CurrentUser) -> dict:
+    """Applique la table de traduction (renommage d'en-têtes + remplacement de
+    valeurs) et renvoie la base traduite. Les valeurs absentes de la table sont
+    conservées telles quelles : aucune donnée n'est inventée ni déformée."""
+    ds = _resolve_dataset(user, req)
+    frame = ds.frame.copy()
+
+    # 1) Remplacement des valeurs, colonne par colonne (sur les en-têtes d'origine).
+    for col, mapping in (req.value_maps or {}).items():
+        if col in frame.columns and mapping:
+            table = {str(k): v for k, v in mapping.items()}
+
+            def _remap(v, _table=table):
+                if v is None:
+                    return v
+                if isinstance(v, float) and pd.isna(v):
+                    return v
+                return _table.get(str(v).strip(), v)
+
+            frame[col] = frame[col].map(_remap)
+
+    # 2) Renommage des en-têtes, en évitant les collisions de noms traduits.
+    colmap = {
+        str(k): str(v).strip()
+        for k, v in (req.column_map or {}).items()
+        if str(k) in frame.columns and str(v).strip()
+    }
+    nouveaux = [colmap.get(str(c), str(c)) for c in frame.columns]
+    nouveaux = _uniquifier(nouveaux)
+    # Table d'origine -> nom final (après unicité) pour reporter les libellés.
+    rename_final = {str(c): nouveaux[i] for i, c in enumerate(frame.columns)}
+    frame.columns = nouveaux
+
+    result = {
+        "n_rows": int(len(frame)),
+        "columns": [str(c) for c in frame.columns],
+        "n_columns_renamed": int(sum(1 for c in ds.frame.columns if str(c) in colmap)),
+    }
+    if req.full:
+        result["dataset"] = {
+            "rows": frame_to_records(frame),
+            "columns": [str(c) for c in frame.columns],
+            "variable_labels": {
+                rename_final.get(str(k), str(k)): str(v)
+                for k, v in (ds.variable_labels or {}).items()
+            },
+            "value_labels": {},
+            "name": req.name or f"{ds.name} (traduit)",
+        }
+    return result
 
 
 app.include_router(router)

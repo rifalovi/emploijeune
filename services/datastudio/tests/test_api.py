@@ -480,3 +480,79 @@ def test_unsupported_algorithm_rejected():
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r.status_code == 401
+
+
+# ------------------------------------------------------- traduction (IA)
+# Base importée en langue étrangère : valeurs brutes, sans libellés SPSS.
+DATASET_VN = {
+    "rows": [
+        {"Giới tính": "Nam", "Tuổi": 30, "Tỉnh": "Hà Nội"},
+        {"Giới tính": "Nữ", "Tuổi": 25, "Tỉnh": "Huế"},
+        {"Giới tính": "Nam", "Tuổi": 41, "Tỉnh": "Hà Nội"},
+    ],
+}
+
+
+def test_translation_terms_ok():
+    r = client.post(
+        "/api/datastudio/translation-terms",
+        json={"dataset": DATASET_VN},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["columns"] == ["Giới tính", "Tuổi", "Tỉnh"]
+    # La colonne catégorielle « Giới tính » liste ses modalités distinctes...
+    assert set(body["values"]["Giới tính"]) == {"Nam", "Nữ"}
+    # ...mais « Tuổi » (âges, purement numérique) n'est pas listée.
+    assert "Tuổi" not in body["values"]
+    assert body["n_rows"] == 3
+
+
+def test_translate_applies_maps_full():
+    r = client.post(
+        "/api/datastudio/translate",
+        json={
+            "dataset": DATASET_VN,
+            "column_map": {"Giới tính": "Sexe", "Tuổi": "Âge", "Tỉnh": "Province"},
+            "value_maps": {"Giới tính": {"Nam": "Homme", "Nữ": "Femme"}},
+            "full": True,
+            "name": "Enquête VN (traduit)",
+        },
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["columns"] == ["Sexe", "Âge", "Province"]
+    assert body["n_columns_renamed"] == 3
+    ds = body["dataset"]
+    assert ds["name"] == "Enquête VN (traduit)"
+    # Les en-têtes ET les valeurs catégorielles sont traduits, l'ordre préservé.
+    assert list(ds["rows"][0].keys()) == ["Sexe", "Âge", "Province"]
+    assert ds["rows"][0]["Sexe"] == "Homme"
+    assert ds["rows"][1]["Sexe"] == "Femme"
+    # Les provinces (hors table) restent inchangées : aucune déformation.
+    assert ds["rows"][0]["Province"] == "Hà Nội"
+    # Les valeurs numériques ne sont pas altérées.
+    assert ds["rows"][0]["Âge"] == 30
+
+
+def test_translate_unicite_des_entetes():
+    # Deux en-têtes traduits identiques → le second est suffixé (pas de collision).
+    r = client.post(
+        "/api/datastudio/translate",
+        json={
+            "dataset": {"rows": [{"col_a": "x", "col_b": "y"}]},
+            "column_map": {"col_a": "Statut", "col_b": "Statut"},
+            "full": True,
+        },
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    cols = r.json()["columns"]
+    assert cols[0] == "Statut" and cols[1] == "Statut_2"
+
+
+def test_translation_terms_requires_auth():
+    r = client.post("/api/datastudio/translation-terms", json={"dataset": DATASET_VN})
+    assert r.status_code == 401

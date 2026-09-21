@@ -132,6 +132,34 @@ class ModalitiesRequest(SourceRequest):
     limit: int = 500
 
 
+class TranslationTermsRequest(SourceRequest):
+    """Termes à traduire d'une base importée : en-têtes de colonnes + modalités
+    des colonnes catégorielles (faible cardinalité). Les colonnes de texte libre
+    (haute cardinalité) et purement numériques ne renvoient pas leurs valeurs."""
+
+    # Au-delà de ce nombre de valeurs distinctes, la colonne est traitée comme du
+    # texte libre : seul son en-tête est traduit, pas ses valeurs.
+    max_cardinalite: int = 80
+    # Plafond global du nombre de valeurs distinctes renvoyées (borne le coût IA).
+    max_valeurs: int = 1200
+
+
+class TranslateRequest(SourceRequest):
+    """Applique une table de traduction produite par l'IA à la base :
+    - `column_map` : {en-tête d'origine -> en-tête traduit}
+    - `value_maps` : {en-tête d'origine -> {valeur d'origine -> valeur traduite}}
+
+    Le renommage et le remplacement préservent l'ordre des lignes et des
+    colonnes ; les valeurs non listées restent inchangées (aucune déformation).
+    `full=True` renvoie la base traduite complète (adoptable comme base de
+    travail)."""
+
+    column_map: dict[str, str] = Field(default_factory=dict)
+    value_maps: dict[str, dict[str, str]] = Field(default_factory=dict)
+    full: bool = False
+    name: Optional[str] = None
+
+
 class IngestFileRequest(BaseModel):
     """Ingestion d'un fichier déjà déposé dans le bucket Storage « datastudio ».
 
