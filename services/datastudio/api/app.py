@@ -50,6 +50,7 @@ from .schemas import (  # noqa: E402
     SourceRequest,
     StatTestRequest,
     TranslateRequest,
+    TranslationFreetextRequest,
     TranslationTermsRequest,
 )
 from .serialize import (  # noqa: E402
@@ -502,25 +503,39 @@ def translation_terms(req: TranslationTermsRequest, user: AuthUser = CurrentUser
     frame = ds.frame
     columns = [str(c) for c in frame.columns]
     values: dict[str, list[str]] = {}
+    free_text_columns: list[str] = []
     total = 0
     for c in frame.columns:
         serie = frame[c].dropna()
         distinct = []
         vus: set[str] = set()
+        textuel = False
+        depasse = False
         for v in serie.tolist():
             s = str(v).strip()
-            if not s or s in vus or _est_nombre(s):
+            if not s or s in vus:
                 continue
             vus.add(s)
+            if _est_nombre(s):
+                continue
+            textuel = True
             distinct.append(s)
             if len(distinct) > req.max_cardinalite:
+                depasse = True
                 break
-        # Colonne catégorielle (peu de modalités textuelles) → valeurs traduisibles.
-        if distinct and len(distinct) <= req.max_cardinalite:
-            if total + len(distinct) > req.max_valeurs:
-                continue
+        if not textuel:
+            # Colonne purement numérique (ou vide) : rien à traduire.
+            continue
+        if depasse:
+            # Haute cardinalité textuelle → réponses ouvertes (traduction en option).
+            free_text_columns.append(str(c))
+        elif total + len(distinct) <= req.max_valeurs:
+            # Colonne catégorielle : modalités traduisibles en une table.
             values[str(c)] = distinct
             total += len(distinct)
+        else:
+            # Trop de valeurs au global → proposée en réponses ouvertes (par lots).
+            free_text_columns.append(str(c))
     # Échantillon pour la détection de langue : en-têtes + quelques valeurs.
     apercu = list(columns[:60])
     for vals in list(values.values())[:20]:
@@ -528,9 +543,42 @@ def translation_terms(req: TranslationTermsRequest, user: AuthUser = CurrentUser
     return {
         "columns": columns,
         "values": values,
+        "free_text_columns": free_text_columns,
         "sample": " | ".join(apercu[:200]),
         "n_rows": int(len(frame)),
     }
+
+
+@router.post("/translation-freetext")
+def translation_freetext(req: TranslationFreetextRequest, user: AuthUser = CurrentUser) -> dict:
+    """Valeurs distinctes des colonnes de réponses ouvertes sélectionnées, pour
+    traduction par lots côté Next. Bornées (max par colonne + max global)."""
+    base = SourceRequest(dataset=req.dataset, dataset_ref=req.dataset_ref, filters=None)
+    ds = _resolve_dataset(user, base)
+    frame = ds.frame
+    out: dict[str, list[str]] = {}
+    total = 0
+    for col in req.cols:
+        if col not in frame.columns or total >= req.max_total:
+            continue
+        distinct: list[str] = []
+        vus: set[str] = set()
+        for v in frame[col].dropna().tolist():
+            s = str(v).strip()
+            if not s or s in vus or _est_nombre(s):
+                continue
+            vus.add(s)
+            distinct.append(s)
+            if len(distinct) >= req.max_par_colonne:
+                break
+        if not distinct:
+            continue
+        if total + len(distinct) > req.max_total:
+            distinct = distinct[: max(0, req.max_total - total)]
+        if distinct:
+            out[col] = distinct
+            total += len(distinct)
+    return {"values": out, "n_cols": len(out), "n_valeurs": total}
 
 
 def _uniquifier(noms: list[str]) -> list[str]:
@@ -556,7 +604,13 @@ def translate(req: TranslateRequest, user: AuthUser = CurrentUser) -> dict:
     ds = _resolve_dataset(user, req)
     frame = ds.frame.copy()
 
+    # 0) Réponses ouvertes : on mémorise le texte ORIGINAL avant toute traduction,
+    #    pour le conserver ensuite dans une colonne compagnon « <col> (VO) ».
+    free_cols = [str(c) for c in (req.free_text_columns or []) if str(c) in frame.columns]
+    originaux = {c: frame[c].copy() for c in free_cols}
+
     # 1) Remplacement des valeurs, colonne par colonne (sur les en-têtes d'origine).
+    #    Couvre les modalités catégorielles ET les valeurs de réponses ouvertes.
     for col, mapping in (req.value_maps or {}).items():
         if col in frame.columns and mapping:
             table = {str(k): v for k, v in mapping.items()}
@@ -582,10 +636,33 @@ def translate(req: TranslateRequest, user: AuthUser = CurrentUser) -> dict:
     rename_final = {str(c): nouveaux[i] for i, c in enumerate(frame.columns)}
     frame.columns = nouveaux
 
+    # 3) Colonnes compagnons « (VO) » : le texte ORIGINAL des réponses ouvertes,
+    #    inséré juste après la colonne traduite, et marqué « texte » (donc exclu
+    #    des analyses et des rapports côté client).
+    mesure_vo: dict[str, str] = {}
+    final_free = {rename_final.get(c, c): c for c in free_cols}
+    if final_free:
+        ordre: list[str] = []
+        for fc in list(frame.columns):
+            ordre.append(fc)
+            if fc in final_free:
+                vo = f"{fc} (VO)"
+                # Unicité si un « (VO) » existe déjà.
+                base_vo = vo
+                k = 2
+                while vo in frame.columns or vo in ordre[:-1]:
+                    vo = f"{base_vo}_{k}"
+                    k += 1
+                frame[vo] = originaux[final_free[fc]].to_numpy()
+                mesure_vo[vo] = "texte"
+                ordre.append(vo)
+        frame = frame[ordre]
+
     result = {
         "n_rows": int(len(frame)),
         "columns": [str(c) for c in frame.columns],
         "n_columns_renamed": int(sum(1 for c in ds.frame.columns if str(c) in colmap)),
+        "vo_columns": list(mesure_vo.keys()),
     }
     if req.full:
         result["dataset"] = {
@@ -596,6 +673,7 @@ def translate(req: TranslateRequest, user: AuthUser = CurrentUser) -> dict:
                 for k, v in (ds.variable_labels or {}).items()
             },
             "value_labels": {},
+            "variable_measure": mesure_vo,
             "name": req.name or f"{ds.name} (traduit)",
         }
     return result

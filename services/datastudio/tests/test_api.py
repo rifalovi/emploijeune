@@ -556,3 +556,77 @@ def test_translate_unicite_des_entetes():
 def test_translation_terms_requires_auth():
     r = client.post("/api/datastudio/translation-terms", json={"dataset": DATASET_VN})
     assert r.status_code == 401
+
+
+# ------------------------------------------------- traduction texte libre
+# Base avec une colonne de réponses OUVERTES (haute cardinalité textuelle).
+def _dataset_ouvert(n=10):
+    rows = []
+    for i in range(n):
+        rows.append(
+            {
+                "Giới tính": "Nam" if i % 2 else "Nữ",
+                "Tuổi": 20 + i,
+                "Nhận xét": f"Bình luận riêng số {i} về khóa học",  # commentaire unique
+            }
+        )
+    return {"rows": rows}
+
+
+def test_translation_terms_detecte_texte_libre():
+    r = client.post(
+        "/api/datastudio/translation-terms",
+        json={"dataset": _dataset_ouvert(12), "max_cardinalite": 5},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    # « Nhận xét » (commentaires uniques) est repérée comme réponse ouverte...
+    assert "Nhận xét" in body["free_text_columns"]
+    # ...et n'apparaît donc pas dans les modalités catégorielles.
+    assert "Nhận xét" not in body["values"]
+    # « Giới tính » reste catégorielle.
+    assert "Giới tính" in body["values"]
+
+
+def test_translation_freetext_valeurs():
+    r = client.post(
+        "/api/datastudio/translation-freetext",
+        json={"dataset": _dataset_ouvert(6), "cols": ["Nhận xét"]},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["n_cols"] == 1
+    assert len(body["values"]["Nhận xét"]) == 6
+
+
+def test_translate_free_text_cree_colonne_vo():
+    ds = _dataset_ouvert(3)
+    # Table de traduction des valeurs ouvertes (orig -> traduit).
+    vmap = {row["Nhận xét"]: f"Commentaire {i}" for i, row in enumerate(ds["rows"])}
+    r = client.post(
+        "/api/datastudio/translate",
+        json={
+            "dataset": ds,
+            "column_map": {"Nhận xét": "Commentaire", "Giới tính": "Sexe"},
+            "value_maps": {"Nhận xét": vmap},
+            "free_text_columns": ["Nhận xét"],
+            "full": True,
+        },
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    cols = body["columns"]
+    # La colonne traduite ET sa compagnne (VO) existent, côte à côte.
+    assert "Commentaire" in cols
+    assert "Commentaire (VO)" in cols
+    assert cols.index("Commentaire (VO)") == cols.index("Commentaire") + 1
+    assert body["vo_columns"] == ["Commentaire (VO)"]
+    dataset = body["dataset"]
+    # La VO est marquée « texte » (donc exclue des analyses/rapports côté client).
+    assert dataset["variable_measure"]["Commentaire (VO)"] == "texte"
+    # La colonne traduite porte la traduction ; la VO garde l'original.
+    assert dataset["rows"][0]["Commentaire"] == "Commentaire 0"
+    assert dataset["rows"][0]["Commentaire (VO)"] == ds["rows"][0]["Nhận xét"]

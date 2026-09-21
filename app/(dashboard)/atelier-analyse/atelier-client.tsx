@@ -107,6 +107,7 @@ import {
   computeQuality,
   computeStatTest,
   computeTranslate,
+  computeTranslationFreetext,
   computeTranslationTerms,
   ingestFile,
   uploadSpssFile,
@@ -117,7 +118,11 @@ import {
   extraireModeleRapportAction,
   genererRapportAction,
 } from '@/lib/atelier-analyse/rapport';
-import { traduireTermesAction } from '@/lib/atelier-analyse/traduction';
+import {
+  TAILLE_LOT_TEXTES,
+  traduireTermesAction,
+  traduireTextesLibresAction,
+} from '@/lib/atelier-analyse/traduction';
 import {
   exporterCrossExcel,
   exporterFreqExcel,
@@ -292,6 +297,7 @@ type ReloadDesc = {
   // Traduction
   columnMap?: Record<string, string>;
   valueMaps?: Record<string, Record<string, string>>;
+  freeTextColumns?: string[];
   name?: string;
   langueCible?: string;
   // Épuration
@@ -398,7 +404,16 @@ export function AtelierClient({
     langueCible: string;
     nbColonnes: number;
     nbValeurs: number;
+    nbOuvertes?: number;
   } | null>(null);
+  // Réponses ouvertes (texte libre) détectées + sélection à traduire par lots.
+  const [colonnesOuvertes, setColonnesOuvertes] = useState<string[]>([]);
+  const [ouvertesSel, setOuvertesSel] = useState<Set<string>>(new Set());
+  const [progressTrad, setProgressTrad] = useState<string>('');
+  // Résultat de l'étape « détection » (réutilisé à l'application, sans re-calcul).
+  const [termesTraduction, setTermesTraduction] = useState<Awaited<
+    ReturnType<typeof computeTranslationTerms>
+  > | null>(null);
 
   // Graphiques
   const [graphVar, setGraphVar] = useState('');
@@ -453,7 +468,11 @@ export function AtelierClient({
   const [modeleFichier, setModeleFichier] = useState<{ nom: string; texte: string } | null>(null);
   const [busyModele, setBusyModele] = useState(false);
 
-  const variables = analyse?.variables ?? [];
+  // Les colonnes compagnons « (VO) » (texte original des réponses ouvertes
+  // traduites) sont EXCLUES des variables analytiques : elles n'impactent ni les
+  // tris/croisements/rapports, ni la présélection. Elles restent visibles dans
+  // l'onglet « Base brute » pour lecture (original + traduction côte à côte).
+  const variables = (analyse?.variables ?? []).filter((v) => !v.name.endsWith(' (VO)'));
 
   // Projets du programme sélectionné (ou tous, en transversal).
   const projetsProgramme =
@@ -606,6 +625,9 @@ export function AtelierClient({
     setTraduit(false);
     setTraduitReload(null);
     setTraductionInfo(null);
+    setColonnesOuvertes([]);
+    setOuvertesSel(new Set());
+    setProgressTrad('');
     setKeyCols([]);
   }
 
@@ -958,46 +980,111 @@ export function AtelierClient({
   }
 
   /**
-   * Traduction (IA) de la base importée vers la langue cible (français par
-   * défaut). On envoie à Claude UNIQUEMENT les en-têtes + modalités catégorielles
-   * (jamais toute la base), on détecte la langue, puis on applique la table de
-   * traduction pour adopter une base traduite comme base de travail. Les valeurs
-   * hors table restent inchangées : le contexte n'est pas déformé.
+   * Étape 1 — Détection : recense (sans IA) en-têtes, modalités et surtout les
+   * colonnes de RÉPONSES OUVERTES (texte libre), pour proposer une sélection à
+   * traduire par lots avant de lancer la traduction.
    */
-  async function lancerTraduction() {
+  async function detecterTraduction() {
     if (!source) {
       setErreur('Chargez d’abord une base à traduire.');
       return;
     }
     setBusyTrad(true);
     setErreur(null);
+    setProgressTrad('Analyse de la base…');
     try {
-      // 1) Termes à traduire (en-têtes + modalités), calculés côté moteur.
       const termes = await computeTranslationTerms(source);
       if (!termes.columns || termes.columns.length === 0) {
         setErreur('Aucune colonne à traduire dans cette base.');
         return;
       }
-      // 2) Détection de langue + table de traduction via l'IA.
+      setTermesTraduction(termes);
+      const ouvertes = termes.free_text_columns ?? [];
+      setColonnesOuvertes(ouvertes);
+      // Réponses ouvertes toutes cochées par défaut (l'utilisateur peut décocher).
+      setOuvertesSel(new Set(ouvertes));
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyTrad(false);
+      setProgressTrad('');
+    }
+  }
+
+  /**
+   * Étape 2 — Traduction (IA) vers la langue cible. On envoie à Claude UNIQUEMENT
+   * les termes (en-têtes + modalités) et, pour les réponses ouvertes cochées,
+   * leurs valeurs distinctes par lots — jamais la base entière. On adopte ensuite
+   * la base traduite comme base de travail. Le texte ORIGINAL des réponses
+   * ouvertes est conservé dans une colonne « (VO) » exclue des analyses/rapports.
+   */
+  async function appliquerTraduction() {
+    if (!source) {
+      setErreur('Chargez d’abord une base à traduire.');
+      return;
+    }
+    // Sécurité : si la détection n'a pas encore tourné, on la lance d'abord.
+    let termes = termesTraduction;
+    if (!termes) {
+      await detecterTraduction();
+      termes = termesTraduction;
+      if (!termes) return;
+    }
+    const termesOk = termes;
+    setBusyTrad(true);
+    setErreur(null);
+    try {
+      // 1) Détection de langue + table de traduction (en-têtes + modalités).
+      setProgressTrad('Traduction des en-têtes et des modalités…');
       const trad = await traduireTermesAction({
-        columns: termes.columns,
-        values: termes.values,
-        sample: termes.sample,
+        columns: termesOk.columns,
+        values: termesOk.values,
+        sample: termesOk.sample,
         langueCible,
       });
       if (trad.status !== 'succes') {
         setErreur(trad.message);
         return;
       }
-      const nbValeurs = Object.values(trad.valueMaps).reduce(
-        (acc, m) => acc + Object.keys(m).length,
-        0,
-      );
-      // 3) Application de la table à la base → base traduite complète.
+      const valueMaps: Record<string, Record<string, string>> = { ...trad.valueMaps };
+
+      // 2) Réponses ouvertes cochées : traduction par lots des valeurs distinctes.
+      const dispo = termesOk.free_text_columns ?? [];
+      const colsOuvertes = [...ouvertesSel].filter((c) => dispo.includes(c));
+      if (colsOuvertes.length > 0) {
+        setProgressTrad('Récupération des réponses ouvertes…');
+        const ft = await computeTranslationFreetext(source, colsOuvertes);
+        const uniques = Array.from(new Set(Object.values(ft.values).flat()));
+        const global: Record<string, string> = {};
+        const nbLots = Math.max(1, Math.ceil(uniques.length / TAILLE_LOT_TEXTES));
+        for (let i = 0; i < uniques.length; i += TAILLE_LOT_TEXTES) {
+          const lot = uniques.slice(i, i + TAILLE_LOT_TEXTES);
+          setProgressTrad(
+            `Traduction des réponses ouvertes… lot ${Math.floor(i / TAILLE_LOT_TEXTES) + 1}/${nbLots}`,
+          );
+          const res = await traduireTextesLibresAction({ textes: lot, langueCible });
+          if (res.status !== 'succes') {
+            setErreur(res.message);
+            return;
+          }
+          Object.assign(global, res.map);
+        }
+        for (const col of colsOuvertes) {
+          const vals = ft.values[col] ?? [];
+          const m: Record<string, string> = { ...(valueMaps[col] ?? {}) };
+          for (const v of vals) if (global[v]) m[v] = global[v];
+          if (Object.keys(m).length > 0) valueMaps[col] = m;
+        }
+      }
+
+      const nbValeurs = Object.values(valueMaps).reduce((a, m) => a + Object.keys(m).length, 0);
+      // 3) Application → base traduite complète (avec colonnes « (VO) »).
+      setProgressTrad('Application de la traduction à la base…');
       const nomTraduit = `${sourceLabel || 'Base'} (traduit ${langueCible})`;
-      const rt = await computeTranslate(source, trad.columnMap, trad.valueMaps, {
+      const rt = await computeTranslate(source, trad.columnMap, valueMaps, {
         full: true,
         name: nomTraduit,
+        freeTextColumns: colsOuvertes,
       });
       if (!rt.dataset || !Array.isArray(rt.dataset.rows)) {
         setErreur('La base traduite n’a pas pu être générée.');
@@ -1019,13 +1106,15 @@ export function AtelierClient({
         langueCible: trad.langueCible,
         nbColonnes: Object.keys(trad.columnMap).length,
         nbValeurs,
+        nbOuvertes: colsOuvertes.length,
       });
       // Descripteur de rechargement : reproduit la traduction sur la base d'origine.
       const reloadTraduit: ReloadDesc = {
         kind: 'traduit',
         base: reloadInfo as ReloadDesc,
         columnMap: trad.columnMap,
-        valueMaps: trad.valueMaps,
+        valueMaps,
+        freeTextColumns: colsOuvertes,
         name: nomTraduit,
         langueCible: trad.langueCible,
       };
@@ -1034,6 +1123,7 @@ export function AtelierClient({
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
     } finally {
       setBusyTrad(false);
+      setProgressTrad('');
     }
   }
 
@@ -1182,6 +1272,7 @@ export function AtelierClient({
       const rt = await computeTranslate(baseSource, desc.columnMap ?? {}, desc.valueMaps ?? {}, {
         full: true,
         name: desc.name,
+        freeTextColumns: desc.freeTextColumns ?? [],
       });
       if (rt.dataset && Array.isArray(rt.dataset.rows)) {
         setDataset(rt.dataset);
@@ -2485,20 +2576,97 @@ export function AtelierClient({
                           </SelectContent>
                         </Select>
                       </div>
-                      <Button onClick={lancerTraduction} disabled={busyTrad}>
+                      <Button variant="outline" onClick={detecterTraduction} disabled={busyTrad}>
+                        {busyTrad ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Search className="size-4" />
+                        )}
+                        Détecter
+                      </Button>
+                      <Button onClick={appliquerTraduction} disabled={busyTrad}>
                         {busyTrad ? (
                           <Loader2 className="size-4 animate-spin" />
                         ) : (
                           <Languages className="size-4" />
                         )}
-                        Détecter la langue &amp; traduire
+                        Traduire vers {langueCible}
                       </Button>
                     </div>
+
+                    {progressTrad && (
+                      <p className="flex items-center gap-2 text-xs text-slate-500">
+                        <Loader2 className="size-3 animate-spin" /> {progressTrad}
+                      </p>
+                    )}
+
+                    {/* Réponses ouvertes détectées : sélection à traduire par lots. */}
+                    {termesTraduction && colonnesOuvertes.length > 0 && (
+                      <div className="space-y-2 rounded-md border border-dashed p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-medium">
+                            Réponses ouvertes (texte libre) — {colonnesOuvertes.length} colonne(s)
+                          </p>
+                          <button
+                            type="button"
+                            className="text-xs text-[#0E4F88] hover:underline"
+                            onClick={() =>
+                              setOuvertesSel((prev) =>
+                                prev.size === colonnesOuvertes.length
+                                  ? new Set()
+                                  : new Set(colonnesOuvertes),
+                              )
+                            }
+                          >
+                            {ouvertesSel.size === colonnesOuvertes.length
+                              ? 'Tout décocher'
+                              : 'Tout cocher'}
+                          </button>
+                        </div>
+                        <p className="text-muted-foreground text-xs">
+                          Cochez les colonnes de verbatims / commentaires à traduire. Le texte
+                          d’origine est conservé dans une colonne « (VO) » qui n’entre PAS dans les
+                          analyses ni les rapports.
+                        </p>
+                        <div className="grid max-h-48 grid-cols-1 gap-1 overflow-auto sm:grid-cols-2">
+                          {colonnesOuvertes.map((col) => (
+                            <label
+                              key={col}
+                              className="flex items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-slate-50"
+                            >
+                              <input
+                                type="checkbox"
+                                className="size-4"
+                                checked={ouvertesSel.has(col)}
+                                onChange={(e) =>
+                                  setOuvertesSel((prev) => {
+                                    const next = new Set(prev);
+                                    if (e.target.checked) next.add(col);
+                                    else next.delete(col);
+                                    return next;
+                                  })
+                                }
+                              />
+                              <span className="truncate" title={col}>
+                                {col}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {termesTraduction && colonnesOuvertes.length === 0 && (
+                      <p className="text-muted-foreground text-xs">
+                        Aucune colonne de réponses ouvertes détectée : seuls les en-têtes et les
+                        modalités seront traduits.
+                      </p>
+                    )}
+
                     <p className="text-muted-foreground text-xs">
                       La traduction remplace la base de travail : tous les traitements suivants
                       portent sur la base traduite, retrouvée à l’identique en rouvrant le
-                      traitement depuis l’historique. Seuls les en-têtes et les modalités sont
-                      envoyés à l’IA — jamais la base entière.
+                      traitement depuis l’historique. Seuls les termes (en-têtes, modalités,
+                      réponses ouvertes cochées) sont envoyés à l’IA — jamais la base entière.
                     </p>
                     {traduit && traductionInfo && (
                       <div className="flex flex-wrap items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
@@ -2511,7 +2679,12 @@ export function AtelierClient({
                           vers <strong>{traductionInfo.langueCible}</strong>.
                         </span>
                         <Badge variant="secondary">{traductionInfo.nbColonnes} en-tête(s)</Badge>
-                        <Badge variant="secondary">{traductionInfo.nbValeurs} modalité(s)</Badge>
+                        <Badge variant="secondary">{traductionInfo.nbValeurs} valeur(s)</Badge>
+                        {(traductionInfo.nbOuvertes ?? 0) > 0 && (
+                          <Badge variant="secondary">
+                            {traductionInfo.nbOuvertes} réponse(s) ouverte(s)
+                          </Badge>
+                        )}
                       </div>
                     )}
                   </>

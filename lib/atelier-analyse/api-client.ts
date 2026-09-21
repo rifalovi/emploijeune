@@ -20,6 +20,7 @@ import type {
   QualityResponse,
   StatTestResponse,
   TranslateResponse,
+  TranslationFreetextResponse,
   TranslationTermsResponse,
 } from './types';
 
@@ -173,20 +174,37 @@ export function computeTranslationTerms(source: ComputeSource): Promise<Translat
 }
 
 /**
+ * Valeurs distinctes des colonnes de réponses ouvertes à traduire par lots
+ * (l'IA les traduit ensuite côté serveur, ligne à ligne).
+ */
+export function computeTranslationFreetext(
+  source: ComputeSource,
+  cols: string[],
+): Promise<TranslationFreetextResponse> {
+  return post<TranslationFreetextResponse>('/translation-freetext', {
+    ...sourceBody(source),
+    cols,
+  });
+}
+
+/**
  * Applique une table de traduction (renommage d'en-têtes + remplacement de
  * valeurs) et renvoie la base traduite complète (full=true) à adopter comme
  * base de travail. Les valeurs hors table restent inchangées (aucune déformation).
+ * `freeTextColumns` : colonnes de réponses ouvertes traduites EN PLACE, dont
+ * l'original est conservé dans une colonne compagnon « <col> (VO) ».
  */
 export function computeTranslate(
   source: ComputeSource,
   columnMap: Record<string, string>,
   valueMaps: Record<string, Record<string, string>>,
-  opts?: { full?: boolean; name?: string },
+  opts?: { full?: boolean; name?: string; freeTextColumns?: string[] },
 ): Promise<TranslateResponse> {
   return post<TranslateResponse>('/translate', {
     ...sourceBody(source),
     column_map: columnMap,
     value_maps: valueMaps,
+    free_text_columns: opts?.freeTextColumns ?? [],
     full: opts?.full ?? true,
     name: opts?.name ?? null,
   });

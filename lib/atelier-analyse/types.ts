@@ -111,8 +111,17 @@ export type CleanResponse = {
 export type TranslationTermsResponse = {
   columns: string[];
   values: Record<string, string[]>;
+  /** Colonnes de réponses ouvertes (texte libre) traduisibles en option, par lots. */
+  free_text_columns: string[];
   sample: string;
   n_rows: number;
+};
+
+/** Valeurs distinctes des colonnes de réponses ouvertes à traduire par lots. */
+export type TranslationFreetextResponse = {
+  values: Record<string, string[]>;
+  n_cols: number;
+  n_valeurs: number;
 };
 
 /** Base traduite : renvoie la base complète (si full=true), adoptable en base de travail. */
@@ -120,6 +129,8 @@ export type TranslateResponse = {
   n_rows: number;
   columns: string[];
   n_columns_renamed: number;
+  /** Colonnes compagnons « (VO) » créées (texte original des réponses ouvertes). */
+  vo_columns: string[];
   dataset?: DatasetInput | null;
 };
 

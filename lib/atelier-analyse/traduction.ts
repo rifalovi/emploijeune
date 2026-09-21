@@ -189,3 +189,103 @@ export async function traduireTermesAction(
     return { status: 'erreur', message };
   }
 }
+
+// ─── Réponses ouvertes (texte libre) : traduction par lots ────────────────────
+
+export type TraduireTextesResult =
+  | { status: 'succes'; langueDetectee: string; map: Record<string, string> }
+  | { status: 'erreur'; message: string };
+
+/** Taille de lot recommandée côté client (nombre de réponses par appel IA). */
+export const TAILLE_LOT_TEXTES = 60;
+
+/**
+ * Traduit UN LOT de réponses ouvertes vers la langue cible. Le client découpe la
+ * liste des valeurs distinctes en lots et appelle cette action successivement,
+ * puis assemble la table {original -> traduit}. Traduction fidèle, sans
+ * reformulation ni ajout — le sens d'origine est préservé.
+ */
+export async function traduireTextesLibresAction(input: {
+  textes: string[];
+  langueCible?: string;
+}): Promise<TraduireTextesResult> {
+  const utilisateur = await requireUtilisateurValide();
+  if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
+    return { status: 'erreur', message: 'Accès non autorisé.' };
+  }
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return { status: 'erreur', message: 'ANTHROPIC_API_KEY absente du serveur.' };
+  }
+  const langueCible = (input.langueCible ?? 'Français').trim() || 'Français';
+  // On borne le lot (le client envoie déjà TAILLE_LOT_TEXTES, on sécurise à 120).
+  const textes = (input.textes ?? []).map((t) => String(t)).slice(0, 120);
+  if (textes.length === 0) {
+    return { status: 'succes', langueDetectee: '', map: {} };
+  }
+
+  const system =
+    'Tu es traducteur professionnel de données d’enquête (réponses ouvertes). ' +
+    `On te donne un TABLEAU JSON de réponses libres. Traduis CHAQUE élément vers ${langueCible}. ` +
+    'Règles STRICTES : 1) Préserve EXACTEMENT le sens ; ne reformule pas, ne résume pas, ' +
+    'n’ajoute ni ne retire d’information, ne commente pas. 2) Ne traduis pas les noms propres, ' +
+    'lieux, codes, sigles, e-mails, URL, dates et nombres : recopie-les. 3) Si une réponse est ' +
+    'déjà dans la langue cible ou intraduisible (vide, « — »), recopie-la telle quelle. ' +
+    'Réponds STRICTEMENT par un TABLEAU JSON de MÊME longueur et MÊME ordre que l’entrée, ' +
+    'ne contenant que les traductions (chaînes), sans aucun texte autour. ' +
+    'Indique la langue source détectée nulle part ailleurs que via l’ordre — ne renvoie que le tableau.';
+
+  const userMessage = JSON.stringify(textes);
+
+  const client = new Anthropic({ apiKey });
+  try {
+    const reponse = await client.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 8000,
+      system,
+      messages: [{ role: 'user', content: userMessage }],
+    });
+    const texte = reponse.content
+      .filter((b) => b.type === 'text')
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim();
+    let arr: unknown;
+    try {
+      const m = /\[[\s\S]*\]/.exec(texte);
+      arr = JSON.parse(m ? m[0] : texte);
+    } catch {
+      return { status: 'erreur', message: "La traduction IA n'a pas pu être interprétée." };
+    }
+    if (!Array.isArray(arr) || arr.length !== textes.length) {
+      // Longueur incohérente : on refuse plutôt que d’aligner des traductions au
+      // mauvais texte (risque de déformation du sens).
+      return {
+        status: 'erreur',
+        message: 'Réponse IA incohérente (nombre de traductions inattendu). Réessayez.',
+      };
+    }
+    const map: Record<string, string> = {};
+    for (let i = 0; i < textes.length; i++) {
+      const trad = String(arr[i] ?? '').trim();
+      if (trad) map[textes[i]!] = trad;
+    }
+    return { status: 'succes', langueDetectee: langueCible, map };
+  } catch (e) {
+    const status = (e as { status?: number } | null)?.status;
+    let message: string;
+    if (status === 401) {
+      message = 'Service IA indisponible : la configuration serveur doit être mise à jour.';
+    } else if (status === 429) {
+      message = "Limite d'usage de l'IA atteinte. Patientez quelques minutes.";
+    } else if (status === 529) {
+      message = "L'IA est surchargée pour le moment. Réessayez dans un instant.";
+    } else if (status && status >= 500) {
+      message = 'Service IA temporairement indisponible. Réessayez dans un instant.';
+    } else {
+      message = e instanceof Error ? e.message : 'Erreur inconnue.';
+    }
+    console.error('[atelier-analyse] Échec traduction textes libres', { status });
+    return { status: 'erreur', message };
+  }
+}

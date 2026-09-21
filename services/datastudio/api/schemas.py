@@ -144,10 +144,22 @@ class TranslationTermsRequest(SourceRequest):
     max_valeurs: int = 1200
 
 
+class TranslationFreetextRequest(SourceRequest):
+    """Valeurs distinctes des colonnes de TEXTE LIBRE (réponses ouvertes) à
+    traduire par lots. Bornées pour maîtriser le coût IA."""
+
+    cols: list[str] = Field(default_factory=list)
+    max_par_colonne: int = 3000
+    max_total: int = 8000
+
+
 class TranslateRequest(SourceRequest):
     """Applique une table de traduction produite par l'IA à la base :
     - `column_map` : {en-tête d'origine -> en-tête traduit}
     - `value_maps` : {en-tête d'origine -> {valeur d'origine -> valeur traduite}}
+    - `free_text_columns` : colonnes de réponses ouvertes traduites EN PLACE et
+      dont l'original est conservé dans une colonne compagnon « <col> (VO) »
+      (marquée « texte » pour rester hors des analyses et des rapports).
 
     Le renommage et le remplacement préservent l'ordre des lignes et des
     colonnes ; les valeurs non listées restent inchangées (aucune déformation).
@@ -156,6 +168,7 @@ class TranslateRequest(SourceRequest):
 
     column_map: dict[str, str] = Field(default_factory=dict)
     value_maps: dict[str, dict[str, str]] = Field(default_factory=dict)
+    free_text_columns: list[str] = Field(default_factory=list)
     full: bool = False
     name: Optional[str] = None
 
