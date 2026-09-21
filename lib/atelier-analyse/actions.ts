@@ -1,5 +1,6 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireUtilisateurValide } from '@/lib/supabase/auth';
 import { peutAccederDataStudio } from '@/lib/super-admin/permissions';
@@ -11,6 +12,46 @@ import {
   chargerDatasetStructures,
 } from './queries';
 import type { DatasetInput } from './types';
+
+/**
+ * Résultat des chargeurs de base VOLUMINEUSE (bénéficiaires / structures) :
+ * la base est déposée dans Storage sous forme d'enveloppe JSON et référencée par
+ * `datasetRef`, au lieu de transiter en ligne à chaque calcul (une base de
+ * dizaines de milliers de lignes dépasserait la limite de taille des requêtes).
+ */
+export type DatasetRefResult = { datasetRef: string; name: string; nRows: number };
+
+/**
+ * Dépose un DatasetInput comme enveloppe JSON dans le bucket privé « datastudio »
+ * (chemin préfixé par l'identifiant de l'utilisateur, exigé par la RLS et l'API)
+ * et renvoie son chemin de stockage (dataset_ref).
+ */
+async function televerserDatasetRef(
+  userId: string,
+  dataset: DatasetInput,
+  slug: string,
+): Promise<DatasetRefResult> {
+  const supabase = await createSupabaseServerClient();
+  const enveloppe = JSON.stringify({
+    rows: dataset.rows,
+    columns: dataset.columns ?? null,
+    variable_labels: dataset.variable_labels ?? {},
+    value_labels: dataset.value_labels ?? {},
+    variable_measure: dataset.variable_measure ?? {},
+    name: dataset.name ?? slug,
+  });
+  const path = `${userId}/uploads/${randomUUID()}_${slug}.json`;
+  const { error } = await supabase.storage
+    .from('datastudio')
+    .upload(path, Buffer.from(enveloppe, 'utf-8'), {
+      upsert: false,
+      contentType: 'application/json',
+    });
+  if (error) {
+    throw new Error(`Préparation de la base échouée : ${error.message}`);
+  }
+  return { datasetRef: path, name: dataset.name ?? slug, nRows: dataset.rows.length };
+}
 
 /**
  * Action serveur : charge le jeu de données d'un indicateur (réponses
@@ -48,24 +89,30 @@ export async function chargerDatasetMultiProjetsAction(
  */
 export async function chargerDatasetBeneficiairesAction(
   projetCode?: string,
-): Promise<DatasetInput> {
+): Promise<DatasetRefResult> {
   const utilisateur = await requireUtilisateurValide();
   if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
     throw new Error('Accès non autorisé.');
   }
-  return chargerDatasetBeneficiaires(projetCode);
+  // Base potentiellement volumineuse (des dizaines de milliers de bénéficiaires) :
+  // on la récupère EN ENTIER (pagination) puis on la dépose dans Storage.
+  const dataset = await chargerDatasetBeneficiaires(projetCode);
+  return televerserDatasetRef(utilisateur.user_id, dataset, 'beneficiaires');
 }
 
 /**
  * Action serveur : charge la base STRUCTURES (indicateur B1) comme jeu de
  * données DataStudio, éventuellement filtrée par projet. Réservée SCS / super_admin.
  */
-export async function chargerDatasetStructuresAction(projetCode?: string): Promise<DatasetInput> {
+export async function chargerDatasetStructuresAction(
+  projetCode?: string,
+): Promise<DatasetRefResult> {
   const utilisateur = await requireUtilisateurValide();
   if (!(await peutAccederDataStudio(utilisateur.id, utilisateur.role))) {
     throw new Error('Accès non autorisé.');
   }
-  return chargerDatasetStructures(projetCode);
+  const dataset = await chargerDatasetStructures(projetCode);
+  return televerserDatasetRef(utilisateur.user_id, dataset, 'structures');
 }
 
 export type EnregistrerTraitementInput = {

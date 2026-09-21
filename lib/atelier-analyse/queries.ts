@@ -6,6 +6,35 @@ import { SEXE_LIBELLES } from '@/lib/schemas/nomenclatures';
 import type { Sexe } from '@/lib/schemas/nomenclatures';
 import type { DatasetInput, HistoriqueJob, IndicateurSource } from './types';
 
+/**
+ * Récupère TOUTES les lignes d'une requête Supabase en contournant le plafond
+ * PostgREST (max ~1000 lignes par requête, quel que soit `.limit()`).
+ *
+ * On pagine par lots via `.range()`, avec un ordre STABLE (`id` par défaut) pour
+ * éviter tout doublon/oubli entre pages. `construire()` doit renvoyer une requête
+ * filtrée (sélection + filtres) SANS `.range()` ni `.limit()`.
+ */
+async function chargerToutesLignes<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  construire: () => any,
+  ordreColonne = 'id',
+  opts: { batch?: number; max?: number } = {},
+): Promise<T[]> {
+  const batch = opts.batch ?? 1000;
+  const max = opts.max ?? 200000;
+  const out: T[] = [];
+  for (let from = 0; from < max; from += batch) {
+    const { data, error } = await construire()
+      .order(ordreColonne, { ascending: true })
+      .range(from, from + batch - 1);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []) as T[];
+    out.push(...page);
+    if (page.length < batch) break; // dernière page atteinte
+  }
+  return out;
+}
+
 /** Âge (années révolues) à partir d'une date de naissance ISO, ou null. */
 function ageDepuis(dateNaissance: string | null | undefined): number | null {
   if (!dateNaissance) return null;
@@ -49,18 +78,17 @@ export async function chargerDatasetEnquete(
   projetCode?: string,
 ): Promise<DatasetInput> {
   const supabase = await createSupabaseServerClient();
-  let query = supabase
-    .from('reponses_enquetes')
-    .select('donnees')
-    .eq('indicateur_code', indicateurCode)
-    .is('deleted_at', null)
-    .limit(5000);
-  if (projetCode) query = query.eq('projet_code', projetCode);
+  const data = await chargerToutesLignes<{ donnees: unknown }>(() => {
+    let q = supabase
+      .from('reponses_enquetes')
+      .select('donnees')
+      .eq('indicateur_code', indicateurCode)
+      .is('deleted_at', null);
+    if (projetCode) q = q.eq('projet_code', projetCode);
+    return q;
+  });
 
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-
-  const rows: Record<string, unknown>[] = (data ?? []).map((r) => {
+  const rows: Record<string, unknown>[] = data.map((r) => {
     const d = r.donnees;
     return d && typeof d === 'object' && !Array.isArray(d) ? (d as Record<string, unknown>) : {};
   });
@@ -117,18 +145,17 @@ export async function chargerDatasetMultiProjets(
   );
   const progMap = new Map((programmes ?? []).map((p) => [p.code, p.libelle]));
 
-  let query = supabase
-    .from('reponses_enquetes')
-    .select('donnees, projet_code')
-    .eq('indicateur_code', indicateurCode)
-    .is('deleted_at', null)
-    .limit(20000);
-  if (projetCodes.length > 0) query = query.in('projet_code', projetCodes);
+  const data = await chargerToutesLignes<{ donnees: unknown; projet_code: string | null }>(() => {
+    let q = supabase
+      .from('reponses_enquetes')
+      .select('donnees, projet_code')
+      .eq('indicateur_code', indicateurCode)
+      .is('deleted_at', null);
+    if (projetCodes.length > 0) q = q.in('projet_code', projetCodes);
+    return q;
+  });
 
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-
-  const rows: Record<string, unknown>[] = (data ?? []).map((r) => {
+  const rows: Record<string, unknown>[] = data.map((r) => {
     const d =
       r.donnees && typeof r.donnees === 'object' && !Array.isArray(r.donnees)
         ? (r.donnees as Record<string, unknown>)
@@ -175,19 +202,32 @@ export async function chargerDatasetBeneficiaires(projetCode?: string): Promise<
   const supabase = await createSupabaseServerClient();
   const [nom, progMap] = await Promise.all([getNomenclatures(), mapProgrammes()]);
 
-  let query = supabase
-    .from('beneficiaires')
-    .select(
-      'sexe, date_naissance, tranche_age_declaree, projet_code, pays_code, partenaire_accompagnement, domaine_formation_code, modalite_formation_code, annee_formation, statut_code, fonction_actuelle, localite_residence',
-    )
-    .is('deleted_at', null)
-    .limit(50000);
-  if (projetCode) query = query.eq('projet_code', projetCode);
+  type BeneficiaireRow = {
+    sexe: string | null;
+    date_naissance: string | null;
+    tranche_age_declaree: string | null;
+    projet_code: string | null;
+    pays_code: string | null;
+    partenaire_accompagnement: string | null;
+    domaine_formation_code: string | null;
+    modalite_formation_code: string | null;
+    annee_formation: number | null;
+    statut_code: string | null;
+    fonction_actuelle: string | null;
+    localite_residence: string | null;
+  };
+  const data = await chargerToutesLignes<BeneficiaireRow>(() => {
+    let q = supabase
+      .from('beneficiaires')
+      .select(
+        'sexe, date_naissance, tranche_age_declaree, projet_code, pays_code, partenaire_accompagnement, domaine_formation_code, modalite_formation_code, annee_formation, statut_code, fonction_actuelle, localite_residence',
+      )
+      .is('deleted_at', null);
+    if (projetCode) q = q.eq('projet_code', projetCode);
+    return q;
+  });
 
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-
-  const rows = (data ?? []).map((b) => {
+  const rows = data.map((b) => {
     const projMeta = b.projet_code ? nom.projets.get(b.projet_code) : undefined;
     const prog = projMeta?.programme_strategique ?? null;
     const age = ageDepuis(b.date_naissance as string | null);
@@ -244,19 +284,32 @@ export async function chargerDatasetStructures(projetCode?: string): Promise<Dat
   const supabase = await createSupabaseServerClient();
   const [nom, progMap] = await Promise.all([getNomenclatures(), mapProgrammes()]);
 
-  let query = supabase
-    .from('structures')
-    .select(
-      'type_structure_code, secteur_activite_code, secteur_precis, statut_creation, projet_code, pays_code, porteur_sexe, annee_appui, nature_appui_code, montant_appui, devise_code, localite',
-    )
-    .is('deleted_at', null)
-    .limit(50000);
-  if (projetCode) query = query.eq('projet_code', projetCode);
+  type StructureRow = {
+    type_structure_code: string | null;
+    secteur_activite_code: string | null;
+    secteur_precis: string | null;
+    statut_creation: string | null;
+    projet_code: string | null;
+    pays_code: string | null;
+    porteur_sexe: string | null;
+    annee_appui: number | null;
+    nature_appui_code: string | null;
+    montant_appui: number | null;
+    devise_code: string | null;
+    localite: string | null;
+  };
+  const data = await chargerToutesLignes<StructureRow>(() => {
+    let q = supabase
+      .from('structures')
+      .select(
+        'type_structure_code, secteur_activite_code, secteur_precis, statut_creation, projet_code, pays_code, porteur_sexe, annee_appui, nature_appui_code, montant_appui, devise_code, localite',
+      )
+      .is('deleted_at', null);
+    if (projetCode) q = q.eq('projet_code', projetCode);
+    return q;
+  });
 
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-
-  const rows = (data ?? []).map((s) => {
+  const rows = data.map((s) => {
     const projMeta = s.projet_code ? nom.projets.get(s.projet_code) : undefined;
     const prog = projMeta?.programme_strategique ?? null;
     return {

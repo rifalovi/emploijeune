@@ -240,6 +240,32 @@ def _read_csv_raw(path: str, sep: str, encoding: str) -> pd.DataFrame:
     return pd.DataFrame(normalisees, dtype=object)
 
 
+def _read_json(path: str) -> SurveyDataset:
+    """Lit un fichier JSON, soit un tableau d'enregistrements, soit une enveloppe
+    DatasetInput `{rows, columns?, variable_labels?, value_labels?,
+    variable_measure?, name?}` — utilisée pour transmettre une base volumineuse
+    (bénéficiaires/structures) par référence Storage plutôt qu'en ligne."""
+    import json as _json
+
+    with open(path, "r", encoding="utf-8") as fh:
+        obj = _json.load(fh)
+    if isinstance(obj, dict) and "rows" in obj:
+        rows = obj.get("rows") or []
+        colonnes = obj.get("columns")
+        frame = pd.DataFrame(rows, columns=colonnes) if colonnes else pd.DataFrame(rows)
+        return SurveyDataset(
+            frame=frame,
+            variable_labels=obj.get("variable_labels") or {},
+            value_labels={
+                k: dict(v) for k, v in (obj.get("value_labels") or {}).items()
+            },
+            variable_measure=obj.get("variable_measure") or {},
+            name=obj.get("name") or Path(path).stem,
+        )
+    # Tableau d'enregistrements classique (ou autre structure JSON tabulaire).
+    return SurveyDataset(frame=pd.DataFrame(obj) if isinstance(obj, list) else pd.read_json(path))
+
+
 def read_tabular(
     path: str,
     sheet: Optional[str] = None,
@@ -268,7 +294,7 @@ def read_tabular(
         hr = header_row if header_row is not None else _detect_header_row(raw)
         return SurveyDataset(frame=_apply_header(raw, hr))
     if ext == ".json":
-        return SurveyDataset(frame=pd.read_json(path))
+        return _read_json(path)
     if ext == ".docx":
         return SurveyDataset(frame=_read_docx_table(path), name=Path(path).stem)
     if ext == ".pbix":

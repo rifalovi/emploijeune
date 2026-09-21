@@ -504,31 +504,34 @@ export function AtelierClient({
   const estBd = sourceMode === 'beneficiaires' || sourceMode === 'structures';
   const bdProjetCode = bdProjet !== '__tous__' ? bdProjet : '';
   const bdLabel = sourceMode === 'structures' ? 'Structures' : 'Bénéficiaires';
-  const sourceKind = datasetRef ? 'upload' : estBd ? sourceMode : estMulti ? 'multi' : 'enquete';
-  const sourceRef = datasetRef
-    ? fichierNom
-    : estBd
-      ? bdProjetCode || sourceMode
-      : estMulti
-        ? mpIndicateur
+  // NB : les bases bénéficiaires/structures possèdent aussi un `datasetRef`
+  // (déposé dans Storage), mais on les identifie par leur MODE (estBd) — et non
+  // « upload » — pour conserver leur regroupement et recharger la BASE À JOUR.
+  const sourceKind = estBd ? sourceMode : estMulti ? 'multi' : datasetRef ? 'upload' : 'enquete';
+  const sourceRef = estBd
+    ? bdProjetCode || sourceMode
+    : estMulti
+      ? mpIndicateur
+      : datasetRef
+        ? fichierNom
         : indicateur;
-  const sourceLabel = datasetRef
-    ? fichierNom
-    : estBd
-      ? bdProjetCode
-        ? `${bdLabel} — ${projets.find((p) => p.code === bdProjetCode)?.libelle ?? bdProjetCode}`
-        : bdLabel
-      : estMulti
-        ? `Multi-projets — ${indicateurs.find((i) => i.code === mpIndicateur)?.libelle ?? mpIndicateur}`
+  const sourceLabel = estBd
+    ? bdProjetCode
+      ? `${bdLabel} — ${projets.find((p) => p.code === bdProjetCode)?.libelle ?? bdProjetCode}`
+      : bdLabel
+    : estMulti
+      ? `Multi-projets — ${indicateurs.find((i) => i.code === mpIndicateur)?.libelle ?? mpIndicateur}`
+      : datasetRef
+        ? fichierNom
         : (indicateurs.find((i) => i.code === indicateur)?.libelle ?? indicateur);
 
   // De quoi recharger la source d'un traitement (pour rouvrir le workspace).
-  const reloadInfo: Record<string, unknown> = datasetRef
-    ? { kind: 'upload', datasetRef, nom: fichierNom }
-    : estBd
-      ? { kind: sourceMode, projet: bdProjetCode || null }
-      : estMulti
-        ? { kind: 'multi', indicateur: mpIndicateur, projets: mpProjets }
+  const reloadInfo: Record<string, unknown> = estBd
+    ? { kind: sourceMode, projet: bdProjetCode || null }
+    : estMulti
+      ? { kind: 'multi', indicateur: mpIndicateur, projets: mpProjets }
+      : datasetRef
+        ? { kind: 'upload', datasetRef, nom: fichierNom }
         : { kind: 'enquete', indicateur };
   // Rechargement à mémoriser pour un traitement produit MAINTENANT : si la base
   // de travail est la base épurée, on rouvre la base nettoyée (et non la brute).
@@ -703,11 +706,14 @@ export function AtelierClient({
     reinitAnalyse();
     try {
       const projet = bdProjet !== '__tous__' ? bdProjet : undefined;
-      const ds =
+      // La base (potentiellement des dizaines de milliers de lignes) est déposée
+      // dans Storage ; on l'analyse ensuite par référence (comme un fichier
+      // importé), sans jamais la faire transiter en entier à chaque calcul.
+      const ref =
         mode === 'structures'
           ? await chargerDatasetStructuresAction(projet)
           : await chargerDatasetBeneficiairesAction(projet);
-      if (ds.rows.length === 0) {
+      if (ref.nRows === 0) {
         setErreur(
           mode === 'structures'
             ? 'Aucune structure pour cette sélection.'
@@ -715,9 +721,11 @@ export function AtelierClient({
         );
         return;
       }
-      setDataset(ds);
-      setDatasetRef(null);
-      appliquerAnalyse(await analyzeDataset(ds));
+      const a = await ingestFile(ref.datasetRef);
+      setDatasetRef(a.dataset_ref);
+      setDataset(null);
+      setFichierNom(ref.name || a.name);
+      appliquerAnalyse(a);
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
     } finally {
@@ -1256,15 +1264,18 @@ export function AtelierClient({
     }
     if (desc.kind === 'beneficiaires' || desc.kind === 'structures') {
       const projet = desc.projet || undefined;
-      const ds =
+      // La base est re-déposée dans Storage (données À JOUR) puis lue par référence.
+      const ref =
         desc.kind === 'structures'
           ? await chargerDatasetStructuresAction(projet)
           : await chargerDatasetBeneficiairesAction(projet);
+      const a = await ingestFile(ref.datasetRef);
       setSourceMode(desc.kind);
       setBdProjet(desc.projet || '__tous__');
-      setDataset(ds);
-      setDatasetRef(null);
-      return { dataset: ds };
+      setDatasetRef(a.dataset_ref);
+      setDataset(null);
+      setFichierNom(ref.name || a.name);
+      return { datasetRef: a.dataset_ref };
     }
     if (desc.kind === 'traduit' && desc.base) {
       const baseSource = await chargerSourceReload(desc.base);
@@ -1397,15 +1408,18 @@ export function AtelierClient({
           }
         } else if (reload?.kind === 'beneficiaires' || reload?.kind === 'structures') {
           const projet = reload.projet || undefined;
-          const ds =
+          // Base re-déposée dans Storage (à jour) puis analysée par référence.
+          const ref =
             reload.kind === 'structures'
               ? await chargerDatasetStructuresAction(projet)
               : await chargerDatasetBeneficiairesAction(projet);
+          const a = await ingestFile(ref.datasetRef);
           setSourceMode(reload.kind);
           setBdProjet(reload.projet || '__tous__');
-          setDataset(ds);
-          setDatasetRef(null);
-          appliquerAnalyse(await analyzeDataset(ds));
+          setDatasetRef(a.dataset_ref);
+          setDataset(null);
+          setFichierNom(ref.name || a.name);
+          appliquerAnalyse(a);
         } else if (reload?.kind === 'traduit' && reload.base) {
           // Base traduite : on recharge la source d'origine puis on réapplique la
           // traduction mémorisée (le résolveur pose la base traduite en mémoire).

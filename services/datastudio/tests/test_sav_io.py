@@ -169,3 +169,33 @@ def test_csv_entete_auto_ignore_preambule(tmp_path):
     ds = read_tabular(str(p))
     assert list(ds.frame.columns) == ["nom", "sexe", "age", "statut"]
     assert len(ds.frame) == 2
+
+
+def test_json_enveloppe_datasetinput(tmp_path):
+    """Une enveloppe {rows, columns, variable_labels, name} est lue avec ses libellés."""
+    import json
+
+    p = tmp_path / "base.json"
+    env = {
+        "rows": [{"Sexe": "Homme", "Pays": "Niger"}, {"Sexe": "Femme", "Pays": "Togo"}],
+        "columns": ["Sexe", "Pays"],
+        "variable_labels": {"Sexe": "Sexe du répondant"},
+        "name": "Bénéficiaires",
+    }
+    p.write_text(json.dumps(env, ensure_ascii=False), encoding="utf-8")
+    ds = load_dataset(str(p))
+    assert list(ds.frame.columns) == ["Sexe", "Pays"]
+    assert len(ds.frame) == 2
+    assert ds.name == "Bénéficiaires"
+    assert ds.variable_labels.get("Sexe") == "Sexe du répondant"
+
+
+def test_json_tableau_simple(tmp_path):
+    """Un JSON tableau d'enregistrements reste lu comme avant."""
+    import json
+
+    p = tmp_path / "arr.json"
+    p.write_text(json.dumps([{"a": 1, "b": 2}, {"a": 3, "b": 4}]), encoding="utf-8")
+    ds = read_tabular(str(p))
+    assert len(ds.frame) == 2
+    assert set(ds.frame.columns) == {"a", "b"}
