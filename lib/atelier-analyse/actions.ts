@@ -41,11 +41,14 @@ async function televerserDatasetRef(
     name: dataset.name ?? slug,
   });
   const path = `${userId}/uploads/${randomUUID()}_${slug}.json`;
+  // On force application/octet-stream : la liste MIME du bucket « datastudio »
+  // n'autorise pas application/json. Le serveur Python lit le fichier par son
+  // EXTENSION (.json → enveloppe DatasetInput), pas par son type MIME.
   const { error } = await supabase.storage
     .from('datastudio')
     .upload(path, Buffer.from(enveloppe, 'utf-8'), {
       upsert: false,
-      contentType: 'application/json',
+      contentType: 'application/octet-stream',
     });
   if (error) {
     throw new Error(`Préparation de la base échouée : ${error.message}`);
