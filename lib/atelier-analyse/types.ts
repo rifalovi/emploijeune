@@ -23,6 +23,12 @@ export type AnalyzeResponse = {
   n_rows: number;
   variables: AnalyzeVariable[];
   multi_groups: Record<string, { column: string; option: string }[]>;
+  /**
+   * Corruption d'encodage détectée à la lecture (caractères déjà remplacés par
+   * « ? » / U+FFFD à la source). Ces caractères sont perdus AVANT l'import et la
+   * traduction ne peut pas les restaurer — la base doit être réexportée en UTF-8.
+   */
+  corruption?: { corrompu: boolean; n_occurrences: number; exemples: string[] };
 };
 
 export type FrequencyRow = {

@@ -630,3 +630,33 @@ def test_translate_free_text_cree_colonne_vo():
     # La colonne traduite porte la traduction ; la VO garde l'original.
     assert dataset["rows"][0]["Commentaire"] == "Commentaire 0"
     assert dataset["rows"][0]["Commentaire (VO)"] == ds["rows"][0]["Nhận xét"]
+
+
+# ------------------------------------------------- détection de corruption
+def test_analyze_detecte_corruption_encodage():
+    ds = {
+        "rows": [
+            {"Langue": 1, "Métier": "Enseignant"},
+            {"Langue": 2, "Métier": "N?u ?n"},          # vietnamien corrompu
+            {"Langue": 3, "Métier": "?????????"},        # khmer corrompu
+        ],
+        "value_labels": {"Langue": {"1": "français", "2": "Ti?ng Vi?t", "3": "?????????"}},
+    }
+    r = client.post("/api/datastudio/analyze", json={"dataset": ds}, headers=auth_headers())
+    assert r.status_code == 200
+    corr = r.json()["corruption"]
+    assert corr["corrompu"] is True
+    assert corr["n_occurrences"] >= 3
+    assert any("?" in e for e in corr["exemples"])
+
+
+def test_analyze_pas_de_corruption_texte_propre():
+    ds = {
+        "rows": [
+            {"Langue": "français", "Note": "Très bien. Est-ce clair ?"},
+            {"Langue": "português", "Note": "Ótimo"},
+        ],
+    }
+    r = client.post("/api/datastudio/analyze", json={"dataset": ds}, headers=auth_headers())
+    assert r.status_code == 200
+    assert r.json()["corruption"]["corrompu"] is False

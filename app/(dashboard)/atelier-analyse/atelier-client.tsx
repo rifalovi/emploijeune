@@ -1907,6 +1907,28 @@ export function AtelierClient({
       )}
 
       {/* Espace d'analyse — rail des commandes (façon DataStudio desktop) + panneau */}
+      {analyse?.corruption?.corrompu && (
+        <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          <p className="flex items-center gap-2 font-semibold">
+            <AlertTriangle className="size-4 shrink-0" />
+            Caractères déjà perdus dans le fichier source (encodage)
+          </p>
+          <p className="mt-1.5">
+            Cette base contient des caractères remplacés par «&nbsp;?&nbsp;» — signe que le fichier
+            a été exporté dans un encodage non-Unicode. Ces caractères (souvent vietnamien, khmer,
+            arabe, mandarin…) sont perdus <strong>avant l’import</strong> : la traduction ne peut
+            pas les restaurer. Pour les récupérer, ré-exportez la source en <strong>UTF-8</strong>{' '}
+            (SPSS : Enregistrer sous → Unicode UTF-8 ; Kobo : export CSV/XLSX, nativement UTF-8),
+            puis ré-importez.
+          </p>
+          {analyse.corruption.exemples.length > 0 && (
+            <p className="text-muted-foreground mt-2 text-xs">
+              Exemples repérés : {analyse.corruption.exemples.slice(0, 4).join(' · ')}
+            </p>
+          )}
+        </div>
+      )}
+
       {analyse && source && (
         <Tabs
           value={ongletActif}

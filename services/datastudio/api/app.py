@@ -8,6 +8,7 @@ JWT Supabase valide ; /health est public.
 from __future__ import annotations
 
 import os
+import re
 import sys
 from typing import Optional
 from urllib.parse import quote, unquote
@@ -198,7 +199,56 @@ def _analyze_payload(ds: SurveyDataset) -> dict:
             prefix: [{"column": c, "option": opt} for c, opt in items]
             for prefix, items in groups.items()
         },
+        "corruption": _detecter_corruption(ds),
     }
+
+
+# Corruption d'encodage : « ? » collé à une lettre, suite de « ? », ou le
+# caractère de remplacement Unicode U+FFFD. Un « ? » isolé après une espace
+# (« Ça va ? ») N'EST PAS de la corruption.
+_RE_CORRUPTION = re.compile(r"\w\?|\?\w|\?{2,}|�")
+
+
+def _texte_corrompu(s: str) -> bool:
+    return bool(_RE_CORRUPTION.search(s))
+
+
+def _detecter_corruption(ds: SurveyDataset) -> dict:
+    """Repère une corruption d'encodage (caractères déjà remplacés par « ? » ou
+    U+FFFD) dans les libellés de variables/valeurs et un échantillon des textes
+    libres. Sert à AVERTIR l'utilisateur : ces caractères sont perdus à la source
+    (mauvais encodage à l'export) et AUCUNE traduction ne peut les restaurer."""
+    exemples: list[str] = []
+    n = 0
+
+    def _ajouter(s: str) -> None:
+        nonlocal n
+        n += 1
+        if s not in exemples and len(exemples) < 6:
+            exemples.append(s)
+
+    for lab in (ds.variable_labels or {}).values():
+        if lab and _texte_corrompu(str(lab)):
+            _ajouter(str(lab))
+    for mapping in (ds.value_labels or {}).values():
+        for lab in (mapping or {}).values():
+            if lab and _texte_corrompu(str(lab)):
+                _ajouter(str(lab))
+    frame = ds.frame
+    for c in frame.columns:
+        vus = 0
+        for v in frame[c].dropna():
+            s = str(v).strip()
+            if not s:
+                continue
+            vus += 1
+            if _texte_corrompu(s):
+                _ajouter(s)
+            if vus >= 50 or (n > 30 and len(exemples) >= 6):
+                break
+        if n > 30 and len(exemples) >= 6:
+            break
+    return {"corrompu": n > 0, "n_occurrences": int(n), "exemples": exemples}
 
 
 @router.get("/health")
