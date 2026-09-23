@@ -13,6 +13,10 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // Marqueurs Next.js sans runtime propre : non résolus par Vitest. On les
+      // pointe vers un stub vide pour que les modules serveur restent testables.
+      'server-only': path.resolve(__dirname, 'tests/unit/stubs/empty.ts'),
+      'client-only': path.resolve(__dirname, 'tests/unit/stubs/empty.ts'),
       '@': path.resolve(__dirname, '.'),
     },
   },
