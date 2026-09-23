@@ -184,3 +184,25 @@ class IngestFileRequest(BaseModel):
     path: str
     sheet: Optional[str] = None
     header_row: Optional[int] = None
+
+
+class ConsolidationPlanRequest(SourceRequest):
+    """Détection des colonnes-variantes de langue (`x_kh`, `x_viet`…) à fusionner.
+    Aucun paramètre : le plan est calculé à partir des noms et libellés."""
+
+
+class ConsolidateGroup(BaseModel):
+    """Un groupe à fusionner : `canonical` = colonne finale ; `members` = toutes
+    les colonnes du groupe (canonical inclus) à coalescer puis supprimer."""
+
+    canonical: str
+    members: list[str]
+
+
+class ConsolidateRequest(SourceRequest):
+    """Applique la consolidation multilingue : fusionne chaque groupe en une seule
+    variable (1re valeur non vide) et renvoie la base consolidée."""
+
+    groups: list[ConsolidateGroup] = Field(default_factory=list)
+    full: bool = True
+    name: Optional[str] = None

@@ -22,6 +22,8 @@ import type {
   TranslateResponse,
   TranslationFreetextResponse,
   TranslationTermsResponse,
+  ConsolidationPlanResponse,
+  ConsolidateResponse,
 } from './types';
 
 const BASE = '/api/datastudio';
@@ -205,6 +207,34 @@ export function computeTranslate(
     column_map: columnMap,
     value_maps: valueMaps,
     free_text_columns: opts?.freeTextColumns ?? [],
+    full: opts?.full ?? true,
+    name: opts?.name ?? null,
+  });
+}
+
+/**
+ * Détecte les groupes de colonnes-variantes de langue à fusionner (`x_kh`,
+ * `x_viet`…). Renvoie un plan à VALIDER (groupes + orphelins) avant application.
+ */
+export function computeConsolidationPlan(
+  source: ComputeSource,
+): Promise<ConsolidationPlanResponse> {
+  return post<ConsolidationPlanResponse>('/consolidation-plan', sourceBody(source));
+}
+
+/**
+ * Applique la consolidation multilingue : fusionne chaque groupe (1re valeur non
+ * vide) en une seule variable et renvoie la base consolidée complète (full=true),
+ * adoptable comme base de travail. `groups` = plan validé par l'utilisateur.
+ */
+export function computeConsolidate(
+  source: ComputeSource,
+  groups: { canonical: string; members: string[] }[],
+  opts?: { full?: boolean; name?: string },
+): Promise<ConsolidateResponse> {
+  return post<ConsolidateResponse>('/consolidate', {
+    ...sourceBody(source),
+    groups,
     full: opts?.full ?? true,
     name: opts?.name ?? null,
   });

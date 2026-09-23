@@ -98,6 +98,8 @@ import {
 import {
   analyzeDataset,
   computeClean,
+  computeConsolidate,
+  computeConsolidationPlan,
   computeCrosstab,
   computeFrequency,
   computeList,
@@ -138,6 +140,7 @@ import { FORMATS_RAPPORT, OPERATEURS_FILTRE } from '@/lib/atelier-analyse/types'
 import type {
   AnalyzeResponse,
   CleanResponse,
+  ConsolidationPlanResponse,
   CrosstabResponse,
   DatasetInput,
   FilterCond,
@@ -305,6 +308,8 @@ type ReloadDesc = {
   dropDuplicates?: boolean;
   dropMissing?: boolean;
   keyCols?: string[];
+  // Consolidation multilingue
+  groups?: { canonical: string; members: string[] }[];
 };
 
 type Props = {
@@ -414,6 +419,19 @@ export function AtelierClient({
   const [termesTraduction, setTermesTraduction] = useState<Awaited<
     ReturnType<typeof computeTranslationTerms>
   > | null>(null);
+
+  // Consolidation multilingue : questionnaire dupliqué par langue → fusion des
+  // colonnes-variantes (`x_kh`, `x_viet`…) en une seule question. On détecte un
+  // PLAN (à valider) avant d'appliquer, puis on adopte la base consolidée.
+  const [busyConso, setBusyConso] = useState(false);
+  const [consolide, setConsolide] = useState(false);
+  const [consolideReload, setConsolideReload] = useState<Record<string, unknown> | null>(null);
+  const [consoPlan, setConsoPlan] = useState<ConsolidationPlanResponse | null>(null);
+  // Groupes cochés (à fusionner). Clé = canonical du groupe.
+  const [consoGroupesSel, setConsoGroupesSel] = useState<Set<string>>(new Set());
+  // Affectation manuelle des orphelins : variante → base choisie (ou '' = ignorer).
+  const [consoOrphelins, setConsoOrphelins] = useState<Record<string, string>>({});
+  const [consoInfo, setConsoInfo] = useState<{ nFusionnees: number; nApres: number } | null>(null);
 
   // Graphiques
   const [graphVar, setGraphVar] = useState('');
@@ -535,12 +553,17 @@ export function AtelierClient({
         : { kind: 'enquete', indicateur };
   // Rechargement à mémoriser pour un traitement produit MAINTENANT : si la base
   // de travail est la base épurée, on rouvre la base nettoyée (et non la brute).
+  // Chaîne des transformations (de la source vers la base de travail) :
+  //   source → consolidation → traduction → épuration.
+  // Le descripteur courant est celui de la transformation la plus EXTERNE active.
   const reloadCourant: Record<string, unknown> =
     baseEpuree && epureeReload
       ? epureeReload
       : traduit && traduitReload
         ? traduitReload
-        : reloadInfo;
+        : consolide && consolideReload
+          ? consolideReload
+          : reloadInfo;
 
   // ---- Historique regroupé en DOSSIERS par projet / jeu de données ----
   const libelleIndic = (code: string) => indicateurs.find((i) => i.code === code)?.libelle ?? code;
@@ -632,6 +655,12 @@ export function AtelierClient({
     setOuvertesSel(new Set());
     setProgressTrad('');
     setKeyCols([]);
+    setConsolide(false);
+    setConsolideReload(null);
+    setConsoPlan(null);
+    setConsoGroupesSel(new Set());
+    setConsoOrphelins({});
+    setConsoInfo(null);
   }
 
   function appliquerAnalyse(a: AnalyzeResponse) {
@@ -953,9 +982,15 @@ export function AtelierClient({
       setBaseEpuree(true);
       const reloadEpuree = {
         kind: 'epuree',
-        // Si la base de travail est déjà traduite, on épure PAR-DESSUS la
-        // traduction : le descripteur pointe la base traduite (chaîne complète).
-        base: traduit && traduitReload ? traduitReload : reloadInfo,
+        // On épure PAR-DESSUS les transformations déjà appliquées : le descripteur
+        // pointe la base la plus externe (traduite, sinon consolidée, sinon brute)
+        // pour reconstruire la chaîne complète au rechargement.
+        base:
+          traduit && traduitReload
+            ? traduitReload
+            : consolide && consolideReload
+              ? consolideReload
+              : reloadInfo,
         dropEmpty,
         dropDuplicates,
         dropMissing,
@@ -1119,7 +1154,8 @@ export function AtelierClient({
       // Descripteur de rechargement : reproduit la traduction sur la base d'origine.
       const reloadTraduit: ReloadDesc = {
         kind: 'traduit',
-        base: reloadInfo as ReloadDesc,
+        // On traduit par-dessus la consolidation si elle est active (chaîne complète).
+        base: (consolide && consolideReload ? consolideReload : reloadInfo) as ReloadDesc,
         columnMap: trad.columnMap,
         valueMaps,
         freeTextColumns: colsOuvertes,
@@ -1132,6 +1168,111 @@ export function AtelierClient({
     } finally {
       setBusyTrad(false);
       setProgressTrad('');
+    }
+  }
+
+  /**
+   * Consolidation — étape 1 : détecte (sans IA) les colonnes-variantes de langue
+   * d'une même question (questionnaire dupliqué par langue) et propose un PLAN de
+   * fusion à VALIDER (groupes cochés + orphelins à rattacher) avant application.
+   */
+  async function detecterConsolidation() {
+    if (!source) {
+      setErreur('Chargez d’abord une base à consolider.');
+      return;
+    }
+    setBusyConso(true);
+    setErreur(null);
+    try {
+      const plan = await computeConsolidationPlan(source);
+      setConsoPlan(plan);
+      // Groupes auto-détectés cochés par défaut (l'utilisateur peut décocher).
+      setConsoGroupesSel(new Set(plan.plan.map((g) => g.canonical)));
+      // Orphelins pré-affectés à la base suggérée (modifiable, ou « ignorer »).
+      const aff: Record<string, string> = {};
+      for (const o of plan.orphelins) aff[o.variant] = o.suggestion ?? '';
+      setConsoOrphelins(aff);
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyConso(false);
+    }
+  }
+
+  /**
+   * Construit la liste des groupes à fusionner à partir du plan validé : groupes
+   * cochés + orphelins rattachés à une base (fusionnés dans le groupe de cette
+   * base, ou nouveau groupe si la base n'était pas déjà un groupe).
+   */
+  function construireGroupesConso(): { canonical: string; members: string[] }[] {
+    if (!consoPlan) return [];
+    const parCanon = new Map<string, Set<string>>();
+    for (const g of consoPlan.plan) {
+      if (!consoGroupesSel.has(g.canonical)) continue;
+      parCanon.set(g.canonical, new Set(g.members));
+    }
+    for (const [variant, base] of Object.entries(consoOrphelins)) {
+      if (!base) continue; // « ignorer » : orphelin laissé tel quel.
+      let membres = parCanon.get(base);
+      if (!membres) {
+        membres = new Set([base]);
+        parCanon.set(base, membres);
+      }
+      membres.add(variant);
+    }
+    return [...parCanon.entries()]
+      .filter(([, m]) => m.size >= 2)
+      .map(([canonical, m]) => ({ canonical, members: [...m] }));
+  }
+
+  /**
+   * Consolidation — étape 2 : applique la fusion des groupes validés (1re valeur
+   * non vide par ligne) et adopte la base consolidée comme base de travail. Comme
+   * la traduction, l'opération remplace la base ; la chaîne est retrouvée via le
+   * descripteur `_reload` des traitements produits ensuite.
+   */
+  async function appliquerConsolidation() {
+    if (!source) {
+      setErreur('Chargez d’abord une base à consolider.');
+      return;
+    }
+    const groupes = construireGroupesConso();
+    if (groupes.length === 0) {
+      setErreur('Sélectionnez au moins un groupe de variables à fusionner.');
+      return;
+    }
+    setBusyConso(true);
+    setErreur(null);
+    try {
+      const nom = `${sourceLabel || 'Base'} (consolidé)`;
+      const res = await computeConsolidate(source, groupes, { full: true, name: nom });
+      if (!res.dataset || !Array.isArray(res.dataset.rows)) {
+        setErreur('La base consolidée n’a pas pu être générée.');
+        return;
+      }
+      const ds = res.dataset;
+      setDataset(ds);
+      setDatasetRef(null);
+      setFreq(null);
+      setCross(null);
+      setStat(null);
+      setMulti(null);
+      setRapport(null);
+      appliquerAnalyse(await analyzeDataset(ds));
+      setConsolide(true);
+      setConsoInfo({ nFusionnees: res.n_fusionnees, nApres: res.n_variables });
+      // Descripteur de rechargement : reproduit la consolidation sur la base brute.
+      const reloadConso: ReloadDesc = {
+        kind: 'consolide',
+        base: reloadInfo as ReloadDesc,
+        groups: groupes,
+        name: nom,
+      };
+      setConsolideReload(reloadConso as unknown as Record<string, unknown>);
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Erreur inconnue.');
+    } finally {
+      setBusyConso(false);
     }
   }
 
@@ -1276,6 +1417,23 @@ export function AtelierClient({
       setDataset(null);
       setFichierNom(ref.name || a.name);
       return { datasetRef: a.dataset_ref };
+    }
+    if (desc.kind === 'consolide' && desc.base) {
+      const baseSource = await chargerSourceReload(desc.base);
+      if (!baseSource) return null;
+      const rc = await computeConsolidate(baseSource, desc.groups ?? [], {
+        full: true,
+        name: desc.name,
+      });
+      if (rc.dataset && Array.isArray(rc.dataset.rows)) {
+        setDataset(rc.dataset);
+        setDatasetRef(null);
+        setConsolide(true);
+        setConsolideReload(desc as unknown as Record<string, unknown>);
+        setConsoInfo({ nFusionnees: rc.n_fusionnees, nApres: rc.n_variables });
+        return { dataset: rc.dataset };
+      }
+      return null;
     }
     if (desc.kind === 'traduit' && desc.base) {
       const baseSource = await chargerSourceReload(desc.base);
@@ -1434,6 +1592,13 @@ export function AtelierClient({
                 0,
               ),
             });
+            appliquerAnalyse(await analyzeDataset(src.dataset));
+          }
+        } else if (reload?.kind === 'consolide' && reload.base) {
+          // Base consolidée : on recharge la source puis on réapplique la fusion
+          // mémorisée (le résolveur récursif pose la base consolidée en mémoire).
+          const src = await chargerSourceReload(reload);
+          if (src && 'dataset' in src && src.dataset) {
             appliquerAnalyse(await analyzeDataset(src.dataset));
           }
         }
@@ -1967,6 +2132,14 @@ export function AtelierClient({
                 {filtres.length > 0 && (
                   <Badge variant="secondary" className="ml-auto">
                     {filtres.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="conso" className="w-full justify-start gap-2">
+                <Layers className="size-4" /> Consolidation
+                {consolide && (
+                  <Badge variant="secondary" className="ml-auto">
+                    ✓
                   </Badge>
                 )}
               </TabsTrigger>
@@ -2573,6 +2746,211 @@ export function AtelierClient({
           </TabsContent>
 
           {/* --- Nettoyage / épuration --- */}
+          <TabsContent value="conso" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Consolidation multilingue</CardTitle>
+                <CardDescription>
+                  Quand un questionnaire est <strong>dupliqué par langue</strong> avant
+                  l’administration (le répondant ne remplit que le bloc de SA langue), une même
+                  question apparaît en plusieurs colonnes (ex. <code>sexe</code>,{' '}
+                  <code>sexe_kh</code>, <code>sexe_viet</code>) et chaque ligne comporte de longues
+                  séries de vides « par construction » — ce qui fait échouer le nettoyage. La
+                  consolidation <strong>fusionne ces variantes en une seule variable</strong> (la
+                  valeur non vide de la langue du répondant), pour obtenir un questionnaire unique
+                  avec les réponses des différentes langues empilées. Le regroupement détecté est{' '}
+                  <strong>affiché et validé AVANT</strong> d’être appliqué.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!analyse ? (
+                  <p className="text-muted-foreground text-sm italic">
+                    Chargez d’abord une base (onglet Source) pour la consolider.
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={detecterConsolidation}
+                        disabled={busyConso}
+                      >
+                        {busyConso ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Search className="size-4" />
+                        )}
+                        Détecter les groupes
+                      </Button>
+                      <Button onClick={appliquerConsolidation} disabled={busyConso || !consoPlan}>
+                        {busyConso ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Layers className="size-4" />
+                        )}
+                        Consolider
+                      </Button>
+                    </div>
+
+                    {consoPlan && (
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <Badge variant="secondary">{consoPlan.n_variables} variables</Badge>
+                        <span className="text-muted-foreground">→</span>
+                        <Badge variant="secondary">
+                          {consoPlan.n_variables_apres} après consolidation
+                        </Badge>
+                        <Badge variant="secondary">{consoPlan.plan.length} groupe(s)</Badge>
+                        {consoPlan.orphelins.length > 0 && (
+                          <Badge variant="secondary">
+                            {consoPlan.orphelins.length} orphelin(s)
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Groupes détectés : cochés = à fusionner. */}
+                    {consoPlan && consoPlan.plan.length > 0 && (
+                      <div className="space-y-2 rounded-md border border-dashed p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-medium">
+                            Groupes détectés — {consoPlan.plan.length}
+                          </p>
+                          <button
+                            type="button"
+                            className="text-xs text-[#0E4F88] hover:underline"
+                            onClick={() =>
+                              setConsoGroupesSel((prev) =>
+                                prev.size === consoPlan.plan.length
+                                  ? new Set()
+                                  : new Set(consoPlan.plan.map((g) => g.canonical)),
+                              )
+                            }
+                          >
+                            {consoGroupesSel.size === consoPlan.plan.length
+                              ? 'Tout décocher'
+                              : 'Tout cocher'}
+                          </button>
+                        </div>
+                        <p className="text-muted-foreground text-xs">
+                          Décochez un groupe pour laisser ses colonnes séparées. La variable finale
+                          (en gras) conserve les libellés de la base.
+                        </p>
+                        <div className="max-h-72 space-y-1 overflow-auto">
+                          {consoPlan.plan.map((g) => (
+                            <label
+                              key={g.canonical}
+                              className="flex items-start gap-2 rounded px-1 py-1 text-sm hover:bg-slate-50"
+                            >
+                              <input
+                                type="checkbox"
+                                className="mt-0.5 size-4 shrink-0"
+                                checked={consoGroupesSel.has(g.canonical)}
+                                onChange={(e) =>
+                                  setConsoGroupesSel((prev) => {
+                                    const next = new Set(prev);
+                                    if (e.target.checked) next.add(g.canonical);
+                                    else next.delete(g.canonical);
+                                    return next;
+                                  })
+                                }
+                              />
+                              <span className="min-w-0">
+                                <span className="font-semibold">{g.canonical}</span>
+                                {g.label && g.label !== g.canonical && (
+                                  <span className="text-muted-foreground"> — {g.label}</span>
+                                )}
+                                <span className="text-muted-foreground block truncate text-xs">
+                                  fusionne : {g.variants.join(', ')}
+                                </span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Orphelins : variantes non rattachées → base à choisir. */}
+                    {consoPlan && consoPlan.orphelins.length > 0 && (
+                      <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
+                        <p className="text-sm font-medium text-amber-900 dark:text-amber-300">
+                          Variantes à rattacher manuellement — {consoPlan.orphelins.length}
+                        </p>
+                        <p className="text-xs text-amber-800 dark:text-amber-400">
+                          Ces colonnes-variantes n’ont pas pu être rattachées automatiquement
+                          (libellés dans des langues différentes). Choisissez leur variable de
+                          destination, ou « Ignorer » pour les laisser telles quelles.
+                        </p>
+                        <div className="space-y-2">
+                          {consoPlan.orphelins.map((o) => (
+                            <div
+                              key={o.variant}
+                              className="flex flex-wrap items-center gap-2 text-sm"
+                            >
+                              <span className="font-mono text-xs">{o.variant}</span>
+                              <span className="text-muted-foreground">→</span>
+                              <Select
+                                value={consoOrphelins[o.variant] || '__ignorer__'}
+                                onValueChange={(v) =>
+                                  setConsoOrphelins((prev) => ({
+                                    ...prev,
+                                    [o.variant]: v && v !== '__ignorer__' ? v : '',
+                                  }))
+                                }
+                              >
+                                <SelectTrigger className="h-8 w-64">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__ignorer__">
+                                    Ignorer (garder séparé)
+                                  </SelectItem>
+                                  {variables
+                                    .filter((v) => v.name !== o.variant)
+                                    .map((v) => (
+                                      <SelectItem key={v.name} value={v.name}>
+                                        {v.name}
+                                        {v.display && v.display !== v.name ? ` — ${v.display}` : ''}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {consoPlan &&
+                      consoPlan.plan.length === 0 &&
+                      consoPlan.orphelins.length === 0 && (
+                        <p className="text-muted-foreground text-sm">
+                          Aucune colonne-variante de langue détectée : cette base n’a pas besoin
+                          d’être consolidée.
+                        </p>
+                      )}
+
+                    <p className="text-muted-foreground text-xs">
+                      La consolidation remplace la base de travail : tous les traitements suivants
+                      (nettoyage, traduction, analyses) portent sur la base consolidée, retrouvée à
+                      l’identique en rouvrant un traitement depuis l’historique.
+                    </p>
+
+                    {consolide && consoInfo && (
+                      <div className="flex flex-wrap items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+                        <Layers className="size-4" />
+                        <span>Base consolidée active.</span>
+                        <Badge variant="secondary">{consoInfo.nApres} variables</Badge>
+                        <Badge variant="secondary">
+                          {consoInfo.nFusionnees} colonne(s) fusionnée(s)
+                        </Badge>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="trad" className="space-y-4">
             <Card>
               <CardHeader>
