@@ -22,6 +22,10 @@ export type TraduireTermesInput = {
   columns: string[];
   /** Modalités distinctes par colonne catégorielle : { colonne: [valeurs] }. */
   values: Record<string, string[]>;
+  /** Libellés de variables (questions) à traduire : { colonne -> libellé }. */
+  variableLabels?: Record<string, string>;
+  /** Libellés de valeurs (modalités CODÉES d'un .sav) : { colonne -> [libellés] }. */
+  valueLabelTexts?: Record<string, string[]>;
   /** Échantillon (en-têtes + valeurs) pour aider la détection de langue. */
   sample?: string;
   /** Langue cible (par défaut « Français »). */
@@ -37,6 +41,10 @@ export type TraduireTermesResult =
       columnMap: Record<string, string>;
       /** { en-tête d'origine -> { valeur d'origine -> valeur traduite } }. */
       valueMaps: Record<string, Record<string, string>>;
+      /** { colonne d'origine -> libellé de variable (question) traduit }. */
+      variableLabelMap: Record<string, string>;
+      /** { texte d'étiquette de valeur d'origine -> traduit } (modalités codées). */
+      valueLabelTextMap: Record<string, string>;
     }
   | { status: 'erreur'; message: string };
 
@@ -76,11 +84,30 @@ export async function traduireTermesAction(
     total += bornees.length;
   }
 
+  // Libellés SPSS (questions + modalités codées) : liste PLATE dédoublonnée à
+  // traduire une seule fois (un même libellé « Homme » revient sur plusieurs
+  // colonnes). Le mapping texte->traduction est ensuite réappliqué côté serveur.
+  const variableLabels = input.variableLabels ?? {};
+  const valueLabelTexts = input.valueLabelTexts ?? {};
+  const libellesSet = new Set<string>();
+  for (const t of Object.values(variableLabels)) {
+    const s = String(t).trim();
+    if (s) libellesSet.add(s);
+  }
+  for (const arr of Object.values(valueLabelTexts)) {
+    for (const t of arr ?? []) {
+      const s = String(t).trim();
+      if (s) libellesSet.add(s);
+    }
+  }
+  const libelles = [...libellesSet].slice(0, MAX_VALEURS_TOTAL);
+
   const system =
     'Tu es traducteur professionnel spécialisé dans les données d’enquête ' +
-    '(sciences sociales, suivi-évaluation). On te donne les EN-TÊTES de colonnes et, ' +
-    'pour certaines colonnes, la liste de leurs MODALITÉS (valeurs catégorielles). ' +
-    `Traduis-les fidèlement vers ${langueCible}. Règles STRICTES : ` +
+    '(sciences sociales, suivi-évaluation). On te donne les EN-TÊTES de colonnes, ' +
+    'pour certaines colonnes la liste de leurs MODALITÉS (valeurs catégorielles), et ' +
+    'une liste de LIBELLÉS (intitulés de questions et libellés de modalités codées). ' +
+    `Traduis TOUT fidèlement vers ${langueCible}. Règles STRICTES : ` +
     '1) Préserve EXACTEMENT le sens ; ne reformule pas, n’ajoute rien, ne commente pas. ' +
     '2) Reste concis : une modalité reste une modalité (pas de phrase). ' +
     '3) Ne traduis PAS les noms propres, noms de lieux, codes, identifiants, sigles, ' +
@@ -91,7 +118,8 @@ export async function traduireTermesAction(
     'Détecte d’abord la langue source (un seul nom de langue, en français). ' +
     'Réponds STRICTEMENT en JSON, sans aucun texte autour, au format : ' +
     '{"langue_source":"…","colonnes":{"<orig>":"<traduit>"},' +
-    '"valeurs":{"<colonne orig>":{"<valeur orig>":"<valeur traduite>"}}}.';
+    '"valeurs":{"<colonne orig>":{"<valeur orig>":"<valeur traduite>"}},' +
+    '"libelles":{"<libellé orig>":"<libellé traduit>"}}.';
 
   const lignesValeurs = Object.entries(values)
     .map(([col, vals]) => `- ${col} : ${vals.join(' | ')}`)
@@ -103,6 +131,9 @@ export async function traduireTermesAction(
     (lignesValeurs
       ? `MODALITÉS à traduire (par colonne) :\n${lignesValeurs}\n\n`
       : 'Aucune modalité catégorielle fournie (colonnes de texte libre ou numériques).\n\n') +
+    (libelles.length
+      ? `LIBELLÉS à traduire (questions et modalités codées) :\n- ${libelles.join('\n- ')}\n\n`
+      : '') +
     (input.sample
       ? `Échantillon pour la détection de langue :\n${input.sample.slice(0, 2000)}\n`
       : '');
@@ -124,12 +155,14 @@ export async function traduireTermesAction(
     let langueDetectee = '';
     const columnMap: Record<string, string> = {};
     const valueMaps: Record<string, Record<string, string>> = {};
+    const libelleMap: Record<string, string> = {};
     try {
       const m = /\{[\s\S]*\}/.exec(texte);
       const parsed = JSON.parse(m ? m[0] : texte) as {
         langue_source?: unknown;
         colonnes?: unknown;
         valeurs?: unknown;
+        libelles?: unknown;
       };
       langueDetectee = typeof parsed.langue_source === 'string' ? parsed.langue_source.trim() : '';
       if (parsed.colonnes && typeof parsed.colonnes === 'object') {
@@ -150,6 +183,14 @@ export async function traduireTermesAction(
           if (Object.keys(sousMap).length > 0) valueMaps[col] = sousMap;
         }
       }
+      if (parsed.libelles && typeof parsed.libelles === 'object') {
+        const fournis = new Set(libelles);
+        for (const [orig, trad] of Object.entries(parsed.libelles as Record<string, unknown>)) {
+          const t = String(trad ?? '').trim();
+          // On ne conserve que les libellés réellement demandés (aucune clé inventée).
+          if (t && fournis.has(orig)) libelleMap[orig] = t;
+        }
+      }
     } catch {
       return {
         status: 'erreur',
@@ -157,11 +198,22 @@ export async function traduireTermesAction(
       };
     }
 
-    if (Object.keys(columnMap).length === 0 && Object.keys(valueMaps).length === 0) {
+    if (
+      Object.keys(columnMap).length === 0 &&
+      Object.keys(valueMaps).length === 0 &&
+      Object.keys(libelleMap).length === 0
+    ) {
       return {
         status: 'erreur',
         message: 'Aucune traduction proposée (la base est peut-être déjà dans la langue cible).',
       };
+    }
+
+    // Libellés de variables : { colonne -> libellé traduit } (via le mapping plat).
+    const variableLabelMap: Record<string, string> = {};
+    for (const [col, lbl] of Object.entries(variableLabels)) {
+      const t = libelleMap[String(lbl).trim()];
+      if (t) variableLabelMap[col] = t;
     }
 
     return {
@@ -170,6 +222,9 @@ export async function traduireTermesAction(
       langueCible,
       columnMap,
       valueMaps,
+      variableLabelMap,
+      // Mapping plat texte->traduction, appliqué aux value_labels côté serveur.
+      valueLabelTextMap: libelleMap,
     };
   } catch (e) {
     const status = (e as { status?: number } | null)?.status;
