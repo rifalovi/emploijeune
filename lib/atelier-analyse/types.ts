@@ -251,3 +251,31 @@ export const FORMATS_RAPPORT = {
 } as const;
 
 export type FormatRapport = keyof typeof FORMATS_RAPPORT;
+
+/** Un groupe de colonnes-variantes de langue à fusionner (consolidation). */
+export type ConsolidationGroup = {
+  canonical: string;
+  label: string;
+  members: string[];
+  variants: string[];
+};
+
+/** Variante non rattachée automatiquement + base suggérée (à confirmer). */
+export type ConsolidationOrphan = { variant: string; suggestion: string | null };
+
+/** Plan de consolidation multilingue (à valider avant application). */
+export type ConsolidationPlanResponse = {
+  plan: ConsolidationGroup[];
+  orphelins: ConsolidationOrphan[];
+  n_variables: number;
+  n_variables_apres: number;
+};
+
+/** Base consolidée : renvoie la base complète (full=true), adoptable en base de travail. */
+export type ConsolidateResponse = {
+  n_rows: number;
+  n_variables_source: number;
+  n_variables: number;
+  n_fusionnees: number;
+  dataset?: DatasetInput | null;
+};

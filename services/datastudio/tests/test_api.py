@@ -660,3 +660,48 @@ def test_analyze_pas_de_corruption_texte_propre():
     r = client.post("/api/datastudio/analyze", json={"dataset": ds}, headers=auth_headers())
     assert r.status_code == 200
     assert r.json()["corruption"]["corrompu"] is False
+
+
+# ------------------------------------------------- consolidation multilingue
+DATASET_MULTILANGUE = {
+    "rows": [
+        {"sexe": "Homme", "sexe_kh": None, "avis": "Bien", "avis_kh": None},   # base (fr)
+        {"sexe": None, "sexe_kh": "ប្រុស", "avis": None, "avis_kh": "ល្អ"},     # khmer
+        {"sexe": "Femme", "sexe_kh": None, "avis": "Super", "avis_kh": None},
+    ],
+    "variable_labels": {"sexe": "Sexe", "sexe_kh": "Sexe (khmer)", "avis": "Avis", "avis_kh": "Avis (khmer)"},
+}
+
+
+def test_consolidation_plan_detecte_variantes():
+    r = client.post("/api/datastudio/consolidation-plan",
+                    json={"dataset": DATASET_MULTILANGUE}, headers=auth_headers())
+    assert r.status_code == 200
+    body = r.json()
+    canon = {g["canonical"]: g["variants"] for g in body["plan"]}
+    assert canon.get("sexe") == ["sexe_kh"]
+    assert canon.get("avis") == ["avis_kh"]
+    assert body["n_variables"] == 4
+    assert body["n_variables_apres"] == 2
+
+
+def test_consolidate_fusionne_les_langues():
+    groups = [
+        {"canonical": "sexe", "members": ["sexe", "sexe_kh"]},
+        {"canonical": "avis", "members": ["avis", "avis_kh"]},
+    ]
+    r = client.post("/api/datastudio/consolidate",
+                    json={"dataset": DATASET_MULTILANGUE, "groups": groups, "full": True},
+                    headers=auth_headers())
+    assert r.status_code == 200
+    body = r.json()
+    assert body["n_variables"] == 2
+    assert body["n_fusionnees"] == 2
+    ds = body["dataset"]
+    assert set(ds["columns"]) == {"sexe", "avis"}
+    # La ligne khmère récupère bien SA valeur dans la colonne consolidée.
+    assert ds["rows"][1]["sexe"] == "ប្រុស"
+    assert ds["rows"][1]["avis"] == "ល្អ"
+    # Les lignes françaises gardent leur valeur.
+    assert ds["rows"][0]["sexe"] == "Homme"
+    assert ds["rows"][2]["avis"] == "Super"

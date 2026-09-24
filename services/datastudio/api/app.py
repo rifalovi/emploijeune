@@ -35,6 +35,7 @@ from engine import (  # noqa: E402
     run_tests,
 )
 from engine.sav_io import list_sheets, load_dataset  # noqa: E402
+from engine.consolidation import consolider, detecter_groupes  # noqa: E402
 
 from .auth import AuthUser, CurrentUser  # noqa: E402
 from .schemas import (  # noqa: E402
@@ -53,6 +54,8 @@ from .schemas import (  # noqa: E402
     TranslateRequest,
     TranslationFreetextRequest,
     TranslationTermsRequest,
+    ConsolidationPlanRequest,
+    ConsolidateRequest,
 )
 from .serialize import (  # noqa: E402
     crosstab_to_json,
@@ -725,6 +728,51 @@ def translate(req: TranslateRequest, user: AuthUser = CurrentUser) -> dict:
             "value_labels": {},
             "variable_measure": mesure_vo,
             "name": req.name or f"{ds.name} (traduit)",
+        }
+    return result
+
+
+@router.post("/consolidation-plan")
+def consolidation_plan(req: ConsolidationPlanRequest, user: AuthUser = CurrentUser) -> dict:
+    """Détecte les colonnes-variantes de langue à fusionner (questionnaire dupliqué
+    par langue avant administration). Renvoie le plan à VALIDER par l'utilisateur :
+    groupes auto-détectés + orphelins (avec base suggérée)."""
+    base = SourceRequest(dataset=req.dataset, dataset_ref=req.dataset_ref, filters=None)
+    ds = _resolve_dataset(user, base)
+    plan, orphelins = detecter_groupes(ds)
+    n_variantes = sum(len(g["variants"]) for g in plan)
+    return {
+        "plan": plan,
+        "orphelins": orphelins,
+        "n_variables": int(len(ds.frame.columns)),
+        "n_variables_apres": int(len(ds.frame.columns) - n_variantes),
+    }
+
+
+@router.post("/consolidate")
+def consolidate(req: ConsolidateRequest, user: AuthUser = CurrentUser) -> dict:
+    """Applique la consolidation : fusionne chaque groupe validé en une seule
+    variable (1re valeur non vide) et renvoie la base consolidée complète."""
+    ds = _resolve_dataset(user, req)
+    groupes = [{"canonical": g.canonical, "members": g.members} for g in (req.groups or [])]
+    cons = consolider(ds, groupes)
+    result = {
+        "n_rows": int(len(cons.frame)),
+        "n_variables_source": int(len(ds.frame.columns)),
+        "n_variables": int(len(cons.frame.columns)),
+        "n_fusionnees": int(len(ds.frame.columns) - len(cons.frame.columns)),
+    }
+    if req.full:
+        result["dataset"] = {
+            "rows": frame_to_records(cons.frame),
+            "columns": [str(c) for c in cons.frame.columns],
+            "variable_labels": {str(k): str(v) for k, v in (cons.variable_labels or {}).items()},
+            "value_labels": {
+                str(col): {str(code): str(lab) for code, lab in mapping.items()}
+                for col, mapping in (cons.value_labels or {}).items()
+            },
+            "variable_measure": {str(k): str(v) for k, v in (cons.variable_measure or {}).items()},
+            "name": req.name or cons.name,
         }
     return result
 
