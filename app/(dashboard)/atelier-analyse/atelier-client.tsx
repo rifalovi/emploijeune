@@ -1363,6 +1363,148 @@ export function AtelierClient({
   }, [fCol, dataset, datasetRef]);
 
   /**
+   * Barre de filtre « sous-population » intégrée, à afficher EN TÊTE de chaque
+   * onglet d'analyse. Elle rend toujours visible la sous-population active (ou son
+   * absence) et permet d'ajouter un filtre par variable sans quitter l'analyse.
+   * Elle agit sur le même état `filtres` que l'onglet Filtres : les conditions
+   * s'appliquent donc à TOUTES les analyses et restent cohérentes partout.
+   */
+  function renderFiltreInline() {
+    if (!analyse) return null;
+    const compare = ['>', '≥', '<', '≤'].includes(fOp);
+    return (
+      <div
+        className={`rounded-md border p-3 ${
+          filtres.length > 0
+            ? 'border-[#0E4F88]/30 bg-[#0E4F88]/5'
+            : 'bg-slate-50/60 dark:bg-slate-900/30'
+        }`}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground flex items-center gap-1 text-xs font-semibold tracking-wide uppercase">
+            <Filter className="size-3.5" /> Sous-population
+          </span>
+          {filtres.length === 0 ? (
+            <span className="text-muted-foreground text-xs italic">
+              toute la base (aucun filtre)
+            </span>
+          ) : (
+            <>
+              {filtres.map((f, i) => (
+                <Badge key={i} variant="secondary" className="gap-1 py-0.5">
+                  {libelleVariable(f.col)} {f.op} {f.val || '∅'}
+                  <button
+                    type="button"
+                    aria-label="Retirer"
+                    onClick={() => setFiltres((prev) => prev.filter((_, j) => j !== i))}
+                    className="hover:text-destructive"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              ))}
+              <button
+                type="button"
+                className="text-muted-foreground text-xs hover:underline"
+                onClick={() => setFiltres([])}
+              >
+                tout effacer
+              </button>
+            </>
+          )}
+        </div>
+        <div className="mt-2 flex flex-wrap items-end gap-2">
+          <div className="space-y-1">
+            <p className="text-muted-foreground text-[10px]">Variable</p>
+            <Select value={fCol || undefined} onValueChange={(v) => setFCol(v ?? '')}>
+              <SelectTrigger className="h-8 w-52 text-xs">
+                <SelectValue placeholder="Choisir une variable" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                {variables.map((v) => (
+                  <SelectItem key={v.name} value={v.name}>
+                    {v.display}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <p className="text-muted-foreground text-[10px]">Opérateur</p>
+            <Select value={fOp} onValueChange={(v) => setFOp(v ?? '=')}>
+              <SelectTrigger className="h-8 w-20 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {OPERATEURS_FILTRE.map((op) => (
+                  <SelectItem key={op} value={op}>
+                    {op}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <p className="text-muted-foreground text-[10px]">Valeur</p>
+            {compare ? (
+              <Input
+                value={fVal}
+                onChange={(e) => setFVal(e.target.value)}
+                placeholder="ex. 25"
+                inputMode="decimal"
+                className="h-8 w-32 text-xs"
+              />
+            ) : fOp === 'contient' ? (
+              <Input
+                value={fVal}
+                onChange={(e) => setFVal(e.target.value)}
+                placeholder="texte à rechercher…"
+                className="h-8 w-44 text-xs"
+              />
+            ) : (
+              <Select
+                value={fVal || undefined}
+                onValueChange={(v) => setFVal(v ?? '')}
+                disabled={!fCol || busyModalites || modalites.length === 0}
+              >
+                <SelectTrigger className="h-8 w-52 text-xs">
+                  <SelectValue
+                    placeholder={
+                      !fCol
+                        ? 'Choisir une variable'
+                        : busyModalites
+                          ? 'Chargement…'
+                          : modalites.length === 0
+                            ? 'Aucune modalité'
+                            : 'Choisir une modalité'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {modalites.map((m) => (
+                    <SelectItem key={m.valeur} value={m.valeur}>
+                      {m.valeur} ({m.effectif})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8"
+            onClick={ajouterFiltre}
+            disabled={!fCol || !fVal}
+          >
+            <Filter className="size-3.5" /> Filtrer
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  /**
    * Reconstruit une base de travail (et l'état UI de sa source) à partir d'un
    * descripteur de rechargement. Gère les sources simples (fichier importé,
    * enquête, multi-projets, bénéficiaires, structures) et, récursivement, les
@@ -2245,6 +2387,7 @@ export function AtelierClient({
 
           {/* --- Tris à plat --- */}
           <TabsContent value="freq" className="mt-0 space-y-4">
+            {renderFiltreInline()}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Tris à plat</CardTitle>
@@ -2403,6 +2546,7 @@ export function AtelierClient({
 
           {/* --- Croisements --- */}
           <TabsContent value="cross" className="space-y-4">
+            {renderFiltreInline()}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Paramètres du croisement</CardTitle>
@@ -2526,6 +2670,7 @@ export function AtelierClient({
 
           {/* --- Tests statistiques (Khi² / Welch) --- */}
           <TabsContent value="stat" className="space-y-4">
+            {renderFiltreInline()}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Tests statistiques</CardTitle>
@@ -2638,6 +2783,7 @@ export function AtelierClient({
 
           {/* --- Réponses multiples --- */}
           <TabsContent value="multi" className="space-y-4">
+            {renderFiltreInline()}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Questions à réponses multiples</CardTitle>
@@ -3638,6 +3784,7 @@ export function AtelierClient({
 
           {/* --- Graphiques --- */}
           <TabsContent value="graph" className="mt-0 space-y-4">
+            {renderFiltreInline()}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Graphiques</CardTitle>
