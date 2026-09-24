@@ -102,11 +102,26 @@ export type MultiResponse = {
   tables: Record<string, { base: number; rows: MultiRow[] }>;
 };
 
+/** Rapport détaillé d'un nettoyage : corrections appliquées + retraits par motif. */
+export type CleanReport = {
+  n_source: number;
+  n_cleaned: number;
+  n_retirees: number;
+  corrections: {
+    espaces_nettoyes: number;
+    codes_manquants_normalises: number;
+    colonnes_arrondies: number;
+  };
+  retraits: { motif: string; n: number }[];
+};
+
 /** Aperçu de la base épurée (nettoyage). */
 export type CleanResponse = {
   n_rows_source: number;
   n_rows_cleaned: number;
   n_removed: number;
+  /** Détail de ce qui a été corrigé et retiré (transparence du traitement). */
+  rapport?: CleanReport;
   preview: Record<string, unknown>[];
   specs: { name: string; measure: string; decimals: number }[];
   /** Base épurée complète (si demandée avec full=true), adoptable comme base de travail. */

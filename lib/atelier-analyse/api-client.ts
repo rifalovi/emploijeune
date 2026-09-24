@@ -128,6 +128,11 @@ export function computeMulti(source: ComputeSource, group?: string): Promise<Mul
 export function computeClean(
   source: ComputeSource,
   opts?: {
+    // Corrections (aucun retrait de ligne)
+    normaliserManquants?: boolean;
+    trimEspaces?: boolean;
+    arrondir?: boolean;
+    // Épuration (retrait de lignes)
     dropEmpty?: boolean;
     keyColumns?: string[];
     dropDuplicates?: boolean;
@@ -137,6 +142,9 @@ export function computeClean(
 ): Promise<CleanResponse> {
   return post<CleanResponse>('/clean', {
     ...sourceBody(source),
+    normaliser_manquants: opts?.normaliserManquants ?? true,
+    trim_espaces: opts?.trimEspaces ?? true,
+    arrondir: opts?.arrondir ?? true,
     drop_empty: opts?.dropEmpty ?? true,
     key_columns: opts?.keyColumns ?? [],
     drop_duplicates: opts?.dropDuplicates ?? true,
