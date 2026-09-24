@@ -602,6 +602,47 @@ def test_translate_unicite_des_entetes():
     assert cols[0] == "Statut" and cols[1] == "Statut_2"
 
 
+def test_translation_terms_expose_libelles_codes():
+    # Base .sav à modalités CODÉES : les libellés de variables et de valeurs
+    # (Homme/Femme…) doivent être proposés à la traduction, même si le tableau
+    # ne contient que des codes numériques.
+    r = client.post(
+        "/api/datastudio/translation-terms",
+        json={"dataset": DATASET},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["variable_labels"]["Q1_sexe"] == "Sexe du répondant"
+    assert set(body["value_label_texts"]["Q1_sexe"]) == {"Homme", "Femme"}
+    # Les modalités codées ne sont PAS dans `values` (le tableau ne contient que
+    # des codes numériques, ignorés) — d'où le besoin de `value_label_texts`.
+    assert "Q1_sexe" not in body.get("values", {})
+
+
+def test_translate_traduit_modalites_codees():
+    # On traduit les LIBELLÉS de valeurs (modalités codées) et de variables : les
+    # codes sont conservés, seuls les libellés lisibles passent en langue cible.
+    r = client.post(
+        "/api/datastudio/translate",
+        json={
+            "dataset": DATASET,
+            "variable_label_map": {"Q1_sexe": "Respondent sex"},
+            "value_label_text_map": {"Homme": "Male", "Femme": "Female"},
+            "full": True,
+        },
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    ds = r.json()["dataset"]
+    # Les codes sont conservés, les libellés de modalités sont traduits.
+    assert ds["value_labels"]["Q1_sexe"] == {"1": "Male", "2": "Female"}
+    # Le libellé de variable (question) est traduit.
+    assert ds["variable_labels"]["Q1_sexe"] == "Respondent sex"
+    # Le tableau (codes) est inchangé.
+    assert ds["rows"][0]["Q1_sexe"] == 1
+
+
 def test_translation_terms_requires_auth():
     r = client.post("/api/datastudio/translation-terms", json={"dataset": DATASET_VN})
     assert r.status_code == 401
