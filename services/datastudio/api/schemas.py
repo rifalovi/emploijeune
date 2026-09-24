@@ -88,6 +88,14 @@ class MultiRequest(SourceRequest):
 
 
 class CleanRequest(SourceRequest):
+    # --- Corrections (ne retirent aucune ligne) ---
+    # normaliser_manquants : convertir les codes d'absence en valeurs manquantes.
+    normaliser_manquants: bool = True
+    # trim_espaces : retirer les espaces superflus des cellules texte.
+    trim_espaces: bool = True
+    # arrondir : arrondir les variables numériques selon leurs décimales cibles.
+    arrondir: bool = True
+    # --- Épuration (retrait de lignes) ---
     drop_empty: bool = True
     key_columns: list[str] = Field(default_factory=list)
     drop_duplicates: bool = True

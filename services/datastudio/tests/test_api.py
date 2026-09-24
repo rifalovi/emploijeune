@@ -249,6 +249,55 @@ def test_clean_key_columns_targeted():
     assert body["n_rows_cleaned"] == 5
 
 
+def test_clean_rapport_detaille():
+    # Le rapport détaille les retraits par motif et la somme couvre le total.
+    r = client.post(
+        "/api/datastudio/clean",
+        json={
+            "dataset": DATASET,
+            "drop_empty": True,
+            "drop_duplicates": True,
+            "drop_missing": True,
+        },
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    rapport = r.json()["rapport"]
+    assert rapport["n_source"] == 6
+    assert rapport["n_retirees"] == rapport["n_source"] - rapport["n_cleaned"]
+    assert sum(x["n"] for x in rapport["retraits"]) == rapport["n_retirees"]
+    motifs = {x["motif"] for x in rapport["retraits"]}
+    assert "Lignes incomplètes (valeur manquante)" in motifs
+    assert "Doublons stricts" in motifs
+    assert set(rapport["corrections"]) == {
+        "espaces_nettoyes",
+        "codes_manquants_normalises",
+        "colonnes_arrondies",
+    }
+
+
+def test_clean_corrections_et_retraits_desactivables():
+    # Tout désactivé : la base est renvoyée intacte, aucun retrait, aucun arrondi.
+    r = client.post(
+        "/api/datastudio/clean",
+        json={
+            "dataset": DATASET,
+            "drop_empty": False,
+            "drop_duplicates": False,
+            "drop_missing": False,
+            "normaliser_manquants": False,
+            "arrondir": False,
+            "trim_espaces": False,
+        },
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["n_rows_cleaned"] == body["n_rows_source"] == 6
+    assert body["rapport"]["retraits"] == []
+    assert body["rapport"]["corrections"]["colonnes_arrondies"] == 0
+
+
 def test_modalities_ok():
     # Modalités en libellés d'une variable, triées par fréquence, sans manquants.
     r = client.post(

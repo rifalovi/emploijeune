@@ -27,7 +27,7 @@ from engine import (  # noqa: E402
     MISSING_LABEL,
     SurveyDataset,
     build_cross,
-    cleaned_frame,
+    cleaned_frame_report,
     compute_frequency,
     compute_multi_groups,
     compute_multi_table,
@@ -380,18 +380,22 @@ def clean(req: CleanRequest, user: AuthUser = CurrentUser) -> dict:
     """Épuration : renvoie un aperçu de la base épurée et les caractéristiques."""
     ds = _resolve_dataset(user, req)
     specs = infer_variable_specs(ds)
-    cleaned = cleaned_frame(
+    cleaned, rapport = cleaned_frame_report(
         ds,
         specs=specs,
         drop_empty=req.drop_empty,
         key_columns=req.key_columns,
         drop_duplicates=req.drop_duplicates,
         drop_missing=req.drop_missing,
+        normaliser_manquants=req.normaliser_manquants,
+        arrondir=req.arrondir,
+        trim_espaces=req.trim_espaces,
     )
     result = {
         "n_rows_source": int(len(ds.frame)),
         "n_rows_cleaned": int(len(cleaned)),
         "n_removed": int(len(ds.frame) - len(cleaned)),
+        "rapport": rapport,
         "preview": frame_to_records(cleaned.head(100)),
         "specs": [
             {"name": c, "measure": s["measure"], "decimals": s["decimals"]}

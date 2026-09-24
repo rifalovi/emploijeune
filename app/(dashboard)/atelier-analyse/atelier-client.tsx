@@ -304,6 +304,9 @@ type ReloadDesc = {
   name?: string;
   langueCible?: string;
   // Épuration
+  normMissing?: boolean;
+  trimEspaces?: boolean;
+  arrondir?: boolean;
   dropEmpty?: boolean;
   dropDuplicates?: boolean;
   dropMissing?: boolean;
@@ -380,6 +383,11 @@ export function AtelierClient({
   const [busyMulti, setBusyMulti] = useState(false);
 
   // Nettoyage / épuration de la base
+  // ① Corrections (ne retirent aucune ligne)
+  const [normMissing, setNormMissing] = useState(true);
+  const [trimEspaces, setTrimEspaces] = useState(true);
+  const [arrondir, setArrondir] = useState(true);
+  // ② Épuration (retrait de lignes)
   const [dropEmpty, setDropEmpty] = useState(true);
   const [dropDuplicates, setDropDuplicates] = useState(true);
   // Variables OBLIGATOIRES : une ligne est retirée si l'une d'elles est vide
@@ -915,6 +923,9 @@ export function AtelierClient({
     setErreur(null);
     try {
       const res = await computeClean(source, {
+        normaliserManquants: normMissing,
+        trimEspaces,
+        arrondir,
         dropEmpty,
         dropDuplicates,
         dropMissing,
@@ -957,6 +968,9 @@ export function AtelierClient({
     setErreur(null);
     try {
       const res = await computeClean(source, {
+        normaliserManquants: normMissing,
+        trimEspaces,
+        arrondir,
         dropEmpty,
         dropDuplicates,
         dropMissing,
@@ -991,6 +1005,9 @@ export function AtelierClient({
             : consolide && consolideReload
               ? consolideReload
               : reloadInfo,
+        normMissing,
+        trimEspaces,
+        arrondir,
         dropEmpty,
         dropDuplicates,
         dropMissing,
@@ -1652,6 +1669,9 @@ export function AtelierClient({
           const baseSource = await chargerSourceReload(reload.base);
           if (baseSource) {
             const rClean = await computeClean(baseSource, {
+              normaliserManquants: reload.normMissing ?? true,
+              trimEspaces: reload.trimEspaces ?? true,
+              arrondir: reload.arrondir ?? true,
               dropEmpty: reload.dropEmpty ?? true,
               dropDuplicates: reload.dropDuplicates ?? true,
               dropMissing: reload.dropMissing ?? false,
@@ -3256,63 +3276,99 @@ export function AtelierClient({
           <TabsContent value="clean" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Épuration de la base</CardTitle>
+                <CardTitle className="text-base">Nettoyage de la base</CardTitle>
                 <CardDescription>
-                  Nettoyage <strong>ciblé</strong> : on ne retire que les lignes vides, les doublons
-                  et — si vous le précisez — celles où une information <em>obligatoire</em> manque.
-                  On ne supprime pas des lignes utiles juste parce qu’une donnée secondaire est
-                  absente.
+                  Deux familles d’opérations, distinctes et activables séparément :{' '}
+                  <strong>① les corrections</strong> (elles <em>ne retirent aucune ligne</em> :
+                  espaces, codes d’absence, arrondis) et <strong>② l’épuration</strong> (elle
+                  <em> retire des lignes</em> : vides, sans clé, incomplètes, doublons). Chaque
+                  passage produit un <strong>résumé</strong> détaillant ce qui a été corrigé et
+                  retiré.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-wrap items-center gap-4">
-                  <label className="flex items-center gap-2 text-sm">
-                    <Switch checked={dropEmpty} onCheckedChange={setDropEmpty} />
-                    Retirer les lignes entièrement vides
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <Switch checked={dropDuplicates} onCheckedChange={setDropDuplicates} />
-                    Retirer les doublons
-                  </label>
+                {/* ① Corrections — ne retirent AUCUNE ligne, corrigent les valeurs. */}
+                <div className="space-y-2 rounded-md border p-3">
+                  <p className="text-sm font-semibold">
+                    ① Corrections{' '}
+                    <span className="text-muted-foreground font-normal">
+                      — sans retirer de lignes
+                    </span>
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch checked={normMissing} onCheckedChange={setNormMissing} />
+                      Normaliser les valeurs manquantes{' '}
+                      <span className="text-muted-foreground text-xs">
+                        (codes d’absence « NSP », « 99 »… → vide)
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch checked={trimEspaces} onCheckedChange={setTrimEspaces} />
+                      Retirer les espaces superflus (texte)
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch checked={arrondir} onCheckedChange={setArrondir} />
+                      Arrondir les variables numériques (décimales cibles)
+                    </label>
+                  </div>
                 </div>
 
-                {/* Épuration CIBLÉE : on ne retire que les lignes auxquelles il
-                    manque une information jugée obligatoire (nom, contact…). */}
-                <div className="space-y-2 rounded-md border p-3">
-                  <p className="text-sm font-medium">
-                    Variables obligatoires{' '}
-                    <span className="text-muted-foreground font-normal">
-                      — une ligne est retirée uniquement si l’une d’elles est vide
-                    </span>
+                {/* ② Épuration — retrait de lignes (vides, clés, incomplètes, doublons). */}
+                <div className="space-y-3 rounded-md border p-3">
+                  <p className="text-sm font-semibold">
+                    ② Épuration{' '}
+                    <span className="text-muted-foreground font-normal">— retrait de lignes</span>
                   </p>
-                  <p className="text-muted-foreground text-xs">
-                    Sélectionnez les informations indispensables à l’analyse (ex. nom, prénom,
-                    contact, pays…). Les lignes complètes sur ces variables sont conservées, même
-                    s’il leur manque des informations secondaires. Laissez vide pour ne rien retirer
-                    sur ce critère.
-                  </p>
-                  {analyse ? (
-                    <VariablePicker
-                      variables={variables}
-                      selected={keyCols}
-                      onChange={setKeyCols}
-                    />
-                  ) : (
-                    <p className="text-muted-foreground text-sm italic">
-                      Chargez une base pour choisir les variables obligatoires.
-                    </p>
-                  )}
-                  <label className="flex items-center gap-2 pt-1 text-sm">
-                    <Switch checked={dropMissing} onCheckedChange={setDropMissing} />
-                    <span>
-                      Ne garder que les lignes <strong>100 % complètes</strong>
-                      <span className="text-muted-foreground">
-                        {' '}
-                        (retire toute ligne à laquelle il manque une valeur, sur n’importe quelle
-                        variable — à utiliser avec prudence)
+                  <div className="flex flex-wrap items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch checked={dropEmpty} onCheckedChange={setDropEmpty} />
+                      Retirer les lignes entièrement vides
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch checked={dropDuplicates} onCheckedChange={setDropDuplicates} />
+                      Retirer les doublons
+                    </label>
+                  </div>
+
+                  {/* Épuration CIBLÉE : on ne retire que les lignes auxquelles il
+                      manque une information jugée obligatoire (nom, contact…). */}
+                  <div className="space-y-2 rounded-md border border-dashed p-3">
+                    <p className="text-sm font-medium">
+                      Variables obligatoires{' '}
+                      <span className="text-muted-foreground font-normal">
+                        — une ligne est retirée uniquement si l’une d’elles est vide
                       </span>
-                    </span>
-                  </label>
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      Sélectionnez les informations indispensables à l’analyse (ex. nom, prénom,
+                      contact, pays…). Les lignes complètes sur ces variables sont conservées, même
+                      s’il leur manque des informations secondaires. Laissez vide pour ne rien
+                      retirer sur ce critère.
+                    </p>
+                    {analyse ? (
+                      <VariablePicker
+                        variables={variables}
+                        selected={keyCols}
+                        onChange={setKeyCols}
+                      />
+                    ) : (
+                      <p className="text-muted-foreground text-sm italic">
+                        Chargez une base pour choisir les variables obligatoires.
+                      </p>
+                    )}
+                    <label className="flex items-center gap-2 pt-1 text-sm">
+                      <Switch checked={dropMissing} onCheckedChange={setDropMissing} />
+                      <span>
+                        Ne garder que les lignes <strong>100 % complètes</strong>
+                        <span className="text-muted-foreground">
+                          {' '}
+                          (retire toute ligne à laquelle il manque une valeur, sur n’importe quelle
+                          variable — à utiliser avec prudence)
+                        </span>
+                      </span>
+                    </label>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
@@ -3322,7 +3378,7 @@ export function AtelierClient({
                     ) : (
                       <Wand2 className="size-4" />
                     )}
-                    Aperçu de l’épuration
+                    Aperçu du nettoyage
                   </Button>
                   <Button onClick={appliquerBaseEpuree} disabled={busyClean}>
                     {busyClean ? (
@@ -3330,19 +3386,19 @@ export function AtelierClient({
                     ) : (
                       <Save className="size-4" />
                     )}
-                    Adopter &amp; enregistrer la base épurée
+                    Adopter &amp; enregistrer la base nettoyée
                   </Button>
                 </div>
                 <p className="text-muted-foreground text-xs">
                   « Aperçu » ne modifie pas la base. « Adopter » remplace la base de travail par la
-                  base épurée : tous les traitements suivants (tris, liste, rapport…) portent alors
-                  sur cette base nettoyée, et elle est retrouvée à l’identique en rouvrant le
+                  base nettoyée : tous les traitements suivants (tris, liste, rapport…) portent
+                  alors sur cette base, et elle est retrouvée à l’identique en rouvrant le
                   traitement depuis l’historique.
                 </p>
                 {baseEpuree && (
                   <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
                     <Wand2 className="size-4" />
-                    Base de travail active : <strong>base épurée</strong>.
+                    Base de travail active : <strong>base nettoyée</strong>.
                   </div>
                 )}
               </CardContent>
@@ -3351,11 +3407,11 @@ export function AtelierClient({
             {clean && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Résultat de l’épuration</CardTitle>
+                  <CardTitle className="text-base">Résumé du nettoyage</CardTitle>
                   <CardDescription>
                     <span className="inline-flex flex-wrap gap-2">
                       <Badge variant="secondary">Source : {clean.n_rows_source} lignes</Badge>
-                      <Badge variant="secondary">Épurée : {clean.n_rows_cleaned} lignes</Badge>
+                      <Badge variant="secondary">Nettoyée : {clean.n_rows_cleaned} lignes</Badge>
                       <Badge variant={clean.n_removed > 0 ? 'default' : 'outline'}>
                         {clean.n_removed} retirée(s)
                       </Badge>
@@ -3363,10 +3419,59 @@ export function AtelierClient({
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {clean.rapport && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {/* ① Ce qui a été corrigé (aucune ligne retirée) */}
+                      <div className="rounded-md border p-3">
+                        <p className="mb-1 text-sm font-semibold">① Corrections</p>
+                        <ul className="text-muted-foreground space-y-0.5 text-xs">
+                          <li>
+                            Valeurs manquantes normalisées :{' '}
+                            <strong className="text-foreground">
+                              {clean.rapport.corrections.codes_manquants_normalises}
+                            </strong>{' '}
+                            cellule(s)
+                          </li>
+                          <li>
+                            Espaces superflus retirés :{' '}
+                            <strong className="text-foreground">
+                              {clean.rapport.corrections.espaces_nettoyes}
+                            </strong>{' '}
+                            cellule(s)
+                          </li>
+                          <li>
+                            Variables arrondies :{' '}
+                            <strong className="text-foreground">
+                              {clean.rapport.corrections.colonnes_arrondies}
+                            </strong>
+                          </li>
+                        </ul>
+                      </div>
+                      {/* ② Ce qui a été retiré, par motif */}
+                      <div className="rounded-md border p-3">
+                        <p className="mb-1 text-sm font-semibold">
+                          ② Épuration — {clean.rapport.n_retirees} ligne(s) retirée(s)
+                        </p>
+                        {clean.rapport.retraits.length === 0 ? (
+                          <p className="text-muted-foreground text-xs italic">
+                            Aucun retrait (épuration désactivée).
+                          </p>
+                        ) : (
+                          <ul className="text-muted-foreground space-y-0.5 text-xs">
+                            {clean.rapport.retraits.map((r) => (
+                              <li key={r.motif}>
+                                {r.motif} : <strong className="text-foreground">{r.n}</strong>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {clean.preview.length > 0 ? (
                     <>
                       <p className="text-muted-foreground text-xs">
-                        Aperçu des {Math.min(clean.preview.length, 100)} premières lignes épurées.
+                        Aperçu des {Math.min(clean.preview.length, 100)} premières lignes nettoyées.
                       </p>
                       <div className="overflow-auto">
                         <Table>
@@ -3400,7 +3505,7 @@ export function AtelierClient({
                     </>
                   ) : (
                     <p className="text-muted-foreground text-sm italic">
-                      La base épurée ne contient aucune ligne.
+                      La base nettoyée ne contient aucune ligne.
                     </p>
                   )}
                 </CardContent>
