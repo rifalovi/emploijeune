@@ -53,6 +53,7 @@ import {
   telechargerHtml,
 } from '@/lib/analyseur-cmr/html-export';
 import { exporterCmrExcel } from '@/lib/analyseur-cmr/excel-export';
+import { exporterRapportWord } from '@/lib/analyseur-cmr/word-export';
 import type {
   CMRAnalyseResponse,
   IndicateurCMR,
@@ -129,6 +130,19 @@ export function AnalyseurCmrClient() {
     }
   }
 
+  const [exportWord, setExportWord] = useState(false);
+  async function telechargerWord() {
+    if (!res) return;
+    setExportWord(true);
+    try {
+      await exporterRapportWord(res);
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : String(e));
+    } finally {
+      setExportWord(false);
+    }
+  }
+
   const projet = useMemo<ProjetCMR | null>(
     () => res?.projets.find((p) => p.code === projetActif) ?? res?.projets[0] ?? null,
     [res, projetActif],
@@ -193,6 +207,14 @@ export function AnalyseurCmrClient() {
               onClick={() => telechargerHtml('rapport_audit_cmr.html', construireRapportHtml(res))}
             >
               <FileText className="size-4" /> Rapport d’audit (HTML)
+            </Button>
+            <Button variant="outline" size="sm" onClick={telechargerWord} disabled={exportWord}>
+              {exportWord ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <FileText className="size-4" />
+              )}
+              Rapport d’audit (Word)
             </Button>
             <Button size="sm" onClick={telechargerExcel} disabled={exportExcel}>
               {exportExcel ? (
