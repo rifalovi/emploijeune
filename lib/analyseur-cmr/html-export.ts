@@ -219,6 +219,97 @@ ${messagesBloc(res)}`;
   return doc('Infographie CMR', corps);
 }
 
+/**
+ * Rapport d'audit analytique (Livrable 1 — rapport_audit_cmr.html) :
+ * résumé exécutif, tableau des anomalies, analyse des incohérences, et section
+ * « décisions nécessitant une validation humaine ». Imprimable en PDF.
+ */
+export function construireRapportHtml(res: CMRAnalyseResponse): string {
+  const k = res.global.kpi;
+  const mention = mentionFiabilite(k.score_fiabilite);
+
+  // Résumé exécutif.
+  const resume = `
+<div class="card">
+<p><strong>Nombre de projets audités :</strong> ${k.n_projets} · <strong>Indicateurs :</strong> ${k.n_indicateurs}</p>
+<p><strong>Anomalies détectées :</strong> ${k.n_anomalies} · <strong>Taux d'atteinte médian :</strong> ${pct(
+    k.taux_atteinte_global,
+  )}</p>
+<p><strong>Qualité des données :</strong> ${k.score_qualite}/100 · <strong>Cohérence :</strong> ${k.score_coherence}/100</p>
+<p style="font-size:18px;margin-top:10px"><strong>Score global de fiabilité : <span style="color:${couleurScore(
+    k.score_fiabilite,
+  )}">${k.score_fiabilite}/100</span></strong> — ${esc(mention)}</p>
+</div>`;
+
+  // Tableau des anomalies : agrégation par projet et par type.
+  const parType = new Map<string, number>();
+  for (const p of res.projets) {
+    for (const a of p.anomalies) parType.set(a.type, (parType.get(a.type) ?? 0) + 1);
+  }
+  const typesRows = [...parType.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([t, n]) => `<tr><td>${esc(t)}</td><td>${n}</td></tr>`)
+    .join('');
+  const projetsRows = res.projets
+    .map(
+      (p) =>
+        `<tr><td><strong>${esc(p.code)}</strong> ${esc(p.nom)}</td><td>${p.n_indicateurs}</td><td>${
+          p.scores.fiabilite
+        }/100</td><td>${p.n_anomalies}</td><td>${p.statuts.Critique}</td><td>${esc(
+          p.mention_qualite,
+        )}</td></tr>`,
+    )
+    .join('');
+
+  // Décisions nécessitant une validation humaine (corrections non appliquées).
+  const decisions = res.projets.flatMap((p) =>
+    p.indicateurs.flatMap((ind) =>
+      ind.corrections
+        .filter((c) => !c.applique)
+        .map(
+          (c) =>
+            `<tr><td>${esc(p.code)}</td><td>${esc(ind.ref)}</td><td>${esc(c.champ)}</td><td>${esc(
+              c.confiance,
+            )}</td><td>${esc(c.justification)}</td></tr>`,
+        ),
+    ),
+  );
+
+  const corps = `
+<header class="hero"><h1>Rapport d'audit analytique du CMR</h1>
+<p>Cadre de Mesure du Rendement · ${res.n_projets} projets · ${res.n_indicateurs} indicateurs</p></header>
+
+<h2>1. Résumé exécutif</h2>
+${resume}
+
+<h2>2. Tableau des anomalies</h2>
+<table><thead><tr><th>Type d'anomalie</th><th>Occurrences</th></tr></thead><tbody>${
+    typesRows || '<tr><td colspan="2" class="muted">Aucune anomalie détectée.</td></tr>'
+  }</tbody></table>
+
+<h2>3. Synthèse par projet</h2>
+<table><thead><tr><th>Projet</th><th>Indic.</th><th>Fiabilité</th><th>Anomalies</th><th>Critiques</th><th>Qualité</th></tr></thead><tbody>${projetsRows}</tbody></table>
+
+<h2>4. Analyse des incohérences</h2>
+${messagesBloc(res)}
+
+<h2>5. Décisions nécessitant une validation humaine</h2>
+<p class="muted">Hypothèses et corrections incertaines — proposées, non appliquées automatiquement (données originales préservées).</p>
+<table><thead><tr><th>Projet</th><th>Réf.</th><th>Champ</th><th>Confiance</th><th>Justification</th></tr></thead><tbody>${
+    decisions.length
+      ? decisions.join('')
+      : '<tr><td colspan="5" class="muted">Aucune décision en attente : toutes les corrections sont arithmétiques et certaines.</td></tr>'
+  }</tbody></table>`;
+  return doc("Rapport d'audit CMR", corps);
+}
+
+function mentionFiabilite(score: number): string {
+  if (score >= 85) return 'Fiabilité élevée';
+  if (score >= 70) return 'Bonne fiabilité avec réserves';
+  if (score >= 50) return 'Fiabilité moyenne — à consolider';
+  return 'Fiabilité limitée — vérifications importantes requises';
+}
+
 /** Déclenche le téléchargement d'un fichier HTML autoporté. */
 export function telechargerHtml(nomFichier: string, html: string): void {
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });

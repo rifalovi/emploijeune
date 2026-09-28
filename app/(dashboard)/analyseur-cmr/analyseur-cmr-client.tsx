@@ -18,6 +18,7 @@ import {
   CheckCheck,
   Download,
   FileSpreadsheet,
+  FileText,
   Gauge,
   Loader2,
   ShieldAlert,
@@ -48,8 +49,10 @@ import { analyserCmr, uploadCmrFile } from '@/lib/analyseur-cmr/api-client';
 import {
   construireDashboardHtml,
   construireInfographieHtml,
+  construireRapportHtml,
   telechargerHtml,
 } from '@/lib/analyseur-cmr/html-export';
+import { exporterCmrExcel } from '@/lib/analyseur-cmr/excel-export';
 import type {
   CMRAnalyseResponse,
   IndicateurCMR,
@@ -113,6 +116,19 @@ export function AnalyseurCmrClient() {
     }
   }
 
+  const [exportExcel, setExportExcel] = useState(false);
+  async function telechargerExcel() {
+    if (!res) return;
+    setExportExcel(true);
+    try {
+      await exporterCmrExcel(res);
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : String(e));
+    } finally {
+      setExportExcel(false);
+    }
+  }
+
   const projet = useMemo<ProjetCMR | null>(
     () => res?.projets.find((p) => p.code === projetActif) ?? res?.projets[0] ?? null,
     [res, projetActif],
@@ -171,6 +187,21 @@ export function AnalyseurCmrClient() {
           <KpisGlobaux res={res} />
 
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => telechargerHtml('rapport_audit_cmr.html', construireRapportHtml(res))}
+            >
+              <FileText className="size-4" /> Rapport d’audit (HTML)
+            </Button>
+            <Button size="sm" onClick={telechargerExcel} disabled={exportExcel}>
+              {exportExcel ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="size-4" />
+              )}
+              CMR corrigé (Excel, formules)
+            </Button>
             <Button
               variant="outline"
               size="sm"
