@@ -177,6 +177,13 @@ class TranslateRequest(SourceRequest):
     column_map: dict[str, str] = Field(default_factory=dict)
     value_maps: dict[str, dict[str, str]] = Field(default_factory=dict)
     free_text_columns: list[str] = Field(default_factory=list)
+    # Traduction des LIBELLÉS SPSS (bases .sav à modalités codées) :
+    # - variable_label_map : {colonne d'origine -> libellé de variable traduit}
+    # - value_label_text_map : {texte d'étiquette de valeur d'origine -> traduit}
+    #   (appliqué à toutes les colonnes ; les CODES sont conservés, seuls les
+    #   libellés lisibles des modalités sont traduits).
+    variable_label_map: dict[str, str] = Field(default_factory=dict)
+    value_label_text_map: dict[str, str] = Field(default_factory=dict)
     full: bool = False
     name: Optional[str] = None
 

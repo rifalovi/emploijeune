@@ -593,13 +593,41 @@ def translation_terms(req: TranslationTermsRequest, user: AuthUser = CurrentUser
         else:
             # Trop de valeurs au global → proposée en réponses ouvertes (par lots).
             free_text_columns.append(str(c))
-    # Échantillon pour la détection de langue : en-têtes + quelques valeurs.
-    apercu = list(columns[:60])
+    # Libellés SPSS à traduire : le TEXTE des étiquettes de variables (questions)
+    # et des étiquettes de valeurs (modalités CODÉES). Pour un .sav, le tableau ne
+    # contient que des CODES numériques ; les modalités lisibles vivent dans
+    # `value_labels` — sans cela, la traduction « ne prend pas les modalités ».
+    colset = set(columns)
+    variable_labels = {
+        str(c): str(lbl)
+        for c, lbl in (ds.variable_labels or {}).items()
+        if str(c) in colset and str(lbl).strip() and str(lbl).strip() != str(c)
+    }
+    value_label_texts: dict[str, list[str]] = {}
+    for c, mapping in (ds.value_labels or {}).items():
+        if str(c) not in colset or not mapping:
+            continue
+        vus2: set[str] = set()
+        textes: list[str] = []
+        for lbl in mapping.values():
+            s = str(lbl).strip()
+            if s and s not in vus2 and not _est_nombre(s):
+                vus2.add(s)
+                textes.append(s)
+        if textes:
+            value_label_texts[str(c)] = textes
+
+    # Échantillon pour la détection de langue : en-têtes + libellés + quelques valeurs.
+    apercu = list(columns[:60]) + list(variable_labels.values())[:40]
     for vals in list(values.values())[:20]:
         apercu.extend(vals[:5])
+    for textes in list(value_label_texts.values())[:20]:
+        apercu.extend(textes[:5])
     return {
         "columns": columns,
         "values": values,
+        "variable_labels": variable_labels,
+        "value_label_texts": value_label_texts,
         "free_text_columns": free_text_columns,
         "sample": " | ".join(apercu[:200]),
         "n_rows": int(len(frame)),
@@ -722,14 +750,27 @@ def translate(req: TranslateRequest, user: AuthUser = CurrentUser) -> dict:
         "vo_columns": list(mesure_vo.keys()),
     }
     if req.full:
+        var_label_map = {str(k): str(v) for k, v in (req.variable_label_map or {}).items()}
+        val_text_map = {str(k): str(v) for k, v in (req.value_label_text_map or {}).items()}
+        # Libellés de variables : on traduit le TEXTE (question), pas seulement la clé.
+        variable_labels_out = {
+            rename_final.get(str(k), str(k)): str(var_label_map.get(str(k), v))
+            for k, v in (ds.variable_labels or {}).items()
+        }
+        # Libellés de valeurs : on CONSERVE les codes et on traduit le libellé lisible
+        # (résout « la traduction ne prend pas en compte les modalités » sur un .sav).
+        value_labels_out = {
+            rename_final.get(str(col), str(col)): {
+                str(code): str(val_text_map.get(str(lbl).strip(), lbl))
+                for code, lbl in mapping.items()
+            }
+            for col, mapping in (ds.value_labels or {}).items()
+        }
         result["dataset"] = {
             "rows": frame_to_records(frame),
             "columns": [str(c) for c in frame.columns],
-            "variable_labels": {
-                rename_final.get(str(k), str(k)): str(v)
-                for k, v in (ds.variable_labels or {}).items()
-            },
-            "value_labels": {},
+            "variable_labels": variable_labels_out,
+            "value_labels": value_labels_out,
             "variable_measure": mesure_vo,
             "name": req.name or f"{ds.name} (traduit)",
         }

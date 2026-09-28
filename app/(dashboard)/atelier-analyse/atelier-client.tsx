@@ -300,6 +300,8 @@ type ReloadDesc = {
   // Traduction
   columnMap?: Record<string, string>;
   valueMaps?: Record<string, Record<string, string>>;
+  variableLabelMap?: Record<string, string>;
+  valueLabelTextMap?: Record<string, string>;
   freeTextColumns?: string[];
   name?: string;
   langueCible?: string;
@@ -1099,6 +1101,8 @@ export function AtelierClient({
       const trad = await traduireTermesAction({
         columns: termesOk.columns,
         values: termesOk.values,
+        variableLabels: termesOk.variable_labels,
+        valueLabelTexts: termesOk.value_label_texts,
         sample: termesOk.sample,
         langueCible,
       });
@@ -1145,6 +1149,8 @@ export function AtelierClient({
         full: true,
         name: nomTraduit,
         freeTextColumns: colsOuvertes,
+        variableLabelMap: trad.variableLabelMap,
+        valueLabelTextMap: trad.valueLabelTextMap,
       });
       if (!rt.dataset || !Array.isArray(rt.dataset.rows)) {
         setErreur('La base traduite n’a pas pu être générée.');
@@ -1161,11 +1167,13 @@ export function AtelierClient({
       setRapport(null);
       appliquerAnalyse(await analyzeDataset(ds));
       setTraduit(true);
+      // Les libellés SPSS traduits (questions + modalités codées) comptent aussi.
+      const nbModalitesCodees = Object.keys(trad.valueLabelTextMap).length;
       setTraductionInfo({
         langueDetectee: trad.langueDetectee,
         langueCible: trad.langueCible,
-        nbColonnes: Object.keys(trad.columnMap).length,
-        nbValeurs,
+        nbColonnes: Object.keys(trad.columnMap).length + Object.keys(trad.variableLabelMap).length,
+        nbValeurs: nbValeurs + nbModalitesCodees,
         nbOuvertes: colsOuvertes.length,
       });
       // Descripteur de rechargement : reproduit la traduction sur la base d'origine.
@@ -1175,6 +1183,8 @@ export function AtelierClient({
         base: (consolide && consolideReload ? consolideReload : reloadInfo) as ReloadDesc,
         columnMap: trad.columnMap,
         valueMaps,
+        variableLabelMap: trad.variableLabelMap,
+        valueLabelTextMap: trad.valueLabelTextMap,
         freeTextColumns: colsOuvertes,
         name: nomTraduit,
         langueCible: trad.langueCible,
@@ -1601,6 +1611,8 @@ export function AtelierClient({
         full: true,
         name: desc.name,
         freeTextColumns: desc.freeTextColumns ?? [],
+        variableLabelMap: desc.variableLabelMap ?? {},
+        valueLabelTextMap: desc.valueLabelTextMap ?? {},
       });
       if (rt.dataset && Array.isArray(rt.dataset.rows)) {
         setDataset(rt.dataset);
@@ -3124,10 +3136,13 @@ export function AtelierClient({
                 <CardDescription>
                   Pour les enquêtes en <strong>langue étrangère</strong> (vietnamien, khmer,
                   portugais, mandarin, japonais…). L’IA détecte la langue puis traduit les{' '}
-                  <strong>en-têtes de colonnes</strong> et les <strong>modalités</strong> (valeurs
-                  catégorielles) vers la langue cible, afin que la suite — nettoyage, croisements,
-                  rapport — se fasse dans cette langue. Le sens d’origine est préservé : les valeurs
-                  hors table (texte libre, noms propres, nombres) restent inchangées.
+                  <strong>en-têtes</strong>, les <strong>intitulés de questions</strong> et les{' '}
+                  <strong>modalités</strong> — y compris les <strong>modalités codées</strong> d’un
+                  fichier <code>.sav</code> (les codes sont conservés, seuls les libellés lisibles
+                  sont traduits) — vers la langue cible, afin que la suite (nettoyage, croisements,
+                  rapport) se fasse dans cette langue. Le sens d’origine est préservé : les valeurs
+                  hors table (noms propres, nombres) restent inchangées, et les réponses ouvertes
+                  cochées sont traduites en conservant leur version originale.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

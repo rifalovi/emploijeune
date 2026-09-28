@@ -132,6 +132,10 @@ export type CleanResponse = {
 export type TranslationTermsResponse = {
   columns: string[];
   values: Record<string, string[]>;
+  /** Libellés de variables (questions) à traduire : { colonne -> libellé }. */
+  variable_labels: Record<string, string>;
+  /** Libellés de valeurs (modalités CODÉES d'un .sav) : { colonne -> [libellés] }. */
+  value_label_texts: Record<string, string[]>;
   /** Colonnes de réponses ouvertes (texte libre) traduisibles en option, par lots. */
   free_text_columns: string[];
   sample: string;

@@ -208,13 +208,23 @@ export function computeTranslate(
   source: ComputeSource,
   columnMap: Record<string, string>,
   valueMaps: Record<string, Record<string, string>>,
-  opts?: { full?: boolean; name?: string; freeTextColumns?: string[] },
+  opts?: {
+    full?: boolean;
+    name?: string;
+    freeTextColumns?: string[];
+    /** { colonne -> libellé de variable (question) traduit }. */
+    variableLabelMap?: Record<string, string>;
+    /** { texte d'étiquette de valeur d'origine -> traduit } (modalités codées). */
+    valueLabelTextMap?: Record<string, string>;
+  },
 ): Promise<TranslateResponse> {
   return post<TranslateResponse>('/translate', {
     ...sourceBody(source),
     column_map: columnMap,
     value_maps: valueMaps,
     free_text_columns: opts?.freeTextColumns ?? [],
+    variable_label_map: opts?.variableLabelMap ?? {},
+    value_label_text_map: opts?.valueLabelTextMap ?? {},
     full: opts?.full ?? true,
     name: opts?.name ?? null,
   });
