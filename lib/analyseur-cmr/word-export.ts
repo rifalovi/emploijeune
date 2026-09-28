@@ -50,7 +50,7 @@ function titre(docx: any, niveau: 1 | 2, contenu: string): any {
 }
 
 function cellule(docx: any, contenu: string, opts: { header?: boolean } = {}): any {
-  const { TableCell, Paragraph, TextRun, WidthType } = docx;
+  const { TableCell, Paragraph, TextRun } = docx;
   return new TableCell({
     margins: { top: 40, bottom: 40, left: 80, right: 80 },
     shading: opts.header ? { fill: BLEU } : undefined,
@@ -67,7 +67,6 @@ function cellule(docx: any, contenu: string, opts: { header?: boolean } = {}): a
         ],
       }),
     ],
-    width: opts.header ? undefined : { size: undefined as any, type: WidthType.AUTO },
   });
 }
 
