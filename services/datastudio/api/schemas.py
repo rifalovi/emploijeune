@@ -221,3 +221,16 @@ class ConsolidateRequest(SourceRequest):
     groups: list[ConsolidateGroup] = Field(default_factory=list)
     full: bool = True
     name: Optional[str] = None
+
+
+class CMRAnalyzeRequest(BaseModel):
+    """Analyse d'un classeur CMR (Cadre de Mesure du Rendement) déposé dans
+    Storage. `path` est le chemin de l'objet ({user_id}/uploads/{fichier}.xlsx),
+    éventuellement suffixé (feuille/en-tête ignorés : tous les onglets sont lus).
+
+    Le classeur porte un onglet par projet, en-têtes sur trois lignes et hiérarchie
+    GAR (OG → E → P → I) en colonne « Réf. ». L'analyse renvoie, par projet, un
+    audit (anomalies, scores) et une révision tracée, plus une consolidation
+    globale du portefeuille (Tableau de bord Global)."""
+
+    path: str

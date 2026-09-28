@@ -795,3 +795,65 @@ def test_consolidate_fusionne_les_langues():
     # Les lignes françaises gardent leur valeur.
     assert ds["rows"][0]["sexe"] == "Homme"
     assert ds["rows"][2]["avis"] == "Super"
+
+
+# ------------------------------------------------------------------ CMR
+
+def _ecrire_classeur_cmr(path: str) -> None:
+    """Écrit un classeur CMR synthétique (2 onglets projet + 1 onglet libre)."""
+    import pandas as pd
+    from tests.test_cmr import _onglet_demo, _entete, _frame
+
+    autre = _frame(_entete(1) + [["I1", "Indic", "Nbre", 0, 10, 9, "90%", 10, 9, "90%"]])
+    notes = pd.DataFrame([["texte libre", "sans structure"]])
+    with pd.ExcelWriter(path, engine="openpyxl") as xl:
+        _onglet_demo().to_excel(xl, sheet_name="Pj9_Demo", header=False, index=False)
+        autre.to_excel(xl, sheet_name="Pj1_Autre", header=False, index=False)
+        notes.to_excel(xl, sheet_name="Notes", header=False, index=False)
+
+
+def test_cmr_analyze_ownership_403():
+    r = client.post(
+        "/api/datastudio/cmr/analyze",
+        json={"path": "autre-user/uploads/cmr.xlsx"},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 403
+
+
+def test_cmr_analyze_ok(tmp_path, monkeypatch):
+    xlsx = tmp_path / "cmr.xlsx"
+    _ecrire_classeur_cmr(str(xlsx))
+    # Court-circuite le téléchargement Storage : on rend le fichier local.
+    monkeypatch.setattr("api.app.download_to_temp", lambda p: str(xlsx))
+
+    r = client.post(
+        "/api/datastudio/cmr/analyze",
+        json={"path": "user-123/uploads/cmr.xlsx"},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["n_projets"] == 2
+    assert "Notes" in data["onglets_ignores"]
+    assert data["n_indicateurs"] == 4
+    g = data["global"]
+    assert g["kpi"]["n_projets"] == 2
+    assert set(g["repartition_statuts"]) == {"Conforme", "Corrigé", "À vérifier", "Critique"}
+    assert len(g["classement"]) == 2
+    # Un indicateur « réalisation impossible » a bien été détecté.
+    types = {a["type"] for p in data["projets"] for a in p["anomalies"]}
+    assert "Réalisation impossible" in types
+
+
+def test_cmr_analyze_classeur_non_cmr_422(tmp_path, monkeypatch):
+    import pandas as pd
+    xlsx = tmp_path / "libre.xlsx"
+    pd.DataFrame([["a", "b"], [1, 2]]).to_excel(xlsx, header=False, index=False)
+    monkeypatch.setattr("api.app.download_to_temp", lambda p: str(xlsx))
+    r = client.post(
+        "/api/datastudio/cmr/analyze",
+        json={"path": "user-123/uploads/libre.xlsx"},
+        headers=auth_headers(),
+    )
+    assert r.status_code == 422

@@ -36,6 +36,7 @@ from engine import (  # noqa: E402
 )
 from engine.sav_io import list_sheets, load_dataset  # noqa: E402
 from engine.consolidation import consolider, detecter_groupes  # noqa: E402
+from engine.cmr import analyser_cmr  # noqa: E402
 
 from .auth import AuthUser, CurrentUser  # noqa: E402
 from .schemas import (  # noqa: E402
@@ -56,6 +57,7 @@ from .schemas import (  # noqa: E402
     TranslationTermsRequest,
     ConsolidationPlanRequest,
     ConsolidateRequest,
+    CMRAnalyzeRequest,
 )
 from .serialize import (  # noqa: E402
     crosstab_to_json,
@@ -819,6 +821,46 @@ def consolidate(req: ConsolidateRequest, user: AuthUser = CurrentUser) -> dict:
             "variable_measure": {str(k): str(v) for k, v in (cons.variable_measure or {}).items()},
             "name": req.name or cons.name,
         }
+    return result
+
+
+@router.post("/cmr/analyze")
+def cmr_analyze(req: CMRAnalyzeRequest, user: AuthUser = CurrentUser) -> dict:
+    """Analyse un classeur CMR (un onglet par projet) et renvoie, par projet,
+    l'audit + la révision tracée, ainsi que la consolidation globale du
+    portefeuille. Toutes les feuilles sont lues (feuille/en-tête non pertinents)."""
+    base, _, _ = _parse_ref(req.path)
+    try:
+        path = validate_object_path(base)
+    except StorageError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if path.split("/")[0] != user.user_id:
+        raise HTTPException(status_code=403, detail="Fichier non autorisé.")
+    try:
+        tmp = download_to_temp(path)
+    except StorageError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    try:
+        sheets = pd.read_excel(tmp, sheet_name=None, header=None)
+    except Exception as exc:  # lecture/format
+        raise HTTPException(
+            status_code=422,
+            detail=f"Lecture du classeur CMR impossible : {exc}. "
+            "Format attendu : un classeur Excel avec un onglet par projet.",
+        ) from exc
+    finally:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+    result = analyser_cmr(sheets)
+    if result["n_projets"] == 0:
+        raise HTTPException(
+            status_code=422,
+            detail="Aucun onglet CMR reconnu. Vérifiez que chaque feuille porte "
+            "les en-têtes « Réf. / Indicateurs / Cible / Réalisé » et une hiérarchie "
+            "OG → E → P → I en colonne « Réf. ».",
+        )
     return result
 
 

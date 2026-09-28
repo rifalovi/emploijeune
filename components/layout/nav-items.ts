@@ -17,6 +17,7 @@ import {
   BarChart2,
   Table2,
   FlaskConical,
+  ClipboardCheck,
   type LucideIcon,
 } from 'lucide-react';
 import type { RoleUtilisateur } from '@/lib/supabase/auth';
@@ -119,6 +120,13 @@ export const NAV_GROUPS: NavGroupDef[] = [
         href: '/atelier-analyse',
         label: "Atelier d'analyse",
         icon: FlaskConical,
+        roles: ['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire', 'lecteur'],
+        conditional: 'data_studio',
+      },
+      {
+        href: '/analyseur-cmr',
+        label: 'Analyseur de CMR',
+        icon: ClipboardCheck,
         roles: ['super_admin', 'admin_scs', 'editeur_projet', 'contributeur_partenaire', 'lecteur'],
         conditional: 'data_studio',
       },
