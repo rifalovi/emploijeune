@@ -2127,9 +2127,19 @@ export function AtelierClient({
                 </div>
                 <div className="space-y-1">
                   <p className="text-muted-foreground text-xs">Indicateur / questionnaire</p>
-                  <Select value={mpIndicateur} onValueChange={(v) => setMpIndicateur(v ?? '')}>
+                  <Select
+                    value={mpIndicateur}
+                    onValueChange={(v) => setMpIndicateur(v ?? '')}
+                    disabled={indicateurs.length === 0}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un indicateur…" />
+                      <SelectValue
+                        placeholder={
+                          indicateurs.length === 0
+                            ? 'Aucun indicateur avec réponses'
+                            : 'Sélectionner un indicateur…'
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {indicateurs.map((i) => (
@@ -2197,14 +2207,23 @@ export function AtelierClient({
                 </p>
               </div>
 
-              <Button onClick={chargerMultiProjets} disabled={!mpIndicateur || chargement}>
-                {chargement ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Layers className="size-4" />
+              <div className="space-y-1">
+                <Button onClick={chargerMultiProjets} disabled={!mpIndicateur || chargement}>
+                  {chargement ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Layers className="size-4" />
+                  )}
+                  Charger la base multi-projets
+                </Button>
+                {!mpIndicateur && (
+                  <p className="text-muted-foreground text-xs">
+                    {indicateurs.length === 0
+                      ? 'Aucun indicateur avec des réponses d’enquête n’est disponible pour le moment.'
+                      : 'Sélectionnez d’abord un indicateur / questionnaire pour activer le chargement.'}
+                  </p>
                 )}
-                Charger la base multi-projets
-              </Button>
+              </div>
             </div>
           )}
 
